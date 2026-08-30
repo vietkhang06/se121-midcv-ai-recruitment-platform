@@ -1,0 +1,160 @@
+package com.platform.recruitment.ai;
+
+import com.platform.recruitment.candidate.CandidateProfile;
+import com.platform.recruitment.candidate.CandidateProfileRepository;
+import com.platform.recruitment.common.ResourceNotFoundException;
+import com.platform.recruitment.cv.CV;
+import com.platform.recruitment.cv.CVRepository;
+import com.platform.recruitment.cv.CVSection;
+import com.platform.recruitment.cv.CVSectionRepository;
+import com.platform.recruitment.cv.CVVersion;
+import com.platform.recruitment.cv.CVVersionRepository;
+import com.platform.recruitment.github.*;
+import com.platform.recruitment.job.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class ProcessingLifecycleService {
+
+    private final AiWorkerClient aiWorkerClient;
+    private final JobRepository jobRepository;
+    private final JobRequirementRepository jobRequirementRepository;
+    private final CVRepository cvRepository;
+    private final CVVersionRepository cvVersionRepository;
+    private final CVSectionRepository cvSectionRepository;
+    private final CandidateProfileRepository candidateProfileRepository;
+    private final GitHubProfileRepository gitHubProfileRepository;
+    private final GitHubRepositoryRepository gitHubRepositoryRepository;
+    private final GitHubAssessmentRepository gitHubAssessmentRepository;
+
+    @Transactional
+    public void processJobDescription(UUID jobId) {
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
+
+        log.info("Processing JD extraction lifecycle for job_id: {}", jobId);
+        Map<String, Object> result = aiWorkerClient.extractJd(jobId, job.getTitle(), job.getIndustry(), job.getDescription());
+
+        // Idempotency: Clear existing draft requirements before persisting extracted requirements
+        jobRequirementRepository.deleteAll(jobRequirementRepository.findByJobId(jobId));
+
+        List<Map<String, Object>> reqSkills = (List<Map<String, Object>>) result.get("required_skills");
+        if (reqSkills != null) {
+            for (Map<String, Object> req : reqSkills) {
+                JobRequirement jr = JobRequirement.builder()
+                        .job(job)
+                        .skillName((String) req.get("normalized_name"))
+                        .requirementType(RequirementType.REQUIRED)
+                        .minYearsExp(req.get("min_years_exp") != null ? ((Number) req.get("min_years_exp")).intValue() : 0)
+                        .build();
+                jobRequirementRepository.save(jr);
+            }
+        }
+
+        List<Map<String, Object>> prefSkills = (List<Map<String, Object>>) result.get("preferred_skills");
+        if (prefSkills != null) {
+            for (Map<String, Object> pref : prefSkills) {
+                JobRequirement jr = JobRequirement.builder()
+                        .job(job)
+                        .skillName((String) pref.get("normalized_name"))
+                        .requirementType(RequirementType.PREFERRED)
+                        .minYearsExp(pref.get("min_years_exp") != null ? ((Number) pref.get("min_years_exp")).intValue() : 0)
+                        .build();
+                jobRequirementRepository.save(jr);
+            }
+        }
+        log.info("Successfully persisted extracted JD requirements for job_id: {}", jobId);
+    }
+
+    @Transactional
+    public void processCvDocument(UUID cvId) {
+        CV cv = cvRepository.findById(cvId)
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
+
+        // Create or fetch latest CVVersion
+        List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+        CVVersion version;
+        if (versions.isEmpty()) {
+            version = CVVersion.builder()
+                    .cv(cv)
+                    .versionNumber(1)
+                    .title(cv.getTitle() + " v1.0")
+                    .rawTextContent(cv.getRawText())
+                    .build();
+            version = cvVersionRepository.save(version);
+        } else {
+            version = versions.get(0);
+        }
+
+        log.info("Processing CV extraction lifecycle for cv_id: {}, version_id: {}", cvId, version.getId());
+        Map<String, Object> result = aiWorkerClient.extractCv(cvId, version.getId(), cv.getFileType(), cv.getRawText());
+
+        // Idempotency: Create CVSections linked to this exact CVVersion
+        CVSection skillsSection = CVSection.builder()
+                .cvVersion(version)
+                .sectionType("SKILLS")
+                .content(result.get("skills") != null ? result.get("skills").toString() : "")
+                .build();
+        cvSectionRepository.save(skillsSection);
+
+        cv.setStatus("PARSED");
+        cvRepository.save(cv);
+        log.info("Successfully persisted extracted CV sections for version_id: {}", version.getId());
+    }
+
+    @Transactional
+    public void processCandidateGithub(UUID candidateId) {
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateId)
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateId));
+
+        if (candidate.getGithubUrl() == null || candidate.getGithubUrl().isBlank()) {
+            log.info("No GitHub URL present for candidate_id: {}", candidateId);
+            return;
+        }
+
+        log.info("Processing GitHub analysis lifecycle for candidate_id: {}", candidateId);
+        Map<String, Object> result = aiWorkerClient.analyzeGithub(candidateId, candidate.getGithubUrl());
+
+        String statusStr = (String) result.getOrDefault("status", "SYNCED");
+        String activitySignalStr = (String) result.getOrDefault("activity_signal", "LIMITED_OBSERVABLE_ACTIVITY");
+        GitHubActivitySignal signal = GitHubActivitySignal.MODERATE;
+        try {
+            signal = GitHubActivitySignal.valueOf(activitySignalStr);
+        } catch (Exception ignored) {}
+
+        GitHubProfile profile = gitHubProfileRepository.findByCandidateId(candidate.getId())
+                .orElseGet(() -> GitHubProfile.builder()
+                        .candidate(candidate)
+                        .username((String) result.getOrDefault("username", "candidate"))
+                        .githubUrl(candidate.getGithubUrl())
+                        .build());
+
+        profile.setStatus(statusStr);
+        profile.setActivitySignal(signal);
+        profile.setPublicReposCount(result.get("public_repos_count") != null ? ((Number) result.get("public_repos_count")).intValue() : 0);
+        profile.setCalculatedAt(ZonedDateTime.now());
+        GitHubProfile savedProfile = gitHubProfileRepository.save(profile);
+
+        // Persist GitHub Assessment
+        GitHubAssessment assessment = gitHubAssessmentRepository.findByGithubProfileId(savedProfile.getId())
+                .orElseGet(() -> GitHubAssessment.builder().githubProfile(savedProfile).build());
+
+        assessment.setSummaryNotes((String) result.get("summary_notes"));
+        assessment.setLanguageRankSummary((String) result.get("language_rank_summary"));
+        assessment.setOverallSupportingRating((String) result.getOrDefault("overall_supporting_rating", "UNAVAILABLE"));
+        gitHubAssessmentRepository.save(assessment);
+
+        log.info("Successfully persisted GitHub analysis for candidate_id: {}", candidateId);
+    }
+}

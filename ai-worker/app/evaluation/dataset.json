@@ -1,0 +1,107 @@
+[
+  {
+    "id": "eval-jd-01",
+    "type": "JD",
+    "industry": "Technology",
+    "input_text": "Senior Java Spring Boot developer with 3+ years experience. Required: Java, Spring Framework, PostgreSQL. Preferred: Docker, AWS.",
+    "expected_output": {
+      "seniority": "Senior",
+      "required_skills": ["Java", "Spring Boot", "PostgreSQL"],
+      "preferred_skills": ["Docker", "Amazon Web Services (AWS)"]
+    }
+  },
+  {
+    "id": "eval-jd-02",
+    "type": "JD",
+    "industry": "Technology",
+    "input_text": "Frontend Developer. Must have: React.js, TypeScript, CSS. Nice to have: Vue.js, TailwindCSS.",
+    "expected_output": {
+      "seniority": "Mid",
+      "required_skills": ["React", "TypeScript"],
+      "preferred_skills": ["Vue.js"]
+    }
+  },
+  {
+    "id": "eval-jd-03",
+    "type": "JD",
+    "industry": "Marketing",
+    "input_text": "Digital Marketing Specialist. Mandatory qualifications: Facebook Ads, GA4. Preferred: Figma.",
+    "expected_output": {
+      "seniority": "Mid",
+      "required_skills": ["Facebook Ads", "Google Analytics 4"],
+      "preferred_skills": ["Figma"]
+    }
+  },
+  {
+    "id": "eval-jd-04",
+    "type": "JD",
+    "industry": "Finance",
+    "input_text": "Senior Accountant. Requirements: Financial Reporting, Tax Compliance, Excel. Bonus: SAP.",
+    "expected_output": {
+      "seniority": "Senior",
+      "required_skills": ["Financial Reporting", "Excel"],
+      "preferred_skills": ["SAP"]
+    }
+  },
+  {
+    "id": "eval-jd-05",
+    "type": "JD",
+    "industry": "Design",
+    "input_text": "UI/UX Designer. Required: Figma, Adobe XD, Wireframing. Preferred: HTML, CSS.",
+    "expected_output": {
+      "seniority": "Mid",
+      "required_skills": ["Figma", "Adobe XD"],
+      "preferred_skills": ["HTML", "CSS"]
+    }
+  },
+  {
+    "id": "eval-cv-01",
+    "type": "CV",
+    "industry": "Technology",
+    "input_text": "Nguyen Van Candidate. 3 years experience in Java, Spring Boot microservices and PostgreSQL.",
+    "expected_output": {
+      "full_name": "Nguyen Van Candidate",
+      "skills": ["Java", "Spring Boot", "PostgreSQL"]
+    }
+  },
+  {
+    "id": "eval-cv-02",
+    "type": "CV",
+    "industry": "Technology",
+    "input_text": "Le Van Frontend. Technical Skills: React, TypeScript, Redux, Node.js.",
+    "expected_output": {
+      "full_name": "Le Van Frontend",
+      "skills": ["React", "TypeScript", "Node.js"]
+    }
+  },
+  {
+    "id": "eval-cv-03",
+    "type": "CV",
+    "industry": "Marketing",
+    "input_text": "Tran Thi Marketing. Core Competencies: Facebook Ads, GA4, SEO, Content Marketing.",
+    "expected_output": {
+      "full_name": "Tran Thi Marketing",
+      "skills": ["Facebook Ads", "Google Analytics 4"]
+    }
+  },
+  {
+    "id": "eval-cv-04",
+    "type": "CV",
+    "industry": "Finance",
+    "input_text": "Pham Van Accountant. Professional Experience: Financial Reporting, Auditing, Tax Compliance.",
+    "expected_output": {
+      "full_name": "Pham Van Accountant",
+      "skills": ["Financial Reporting", "Tax Compliance"]
+    }
+  },
+  {
+    "id": "eval-cv-05",
+    "type": "CV",
+    "industry": "Design",
+    "input_text": "Hoang Thi Designer. Selected Projects: Figma Wireframing, UI Prototyping, Adobe XD.",
+    "expected_output": {
+      "full_name": "Hoang Thi Designer",
+      "skills": ["Figma", "Adobe XD"]
+    }
+  }
+]

@@ -1,3 +1,7 @@
+C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\ai\AiProcessingController.java
+C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\ai\AiWorkerClient.java
+C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\ai\ProcessingLifecycleService.java
+C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\ai\ProcessingStatus.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\application\Application.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\application\ApplicationAnswer.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\application\ApplicationController.java
@@ -75,6 +79,7 @@ C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\j
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\job\JobController.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\job\JobRepository.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\job\JobRequirement.java
+C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\job\JobRequirementRepository.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\job\JobResponse.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\job\JobService.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\job\JobStatus.java
