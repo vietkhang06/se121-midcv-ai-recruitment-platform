@@ -1,0 +1,23 @@
+meta {
+  name: Register HR with Company
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/register/recruiter
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "hr.recruiter@techcorp.com",
+    "password": "Password123!",
+    "fullName": "Tran Van HR",
+    "companyName": "Tech Corp Vietnam",
+    "companyTaxCode": "0101234567",
+    "companyWebsite": "https://techcorp.com",
+    "companyIndustry": "Technology"
+  }
+}

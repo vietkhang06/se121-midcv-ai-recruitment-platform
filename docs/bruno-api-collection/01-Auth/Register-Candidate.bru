@@ -1,0 +1,21 @@
+meta {
+  name: Register Candidate
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/register/candidate
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "candidate.test@example.com",
+    "password": "Password123!",
+    "fullName": "Nguyen Van Candidate",
+    "age": 24,
+    "targetIndustry": "Technology"
+  }
+}

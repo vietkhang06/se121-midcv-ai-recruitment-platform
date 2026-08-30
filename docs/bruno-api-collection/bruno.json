@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "AI Recruitment Platform Base Collection",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

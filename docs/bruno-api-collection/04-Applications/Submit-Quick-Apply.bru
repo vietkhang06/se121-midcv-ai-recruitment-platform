@@ -1,0 +1,22 @@
+meta {
+  name: Submit Quick Apply
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/candidate/applications
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{candidateToken}}
+}
+
+body:json {
+  {
+    "jobId": "e391f1ee-6c54-4b01-90e6-d701748f0899",
+    "cvId": "f491f1ee-6c54-4b01-90e6-d701748f0900"
+  }
+}

@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: airecruit-postgres-pgvector
+    restart: always
+    environment:
+      POSTGRES_DB: airecruit_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_secure_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d airecruit_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local

@@ -1,0 +1,45 @@
+meta {
+  name: Create Job Draft
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/jobs/draft
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{recruiterToken}}
+}
+
+body:json {
+  {
+    "title": "Senior Java Spring Developer",
+    "industry": "Technology",
+    "seniority": "Senior",
+    "minSalary": 25000000,
+    "maxSalary": 40000000,
+    "location": "Ho Chi Minh City",
+    "employmentType": "Full-time",
+    "description": "We are looking for a Senior Java Developer to build scalable microservices.",
+    "requirements": [
+      {
+        "skillName": "Java",
+        "type": "REQUIRED",
+        "minYearsExp": 3
+      },
+      {
+        "skillName": "Spring Boot",
+        "type": "REQUIRED",
+        "minYearsExp": 2
+      },
+      {
+        "skillName": "Docker",
+        "type": "PREFERRED",
+        "minYearsExp": 1
+      }
+    ]
+  }
+}

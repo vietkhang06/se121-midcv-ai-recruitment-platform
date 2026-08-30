@@ -1,0 +1,13 @@
+package com.platform.recruitment.common;
+
+public enum ErrorCode {
+    VALIDATION_ERROR,
+    AUTHENTICATION_FAILED,
+    ACCESS_DENIED,
+    RESOURCE_NOT_FOUND,
+    COMPANY_NOT_VERIFIED,
+    DUPLICATE_APPLICATION,
+    INVALID_FILE,
+    FILE_SIZE_EXCEEDED,
+    INTERNAL_SERVER_ERROR
+}
