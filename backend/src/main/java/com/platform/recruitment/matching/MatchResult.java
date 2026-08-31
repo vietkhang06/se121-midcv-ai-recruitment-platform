@@ -45,6 +45,38 @@ public class MatchResult extends BaseEntity {
     @Column(name = "github_fallback_applied")
     private Boolean githubFallbackApplied = false;
 
+    // Required Skill Gate Counters
+    @Builder.Default
+    @Column(name = "required_skills_total")
+    private Integer requiredSkillsTotal = 0;
+
+    @Builder.Default
+    @Column(name = "required_skills_matched")
+    private Integer requiredSkillsMatched = 0;
+
+    @Builder.Default
+    @Column(name = "required_skills_missing")
+    private Integer requiredSkillsMissing = 0;
+
+    // Preferred Skill Counters
+    @Builder.Default
+    @Column(name = "preferred_skills_total")
+    private Integer preferredSkillsTotal = 0;
+
+    @Builder.Default
+    @Column(name = "preferred_skills_matched")
+    private Integer preferredSkillsMatched = 0;
+
+    @Builder.Default
+    @Column(name = "preferred_skills_missing")
+    private Integer preferredSkillsMissing = 0;
+
+    @Column(name = "matching_algorithm_version")
+    private String matchingAlgorithmVersion;
+
+    @Column(name = "status")
+    private String status;
+
     @Column(name = "ai_summary", columnDefinition = "TEXT")
     private String aiSummary;
 }
