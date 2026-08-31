@@ -1,6 +1,7 @@
 package com.platform.recruitment.common;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -28,6 +29,15 @@ public class GlobalExceptionHandler {
         };
 
         return new ResponseEntity<>(ApiResponse.error(ex.getErrorCode(), ex.getMessage(), ex.getDetails()), status);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        log.error("DataIntegrityViolationException caught: {}", ex.getMessage());
+        return new ResponseEntity<>(
+                ApiResponse.error(ErrorCode.DUPLICATE_APPLICATION, "Candidate has already submitted an application for this job.", null),
+                HttpStatus.CONFLICT
+        );
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
