@@ -64,20 +64,26 @@ CREATE TABLE candidate_target_industries (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     candidate_id UUID NOT NULL REFERENCES candidate_profiles(id) ON DELETE CASCADE,
     industry_name VARCHAR(100) NOT NULL,
-    is_primary BOOLEAN DEFAULT FALSE
+    is_primary BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE candidate_target_roles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     candidate_id UUID NOT NULL REFERENCES candidate_profiles(id) ON DELETE CASCADE,
-    role_title VARCHAR(100) NOT NULL
+    role_title VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE candidate_languages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     candidate_id UUID NOT NULL REFERENCES candidate_profiles(id) ON DELETE CASCADE,
     language_name VARCHAR(100) NOT NULL,
-    proficiency_level VARCHAR(50) DEFAULT 'INTERMEDIATE'
+    proficiency_level VARCHAR(50) DEFAULT 'INTERMEDIATE',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 6. Table: cvs & cv_versions
@@ -105,15 +111,18 @@ CREATE TABLE cv_versions (
     title VARCHAR(255) NOT NULL,
     raw_text_content TEXT,
     structured_json_content TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 7. Table: cv_sections (Belongs to CVVersion)
+-- 7. Table: cv_sections (Belongs to CV in baseline V1)
 CREATE TABLE cv_sections (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    cv_version_id UUID NOT NULL REFERENCES cv_versions(id) ON DELETE CASCADE,
+    cv_id UUID NOT NULL REFERENCES cvs(id) ON DELETE CASCADE,
     section_type VARCHAR(50) NOT NULL,
-    content TEXT NOT NULL
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 8. Table: candidate_skills
@@ -122,7 +131,9 @@ CREATE TABLE candidate_skills (
     candidate_id UUID NOT NULL REFERENCES candidate_profiles(id) ON DELETE CASCADE,
     skill_name VARCHAR(100) NOT NULL,
     normalized_name VARCHAR(100) NOT NULL,
-    years_exp INT DEFAULT 0
+    years_exp INT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 9. Table: experiences
@@ -134,7 +145,9 @@ CREATE TABLE experiences (
     start_date DATE,
     end_date DATE,
     is_current BOOLEAN DEFAULT FALSE,
-    description TEXT
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 10. Table: educations
@@ -145,7 +158,9 @@ CREATE TABLE educations (
     degree VARCHAR(100),
     field_of_study VARCHAR(100),
     start_year INT,
-    end_year INT
+    end_year INT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 11. Table: projects
@@ -155,7 +170,9 @@ CREATE TABLE projects (
     name VARCHAR(255) NOT NULL,
     role VARCHAR(100),
     description TEXT,
-    tech_stack VARCHAR(500)
+    tech_stack VARCHAR(500),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 12. Table: certifications
@@ -164,7 +181,9 @@ CREATE TABLE certifications (
     candidate_id UUID NOT NULL REFERENCES candidate_profiles(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     issuing_organization VARCHAR(255),
-    issue_year INT
+    issue_year INT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 13. Table: jobs
@@ -190,7 +209,9 @@ CREATE TABLE job_requirements (
     job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
     skill_name VARCHAR(100) NOT NULL,
     requirement_type VARCHAR(50) NOT NULL CHECK (requirement_type IN ('REQUIRED', 'PREFERRED')),
-    min_years_exp INT DEFAULT 0
+    min_years_exp INT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 15. Table: applications
@@ -199,10 +220,10 @@ CREATE TABLE applications (
     job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
     candidate_id UUID NOT NULL REFERENCES candidate_profiles(id) ON DELETE CASCADE,
     applied_cv_id UUID REFERENCES cvs(id) ON DELETE SET NULL,
-    applied_cv_version_id UUID REFERENCES cv_versions(id) ON DELETE SET NULL,
     status VARCHAR(50) DEFAULT 'SUBMITTED' CHECK (status IN ('SUBMITTED', 'REVIEWED', 'MATCHED')),
     applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT idx_uniq_job_candidate UNIQUE (job_id, candidate_id)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 16. Table: application_cv_snapshots
@@ -212,7 +233,9 @@ CREATE TABLE application_cv_snapshots (
     cv_title VARCHAR(255) NOT NULL,
     raw_text_snapshot TEXT NOT NULL,
     structured_json_snapshot TEXT NOT NULL,
-    snapshot_created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    snapshot_created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 17. Table: application_questions & answers
@@ -220,14 +243,18 @@ CREATE TABLE application_questions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
     question_text TEXT NOT NULL,
-    is_required BOOLEAN DEFAULT TRUE
+    is_required BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE application_answers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     application_id UUID NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
     question_id UUID NOT NULL REFERENCES application_questions(id) ON DELETE CASCADE,
-    answer_text TEXT NOT NULL
+    answer_text TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 18. Tables: github_profiles, repositories, languages, topics, assessments
@@ -242,7 +269,9 @@ CREATE TABLE github_profiles (
     latest_activity_at TIMESTAMP WITH TIME ZONE,
     observation_window_days INT DEFAULT 180,
     calculated_at TIMESTAMP WITH TIME ZONE,
-    synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE github_repositories (
@@ -257,7 +286,9 @@ CREATE TABLE github_repositories (
     is_archived BOOLEAN DEFAULT FALSE,
     updated_at_github TIMESTAMP WITH TIME ZONE,
     created_at_github TIMESTAMP WITH TIME ZONE,
-    fetched_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    fetched_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE github_repository_languages (
@@ -265,13 +296,17 @@ CREATE TABLE github_repository_languages (
     repository_id UUID NOT NULL REFERENCES github_repositories(id) ON DELETE CASCADE,
     language_name VARCHAR(100) NOT NULL,
     bytes_count BIGINT DEFAULT 0,
-    percentage_ratio DECIMAL(5, 2) DEFAULT 0.00
+    percentage_ratio DECIMAL(5, 2) DEFAULT 0.00,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE github_repository_topics (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     repository_id UUID NOT NULL REFERENCES github_repositories(id) ON DELETE CASCADE,
-    topic_name VARCHAR(100) NOT NULL
+    topic_name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE github_assessments (
@@ -280,7 +315,9 @@ CREATE TABLE github_assessments (
     summary_notes TEXT,
     language_rank_summary TEXT,
     overall_supporting_rating VARCHAR(50),
-    evaluated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    evaluated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 19. Table: match_results & match_factors
@@ -294,8 +331,18 @@ CREATE TABLE match_results (
     github_weight DECIMAL(3, 2) DEFAULT 0.15,
     is_github_active BOOLEAN DEFAULT TRUE,
     github_fallback_applied BOOLEAN DEFAULT FALSE,
+    required_skills_total INT DEFAULT 0,
+    required_skills_matched INT DEFAULT 0,
+    required_skills_missing INT DEFAULT 0,
+    preferred_skills_total INT DEFAULT 0,
+    preferred_skills_matched INT DEFAULT 0,
+    preferred_skills_missing INT DEFAULT 0,
+    matching_algorithm_version VARCHAR(50) DEFAULT 'v1.0',
+    status VARCHAR(50) DEFAULT 'COMPLETED',
     ai_summary TEXT,
-    calculated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    calculated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE match_factors (
@@ -308,7 +355,9 @@ CREATE TABLE match_factors (
     normalized_value DECIMAL(5, 2),
     weight DECIMAL(4, 3) NOT NULL,
     score DECIMAL(5, 2) NOT NULL,
-    evidence_reference TEXT
+    evidence_reference TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE evidences (
@@ -319,7 +368,9 @@ CREATE TABLE evidences (
     section VARCHAR(100),
     snippet TEXT NOT NULL,
     normalized_value DECIMAL(5, 2),
-    validation_status VARCHAR(50) DEFAULT 'VERIFIED'
+    validation_status VARCHAR(50) DEFAULT 'VERIFIED',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 20. Table: embeddings (Sole Authoritative Centralized Vector Persistence)
@@ -347,6 +398,3 @@ CREATE INDEX idx_cvs_candidate ON cvs(candidate_id);
 CREATE INDEX idx_applications_job ON applications(job_id);
 CREATE INDEX idx_applications_candidate ON applications(candidate_id);
 CREATE INDEX idx_match_results_overall ON match_results(overall_score DESC);
-
--- Authoritative Centralized HNSW Vector Index
-CREATE INDEX idx_embeddings_vector_hnsw ON embeddings USING hnsw (embedding_vector vector_cosine_ops) WITH (m = 16, ef_construction = 64);
