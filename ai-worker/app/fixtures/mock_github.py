@@ -3,7 +3,7 @@ MOCK_GITHUB_DATA = {
         "username": "candidate-java",
         "github_url": "https://github.com/candidate-java",
         "public_repos_count": 4,
-        "latest_activity_at": "2026-08-16T10:00:00Z", # 14 days ago relative to test date
+        "latest_activity_at": "2026-08-28T10:00:00Z", # Recent activity within 14 days
         "repositories": [
             {
                 "name": "spring-boot-microservices-demo",
@@ -13,7 +13,7 @@ MOCK_GITHUB_DATA = {
                 "stars_count": 18,
                 "forks_count": 4,
                 "is_archived": False,
-                "updated_at_github": "2026-08-16T10:00:00Z",
+                "updated_at_github": "2026-08-28T10:00:00Z",
                 "languages": [
                     {"language_name": "Java", "bytes_count": 450000, "percentage_ratio": 60.0},
                     {"language_name": "TypeScript", "bytes_count": 225000, "percentage_ratio": 30.0},

@@ -1,8 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Role, Industry } from '@/types';
-import { MOCK_CANDIDATE } from '@/lib/api';
+import { User, Industry, UserRole } from '@/types';
 
 interface QuickOnboardingData {
   age?: number;
@@ -12,43 +11,60 @@ interface QuickOnboardingData {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  userRole: Role | null;
   hasSeenFirstVisit: boolean;
+  firstVisitChoice: 'CANDIDATE' | 'RECRUITER' | 'SKIP' | null;
   quickOnboardingData: QuickOnboardingData | null;
   isAuthModalOpen: boolean;
   authModalMode: 'LOGIN' | 'REGISTER';
+  setFirstVisitChoice: (choice: 'CANDIDATE' | 'RECRUITER' | 'SKIP', data?: QuickOnboardingData) => void;
   openAuthModal: (mode?: 'LOGIN' | 'REGISTER') => void;
   closeAuthModal: () => void;
   loginCandidate: () => void;
   registerCandidate: (data: { fullName: string; email: string; age?: number; targetIndustry?: Industry }) => void;
   logout: () => void;
-  setFirstVisitChoice: (choice: 'CANDIDATE' | 'RECRUITER' | 'SKIP', onboardingData?: QuickOnboardingData) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [hasSeenFirstVisit, setHasSeenFirstVisit] = useState<boolean>(true); // Default true until mounted
+  const [hasSeenFirstVisit, setHasSeenFirstVisit] = useState<boolean>(true); // default true for SSR safety
+  const [firstVisitChoice, setChoice] = useState<'CANDIDATE' | 'RECRUITER' | 'SKIP' | null>(null);
   const [quickOnboardingData, setQuickOnboardingData] = useState<QuickOnboardingData | null>(null);
+  
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalMode, setAuthModalMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
 
   useEffect(() => {
-    // Check localStorage for First Visit state and saved Auth User
-    const firstVisitState = localStorage.getItem('hasSeenFirstVisitOnboarding');
-    if (!firstVisitState) {
+    // Read local storage on client side mount
+    const seen = localStorage.getItem('hasSeenFirstVisitOnboarding');
+    if (!seen) {
       setHasSeenFirstVisit(false);
     }
-    const savedUser = localStorage.getItem('auth_user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        console.error('Failed to parse saved user');
-      }
-    }
+
+    // Default logged in user for interactive demo
+    setUser({
+      id: 'usr-cand-01',
+      email: 'nguyenvanjava@example.com',
+      fullName: 'Nguyen Van Java',
+      role: 'CANDIDATE',
+      age: 24,
+      targetIndustry: 'Technology'
+    });
   }, []);
+
+  const setFirstVisitChoice = (choice: 'CANDIDATE' | 'RECRUITER' | 'SKIP', data?: QuickOnboardingData) => {
+    setChoice(choice);
+    if (data) {
+      setQuickOnboardingData(data);
+    }
+    localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
+    setHasSeenFirstVisit(true);
+
+    if (choice === 'CANDIDATE') {
+      openAuthModal('REGISTER');
+    }
+  };
 
   const openAuthModal = (mode: 'LOGIN' | 'REGISTER' = 'LOGIN') => {
     setAuthModalMode(mode);
@@ -60,46 +76,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginCandidate = () => {
-    const candidateUser: User = {
-      id: MOCK_CANDIDATE.id,
-      fullName: MOCK_CANDIDATE.fullName,
-      email: MOCK_CANDIDATE.email,
+    setUser({
+      id: 'usr-cand-01',
+      email: 'nguyenvanjava@example.com',
+      fullName: 'Nguyen Van Java',
       role: 'CANDIDATE',
-      age: MOCK_CANDIDATE.age,
-      targetIndustry: MOCK_CANDIDATE.primaryIndustry
-    };
-    setUser(candidateUser);
-    localStorage.setItem('auth_user', JSON.stringify(candidateUser));
-    setIsAuthModalOpen(false);
+      age: 24,
+      targetIndustry: 'Technology'
+    });
+    closeAuthModal();
   };
 
   const registerCandidate = (data: { fullName: string; email: string; age?: number; targetIndustry?: Industry }) => {
-    const newUser: User = {
-      id: `cand-${Date.now()}`,
-      fullName: data.fullName,
+    setUser({
+      id: `usr-${Date.now()}`,
       email: data.email,
+      fullName: data.fullName,
       role: 'CANDIDATE',
-      age: data.age || quickOnboardingData?.age,
-      targetIndustry: data.targetIndustry || quickOnboardingData?.targetIndustry || 'Technology'
-    };
-    setUser(newUser);
-    localStorage.setItem('auth_user', JSON.stringify(newUser));
-    setIsAuthModalOpen(false);
+      age: data.age || 22,
+      targetIndustry: data.targetIndustry || 'Technology'
+    });
+    closeAuthModal();
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('auth_user');
-  };
-
-  const setFirstVisitChoice = (choice: 'CANDIDATE' | 'RECRUITER' | 'SKIP', onboardingData?: QuickOnboardingData) => {
-    localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-    setHasSeenFirstVisit(true);
-
-    if (choice === 'CANDIDATE' && onboardingData) {
-      setQuickOnboardingData(onboardingData);
-      openAuthModal('REGISTER');
-    }
   };
 
   return (
@@ -107,17 +108,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         isAuthenticated: !!user,
-        userRole: user ? user.role : null,
         hasSeenFirstVisit,
+        firstVisitChoice,
         quickOnboardingData,
         isAuthModalOpen,
         authModalMode,
+        setFirstVisitChoice,
         openAuthModal,
         closeAuthModal,
         loginCandidate,
         registerCandidate,
-        logout,
-        setFirstVisitChoice
+        logout
       }}
     >
       {children}
