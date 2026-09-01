@@ -51,12 +51,17 @@ Traditional ATS platforms rely on naive keyword matching, leading to high false-
 ## 6. Repository Structure
 ```
 ai-recruitment-platform/
+├── start-dev.bat       # One-Click Local Development Launcher
+├── stop-dev.bat        # One-Click Stop Local Services
+├── status-dev.bat      # One-Click Status Check
+├── reset-db-dev.bat    # One-Click Safe Database Reset (Requires Y/N)
+├── scripts/            # PowerShell Dev Scripts (start-dev.ps1, etc.)
 ├── backend/            # Java 21 Spring Boot Backend API
 ├── frontend/           # Next.js 16 App Router Frontend & Playwright E2E
 ├── ai-worker/          # Python 3.11 FastAPI AI Worker Engine
 ├── docs/               # Technical Documentation & Evaluation Reports
 │   ├── evaluation/     # Phase 7 Evaluation Reports (9 Files)
-│   └── final/          # Phase 8 Final Project Materials (16 Files)
+│   └── final/          # Phase 8 Final Project Materials (17 Files)
 ├── docker-compose.yml  # PostgreSQL + Pgvector Docker Configuration
 ├── .env.example        # Environment Variables Template
 └── README.md           # Master Documentation
@@ -65,15 +70,16 @@ ai-recruitment-platform/
 ---
 
 ## 7. Quick Start
-```bash
-# 1. Clone repository & copy environment configuration
-git clone https://github.com/vietkhang06/ai-recruitment-platform-demo.git
-cd ai-recruitment-platform
-cp .env.example .env
 
-# 2. Start PostgreSQL with Pgvector via Docker
-docker-compose up -d
-```
+### One-Click Local Development (Windows)
+Double-click `start-dev.bat` in the project root directory.
+
+The launcher automatically validates environment prerequisites (Docker Desktop, Java 21, Maven, Python, Node), starts PostgreSQL + Pgvector, opens dedicated terminal windows for Spring Boot Backend, Python AI Worker, and Next.js Frontend, waits for readiness health checks, and opens `http://localhost:3000` in your browser.
+
+- **Start System**: Double-click `start-dev.bat`
+- **Check Status**: Double-click `status-dev.bat`
+- **Stop System**: Double-click `stop-dev.bat`
+- **Reset Database**: Double-click `reset-db-dev.bat` (Prompts `Y/N` confirmation)
 
 ---
 
@@ -82,14 +88,14 @@ Key variables in `.env.example`:
 - `DATABASE_URL`: `jdbc:postgresql://localhost:5432/airecruit_db`
 - `JWT_SECRET`: Base64 encoded secret string (>= 256 bits)
 - `OPENAI_API_KEY`: OpenAI API Key (or use `USE_MOCK_LLM=true` for mock mode)
-- `PORT_FRONTEND`: `3000`, `PORT_BACKEND`: `8080`, `PORT_AI_SERVICE`: `8000`
+- `PORT_FRONTEND`: `3000`, `PORT_BACKEND`: `8080`, `PORT_AI_SERVICE`: `8000` (`http://localhost:8000/internal/ai/health`)
 
 ---
 
 ## 9. Docker Setup
 ```bash
-docker-compose up -d
-docker-compose ps
+docker compose up -d
+docker compose ps
 ```
 
 ---
@@ -118,17 +124,14 @@ cd ai-worker
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+python -m uvicorn app.main:app --port 8000 --reload
 ```
 
 ---
 
 ## 13. Database Setup
-Database migrations run automatically via **Flyway** on backend startup. To reset database:
-```bash
-docker-compose down -v
-docker-compose up -d
-```
+Database migrations run automatically via **Flyway** on backend startup. To safely reset local database:
+- Double-click `reset-db-dev.bat` (or manually run `docker compose down -v && docker compose up -d`).
 
 ---
 
@@ -184,4 +187,4 @@ Evaluates developer repositories based on Language Distribution (40%), Tech Evid
 ---
 
 ## 21. Demo Instructions
-Follow step-by-step storyline in [`docs/final/demo-scenario.md`](file:///c:/Users/Khang/OneDrive/Desktop/SE121/ai-recruitment-platform/docs/final/demo-scenario.md). Set `USE_MOCK_LLM=true` and `USE_MOCK_GITHUB=true` for deterministic offline demonstration fallback mode.
+Follow step-by-step storyline in [`docs/final/demo-scenario.md`](file:///c:/Users/Khang/OneDrive/Desktop/SE121/ai-recruitment-platform/docs/final/demo-scenario.md) and [`docs/final/local-development.md`](file:///c:/Users/Khang/OneDrive/Desktop/SE121/ai-recruitment-platform/docs/final/local-development.md). Set `USE_MOCK_LLM=true` and `USE_MOCK_GITHUB=true` for deterministic offline demonstration fallback mode.
