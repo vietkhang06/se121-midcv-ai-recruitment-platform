@@ -7,12 +7,13 @@ import { X, UploadCloud, FileText, CheckCircle2, Loader2, AlertCircle, RefreshCw
 interface CVUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUploadSuccess: (cv: CV) => void;
+  onUploadSuccess?: (cv: CV) => void;
+  onSuccess?: () => void;
 }
 
 type ProcessingStatus = 'IDLE' | 'UPLOADING' | 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'REVIEW' | 'FAILED';
 
-export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, onUploadSuccess }) => {
+export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, onUploadSuccess, onSuccess }) => {
   const [file, setFile] = useState<File | null>(null);
   const [targetIndustry, setTargetIndustry] = useState<Industry>('Technology');
   const [status, setStatus] = useState<ProcessingStatus>('IDLE');
@@ -82,7 +83,8 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
       ]
     };
 
-    onUploadSuccess(newCv);
+    if (onUploadSuccess) onUploadSuccess(newCv);
+    if (onSuccess) onSuccess();
     onClose();
     setStatus('IDLE');
     setFile(null);

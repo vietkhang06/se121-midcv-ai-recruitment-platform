@@ -1,26 +1,59 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F8FAF9;
+  --foreground: #0F172A;
+  --forest-950: #081C15;
+  --forest-900: #0C2B24;
+  --forest-800: #133E34;
+  --forest-700: #1B4D41;
+  --accent-amber: #D97706;
+  --accent-amber-light: #FEF3C7;
+  --accent-emerald: #10B981;
+  --canvas-bg: #F8FAF9;
+  --card-border: #E2E8F0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: var(--font-serif), Newsreader, Georgia, Cambria, 'Times New Roman', Times, serif;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+}
+
+/* Custom Editorial Serif Classes matching Figma Typography */
+.font-editorial {
+  font-family: var(--font-serif), Georgia, serif;
+}
+
+/* Print styling for CV exports */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  nav, footer, .no-print, button {
+    display: none !important;
+  }
+  #printable-cv {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+  #printable-cv * {
+    color: #111827 !important;
+  }
 }

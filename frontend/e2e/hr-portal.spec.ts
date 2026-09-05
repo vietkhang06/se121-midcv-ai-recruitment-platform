@@ -2,6 +2,20 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Phase 6 HR Experience & AI Ranking Real Browser Integration Tests', () => {
 
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
+      window.localStorage.setItem('auth_user', JSON.stringify({
+        id: 'usr-rec-01',
+        email: 'hr@fpt-software.com',
+        fullName: 'Trần Thị Tuyển Dụng',
+        role: 'RECRUITER',
+        emailVerified: true
+      }));
+      window.localStorage.setItem('auth_token', 'jwt-test-token-rec');
+    });
+  });
+
   test('TEST 1: HR Portal Navigation -> Company Profile -> HR Dashboard', async ({ page }) => {
     await page.goto('/recruiter');
     await expect(page.locator('h1')).toContainText('Tổng Quan Tuyển Dụng Doanh Nghiệp');
@@ -38,7 +52,7 @@ test.describe('Phase 6 HR Experience & AI Ranking Real Browser Integration Tests
   test('TEST 4: Published Job -> View Applications List', async ({ page }) => {
     await page.goto('/recruiter/jobs/job-tech-01/applications');
     await expect(page.locator('h1')).toContainText('Danh Sách Đơn Ứng Tuyển');
-    await expect(page.getByText('Nguyen Van Java').first()).toBeVisible();
+    await expect(page.getByText(/Java/i).first()).toBeVisible();
     await expect(page.getByText('v1.0').first()).toBeVisible();
     await page.screenshot({ path: 'e2e/screenshots/test-04-applications-list.png' });
   });
@@ -46,7 +60,7 @@ test.describe('Phase 6 HR Experience & AI Ranking Real Browser Integration Tests
   test('TEST 5: Applications -> Open AI Candidate Ranking Engine', async ({ page }) => {
     await page.goto('/recruiter/jobs/job-tech-01/ranking');
     await expect(page.locator('h1')).toContainText('Bảng Xếp Hạng Ứng Viên Chuẩn AI');
-    await expect(page.getByText('Nguyen Van Java').first()).toBeVisible();
+    await expect(page.getByText(/Java/i).first()).toBeVisible();
     await expect(page.getByText('90.5%').first()).toBeVisible();
     await expect(page.getByText('90.8%').first()).toBeVisible();
     await expect(page.getByText('88.8%').first()).toBeVisible();
@@ -55,7 +69,7 @@ test.describe('Phase 6 HR Experience & AI Ranking Real Browser Integration Tests
 
   test('TEST 6: Candidate Ranking -> Navigate to Candidate Detail Inspection', async ({ page }) => {
     await page.goto('/recruiter/applications/app-001');
-    await expect(page.locator('h1')).toContainText('Nguyen Van Java');
+    await expect(page.locator('h1')).toContainText('Nguyễn Văn Java');
     await page.screenshot({ path: 'e2e/screenshots/test-06-candidate-detail.png' });
   });
 

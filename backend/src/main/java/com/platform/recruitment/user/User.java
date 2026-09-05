@@ -26,4 +26,8 @@ public class User extends BaseEntity {
     @Builder.Default
     @Column(name = "is_active")
     private Boolean isActive = true;
+
+    @Builder.Default
+    @Column(name = "email_verified", nullable = false)
+    private Boolean emailVerified = false;
 }

@@ -21,10 +21,11 @@ public class GlobalExceptionHandler {
         log.error("CustomException: code={}, message={}", ex.getErrorCode(), ex.getMessage());
         HttpStatus status = switch (ex.getErrorCode()) {
             case RESOURCE_NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case ACCESS_DENIED, COMPANY_NOT_VERIFIED -> HttpStatus.FORBIDDEN;
+            case ACCESS_DENIED, COMPANY_NOT_VERIFIED, EMAIL_NOT_VERIFIED -> HttpStatus.FORBIDDEN;
             case AUTHENTICATION_FAILED -> HttpStatus.UNAUTHORIZED;
-            case DUPLICATE_APPLICATION -> HttpStatus.CONFLICT;
-            case VALIDATION_ERROR, INVALID_FILE, FILE_SIZE_EXCEEDED -> HttpStatus.BAD_REQUEST;
+            case DUPLICATE_APPLICATION, EMAIL_ALREADY_EXISTS -> HttpStatus.CONFLICT;
+            case RATE_LIMIT_EXCEEDED -> HttpStatus.TOO_MANY_REQUESTS;
+            case VALIDATION_ERROR, INVALID_FILE, FILE_SIZE_EXCEEDED, TOKEN_EXPIRED, TOKEN_INVALID -> HttpStatus.BAD_REQUEST;
             default -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
 
@@ -35,7 +36,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         log.error("DataIntegrityViolationException caught: {}", ex.getMessage());
         return new ResponseEntity<>(
-                ApiResponse.error(ErrorCode.DUPLICATE_APPLICATION, "Candidate has already submitted an application for this job.", null),
+                ApiResponse.error(ErrorCode.DUPLICATE_APPLICATION, "Constraint violation or duplicate record detected.", null),
                 HttpStatus.CONFLICT
         );
     }

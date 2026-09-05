@@ -14,16 +14,34 @@ public class AuthController {
 
     private final AuthService authService;
 
+    @GetMapping("/check-email")
+    public ResponseEntity<ApiResponse<EmailCheckResponse>> checkEmail(@RequestParam String email) {
+        EmailCheckResponse response = authService.checkEmail(email);
+        return ResponseEntity.ok(ApiResponse.success("Email status checked", response));
+    }
+
     @PostMapping("/register/candidate")
-    public ResponseEntity<ApiResponse<JwtResponse>> registerCandidate(@Valid @RequestBody RegisterCandidateRequest request) {
-        JwtResponse response = authService.registerCandidate(request);
-        return new ResponseEntity<>(ApiResponse.success("Candidate registered successfully", response), HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<RegisterResponse>> registerCandidate(@Valid @RequestBody RegisterCandidateRequest request) {
+        RegisterResponse response = authService.registerCandidate(request);
+        return new ResponseEntity<>(ApiResponse.success("Candidate registered. Please verify your email.", response), HttpStatus.CREATED);
     }
 
     @PostMapping("/register/recruiter")
-    public ResponseEntity<ApiResponse<JwtResponse>> registerRecruiter(@Valid @RequestBody RegisterRecruiterRequest request) {
-        JwtResponse response = authService.registerRecruiter(request);
-        return new ResponseEntity<>(ApiResponse.success("Recruiter registered successfully", response), HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<RegisterResponse>> registerRecruiter(@Valid @RequestBody RegisterRecruiterRequest request) {
+        RegisterResponse response = authService.registerRecruiter(request);
+        return new ResponseEntity<>(ApiResponse.success("Recruiter registered. Please verify your email.", response), HttpStatus.CREATED);
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<ApiResponse<String>> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        String message = authService.verifyEmail(request.getToken());
+        return ResponseEntity.ok(ApiResponse.success(message, message));
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<ApiResponse<String>> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
+        String message = authService.resendVerification(request.getEmail());
+        return ResponseEntity.ok(ApiResponse.success(message, message));
     }
 
     @PostMapping("/login")

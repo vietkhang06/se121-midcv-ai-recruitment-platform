@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Industry } from '@/types';
-import { Search, Filter, MapPin, Briefcase } from 'lucide-react';
+import { Search, Filter, MapPin, Briefcase, Award } from 'lucide-react';
 
 interface JobFilterProps {
   searchKeyword: string;
@@ -13,6 +13,8 @@ interface JobFilterProps {
   setSelectedLocation: (val: string) => void;
   selectedType: string;
   setSelectedType: (val: string) => void;
+  selectedSeniority: string;
+  setSelectedSeniority: (val: string) => void;
   onReset: () => void;
 }
 
@@ -25,6 +27,8 @@ export const JobFilter: React.FC<JobFilterProps> = ({
   setSelectedLocation,
   selectedType,
   setSelectedType,
+  selectedSeniority,
+  setSelectedSeniority,
   onReset
 }) => {
   return (
@@ -41,11 +45,11 @@ export const JobFilter: React.FC<JobFilterProps> = ({
         />
       </div>
 
-      {/* Filters Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* Filters Grid: 4 Columns */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
         {/* Industry Filter */}
         <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1 flex items-center gap-1">
+          <label className="block font-medium text-slate-400 mb-1 flex items-center gap-1">
             <Filter className="w-3.5 h-3.5 text-indigo-400" />
             <span>Ngành nghề</span>
           </label>
@@ -55,7 +59,7 @@ export const JobFilter: React.FC<JobFilterProps> = ({
             className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500"
           >
             <option value="">Tất cả ngành nghề</option>
-            <option value="Technology">Công nghệ Thông tin (Technology)</option>
+            <option value="Technology">Technology (CNTT)</option>
             <option value="Marketing">Digital Marketing</option>
             <option value="Design">UI/UX Design</option>
             <option value="Finance">Tài chính - Kế toán</option>
@@ -63,16 +67,35 @@ export const JobFilter: React.FC<JobFilterProps> = ({
           </select>
         </div>
 
+        {/* Seniority Filter */}
+        <div>
+          <label className="block font-medium text-slate-400 mb-1 flex items-center gap-1">
+            <Award className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Cấp bậc</span>
+          </label>
+          <select
+            value={selectedSeniority}
+            onChange={(e) => setSelectedSeniority(e.target.value)}
+            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-cyan-500"
+          >
+            <option value="">Tất cả cấp bậc</option>
+            <option value="Junior">Junior</option>
+            <option value="Mid-Level">Mid-Level</option>
+            <option value="Senior">Senior</option>
+            <option value="Lead">Lead / Manager</option>
+          </select>
+        </div>
+
         {/* Location Filter */}
         <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1 flex items-center gap-1">
-            <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+          <label className="block font-medium text-slate-400 mb-1 flex items-center gap-1">
+            <MapPin className="w-3.5 h-3.5 text-emerald-400" />
             <span>Địa điểm</span>
           </label>
           <select
             value={selectedLocation}
             onChange={(e) => setSelectedLocation(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-cyan-500"
+            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500"
           >
             <option value="">Tất cả địa điểm</option>
             <option value="Hồ Chí Minh">Hồ Chí Minh</option>
@@ -84,7 +107,7 @@ export const JobFilter: React.FC<JobFilterProps> = ({
 
         {/* Employment Type Filter */}
         <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1 flex items-center gap-1">
+          <label className="block font-medium text-slate-400 mb-1 flex items-center gap-1">
             <Briefcase className="w-3.5 h-3.5 text-amber-400" />
             <span>Hình thức</span>
           </label>

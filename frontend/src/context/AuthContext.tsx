@@ -1,56 +1,78 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Industry, UserRole } from '@/types';
+import { User, Industry, AuthState } from '@/types';
+import { loginAccount, registerCandidateAccount, registerRecruiterAccount } from '@/lib/api';
 
 interface QuickOnboardingData {
   age?: number;
   targetIndustry?: Industry;
 }
 
+export interface IntendedAction {
+  type: 'APPLY' | 'NAVIGATE';
+  target?: string;
+  data?: any;
+}
+
 interface AuthContextType {
   user: User | null;
+  authState: AuthState;
   isAuthenticated: boolean;
   hasSeenFirstVisit: boolean;
   firstVisitChoice: 'CANDIDATE' | 'RECRUITER' | 'SKIP' | null;
   quickOnboardingData: QuickOnboardingData | null;
   isAuthModalOpen: boolean;
   authModalMode: 'LOGIN' | 'REGISTER';
+  intendedAction: IntendedAction | null;
   setFirstVisitChoice: (choice: 'CANDIDATE' | 'RECRUITER' | 'SKIP', data?: QuickOnboardingData) => void;
-  openAuthModal: (mode?: 'LOGIN' | 'REGISTER') => void;
+  openAuthModal: (mode?: 'LOGIN' | 'REGISTER', intended?: IntendedAction) => void;
   closeAuthModal: () => void;
-  loginCandidate: () => void;
-  registerCandidate: (data: { fullName: string; email: string; age?: number; targetIndustry?: Industry }) => void;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  clearIntendedAction: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [authState, setAuthState] = useState<AuthState>('INITIALIZING');
   const [hasSeenFirstVisit, setHasSeenFirstVisit] = useState<boolean>(true); // default true for SSR safety
   const [firstVisitChoice, setChoice] = useState<'CANDIDATE' | 'RECRUITER' | 'SKIP' | null>(null);
   const [quickOnboardingData, setQuickOnboardingData] = useState<QuickOnboardingData | null>(null);
   
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalMode, setAuthModalMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
+  const [intendedAction, setIntendedAction] = useState<IntendedAction | null>(null);
 
   useEffect(() => {
-    // Read local storage on client side mount
+    // 1. Check first visit state
     const seen = localStorage.getItem('hasSeenFirstVisitOnboarding');
     if (!seen) {
       setHasSeenFirstVisit(false);
     }
 
-    // Default logged in user for interactive demo
-    setUser({
-      id: 'usr-cand-01',
-      email: 'nguyenvanjava@example.com',
-      fullName: 'Nguyen Van Java',
-      role: 'CANDIDATE',
-      age: 24,
-      targetIndustry: 'Technology'
-    });
+    // 2. Restore explicit user session if and only if valid session exists
+    const storedUser = localStorage.getItem('auth_user');
+    const storedToken = localStorage.getItem('auth_token');
+
+    if (storedUser && storedToken) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        setUser(parsed);
+        setAuthState('AUTHENTICATED');
+      } catch {
+        localStorage.removeItem('auth_user');
+        localStorage.removeItem('auth_token');
+        setUser(null);
+        setAuthState('ANONYMOUS');
+      }
+    } else {
+      // Clean default state is strictly ANONYMOUS
+      setUser(null);
+      setAuthState('ANONYMOUS');
+    }
   }, []);
 
   const setFirstVisitChoice = (choice: 'CANDIDATE' | 'RECRUITER' | 'SKIP', data?: QuickOnboardingData) => {
@@ -66,8 +88,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const openAuthModal = (mode: 'LOGIN' | 'REGISTER' = 'LOGIN') => {
+  const openAuthModal = (mode: 'LOGIN' | 'REGISTER' = 'LOGIN', intended?: IntendedAction) => {
     setAuthModalMode(mode);
+    if (intended) {
+      setIntendedAction(intended);
+    }
     setIsAuthModalOpen(true);
   };
 
@@ -75,50 +100,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAuthModalOpen(false);
   };
 
-  const loginCandidate = () => {
-    setUser({
-      id: 'usr-cand-01',
-      email: 'nguyenvanjava@example.com',
-      fullName: 'Nguyen Van Java',
-      role: 'CANDIDATE',
-      age: 24,
-      targetIndustry: 'Technology'
-    });
-    closeAuthModal();
+  const clearIntendedAction = () => {
+    setIntendedAction(null);
   };
 
-  const registerCandidate = (data: { fullName: string; email: string; age?: number; targetIndustry?: Industry }) => {
-    setUser({
-      id: `usr-${Date.now()}`,
-      email: data.email,
-      fullName: data.fullName,
-      role: 'CANDIDATE',
-      age: data.age || 22,
-      targetIndustry: data.targetIndustry || 'Technology'
-    });
+  const login = async (email: string, password: string) => {
+    const result = await loginAccount(email, password);
+    setUser(result.user);
+    setAuthState('AUTHENTICATED');
+    localStorage.setItem('auth_user', JSON.stringify(result.user));
+    localStorage.setItem('auth_token', result.accessToken);
     closeAuthModal();
+
+    // Execute intended action if present
+    if (intendedAction?.type === 'NAVIGATE' && intendedAction.target) {
+      window.location.href = intendedAction.target;
+      setIntendedAction(null);
+    }
   };
 
   const logout = () => {
+    localStorage.removeItem('auth_user');
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_session');
     setUser(null);
+    setAuthState('ANONYMOUS');
+
+    // If on protected candidate or recruiter route, redirect to home
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      if (pathname.startsWith('/candidate') || pathname.startsWith('/recruiter')) {
+        window.location.href = '/';
+      }
+    }
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        authState,
         isAuthenticated: !!user,
         hasSeenFirstVisit,
         firstVisitChoice,
         quickOnboardingData,
         isAuthModalOpen,
         authModalMode,
+        intendedAction,
         setFirstVisitChoice,
         openAuthModal,
         closeAuthModal,
-        loginCandidate,
-        registerCandidate,
-        logout
+        login,
+        logout,
+        clearIntendedAction
       }}
     >
       {children}

@@ -15,11 +15,17 @@ C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\j
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\application\SubmitApplicationRequest.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\auth\AuthController.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\auth\AuthService.java
+C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\auth\EmailCheckResponse.java
+C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\auth\EmailVerificationToken.java
+C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\auth\EmailVerificationTokenRepository.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\auth\JwtResponse.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\auth\JwtTokenProvider.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\auth\LoginRequest.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\auth\RegisterCandidateRequest.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\auth\RegisterRecruiterRequest.java
+C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\auth\RegisterResponse.java
+C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\auth\ResendVerificationRequest.java
+C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\auth\VerifyEmailRequest.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\candidate\CandidateController.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\candidate\CandidateLanguage.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\candidate\CandidateLanguageRepository.java
@@ -59,6 +65,9 @@ C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\j
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\cv\CVService.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\cv\CVVersion.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\cv\CVVersionRepository.java
+C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\email\EmailService.java
+C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\email\MockEmailService.java
+C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\email\SmtpEmailService.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\embedding\Embedding.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\embedding\EmbeddingRepository.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\embedding\EmbeddingService.java

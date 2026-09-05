@@ -12,6 +12,10 @@ export type GitHubActivitySignal = 'HIGH' | 'MODERATE' | 'LOW' | 'LIMITED_OBSERV
 
 export type RequirementMatchStatus = 'MATCH' | 'PARTIAL' | 'MISSING';
 
+export type EmailCheckStatus = 'UNKNOWN' | 'CHECKING' | 'AVAILABLE' | 'ALREADY_EXISTS' | 'INVALID';
+
+export type AuthState = 'INITIALIZING' | 'ANONYMOUS' | 'AUTHENTICATED';
+
 export interface User {
   id: string;
   email: string;
@@ -19,6 +23,7 @@ export interface User {
   role: UserRole;
   age?: number;
   targetIndustry?: Industry;
+  emailVerified?: boolean;
 }
 
 export interface Company {
@@ -47,6 +52,7 @@ export interface JobRequirement {
   skillName: string;
   requirementType: RequirementType;
   minExperienceYears?: number;
+  minYearsExperience?: number;
   weight?: number;
 }
 
@@ -61,6 +67,8 @@ export interface Job {
   location: string;
   salaryMin: number;
   salaryMax: number;
+  salaryRange?: string;
+  department?: string;
   publishedDate: string;
   description: string;
   responsibilities?: string[];
@@ -71,6 +79,7 @@ export interface Job {
 }
 
 export interface CVSection {
+  id?: string;
   sectionType: string;
   title: string;
   content: string;
@@ -80,6 +89,7 @@ export interface CVVersion {
   id: string;
   versionNumber: number;
   summaryText?: string;
+  title?: string;
   createdAt: string;
   sections: CVSection[];
 }
@@ -102,17 +112,21 @@ export interface CandidateProfile {
   email: string;
   phone?: string;
   age?: number;
+  location?: string;
   headline?: string;
   bio?: string;
   primaryIndustry: Industry;
+  targetIndustry?: Industry;
   additionalIndustries?: Industry[];
   targetRoles?: string[];
   skills: string[];
   experienceSummary?: string;
   educationSummary?: string;
   githubUrl?: string;
+  githubUsername?: string;
   portfolioUrl?: string;
 }
+
 
 export interface Application {
   id: string;
