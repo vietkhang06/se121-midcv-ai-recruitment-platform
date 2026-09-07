@@ -29,13 +29,13 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
     }
 
     return (
-      <div className="p-6 rounded-2xl bg-white border border-[#E2E8F0] text-[#64748B] text-xs space-y-3 shadow-sm font-sans">
+      <div data-testid="github-assessment" className="p-6 rounded-2xl bg-white border border-[#E2E8F0] text-[#64748B] text-xs space-y-3 shadow-sm font-sans">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-[#0C2B24] font-bold text-sm">
             <GitBranch className="w-5 h-5 text-[#10B981]" />
             <span>Đánh giá Tín hiệu GitHub Cá nhân (GitHub Evidence Assessment)</span>
           </div>
-          <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold border ${badgeColor}`}>
+          <span data-testid="github-status" className={`px-2.5 py-1 rounded-md text-[11px] font-bold border ${badgeColor}`}>
             {assessment.status || 'NOT_CONNECTED'}
           </span>
         </div>
@@ -59,7 +59,7 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
   );
 
   return (
-    <div className="bg-[#081E19] border border-[#12382F] rounded-2xl p-6 sm:p-7 shadow-xl space-y-6 text-xs text-white font-sans">
+    <div data-testid="github-assessment" className="bg-[#081E19] border border-[#12382F] rounded-2xl p-6 sm:p-7 shadow-xl space-y-6 text-xs text-white font-sans">
       {/* Header matching Figma Screen 08 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#12382F] pb-4">
         <div className="space-y-1">
@@ -71,12 +71,12 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
           </div>
           <div className="flex items-center gap-2 text-xs text-emerald-200/80">
             <span>Tài khoản GitHub Công khai:</span>
-            <span className="font-bold text-[#10B981] font-mono">@{assessment.username}</span>
+            <span data-testid="candidate-identifier" className="font-bold text-[#10B981] font-mono">@{assessment.username}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="px-3 py-1 rounded-full bg-[#0C2B24] border border-emerald-400/30 text-emerald-300 font-mono text-[11px] font-bold">
+          <span data-testid="github-status" className="px-3 py-1 rounded-full bg-[#0C2B24] border border-emerald-400/30 text-emerald-300 font-mono text-[11px] font-bold">
             Public GitHub Signal: Verified
           </span>
           <a
@@ -131,7 +131,7 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
         </div>
 
         {/* Right: Verified Language Index */}
-        <div className="space-y-3 bg-[#0C2B24]/80 border border-[#164E41] p-4 rounded-xl">
+        <div data-testid="github-language-distribution" className="space-y-3 bg-[#0C2B24]/80 border border-[#164E41] p-4 rounded-xl">
           <span className="text-[10px] font-bold text-amber-400 tracking-wider uppercase block">
             LANGUAGES OBSERVED IN PUBLIC REPOSITORIES
           </span>
@@ -167,7 +167,7 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
           <span className="text-xl font-bold text-white font-mono">{assessment.publicRepoCount || 0} Repos</span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-[#0C2B24]/90 border border-[#164E41] space-y-1">
+        <div data-testid="github-activity-signal" className="p-3.5 rounded-xl bg-[#0C2B24]/90 border border-[#164E41] space-y-1">
           <span className="text-emerald-200/70 block text-[11px]">Tín hiệu Hoạt động Công khai (Activity Signal)</span>
           <span className={`text-sm font-bold flex items-center gap-1.5 ${
             assessment.activitySignal === 'HIGH' ? 'text-emerald-400' : 'text-amber-400'
@@ -189,7 +189,7 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
 
       {/* Relevant Repositories List */}
       {assessment.repos && assessment.repos.length > 0 && (
-        <div className="space-y-3 pt-2 border-t border-[#12382F]">
+        <div data-testid="github-relevant-repos" className="space-y-3 pt-2 border-t border-[#12382F]">
           <span className="font-bold text-emerald-200 block text-xs">
             Bối cảnh Kho Lưu trữ &amp; Repositories Phù hợp với JD (Public repository context)
           </span>

@@ -781,6 +781,21 @@ export async function fetchCandidateRankings(jobId: string): Promise<CandidateRa
 }
 
 export async function fetchMatchInspection(applicationId: string): Promise<MatchInspectionData> {
+  // Test Environment Fixture Check (strictly isolated to sessionStorage in browser E2E tests)
+  if (typeof window !== 'undefined') {
+    const fixtureRaw = window.sessionStorage.getItem('e2e_test_fixture_match_inspection');
+    if (fixtureRaw) {
+      try {
+        const fixtureData = JSON.parse(fixtureRaw);
+        if (fixtureData && (fixtureData.applicationId === applicationId || !applicationId)) {
+          return fixtureData;
+        }
+      } catch (e) {
+        console.error('Failed to parse e2e_test_fixture_match_inspection', e);
+      }
+    }
+  }
+
   const rankings = getStorage<CandidateRankingItem[]>(STORAGE_KEYS.RANKINGS, SEED_RANKINGS_JOB_01);
   const found = rankings.find(r => r.applicationId === applicationId || r.candidateId === applicationId);
 

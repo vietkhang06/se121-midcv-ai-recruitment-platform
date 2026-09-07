@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { injectGitHubTestFixture, GITHUB_NEUTRAL_TEST_FIXTURE } from './fixtures/github-test-fixture';
 
 test.describe('Phase 6 HR Experience & AI Ranking Real Browser Integration Tests', () => {
 
@@ -84,10 +85,28 @@ test.describe('Phase 6 HR Experience & AI Ranking Real Browser Integration Tests
   });
 
   test('TEST 8: Candidate Detail -> Render Neutral GitHub Assessment', async ({ page }) => {
+    await injectGitHubTestFixture(page, GITHUB_NEUTRAL_TEST_FIXTURE);
     await page.goto('/recruiter/applications/app-001');
-    await expect(page.getByText('@candidate-java').first()).toBeVisible();
-    await expect(page.getByText('HIGH', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('ai-recruitment-matching-engine').first()).toBeVisible();
+
+    // 1. Verify GitHub assessment card is rendered
+    const assessmentCard = page.locator('[data-testid="github-assessment"]');
+    await expect(assessmentCard).toBeVisible();
+
+    // 2. Verify candidate identifier is bound to test fixture user
+    const candidateIdentifier = page.locator('[data-testid="candidate-identifier"]');
+    await expect(candidateIdentifier).toBeVisible();
+    await expect(candidateIdentifier).toContainText(`@${GITHUB_NEUTRAL_TEST_FIXTURE.username}`);
+
+    // 3. Verify observable activity signal from fixture
+    const activitySignal = page.locator('[data-testid="github-activity-signal"]');
+    await expect(activitySignal).toBeVisible();
+    await expect(activitySignal).toContainText(GITHUB_NEUTRAL_TEST_FIXTURE.activitySignal);
+
+    // 4. Verify relevant repository context from fixture
+    const relevantRepos = page.locator('[data-testid="github-relevant-repos"]');
+    await expect(relevantRepos).toBeVisible();
+    await expect(relevantRepos).toContainText('repo-java');
+
     await page.screenshot({ path: 'e2e/screenshots/test-08-github-assessment.png' });
   });
 

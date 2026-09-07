@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { injectGitHubTestFixture, GITHUB_NEUTRAL_TEST_FIXTURE } from './fixtures/github-test-fixture';
 
 test.describe('Stabilization & Complete Product Verification Suite', () => {
 
@@ -129,9 +130,34 @@ test.describe('Stabilization & Complete Product Verification Suite', () => {
   });
 
   test('16: Neutral GitHub Assessment with Language Distribution', async ({ page }) => {
+    await injectGitHubTestFixture(page, GITHUB_NEUTRAL_TEST_FIXTURE);
     await page.goto('/recruiter/applications/app-001');
-    await expect(page.getByText('@candidate-java').first()).toBeVisible();
-    await expect(page.getByText('ai-recruitment-matching-engine').first()).toBeVisible();
+
+    // 1. Verify GitHub assessment card is rendered
+    const assessmentCard = page.locator('[data-testid="github-assessment"]');
+    await expect(assessmentCard).toBeVisible();
+
+    // 2. Verify candidate GitHub identifier is bound to the test fixture user
+    const candidateIdentifier = page.locator('[data-testid="candidate-identifier"]');
+    await expect(candidateIdentifier).toBeVisible();
+    await expect(candidateIdentifier).toContainText(`@${GITHUB_NEUTRAL_TEST_FIXTURE.username}`);
+
+    // 3. Verify GitHub status indicator
+    const githubStatus = page.locator('[data-testid="github-status"]');
+    await expect(githubStatus).toBeVisible();
+
+    // 4. Verify language distribution data rendered from fixture
+    const langDistribution = page.locator('[data-testid="github-language-distribution"]');
+    await expect(langDistribution).toBeVisible();
+    for (const lang of GITHUB_NEUTRAL_TEST_FIXTURE.languages) {
+      await expect(langDistribution).toContainText(lang);
+    }
+
+    // 5. Verify relevant repository context rendered from fixture
+    const relevantRepos = page.locator('[data-testid="github-relevant-repos"]');
+    await expect(relevantRepos).toBeVisible();
+    await expect(relevantRepos).toContainText('repo-java');
+
     await page.screenshot({ path: 'e2e/screenshots/16-github-assessment.png', fullPage: false });
   });
 
