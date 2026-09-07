@@ -19,18 +19,45 @@ class GitHubAnalyzer:
         username = self._extract_username(request.github_url)
 
         raw_data = self.github_client.fetch_user_repositories(username)
-        if not raw_data:
+        if not raw_data or raw_data.get("status") == "NOT_FOUND" or raw_data.get("error") == "NOT_FOUND":
             return GitHubAnalyzeResponse(
                 candidate_id=request.candidate_id,
                 username=username,
                 github_url=request.github_url,
                 public_repos_count=0,
                 activity_signal="LIMITED_OBSERVABLE_ACTIVITY",
-                summary_notes="Public GitHub data is unavailable.",
-                language_rank_summary="No observable public repositories.",
+                summary_notes="Candidate GitHub profile was not found or is not connected. Core matching fallback active.",
+                language_rank_summary="No observable public profile.",
                 overall_supporting_rating="UNAVAILABLE",
-                status="UNAVAILABLE"
+                status="NOT_FOUND"
             )
+
+        if raw_data.get("status") == "API_UNAVAILABLE" or raw_data.get("error") == "API_UNAVAILABLE":
+            return GitHubAnalyzeResponse(
+                candidate_id=request.candidate_id,
+                username=username,
+                github_url=request.github_url,
+                public_repos_count=0,
+                activity_signal="LIMITED_OBSERVABLE_ACTIVITY",
+                summary_notes="GitHub API is currently unavailable or rate limited. Core matching fallback active.",
+                language_rank_summary="GitHub API service temporarily unavailable.",
+                overall_supporting_rating="UNAVAILABLE",
+                status="API_UNAVAILABLE"
+            )
+
+        if raw_data.get("status") == "PRIVATE_ONLY" or raw_data.get("public_repos_count", 0) == 0 or not raw_data.get("repositories"):
+            return GitHubAnalyzeResponse(
+                candidate_id=request.candidate_id,
+                username=username,
+                github_url=request.github_url,
+                public_repos_count=0,
+                activity_signal="LIMITED_OBSERVABLE_ACTIVITY",
+                summary_notes="Candidate GitHub profile exists, but relevant repositories are private or inaccessible. Core matching fallback active.",
+                language_rank_summary="No public repositories accessible.",
+                overall_supporting_rating="UNAVAILABLE",
+                status="PRIVATE_ONLY"
+            )
+
 
         # 1. Process Repositories & Language Distribution
         repos: List[ExtractedRepo] = []

@@ -2,6 +2,8 @@ package com.platform.recruitment.auth;
 
 import com.platform.recruitment.candidate.CandidateProfile;
 import com.platform.recruitment.candidate.CandidateProfileRepository;
+import com.platform.recruitment.candidate.CandidateTargetIndustry;
+import com.platform.recruitment.candidate.CandidateTargetIndustryRepository;
 import com.platform.recruitment.common.CustomException;
 import com.platform.recruitment.common.ErrorCode;
 import com.platform.recruitment.company.*;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -26,6 +29,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final CandidateProfileRepository candidateProfileRepository;
+    private final CandidateTargetIndustryRepository candidateTargetIndustryRepository;
     private final CompanyRepository companyRepository;
     private final RecruiterProfileRepository recruiterProfileRepository;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
@@ -58,13 +62,40 @@ public class AuthService {
                 .build();
         user = userRepository.save(user);
 
+        String primaryIndustry = request.getTargetIndustry();
+        List<String> industries = request.getTargetIndustries();
+        if (industries != null && !industries.isEmpty()) {
+            primaryIndustry = industries.get(0);
+        }
+
         CandidateProfile candidateProfile = CandidateProfile.builder()
                 .user(user)
                 .fullName(request.getFullName())
                 .age(request.getAge())
-                .targetIndustry(request.getTargetIndustry())
+                .targetIndustry(primaryIndustry)
                 .build();
-        candidateProfileRepository.save(candidateProfile);
+        candidateProfile = candidateProfileRepository.save(candidateProfile);
+
+        if (industries != null && !industries.isEmpty()) {
+            for (int i = 0; i < industries.size(); i++) {
+                String indName = industries.get(i);
+                if (indName != null && !indName.isBlank()) {
+                    CandidateTargetIndustry cti = CandidateTargetIndustry.builder()
+                            .candidate(candidateProfile)
+                            .industryName(indName.trim())
+                            .isPrimary(i == 0)
+                            .build();
+                    candidateTargetIndustryRepository.save(cti);
+                }
+            }
+        } else if (primaryIndustry != null && !primaryIndustry.isBlank()) {
+            CandidateTargetIndustry cti = CandidateTargetIndustry.builder()
+                    .candidate(candidateProfile)
+                    .industryName(primaryIndustry.trim())
+                    .isPrimary(true)
+                    .build();
+            candidateTargetIndustryRepository.save(cti);
+        }
 
         String token = generateAndSendVerificationToken(user);
 

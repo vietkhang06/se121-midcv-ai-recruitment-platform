@@ -1,7 +1,9 @@
 package com.platform.recruitment;
 
 import com.platform.recruitment.auth.*;
+import com.platform.recruitment.candidate.CandidateProfile;
 import com.platform.recruitment.candidate.CandidateProfileRepository;
+import java.util.List;
 import com.platform.recruitment.common.CustomException;
 import com.platform.recruitment.common.ErrorCode;
 import com.platform.recruitment.company.CompanyRepository;
@@ -34,6 +36,9 @@ class AuthServiceTest {
 
     @Mock
     private CandidateProfileRepository candidateProfileRepository;
+
+    @Mock
+    private com.platform.recruitment.candidate.CandidateTargetIndustryRepository candidateTargetIndustryRepository;
 
     @Mock
     private CompanyRepository companyRepository;
@@ -264,5 +269,35 @@ class AuthServiceTest {
 
         CustomException ex = assertThrows(CustomException.class, () -> authService.resendVerification("unverified@example.com"));
         assertEquals(ErrorCode.RATE_LIMIT_EXCEEDED, ex.getErrorCode());
+    }
+
+    @Test
+    void testRegisterCandidate_WithMultiIndustry_PersistsAllIndustries() {
+        RegisterCandidateRequest request = new RegisterCandidateRequest();
+        request.setEmail("multi-ind@example.com");
+        request.setPassword("SecurePass123!@#");
+        request.setFullName("Multi Industry Candidate");
+        request.setAge(24);
+        request.setTargetIndustries(List.of("Information Technology", "Marketing", "Finance"));
+
+        when(userRepository.existsByEmail("multi-ind@example.com")).thenReturn(false);
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed-pwd");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+            User u = inv.getArgument(0);
+            u.setId(UUID.randomUUID());
+            return u;
+        });
+        when(candidateProfileRepository.save(any(CandidateProfile.class))).thenAnswer(inv -> {
+            CandidateProfile cp = inv.getArgument(0);
+            cp.setId(UUID.randomUUID());
+            return cp;
+        });
+        when(emailVerificationTokenRepository.save(any(EmailVerificationToken.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        RegisterResponse response = authService.registerCandidate(request);
+
+        assertNotNull(response);
+        assertFalse(response.isEmailVerified());
+        verify(candidateTargetIndustryRepository, times(3)).save(any(com.platform.recruitment.candidate.CandidateTargetIndustry.class));
     }
 }

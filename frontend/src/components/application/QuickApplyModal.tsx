@@ -83,10 +83,11 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
     );
   }
 
+  const selectedCv = candidateCVs.find((c) => c.id === selectedCvId) || candidateCVs[0];
+
   const handleConfirmApplication = async () => {
     setIsSubmitting(true);
     try {
-      const selectedCv = candidateCVs.find((c) => c.id === selectedCvId) || candidateCVs[0];
       const newApp = await submitApplication({
         id: `app-${Date.now()}`,
         job: job,
@@ -97,8 +98,8 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
         appliedDate: new Date().toISOString().split('T')[0],
         expectedSalary: 2500,
         noticePeriodDays: 30,
-        portfolioUrl: 'https://andrew-sterling.dev',
-        candidateNotes: 'Applied via MatchProof 96% confidence vector match.',
+        portfolioUrl: 'https://github.com/candidate-profile',
+        candidateNotes: 'Applied via MatchProof recruitment platform.',
       });
       setIsSubmitted(true);
       if (onApplySubmitted) onApplySubmitted(newApp);
@@ -202,7 +203,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
               {/* Match Evaluation Breakdown Table (Figma Screen 07) */}
               <div className="space-y-3">
                 <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
-                  MATCH EVALUATION BREAKDOWN (96% CONFIDENCE)
+                  MATCH EVALUATION BREAKDOWN — TARGET JOB REQUIREMENTS
                 </div>
 
                 <div className="border border-[#E2E8F0] rounded-xl overflow-hidden">
@@ -215,33 +216,38 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700">
-                      <tr>
-                        <td className="py-3 px-4 font-semibold text-slate-900">Go (Golang)</td>
-                        <td className="py-3 px-4">4 Years production Go commits</td>
-                        <td className="py-3 px-4 text-right">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                            Verified
-                          </span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 px-4 font-semibold text-slate-900">Kubernetes Ingress</td>
-                        <td className="py-3 px-4">Wrote core Helm charts</td>
-                        <td className="py-3 px-4 text-right">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                            Verified
-                          </span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 px-4 font-semibold text-slate-900">gRPC Protobufs</td>
-                        <td className="py-3 px-4">Basic API routing mapped</td>
-                        <td className="py-3 px-4 text-right">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                            Partial
-                          </span>
-                        </td>
-                      </tr>
+                      {job.requirements && job.requirements.length > 0 ? (
+                        job.requirements.map((req, idx) => {
+                          const cvTextLower = (selectedCv?.rawText || selectedCv?.title || '').toLowerCase();
+                          const hasSkill = cvTextLower.includes(req.skillName.toLowerCase());
+                          return (
+                            <tr key={idx}>
+                              <td className="py-3 px-4 font-semibold text-slate-900">
+                                <span>{req.skillName}</span>
+                                <span className="ml-1.5 text-[9px] font-mono font-bold text-slate-400">({req.requirementType})</span>
+                              </td>
+                              <td className="py-3 px-4 text-slate-600">
+                                {hasSkill ? 'Matched in selected CV document' : 'No explicit mention detected in CV'}
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                  hasSkill 
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                                    : 'bg-rose-50 text-rose-800 border-rose-200'
+                                }`}>
+                                  {hasSkill ? 'Matched ✓' : 'Missing ✗'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={3} className="py-3 px-4 text-center text-slate-400 italic">
+                            No specific technical requirements listed for this position.
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>

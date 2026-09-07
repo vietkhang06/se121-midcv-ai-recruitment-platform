@@ -28,5 +28,5 @@ def test_invalid_github_url_graceful_handling():
         job_industry="Technology"
     )
     res = analyzer.analyze_candidate_github(req)
-    assert res.status in ["SYNCED", "UNAVAILABLE"]
+    assert res.status in ["SYNCED", "UNAVAILABLE", "NOT_FOUND", "PRIVATE_ONLY", "API_UNAVAILABLE"]
     assert res.activity_signal in ["HIGH", "MODERATE", "LOW", "LIMITED_OBSERVABLE_ACTIVITY"]

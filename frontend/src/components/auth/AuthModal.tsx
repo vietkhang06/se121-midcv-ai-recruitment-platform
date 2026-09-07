@@ -11,6 +11,8 @@ import {
   resendVerificationToken
 } from '@/lib/api';
 import { getImageSlot } from '@/config/imageConfig';
+import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   X,
   LogIn,
@@ -27,11 +29,26 @@ import {
   ExternalLink,
   Sparkles,
   Award,
-  Layers
+  Layers,
+  Check
 } from 'lucide-react';
+
+const TARGET_INDUSTRIES_LIST = [
+  'Information Technology',
+  'Marketing',
+  'Finance',
+  'Human Resources',
+  'Design',
+  'Education',
+  'Sales',
+  'Engineering',
+  'Healthcare',
+  'Other'
+];
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, authModalMode, closeAuthModal, login, quickOnboardingData, intendedAction } = useAuth();
+  const { t } = useLanguage();
 
   // Active view: LOGIN | REGISTER | VERIFICATION_PENDING
   const [activeTab, setActiveTab] = useState<'LOGIN' | 'REGISTER' | 'VERIFICATION_PENDING'>('LOGIN');
@@ -50,8 +67,18 @@ export const AuthModal: React.FC = () => {
   const [regPassword, setRegPassword] = useState<string>('');
   const [regConfirmPassword, setRegConfirmPassword] = useState<string>('');
   const [regAge, setRegAge] = useState<number>(22);
-  const [regTargetIndustry, setRegTargetIndustry] = useState<Industry>('Technology');
+  const [regTargetIndustries, setRegTargetIndustries] = useState<string[]>(['Information Technology']);
   
+  const toggleRegIndustry = (ind: string) => {
+    if (regTargetIndustries.includes(ind)) {
+      if (regTargetIndustries.length > 1) {
+        setRegTargetIndustries(regTargetIndustries.filter(x => x !== ind));
+      }
+    } else {
+      setRegTargetIndustries([...regTargetIndustries, ind]);
+    }
+  };
+
   // Recruiter fields
   const [regCompanyName, setRegCompanyName] = useState<string>('');
   const [regCompanyIndustry, setRegCompanyIndustry] = useState<Industry>('Technology');
@@ -86,7 +113,7 @@ export const AuthModal: React.FC = () => {
         setRegAge(quickOnboardingData.age);
       }
       if (quickOnboardingData.targetIndustry) {
-        setRegTargetIndustry(quickOnboardingData.targetIndustry);
+        setRegTargetIndustries([quickOnboardingData.targetIndustry]);
       }
     }
   }, [quickOnboardingData]);
@@ -182,7 +209,8 @@ export const AuthModal: React.FC = () => {
           password: regPassword,
           fullName: regFullName.trim(),
           age: regAge,
-          targetIndustry: regTargetIndustry
+          targetIndustry: (regTargetIndustries[0] as Industry) || 'Technology',
+          targetIndustries: regTargetIndustries
         });
         setPendingVerificationEmail(res.email);
         if (res.devVerificationToken) {
@@ -552,57 +580,74 @@ export const AuthModal: React.FC = () => {
 
                 {/* Role Specific Fields */}
                 {registerRole === 'CANDIDATE' ? (
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-3">
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Độ tuổi</label>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">
+                        {t('auth.ageLabel', 'Độ tuổi')}
+                      </label>
                       <input
                         type="number"
                         min={18}
                         max={70}
                         value={regAge || ''}
                         onChange={(e) => setRegAge(parseInt(e.target.value) || 22)}
-                        className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#0C2B24]"
+                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#0E241E] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24]"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Ngành mục tiêu</label>
-                      <select
-                        value={regTargetIndustry ?? 'Technology'}
-                        onChange={(e) => setRegTargetIndustry(e.target.value as Industry)}
-                        className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#0C2B24]"
-                      >
-                        <option value="Technology">Công nghệ (IT)</option>
-                        <option value="Finance">Tài chính - Ngân hàng</option>
-                        <option value="Marketing">Marketing - Truyền thông</option>
-                        <option value="Design">Thiết kế UI/UX</option>
-                        <option value="Healthcare">Y tế - Dược phẩm</option>
-                        <option value="General">Đa ngành</option>
-                      </select>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5 text-xs">
+                        {t('auth.targetIndustriesLabel', 'Ngành mục tiêu (Có thể chọn nhiều ngành)')}
+                      </label>
+                      <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-50 dark:bg-[#0A1E19] border border-slate-200 dark:border-[#1B3D34] rounded-xl">
+                        {TARGET_INDUSTRIES_LIST.map((ind) => {
+                          const isChecked = regTargetIndustries.includes(ind);
+                          return (
+                            <label
+                              key={ind}
+                              className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition select-none ${
+                                isChecked
+                                  ? 'bg-[#0C2B24] dark:bg-emerald-900/60 text-white font-medium shadow-2xs'
+                                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-[#14332B]'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleRegIndustry(ind)}
+                                className="accent-emerald-600 rounded cursor-pointer"
+                              />
+                              <span className="truncate">{ind}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1 text-xs">
                         <Building2 className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Tên công ty / Doanh nghiệp</span>
+                        <span>{t('auth.companyNameLabel', 'Tên công ty / Doanh nghiệp')}</span>
                       </label>
                       <input
                         type="text"
                         placeholder="CloudScale Systems Corp"
                         value={regCompanyName ?? ''}
                         onChange={(e) => setRegCompanyName(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#0C2B24] placeholder-slate-400"
+                        className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#0E241E] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] placeholder-slate-400"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Lĩnh vực hoạt động</label>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">
+                        {t('auth.companyIndustryLabel', 'Lĩnh vực hoạt động')}
+                      </label>
                       <select
                         value={regCompanyIndustry ?? 'Technology'}
                         onChange={(e) => setRegCompanyIndustry(e.target.value as Industry)}
-                        className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#0C2B24]"
+                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#0E241E] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24]"
                       >
                         <option value="Technology">Công nghệ (IT)</option>
                         <option value="Finance">Tài chính - Fintech</option>
@@ -617,31 +662,40 @@ export const AuthModal: React.FC = () => {
                 {/* Password Fields */}
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1 text-xs">
                       <Lock className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Mật khẩu</span>
+                      <span>{t('auth.passwordLabel', 'Mật khẩu')}</span>
                     </label>
                     <input
                       type="password"
-                      placeholder="Ít nhất 6 ký tự"
+                      placeholder="Ít nhất 8 ký tự"
                       value={regPassword ?? ''}
                       onChange={(e) => setRegPassword(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#0C2B24] placeholder-slate-400"
+                      className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#0E241E] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] placeholder-slate-400"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Nhập lại mật khẩu</label>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">
+                      {t('auth.confirmPasswordLabel', 'Nhập lại mật khẩu')}
+                    </label>
                     <input
                       type="password"
                       placeholder="Xác nhận mật khẩu"
                       value={regConfirmPassword ?? ''}
                       onChange={(e) => setRegConfirmPassword(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#0C2B24] placeholder-slate-400"
+                      className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#0E241E] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] placeholder-slate-400"
                       required
                     />
                   </div>
                 </div>
+
+                {/* Password Strength Meter */}
+                {regPassword && (
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0A1E19] border border-slate-200 dark:border-[#1B3D34]">
+                    <PasswordStrengthMeter password={regPassword} />
+                  </div>
+                )}
 
                 <button
                   type="submit"

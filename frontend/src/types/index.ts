@@ -54,6 +54,7 @@ export interface JobRequirement {
   minExperienceYears?: number;
   minYearsExperience?: number;
   weight?: number;
+  description?: string;
 }
 
 export interface Job {
@@ -102,6 +103,7 @@ export interface CV {
   creationPath: 'UPLOAD' | 'BUILDER';
   isDefault: boolean;
   currentVersionNumber: number;
+  rawText?: string;
   updatedAt: string;
   versions: CVVersion[];
 }
@@ -117,6 +119,7 @@ export interface CandidateProfile {
   bio?: string;
   primaryIndustry: Industry;
   targetIndustry?: Industry;
+  targetIndustries?: Industry[];
   additionalIndustries?: Industry[];
   targetRoles?: string[];
   skills: string[];
@@ -172,6 +175,7 @@ export interface GitHubRepoItem {
 
 export interface GitHubAssessmentData {
   connected: boolean;
+  status?: 'SYNCED' | 'NOT_CONNECTED' | 'PRIVATE_ONLY' | 'API_UNAVAILABLE' | 'NOT_APPLICABLE';
   username?: string;
   publicRepoCount?: number;
   topLanguages?: string[];

@@ -155,6 +155,46 @@ public class ProcessingLifecycleService {
         assessment.setOverallSupportingRating((String) result.getOrDefault("overall_supporting_rating", "UNAVAILABLE"));
         gitHubAssessmentRepository.save(assessment);
 
-        log.info("Successfully persisted GitHub analysis for candidate_id: {}", candidateId);
+        // Persist Observable Public Repositories
+        if (result.get("repositories") instanceof List<?> repoList && !repoList.isEmpty()) {
+            List<GitHubRepository> existingRepos = gitHubRepositoryRepository.findByGithubProfileId(savedProfile.getId());
+            if (!existingRepos.isEmpty()) {
+                gitHubRepositoryRepository.deleteAll(existingRepos);
+            }
+
+            for (Object obj : repoList) {
+                if (obj instanceof Map<?, ?> repoMap) {
+                    String name = (String) repoMap.get("name");
+                    String repoUrl = (String) repoMap.get("repo_url");
+                    String desc = (String) repoMap.get("description");
+                    String lang = (String) repoMap.get("primary_language");
+                    int stars = repoMap.get("stars_count") != null ? ((Number) repoMap.get("stars_count")).intValue() : 0;
+                    int forks = repoMap.get("forks_count") != null ? ((Number) repoMap.get("forks_count")).intValue() : 0;
+                    boolean archived = Boolean.TRUE.equals(repoMap.get("is_archived"));
+
+                    ZonedDateTime updatedAt = null;
+                    if (repoMap.get("updated_at_github") != null) {
+                        try {
+                            updatedAt = ZonedDateTime.parse((String) repoMap.get("updated_at_github"));
+                        } catch (Exception ignored) {}
+                    }
+
+                    GitHubRepository repoEntity = GitHubRepository.builder()
+                            .githubProfile(savedProfile)
+                            .name(name != null ? name : "unnamed-repo")
+                            .repoUrl(repoUrl != null ? repoUrl : "")
+                            .description(desc)
+                            .primaryLanguage(lang != null ? lang : "Other")
+                            .starsCount(stars)
+                            .forksCount(forks)
+                            .isArchived(archived)
+                            .updatedAtGithub(updatedAt)
+                            .build();
+                    gitHubRepositoryRepository.save(repoEntity);
+                }
+            }
+        }
+
+        log.info("Successfully persisted GitHub analysis and repositories for candidate_id: {}", candidateId);
     }
 }

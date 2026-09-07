@@ -88,6 +88,7 @@ export default function Home() {
                   placeholder="Search roles: Senior Infrastructure Engineer, Go, Kubernetes..."
                   value={searchKeyword}
                   onChange={(e) => setSearchKeyword(e.target.value)}
+                  suppressHydrationWarning
                   className="w-full bg-transparent border-none text-white text-xs sm:text-sm focus:outline-none placeholder-slate-400 py-1.5"
                 />
                 <button

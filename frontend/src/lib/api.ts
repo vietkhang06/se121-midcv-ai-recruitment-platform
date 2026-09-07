@@ -781,6 +781,74 @@ export async function fetchCandidateRankings(jobId: string): Promise<CandidateRa
 }
 
 export async function fetchMatchInspection(applicationId: string): Promise<MatchInspectionData> {
+  const rankings = getStorage<CandidateRankingItem[]>(STORAGE_KEYS.RANKINGS, SEED_RANKINGS_JOB_01);
+  const found = rankings.find(r => r.applicationId === applicationId || r.candidateId === applicationId);
+
+  if (found) {
+    const isGhConnected = !!found.gitHubConnected && found.githubSupportingScore !== undefined;
+    const missingSet = new Set(found.requiredSkillsMissingNames || []);
+    
+    return {
+      applicationId: found.applicationId,
+      jobTitle: 'Senior Java Backend Engineer (Spring Boot & Vector AI)',
+      candidateName: found.candidateName,
+      overallScore: found.overallMatchScore,
+      coreScore: found.coreJdCvScore,
+      githubScore: isGhConnected ? found.githubSupportingScore : undefined,
+      githubScoreActive: isGhConnected,
+      requiredSkillsStatus: [
+        { skillName: 'Java', requirementType: 'REQUIRED', status: missingSet.has('Java') ? 'MISSING' : 'MATCH', evidenceText: missingSet.has('Java') ? 'Không tìm thấy minh chứng trực tiếp trong CV.' : 'CV -> Skills: "Java". Kinh nghiệm làm việc thực tế.' },
+        { skillName: 'Spring Boot', requirementType: 'REQUIRED', status: missingSet.has('Spring Boot') ? 'MISSING' : 'MATCH', evidenceText: missingSet.has('Spring Boot') ? 'Không tìm thấy minh chứng trực tiếp trong CV.' : 'CV -> Experience: "Thiết kế kiến trúc Spring Boot Microservices".' },
+        { skillName: 'PostgreSQL', requirementType: 'REQUIRED', status: missingSet.has('PostgreSQL') ? 'MISSING' : 'MATCH', evidenceText: missingSet.has('PostgreSQL') ? 'Không tìm thấy minh chứng trực tiếp trong CV.' : 'CV -> Skills: "PostgreSQL & Pgvector Cosine Similarity".' },
+        { skillName: 'Docker', requirementType: 'REQUIRED', status: missingSet.has('Docker') ? 'MISSING' : 'MATCH', evidenceText: missingSet.has('Docker') ? 'Không tìm thấy minh chứng trực tiếp trong CV.' : 'CV -> Skills: "Docker containerization".' }
+      ],
+      preferredSkillsStatus: [
+        { skillName: 'Redis', requirementType: 'PREFERRED', status: 'MATCH', evidenceText: 'CV -> Skills: "Redis Caching".' },
+        { skillName: 'TypeScript', requirementType: 'PREFERRED', status: 'MISSING', evidenceText: 'Không tìm thấy minh chứng trực tiếp trong CV.' }
+      ],
+      matchFactors: [
+        { factorName: 'Skill Match Score (40% Core)', score: found.requiredSkillsMatched === found.requiredSkillsTotal ? 95.0 : 70.0, status: found.requiredSkillsMatched === found.requiredSkillsTotal ? 'HIGH' : 'MODERATE', explanation: `Đáp ứng ${found.requiredSkillsMatched}/${found.requiredSkillsTotal} Kỹ năng Bắt buộc.`, evidence: 'Kỹ năng trích xuất từ CV' },
+        { factorName: 'Experience Match Score (25% Core)', score: Math.min(100.0, found.relevantExperienceYears * 25.0), status: found.relevantExperienceYears >= 3.0 ? 'HIGH' : 'MODERATE', explanation: `Kinh nghiệm làm việc chuyên môn: ${found.relevantExperienceYears} năm.`, evidence: `${found.relevantExperienceYears} năm kinh nghiệm chuyên môn liên quan` },
+        { factorName: 'Education Score (10% Core)', score: 90.0, status: 'HIGH', explanation: 'Bằng Cử nhân CNTT đúng chuyên ngành.', evidence: 'Đại học Bách Khoa' },
+        { factorName: 'Project Relevance Score (10% Core)', score: 85.0, status: 'HIGH', explanation: 'Dự án kỹ thuật có minh chứng phù hợp.', evidence: 'Dự án thực tế' },
+        { factorName: 'Semantic Vector Match (15% Core)', score: 87.04, status: 'HIGH', explanation: 'Độ tương đồng ngữ nghĩa Vector 1536D ở mức cao.', evidence: 'Cosine Similarity: 87.04%' },
+        ...(isGhConnected ? [{
+          factorName: 'GitHub Supporting Score (15% Weight)',
+          score: found.githubSupportingScore!,
+          status: (found.githubSupportingScore! >= 80 ? 'HIGH' : 'MODERATE') as 'HIGH' | 'MODERATE' | 'LOW',
+          explanation: `Tín hiệu bổ trợ từ GitHub công khai: ${found.githubSupportingScore} điểm.`,
+          evidence: `Languages: Java, Repositories: ${found.candidateName.toLowerCase().replace(/\\s+/g, '-')}-backend`
+        }] : [])
+      ],
+      humanReadableExplanation: `Ứng viên ${found.candidateName} đáp ứng ${found.requiredSkillsMatched}/${found.requiredSkillsTotal} kỹ năng bắt buộc và có ${found.relevantExperienceYears} năm kinh nghiệm thực tế.${isGhConnected ? ' Tín hiệu bổ trợ từ GitHub cá nhân hợp lệ và tham gia vào điểm tổng hợp với trọng số 15%.' : ' Không áp dụng tín hiệu GitHub (Fallback Core Score 100%, không bị phạt điểm).' }`,
+      githubAssessment: isGhConnected ? {
+        connected: true,
+        username: found.candidateName.toLowerCase().replace(/\\s+/g, '-'),
+        publicRepoCount: 8,
+        topLanguages: ['Java', 'SQL'],
+        languageDistribution: { Java: 75.0, SQL: 25.0 },
+        activitySignal: 'HIGH',
+        latestActivityDaysAgo: 4,
+        repos: [
+          {
+            name: `${found.candidateName.toLowerCase().replace(/\\s+/g, '-')}-backend`,
+            description: 'Dịch vụ backend Spring Boot & PostgreSQL phục vụ đối sánh và xử lý dữ liệu.',
+            primaryLanguage: 'Java',
+            stars: 15,
+            forks: 4,
+            updatedDaysAgo: 4,
+            relevanceExplanation: 'Mã nguồn trực tiếp chứng minh năng lực Java & Spring Boot.'
+          }
+        ],
+        overallAssessment: 'Ứng viên có repository công khai phù hợp với vị trí tuyển dụng. Ngôn ngữ Java được quan sát thấy trong mã nguồn.'
+      } : {
+        connected: false,
+        status: 'NOT_CONNECTED',
+        overallAssessment: 'Ứng viên chưa liên kết GitHub công khai hoặc không có mã nguồn mở. Hệ thống áp dụng Graceful Fallback: Overall Score = Core JD-CV Score, hoàn toàn không phạt trừ điểm.'
+      }
+    };
+  }
+
   return SEED_INSPECTION_APP_001;
 }
 
@@ -794,6 +862,7 @@ export interface RegisterCandidatePayload {
   fullName: string;
   age?: number;
   targetIndustry?: Industry;
+  targetIndustries?: string[];
 }
 
 export interface RegisterRecruiterPayload {

@@ -2,7 +2,20 @@
 
 import React, { useState } from 'react';
 import { Industry, CV } from '@/types';
-import { X, UploadCloud, FileText, CheckCircle2, Loader2, AlertCircle, RefreshCw, Edit3 } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
+import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
+import {
+  X,
+  UploadCloud,
+  FileText,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  Sparkles,
+  ShieldCheck,
+  ArrowRight
+} from 'lucide-react';
 
 interface CVUploadModalProps {
   isOpen: boolean;
@@ -14,26 +27,33 @@ interface CVUploadModalProps {
 type ProcessingStatus = 'IDLE' | 'UPLOADING' | 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'REVIEW' | 'FAILED';
 
 export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, onUploadSuccess, onSuccess }) => {
+  const { t } = useLanguage();
   const [file, setFile] = useState<File | null>(null);
   const [targetIndustry, setTargetIndustry] = useState<Industry>('Technology');
+  const [targetRole, setTargetRole] = useState<string>('Software Engineer');
   const [status, setStatus] = useState<ProcessingStatus>('IDLE');
-  
+  const [errorMessage, setErrorMessage] = useState<string>('');
+
   // Extracted fields editable during REVIEW step
   const [cvTitle, setCvTitle] = useState<string>('');
-  const [extractedSkills, setExtractedSkills] = useState<string>('Java, Spring Boot, PostgreSQL, Docker, REST API');
-  const [extractedSummary, setExtractedSummary] = useState<string>('3.5 năm kinh nghiệm Java Backend');
-  const [extractedExp, setExtractedExp] = useState<string>('2023 - Nay: Senior Java Backend Engineer tại FPT Software');
+  const [extractedSkills, setExtractedSkills] = useState<string[]>(['Java', 'Spring Boot', 'PostgreSQL', 'Docker']);
+  const [extractedSummary, setExtractedSummary] = useState<string>('Backend Engineer with demonstrated experience in scalable cloud services.');
+  const [extractedExp, setExtractedExp] = useState<string>('2023 - Present: Backend Software Engineer\n- Developed high-throughput microservices\n- Automated CI/CD pipelines');
 
   if (!isOpen) return null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selected = e.target.files[0];
-      if (selected.type === 'application/pdf' || selected.name.endsWith('.docx') || selected.name.endsWith('.pdf')) {
+      const validExtensions = ['.pdf', '.docx'];
+      const hasValidExt = validExtensions.some(ext => selected.name.toLowerCase().endsWith(ext));
+      
+      if (hasValidExt || selected.type === 'application/pdf') {
         setFile(selected);
         setCvTitle(selected.name.replace(/\.[^/.]+$/, ''));
+        setErrorMessage('');
       } else {
-        alert('Chỉ hỗ trợ tập tin định dạng PDF hoặc DOCX');
+        setErrorMessage(t('common.error', 'Only PDF or DOCX file formats are supported.'));
       }
     }
   };
@@ -43,7 +63,9 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
     if (!file) return;
 
     setStatus('UPLOADING');
+    setErrorMessage('');
 
+    // Simulated reliable AI Worker lifecycle pipeline
     setTimeout(() => {
       setStatus('QUEUED');
       setTimeout(() => {
@@ -51,11 +73,11 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
         setTimeout(() => {
           setStatus('COMPLETED');
           setTimeout(() => {
-            setStatus('REVIEW'); // Candidate review step before final save
-          }, 800);
-        }, 1500);
-      }, 800);
-    }, 800);
+            setStatus('REVIEW');
+          }, 600);
+        }, 1200);
+      }, 700);
+    }, 700);
   };
 
   const handleSaveParsedCV = () => {
@@ -63,7 +85,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
       id: `cv-uploaded-${Date.now()}`,
       title: cvTitle || (file ? file.name.replace(/\.[^/.]+$/, '') : 'Uploaded CV'),
       targetIndustry: targetIndustry,
-      targetRole: 'Software Engineer',
+      targetRole: targetRole || 'Professional',
       creationPath: 'UPLOAD',
       isDefault: false,
       currentVersionNumber: 1,
@@ -76,7 +98,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
           createdAt: new Date().toISOString().split('T')[0],
           sections: [
             { sectionType: 'SUMMARY', title: 'Tóm tắt bản thân', content: extractedSummary },
-            { sectionType: 'SKILLS', title: 'Kỹ năng chuyên môn', content: extractedSkills },
+            { sectionType: 'SKILLS', title: 'Kỹ năng chuyên môn', content: extractedSkills.join(', ') },
             { sectionType: 'EXPERIENCE', title: 'Kinh nghiệm làm việc', content: extractedExp }
           ]
         }
@@ -90,147 +112,261 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
     setFile(null);
   };
 
+  const handleAddSkill = (skill: string) => {
+    if (!extractedSkills.includes(skill)) {
+      setExtractedSkills([...extractedSkills, skill]);
+    }
+  };
+
+  const handleRemoveSkill = (skill: string) => {
+    setExtractedSkills(extractedSkills.filter(s => s !== skill));
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 text-slate-100 relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-fade-in">
+      <div className="w-full max-w-xl bg-white dark:bg-[#071410] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-2xl shadow-2xl p-6 sm:p-7 text-slate-800 dark:text-slate-100 relative transition-colors max-h-[90vh] overflow-y-auto">
+        
+        {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+          className="absolute top-4 right-4 p-2 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#14332B] transition cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-2 mb-6">
-          <div className="p-2 rounded-xl bg-indigo-950 border border-indigo-500/30 text-indigo-400">
+        {/* Modal Header */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-[#0C2B24] dark:bg-emerald-950 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-sm flex-shrink-0">
             <UploadCloud className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white">Tải lên & Phân tích CV (PDF / DOCX)</h3>
-            <p className="text-xs text-slate-400">Theo dõi trạng thái xử lý AI Worker và kiểm tra dữ liệu trước khi lưu</p>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block">
+              MATCHPROOF PARSER PIPELINE
+            </span>
+            <h3 className="text-xl font-editorial font-bold text-slate-900 dark:text-white">
+              Tải Lên & Phân Tích CV (PDF / DOCX)
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Trích xuất kỹ năng, kinh nghiệm và cấu trúc thực thể qua AI Worker trước khi lưu vào Thư Viện.
+            </p>
           </div>
         </div>
 
+        {errorMessage && (
+          <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        {/* STEP: IDLE */}
         {status === 'IDLE' && (
           <form onSubmit={handleStartProcessing} className="space-y-5">
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">Ngành nghề nhắm tới</label>
-              <select
-                value={targetIndustry}
-                onChange={(e) => setTargetIndustry(e.target.value as Industry)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-indigo-500"
-              >
-                <option value="Technology">Technology</option>
-                <option value="Marketing">Marketing</option>
-                <option value="Design">Design</option>
-                <option value="Finance">Finance</option>
-                <option value="HR">HR</option>
-              </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Ngành nghề định hướng
+                </label>
+                <select
+                  value={targetIndustry}
+                  onChange={(e) => setTargetIndustry(e.target.value as Industry)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] text-slate-800 dark:text-white text-xs focus:outline-none focus:border-emerald-500 transition"
+                >
+                  <option value="Technology">Technology (Công nghệ thông tin)</option>
+                  <option value="Marketing">Marketing & Truyền thông</option>
+                  <option value="Design">Design (Thiết kế đồ họa / UX)</option>
+                  <option value="Finance">Finance (Tài chính - Ngân hàng)</option>
+                  <option value="HR">Human Resources (Nhân sự)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Vị trí mong muốn
+                </label>
+                <input
+                  type="text"
+                  value={targetRole}
+                  onChange={(e) => setTargetRole(e.target.value)}
+                  placeholder="Ví dụ: Backend Software Engineer"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] text-slate-800 dark:text-white text-xs focus:outline-none focus:border-emerald-500 transition"
+                />
+              </div>
             </div>
 
-            <div className="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-2xl p-8 text-center bg-slate-950/50 transition cursor-pointer">
+            {/* Drag & Drop Zone */}
+            <div className="border-2 border-dashed border-slate-300 dark:border-[#1B3D34] hover:border-emerald-600 dark:hover:border-emerald-500 rounded-2xl p-8 text-center bg-slate-50/50 dark:bg-[#0E241E]/40 transition cursor-pointer group">
               <input
                 type="file"
                 accept=".pdf,.docx"
                 onChange={handleFileChange}
                 className="hidden"
-                id="cv-file-input"
+                id="cv-file-modal-input"
               />
-              <label htmlFor="cv-file-input" className="cursor-pointer block space-y-2">
-                <FileText className="w-10 h-10 mx-auto text-indigo-400" />
-                <span className="block text-sm font-semibold text-white">
-                  {file ? file.name : 'Nhấp để chọn file CV (PDF hoặc DOCX)'}
-                </span>
-                <span className="block text-xs text-slate-400">Dung lượng tối đa 10MB</span>
+              <label htmlFor="cv-file-modal-input" className="cursor-pointer block space-y-2.5">
+                <div className="w-12 h-12 mx-auto rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="block text-sm font-semibold text-slate-800 dark:text-white">
+                    {file ? file.name : 'Nhấp hoặc kéo thả file CV tại đây'}
+                  </span>
+                  <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Hỗ trợ định dạng PDF hoặc DOCX (Tối đa 10MB)
+                  </span>
+                </div>
+                {file && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800 px-2.5 py-0.5 rounded-full">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Đã chọn sẵn sàng: {(file.size / 1024).toFixed(1)} KB
+                  </span>
+                )}
               </label>
             </div>
 
             <button
               type="submit"
               disabled={!file}
-              className="w-full py-3 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 transition active:scale-95 shadow-md shadow-indigo-500/25"
+              className="w-full py-3 rounded-xl text-xs font-semibold text-white bg-[#0C2B24] hover:bg-[#133E34] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
-              Phân tích & Tải lên CV
+              <Sparkles className="w-4 h-4 text-emerald-400" />
+              <span>Bắt Đầu Phân Tích & Trích Xuất AI</span>
             </button>
           </form>
         )}
 
+        {/* STEP: PROCESSING PIPELINE STATES */}
         {(status === 'UPLOADING' || status === 'QUEUED' || status === 'PROCESSING' || status === 'COMPLETED') && (
-          <div className="py-12 text-center space-y-4">
-            <Loader2 className="w-10 h-10 mx-auto text-cyan-400 animate-spin" />
-            <div className="space-y-1">
-              <span className="px-2.5 py-0.5 rounded bg-indigo-950 border border-indigo-500/30 text-indigo-300 text-[11px] font-mono uppercase">
-                {status}
+          <div className="py-12 text-center space-y-5">
+            <div className="relative w-16 h-16 mx-auto">
+              <div className="w-16 h-16 rounded-full border-4 border-slate-200 dark:border-[#1B3D34] border-t-[#10B981] animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <Sparkles className="w-6 h-6 animate-pulse" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5 max-w-sm mx-auto">
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono font-bold uppercase tracking-wider">
+                PIPELINE STATUS: {status}
               </span>
-              <h4 className="text-base font-bold text-white pt-1">
-                {status === 'UPLOADING' && 'Đang tải file lên máy chủ...'}
-                {status === 'QUEUED' && 'Đã vào hàng chờ xử lý...'}
-                {status === 'PROCESSING' && 'Đang phân tích CV qua Python AI Worker...'}
-                {status === 'COMPLETED' && 'Phân tích xong! Đang chuyển sang màn hình Đánh giá...'}
+              <h4 className="text-base font-editorial font-bold text-slate-900 dark:text-white pt-1">
+                {status === 'UPLOADING' && 'Đang tải file an toàn lên máy chủ...'}
+                {status === 'QUEUED' && 'Đang phân phối vào hàng đợi AI Worker...'}
+                {status === 'PROCESSING' && 'AI đang trích xuất thực thể, kỹ năng & kinh nghiệm...'}
+                {status === 'COMPLETED' && 'Trích xuất hoàn tất! Chuẩn bị chuyển sang màn hình Đánh giá...'}
               </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-light">
+                Chuẩn hóa các kỹ năng đồng nghĩa (JS → JavaScript, Postgres → PostgreSQL) và vector embedding.
+              </p>
             </div>
           </div>
         )}
 
+        {/* STEP: REVIEW & REFINEMENT */}
         {status === 'REVIEW' && (
           <div className="space-y-4">
-            <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-300 flex items-center justify-between">
+            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
               <span className="font-semibold flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-cyan-400" />
-                Đã phân tích xong! Hãy kiểm tra & điều chỉnh thông tin trước khi lưu.
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                Trích xuất thành công! Kiểm tra và tinh chỉnh thông tin trước khi lưu.
               </span>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3.5 text-xs">
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Tên lưu trữ CV</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                  Tên hiển thị CV
+                </label>
                 <input
                   type="text"
                   value={cvTitle}
                   onChange={(e) => setCvTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] text-slate-800 dark:text-white text-xs focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Tóm tắt bản thân trích xuất</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                  Tóm tắt bản thân (Extracted Professional Summary)
+                </label>
                 <textarea
                   rows={2}
                   value={extractedSummary}
                   onChange={(e) => setExtractedSummary(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] text-slate-800 dark:text-white text-xs focus:outline-none focus:border-emerald-500 leading-relaxed"
+                />
+              </div>
+
+              {/* Autocomplete Skill Selector */}
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                  Kỹ năng chuyên môn trích xuất (Technical Skills Index)
+                </label>
+                <SkillAutocomplete
+                  skills={extractedSkills}
+                  onSkillsChange={setExtractedSkills}
+                  placeholder="Gõ để tìm kiếm và bổ sung kỹ năng (ví dụ: Spring Boot, Docker, React)..."
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Kỹ năng chuyên môn trích xuất</label>
-                <input
-                  type="text"
-                  value={extractedSkills}
-                  onChange={(e) => setExtractedSkills(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500"
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                  Kinh nghiệm làm việc trích xuất
+                </label>
+                <textarea
+                  rows={3}
+                  value={extractedExp}
+                  onChange={(e) => setExtractedExp(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] text-slate-800 dark:text-white text-xs focus:outline-none focus:border-emerald-500 font-mono text-[11px] leading-relaxed"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-[#1B3D34]">
               <button
                 type="button"
                 onClick={() => setStatus('IDLE')}
-                className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+                className="text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white flex items-center gap-1.5 transition cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>Tải lên file khác</span>
+                <span>Tải file khác</span>
               </button>
+
               <button
                 type="button"
                 onClick={handleSaveParsedCV}
-                className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 transition active:scale-95 shadow-md shadow-emerald-500/25"
+                className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#0C2B24] hover:bg-[#133E34] transition shadow-md flex items-center gap-1.5 cursor-pointer"
               >
-                Xác nhận & Lưu vào Thư viện CV
+                <span>Xác Nhận & Lưu Thư Viện CV</span>
+                <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
               </button>
             </div>
           </div>
         )}
+
+        {/* STEP: FAILED */}
+        {status === 'FAILED' && (
+          <div className="py-8 text-center space-y-4">
+            <div className="w-12 h-12 mx-auto rounded-full bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-base font-editorial font-bold text-slate-900 dark:text-white">
+                Phân Tích Thất Bại
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Định dạng tệp tin hoặc nội dung văn bản không thể nhận diện. Vui lòng kiểm tra lại file.
+              </p>
+            </div>
+            <button
+              onClick={() => setStatus('IDLE')}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#0C2B24] hover:bg-[#133E34] transition cursor-pointer"
+            >
+              Thử Lại (Retry)
+            </button>
+          </div>
+        )}
+
       </div>
     </div>
   );

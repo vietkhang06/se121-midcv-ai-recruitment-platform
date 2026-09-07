@@ -44,6 +44,12 @@ public class MatchingEngineService {
     private final ProjectRelevanceMatcher projectRelevanceMatcher;
     private final GitHubScoringService gitHubScoringService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private SkillNormalizer skillNormalizer = new SkillNormalizer();
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.platform.recruitment.embedding.PgvectorCosineSimilarity pgvectorCosineSimilarity = new com.platform.recruitment.embedding.PgvectorCosineSimilarity();
+
     @Transactional
     public MatchResult calculateAndPersistMatchResult(UUID jobId, UUID candidateId) {
         Job job = jobRepository.findById(jobId)
@@ -63,6 +69,32 @@ public class MatchingEngineService {
         List<CV> cvs = cvRepository.findByCandidateId(candidateId);
         String cvRawText = cvs.isEmpty() ? "" : cvs.get(0).getRawText();
 
+        // Insufficient candidate data handling: DO NOT calculate misleading scores
+        if (cvs.isEmpty() || cvRawText == null || cvRawText.trim().isEmpty()) {
+            MatchResult insufficientResult = matchResultRepository.findByApplicationId(application.getId())
+                    .orElseGet(() -> MatchResult.builder()
+                            .application(application)
+                            .build());
+
+            insufficientResult.setCoreScore(BigDecimal.ZERO);
+            insufficientResult.setGithubScore(null);
+            insufficientResult.setOverallScore(BigDecimal.ZERO);
+            insufficientResult.setCoreWeight(BigDecimal.valueOf(1.00));
+            insufficientResult.setGithubWeight(BigDecimal.ZERO);
+            insufficientResult.setStatus("INSUFFICIENT_DATA");
+            insufficientResult.setAiSummary("Insufficient candidate profile/CV data to calculate reliable match score.");
+            insufficientResult.setRequiredSkillsTotal(0);
+            insufficientResult.setRequiredSkillsMatched(0);
+            insufficientResult.setRequiredSkillsMissing(0);
+            insufficientResult.setPreferredSkillsTotal(0);
+            insufficientResult.setPreferredSkillsMatched(0);
+            insufficientResult.setPreferredSkillsMissing(0);
+            insufficientResult.setMatchingAlgorithmVersion("v1.0");
+
+            log.info("Candidate {} has insufficient CV data for job {}. Setting status INSUFFICIENT_DATA.", candidateId, jobId);
+            return matchResultRepository.save(insufficientResult);
+        }
+
         List<JobRequirement> allReqs = jobRequirementRepository.findByJobId(jobId);
         List<JobRequirement> requiredSkills = allReqs.stream()
                 .filter(r -> r.getRequirementType() == RequirementType.REQUIRED)
@@ -74,14 +106,8 @@ public class MatchingEngineService {
         // 1. Calculate Required & Preferred Skill Counts for Required Skill Gate
         int reqTotal = requiredSkills.size();
         int reqMatched = 0;
-        String cvLower = cvRawText.toLowerCase();
         for (JobRequirement req : requiredSkills) {
-            String skill = req.getSkillName().toLowerCase();
-            if (skill.equals("java")) {
-                if (cvLower.contains("java") && !cvLower.contains("javascript only") && cvLower.replace("javascript", "").contains("java")) {
-                    reqMatched++;
-                }
-            } else if (cvLower.contains(skill)) {
+            if (skillNormalizer.matchesSkill(req.getSkillName(), cvRawText)) {
                 reqMatched++;
             }
         }
@@ -90,7 +116,7 @@ public class MatchingEngineService {
         int prefTotal = preferredSkills.size();
         int prefMatched = 0;
         for (JobRequirement pref : preferredSkills) {
-            if (cvLower.contains(pref.getSkillName().toLowerCase())) {
+            if (skillNormalizer.matchesSkill(pref.getSkillName(), cvRawText)) {
                 prefMatched++;
             }
         }
@@ -107,7 +133,10 @@ public class MatchingEngineService {
         BigDecimal expScore = experienceMatcher.evaluateExperience(job.getDescription(), cvRawText);
         BigDecimal eduScore = educationMatcher.evaluateEducation(job.getDescription(), cvRawText);
         BigDecimal projScore = projectRelevanceMatcher.evaluateProjectRelevance(job.getDescription(), cvRawText);
-        BigDecimal semanticScore = BigDecimal.valueOf(85.00); // Baseline semantic similarity
+        BigDecimal semanticScore = pgvectorCosineSimilarity.evaluateSemanticSimilarity(job.getDescription(), cvRawText);
+        if (semanticScore.compareTo(BigDecimal.ZERO) <= 0 && cvRawText != null && !cvRawText.isBlank()) {
+            semanticScore = BigDecimal.valueOf(50.00); // Default baseline if no explicit semantic tokens match
+        }
 
         // 3. Core Score Formula: S_core = 0.40 * Skill + 0.25 * Exp + 0.10 * Edu + 0.10 * Proj + 0.15 * Semantic
         double coreVal = (0.40 * skillScore.doubleValue()) +

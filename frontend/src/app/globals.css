@@ -11,7 +11,27 @@
   --accent-amber-light: #FEF3C7;
   --accent-emerald: #10B981;
   --canvas-bg: #F8FAF9;
+  --card-bg: #FFFFFF;
   --card-border: #E2E8F0;
+  --muted-text: #64748B;
+  --hover-bg: #F1F5F9;
+}
+
+.dark {
+  --background: #071410;
+  --foreground: #F1F5F9;
+  --forest-950: #040D0A;
+  --forest-900: #0A1E19;
+  --forest-800: #112F28;
+  --forest-700: #194339;
+  --accent-amber: #F59E0B;
+  --accent-amber-light: #78350F;
+  --accent-emerald: #34D399;
+  --canvas-bg: #071410;
+  --card-bg: #0E241E;
+  --card-border: #1B3D34;
+  --muted-text: #94A3B8;
+  --hover-bg: #14332B;
 }
 
 @theme inline {
@@ -25,6 +45,7 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Custom Editorial Serif Classes matching Figma Typography */

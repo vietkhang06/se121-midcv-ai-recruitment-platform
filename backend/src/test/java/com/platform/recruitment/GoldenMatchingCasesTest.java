@@ -178,4 +178,90 @@ class GoldenMatchingCasesTest {
         assertEquals(2, result.getPreferredSkillsTotal());
         assertEquals(2, result.getPreferredSkillsMatched());
     }
+
+    @Test
+    void testTEST03_PrivateRepository_Fallback_OverallEqualsCore() {
+        when(jobRepository.findById(javaJob.getId())).thenReturn(Optional.of(javaJob));
+        when(candidateProfileRepository.findById(candidateJava.getId())).thenReturn(Optional.of(candidateJava));
+
+        CV cv = CV.builder().candidate(candidateJava).rawText("3 years exp in Java, Spring Boot, PostgreSQL.").build();
+        when(cvRepository.findByCandidateId(candidateJava.getId())).thenReturn(List.of(cv));
+
+        GitHubProfile privateProfile = GitHubProfile.builder()
+                .candidate(candidateJava)
+                .status("PRIVATE_ONLY")
+                .publicReposCount(0)
+                .build();
+        when(gitHubProfileRepository.findByCandidateId(candidateJava.getId())).thenReturn(Optional.of(privateProfile));
+
+        MatchResult result = matchingEngineService.calculateAndPersistMatchResult(javaJob.getId(), candidateJava.getId());
+
+        assertNull(result.getGithubScore());
+        assertEquals(BigDecimal.valueOf(1.00), result.getCoreWeight());
+        assertEquals(BigDecimal.ZERO, result.getGithubWeight());
+        assertEquals(result.getCoreScore(), result.getOverallScore());
+    }
+
+    @Test
+    void testTEST04_GitHubApiUnavailableOrFailure_Fallback_OverallEqualsCore() {
+        when(jobRepository.findById(javaJob.getId())).thenReturn(Optional.of(javaJob));
+        when(candidateProfileRepository.findById(candidateJava.getId())).thenReturn(Optional.of(candidateJava));
+
+        CV cv = CV.builder().candidate(candidateJava).rawText("3 years exp in Java, Spring Boot, PostgreSQL.").build();
+        when(cvRepository.findByCandidateId(candidateJava.getId())).thenReturn(List.of(cv));
+
+        GitHubProfile failedProfile = GitHubProfile.builder()
+                .candidate(candidateJava)
+                .status("API_UNAVAILABLE")
+                .build();
+        when(gitHubProfileRepository.findByCandidateId(candidateJava.getId())).thenReturn(Optional.of(failedProfile));
+
+        MatchResult result = matchingEngineService.calculateAndPersistMatchResult(javaJob.getId(), candidateJava.getId());
+
+        assertNull(result.getGithubScore());
+        assertEquals(BigDecimal.valueOf(1.00), result.getCoreWeight());
+        assertEquals(BigDecimal.ZERO, result.getGithubWeight());
+        assertEquals(result.getCoreScore(), result.getOverallScore());
+    }
+
+    @Test
+    void testTEST08_CandidateWithRelevantExperience_MatchesTargetJD() {
+        ExperienceMatcher matcher = new ExperienceMatcher();
+        String jd = "Senior Java Engineer. 3+ years experience with Spring Boot and microservices.";
+        String cv = "Software Engineer with 4 years experience building Java Spring Boot microservices.";
+
+        BigDecimal score = matcher.evaluateExperience(jd, cv);
+        assertEquals(BigDecimal.valueOf(100.0).setScale(2), score);
+    }
+
+    @Test
+    void testTEST09_CandidateWithUnrelatedExperienceOnly_FilteredOutWithoutFalseCredit() {
+        ExperienceMatcher matcher = new ExperienceMatcher();
+        String jd = "Senior Java Engineer. 3+ years experience with Java backend.";
+        String cv = "5 years experience in Marketing campaigns and social media management.";
+
+        BigDecimal score = matcher.evaluateExperience(jd, cv);
+        assertEquals(BigDecimal.ZERO.setScale(2), score);
+    }
+
+    @Test
+    void testTEST10_CandidateWithNoCV_ReturnsInsufficientDataStatus() {
+        CandidateProfile emptyCandidate = CandidateProfile.builder()
+                .fullName("New Candidate No CV")
+                .build();
+        emptyCandidate.setId(UUID.randomUUID());
+
+        when(jobRepository.findById(javaJob.getId())).thenReturn(Optional.of(javaJob));
+        when(candidateProfileRepository.findById(emptyCandidate.getId())).thenReturn(Optional.of(emptyCandidate));
+        when(cvRepository.findByCandidateId(emptyCandidate.getId())).thenReturn(List.of());
+
+        MatchResult result = matchingEngineService.calculateAndPersistMatchResult(javaJob.getId(), emptyCandidate.getId());
+
+        assertEquals("INSUFFICIENT_DATA", result.getStatus());
+        assertEquals(BigDecimal.ZERO, result.getOverallScore());
+        assertEquals(BigDecimal.ZERO, result.getCoreScore());
+        assertTrue(result.getAiSummary().contains("Insufficient candidate profile/CV data"));
+    }
 }
+
+

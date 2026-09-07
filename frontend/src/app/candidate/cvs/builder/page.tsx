@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Industry, CV } from '@/types';
 import { fetchCandidateCVs, saveCandidateCV } from '@/lib/api';
+import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
 import {
   ArrowLeft,
   Sparkles,
@@ -267,36 +268,21 @@ export default function CVBuilderPage() {
           </div>
 
           {/* Card 3: Section Technical Skills Index */}
-          <div className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-xs space-y-3">
-            <div className="text-xs font-semibold uppercase tracking-wider text-slate-700">
-              Section: Technical Skills Index
+          <div className="bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-6 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Section: Technical Skills Index
+              </div>
+              <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
+                Autocomplete & Aliases Active
+              </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 border border-slate-200 bg-[#F8FAF9] rounded-lg p-2.5 min-h-[44px]">
-              {skills.map((skill) => (
-                <span
-                  key={skill}
-                  className="px-2.5 py-1 rounded-md text-xs font-mono font-medium bg-white text-slate-800 border border-slate-300 flex items-center gap-1.5 shadow-2xs"
-                >
-                  <span>{skill}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveSkill(skill)}
-                    className="text-slate-400 hover:text-slate-600"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-              <input
-                type="text"
-                placeholder="Add more..."
-                value={newSkill}
-                onChange={(e) => setNewSkill(e.target.value)}
-                onKeyDown={handleAddSkill}
-                className="bg-transparent border-none text-xs text-slate-800 focus:outline-none placeholder-slate-400 py-1 px-2 flex-1 min-w-[100px]"
-              />
-            </div>
+            <SkillAutocomplete
+              skills={skills}
+              onSkillsChange={setSkills}
+              placeholder="Type e.g. jav, spr, doc, k8s to autocomplete..."
+            />
           </div>
 
         </div>

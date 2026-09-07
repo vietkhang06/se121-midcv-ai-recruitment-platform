@@ -54,7 +54,7 @@ public class ExperienceMatcher {
             return 0; // Filtered out as 0 relevant years
         }
 
-        Pattern p = Pattern.compile("(\\d+)\\s*years");
+        Pattern p = Pattern.compile("(\\d+)\\s*year[s]?");
         Matcher m = p.matcher(cvLower);
         if (m.find()) {
             return Integer.parseInt(m.group(1));

@@ -19,7 +19,8 @@ class GitHubClient:
             logger.info(f"Using Mock GitHub Client data for username: {username}")
             if username in MOCK_GITHUB_DATA:
                 return MOCK_GITHUB_DATA[username]
-            return MOCK_GITHUB_DATA.get("candidate-java")
+            # When username is not in controlled test fixtures, return None (NOT_FOUND)
+            return None
 
         # Live Public GitHub API Request
         try:
@@ -29,11 +30,27 @@ class GitHubClient:
 
             with httpx.Client(timeout=10.0) as client:
                 user_res = client.get(f"https://api.github.com/users/{username}", headers=headers)
-                if user_res.status_code != 200:
+                if user_res.status_code == 404:
+                    logger.info(f"GitHub user not found: {username}")
+                    return {"username": username, "error": "NOT_FOUND", "status": "NOT_FOUND"}
+                elif user_res.status_code in [403, 429]:
+                    logger.warning(f"GitHub API rate limit exceeded for: {username}")
+                    return {"username": username, "error": "API_UNAVAILABLE", "status": "API_UNAVAILABLE"}
+                elif user_res.status_code != 200:
                     logger.warning(f"GitHub User API returned status {user_res.status_code}")
-                    return self._fallback_data(username)
+                    return {"username": username, "error": "API_UNAVAILABLE", "status": "API_UNAVAILABLE"}
 
                 user_data = user_res.json()
+                public_count = user_data.get("public_repos", 0)
+                if public_count == 0:
+                    return {
+                        "username": username,
+                        "github_url": user_data.get("html_url"),
+                        "public_repos_count": 0,
+                        "latest_activity_at": user_data.get("updated_at"),
+                        "repositories": [],
+                        "status": "PRIVATE_ONLY"
+                    }
 
                 repos_res = client.get(f"https://api.github.com/users/{username}/repos?type=public&sort=updated", headers=headers)
                 repos_data = repos_res.json() if repos_res.status_code == 200 else []
@@ -57,16 +74,25 @@ class GitHubClient:
                         "topics": repo.get("topics", [])
                     })
 
+                if not parsed_repos:
+                    return {
+                        "username": username,
+                        "github_url": user_data.get("html_url"),
+                        "public_repos_count": 0,
+                        "latest_activity_at": user_data.get("updated_at"),
+                        "repositories": [],
+                        "status": "PRIVATE_ONLY"
+                    }
+
                 return {
                     "username": username,
                     "github_url": user_data.get("html_url"),
                     "public_repos_count": user_data.get("public_repos", len(parsed_repos)),
                     "latest_activity_at": user_data.get("updated_at"),
-                    "repositories": parsed_repos
+                    "repositories": parsed_repos,
+                    "status": "SYNCED"
                 }
         except Exception as e:
-            logger.warning(f"GitHub API request failed ({e}). Applying graceful fallback.")
-            return self._fallback_data(username)
+            logger.warning(f"GitHub API request failed ({e}). Returning API_UNAVAILABLE.")
+            return {"username": username, "error": "API_UNAVAILABLE", "status": "API_UNAVAILABLE"}
 
-    def _fallback_data(self, username: str) -> Dict[str, Any]:
-        return MOCK_GITHUB_DATA.get("candidate-java")

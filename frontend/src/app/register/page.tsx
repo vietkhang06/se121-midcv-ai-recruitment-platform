@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Industry, EmailCheckStatus } from '@/types';
 import { checkEmailAvailability, registerCandidateAccount, registerRecruiterAccount } from '@/lib/api';
 import { getImageSlot } from '@/config/imageConfig';
+import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -21,6 +22,19 @@ import {
   ArrowRight
 } from 'lucide-react';
 
+const TARGET_INDUSTRIES_LIST = [
+  'Information Technology',
+  'Marketing',
+  'Finance',
+  'Human Resources',
+  'Design',
+  'Education',
+  'Sales',
+  'Engineering',
+  'Healthcare',
+  'Other'
+];
+
 export default function RegisterPage() {
   const router = useRouter();
   const { openAuthModal } = useAuth();
@@ -31,9 +45,19 @@ export default function RegisterPage() {
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [age, setAge] = useState<number>(22);
-  const [targetIndustry, setTargetIndustry] = useState<Industry>('Technology');
+  const [targetIndustries, setTargetIndustries] = useState<string[]>(['Information Technology']);
   const [companyName, setCompanyName] = useState<string>('');
   const [companyIndustry, setCompanyIndustry] = useState<Industry>('Technology');
+
+  const toggleIndustry = (ind: string) => {
+    if (targetIndustries.includes(ind)) {
+      if (targetIndustries.length > 1) {
+        setTargetIndustries(targetIndustries.filter(x => x !== ind));
+      }
+    } else {
+      setTargetIndustries([...targetIndustries, ind]);
+    }
+  };
 
   const [emailStatus, setEmailStatus] = useState<EmailCheckStatus>('UNKNOWN');
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +122,8 @@ export default function RegisterPage() {
           password,
           fullName: fullName.trim(),
           age,
-          targetIndustry
+          targetIndustry: (targetIndustries[0] as Industry) || 'Technology',
+          targetIndustries
         });
         setRegisteredEmail(res.email);
       } else {
@@ -263,44 +288,57 @@ export default function RegisterPage() {
                   </div>
 
                   {role === 'CANDIDATE' ? (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-3">
                       <div>
-                        <label className="block font-semibold text-slate-700 mb-1">Độ tuổi</label>
+                        <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Độ tuổi</label>
                         <input
                           type="number"
                           min={18}
                           max={70}
                           value={age || ''}
                           onChange={(e) => setAge(parseInt(e.target.value) || 22)}
-                          className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#0C2B24]"
+                          className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#0E241E] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24]"
                           required
                         />
                       </div>
                       <div>
-                        <label className="block font-semibold text-slate-700 mb-1">Ngành mục tiêu</label>
-                        <select
-                          value={targetIndustry || 'Technology'}
-                          onChange={(e) => setTargetIndustry(e.target.value as Industry)}
-                          className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#0C2B24]"
-                        >
-                          <option value="Technology">Công nghệ (IT)</option>
-                          <option value="Finance">Tài chính - Ngân hàng</option>
-                          <option value="Marketing">Marketing - Truyền thông</option>
-                          <option value="Design">Thiết kế UI/UX</option>
-                          <option value="Healthcare">Y tế - Dược phẩm</option>
-                          <option value="General">Đa ngành</option>
-                        </select>
+                        <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5 text-xs">
+                          Ngành mục tiêu (Có thể chọn nhiều ngành)
+                        </label>
+                        <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-50 dark:bg-[#0A1E19] border border-slate-200 dark:border-[#1B3D34] rounded-xl">
+                          {TARGET_INDUSTRIES_LIST.map((ind) => {
+                            const isChecked = targetIndustries.includes(ind);
+                            return (
+                              <label
+                                key={ind}
+                                className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition select-none ${
+                                  isChecked
+                                    ? 'bg-[#0C2B24] dark:bg-emerald-900/60 text-white font-medium shadow-2xs'
+                                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-[#14332B]'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => toggleIndustry(ind)}
+                                  className="accent-emerald-600 rounded cursor-pointer"
+                                />
+                                <span className="truncate">{ind}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   ) : (
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Tên công ty / Doanh nghiệp</label>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Tên công ty / Doanh nghiệp</label>
                       <input
                         type="text"
                         placeholder="CloudScale Systems Corp"
                         value={companyName || ''}
                         onChange={(e) => setCompanyName(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#0C2B24]"
+                        className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#0E241E] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24]"
                         required
                       />
                     </div>
@@ -308,28 +346,34 @@ export default function RegisterPage() {
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Mật khẩu</label>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Mật khẩu</label>
                       <input
                         type="password"
-                        placeholder="Ít nhất 6 ký tự"
+                        placeholder="Ít nhất 8 ký tự"
                         value={password || ''}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#0C2B24]"
+                        className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#0E241E] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24]"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Nhập lại mật khẩu</label>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Nhập lại mật khẩu</label>
                       <input
                         type="password"
                         placeholder="Xác nhận"
                         value={confirmPassword || ''}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#0C2B24]"
+                        className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#0E241E] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24]"
                         required
                       />
                     </div>
                   </div>
+
+                  {password && (
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0A1E19] border border-slate-200 dark:border-[#1B3D34]">
+                      <PasswordStrengthMeter password={password} />
+                    </div>
+                  )}
 
                   <button
                     type="submit"

@@ -1,0 +1,51 @@
+{
+  "benchmark_job": {
+    "id": "job-eval-java-01",
+    "title": "Senior Java Backend Engineer",
+    "required_skills": ["Java", "Spring Boot", "PostgreSQL"],
+    "preferred_skills": ["Docker", "Amazon Web Services (AWS)"],
+    "min_experience_years": 3.0
+  },
+  "candidates": [
+    {
+      "id": "cand-01-perfect",
+      "name": "Nguyen Van Thien (Staff Java)",
+      "ground_truth_relevance": 3,
+      "skills": ["Java", "Spring Boot", "PostgreSQL", "Docker", "Amazon Web Services (AWS)", "Kubernetes"],
+      "experience_years": 5.0,
+      "github_available": true
+    },
+    {
+      "id": "cand-02-high",
+      "name": "Tran Thi Mai (Senior Java)",
+      "ground_truth_relevance": 3,
+      "skills": ["Java", "Spring Boot", "PostgreSQL", "Docker"],
+      "experience_years": 3.5,
+      "github_available": false
+    },
+    {
+      "id": "cand-03-good",
+      "name": "Le Van Dat (Mid Java)",
+      "ground_truth_relevance": 2,
+      "skills": ["Java", "Spring Boot", "PostgreSQL"],
+      "experience_years": 2.5,
+      "github_available": true
+    },
+    {
+      "id": "cand-04-partial",
+      "name": "Pham Minh Tu (Junior Backend)",
+      "ground_truth_relevance": 1,
+      "skills": ["Java", "PostgreSQL"],
+      "experience_years": 1.0,
+      "github_available": false
+    },
+    {
+      "id": "cand-05-irrelevant",
+      "name": "Hoang Anh Graphic (UI Designer)",
+      "ground_truth_relevance": 0,
+      "skills": ["Figma", "Adobe Illustrator", "Photoshop"],
+      "experience_years": 4.0,
+      "github_available": false
+    }
+  ]
+}

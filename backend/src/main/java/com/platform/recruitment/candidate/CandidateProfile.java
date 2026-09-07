@@ -41,4 +41,7 @@ public class CandidateProfile extends BaseEntity {
 
     @Column(name = "portfolio_url")
     private String portfolioUrl;
+
+    @Transient
+    private java.util.List<String> targetIndustries;
 }

@@ -10,6 +10,16 @@ import java.util.List;
 @Component
 public class RequiredSkillMatcher {
 
+    private final SkillNormalizer skillNormalizer;
+
+    public RequiredSkillMatcher() {
+        this.skillNormalizer = new SkillNormalizer();
+    }
+
+    public RequiredSkillMatcher(SkillNormalizer skillNormalizer) {
+        this.skillNormalizer = skillNormalizer != null ? skillNormalizer : new SkillNormalizer();
+    }
+
     public BigDecimal evaluateRequiredSkills(List<JobRequirement> reqSkills, String cvRawText) {
         if (reqSkills == null || reqSkills.isEmpty()) {
             return BigDecimal.valueOf(100.00);
@@ -19,22 +29,11 @@ public class RequiredSkillMatcher {
             return BigDecimal.ZERO;
         }
 
-        String cvLower = cvRawText.toLowerCase();
         int matchedCount = 0;
 
         for (JobRequirement req : reqSkills) {
-            String targetSkill = req.getSkillName().toLowerCase();
-            
-            // Explicit check to prevent false equivalence: Java != JavaScript
-            if (targetSkill.equals("java")) {
-                if (cvLower.contains("java") && !cvLower.contains("javascript only")) {
-                    // Check if it's not just javascript
-                    String cleanCv = cvLower.replace("javascript", "");
-                    if (cleanCv.contains("java")) {
-                        matchedCount++;
-                    }
-                }
-            } else if (cvLower.contains(targetSkill)) {
+            String targetSkill = req.getSkillName();
+            if (skillNormalizer.matchesSkill(targetSkill, cvRawText)) {
                 matchedCount++;
             }
         }

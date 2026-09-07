@@ -36,5 +36,22 @@ MOCK_GITHUB_DATA = {
                 "topics": ["java", "pgvector", "vector-search"]
             }
         ]
+    },
+    "candidate-private": {
+        "username": "candidate-private",
+        "github_url": "https://github.com/candidate-private",
+        "public_repos_count": 0,
+        "latest_activity_at": "2026-08-01T10:00:00Z",
+        "repositories": [],
+        "status": "PRIVATE_ONLY"
+    },
+    "candidate-rate-limited": {
+        "username": "candidate-rate-limited",
+        "github_url": "https://github.com/candidate-rate-limited",
+        "public_repos_count": 0,
+        "latest_activity_at": None,
+        "repositories": [],
+        "status": "API_UNAVAILABLE"
     }
 }
+

@@ -22,4 +22,6 @@ public class RegisterCandidateRequest {
     private Integer age;
 
     private String targetIndustry;
+
+    private java.util.List<String> targetIndustries;
 }

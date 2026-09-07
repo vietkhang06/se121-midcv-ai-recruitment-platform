@@ -68,10 +68,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               </div>
             </div>
 
-            {/* Match Score Badge */}
+            {/* Verified JD Status Badge */}
             <div className="shrink-0">
-              <span className="px-3.5 py-1.5 rounded-full text-xs font-bold font-mono bg-amber-400/20 border border-amber-400/50 text-amber-300 shadow-sm">
-                96% MATCH
+              <span className="px-3.5 py-1.5 rounded-full text-xs font-bold font-mono bg-emerald-400/20 border border-emerald-400/50 text-emerald-300 shadow-sm">
+                VERIFIED JD
               </span>
             </div>
           </div>
@@ -204,25 +204,32 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   />
                 </svg>
                 <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-3xl font-bold font-editorial text-slate-900">96%</span>
-                  <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">ACCURACY SCORE</span>
+                  <span className="text-2xl font-bold font-editorial text-slate-900">{job.requirements.length}</span>
+                  <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">SKILLS INDEX</span>
                 </div>
               </div>
 
               {/* Verified Skills Distribution Bar */}
               <div className="space-y-1.5 text-left pt-2 border-t border-slate-100">
                 <div className="text-[10px] font-mono font-semibold uppercase text-slate-500">
-                  VERIFIED SKILLS DISTRIBUTION
+                  JOB REQUIREMENTS COMPOSITION
                 </div>
-                <div className="w-full h-2 rounded-full overflow-hidden flex">
-                  <div className="bg-[#0C2B24] h-full" style={{ width: '84%' }} title="Matched" />
-                  <div className="bg-amber-400 h-full" style={{ width: '8%' }} title="Partial" />
-                  <div className="bg-slate-300 h-full" style={{ width: '8%' }} title="Missing" />
+                <div className="w-full h-2 rounded-full overflow-hidden flex bg-slate-100">
+                  <div
+                    className="bg-[#0C2B24] h-full"
+                    style={{ width: `${job.requirements.length > 0 ? ((requiredSkills.length / job.requirements.length) * 100) : 100}%` }}
+                    title="Required Skills"
+                  />
+                  <div
+                    className="bg-amber-400 h-full"
+                    style={{ width: `${job.requirements.length > 0 ? ((preferredSkills.length / job.requirements.length) * 100) : 0}%` }}
+                    title="Preferred Skills"
+                  />
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono pt-1">
-                  <span>11 Matched</span>
-                  <span>1 Partial</span>
-                  <span>1 Missing</span>
+                  <span>{requiredSkills.length} Required</span>
+                  <span>{preferredSkills.length} Preferred</span>
+                  <span>100% Verified</span>
                 </div>
               </div>
             </div>

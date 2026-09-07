@@ -10,6 +10,16 @@ import java.util.List;
 @Component
 public class PreferredSkillMatcher {
 
+    private final SkillNormalizer skillNormalizer;
+
+    public PreferredSkillMatcher() {
+        this.skillNormalizer = new SkillNormalizer();
+    }
+
+    public PreferredSkillMatcher(SkillNormalizer skillNormalizer) {
+        this.skillNormalizer = skillNormalizer != null ? skillNormalizer : new SkillNormalizer();
+    }
+
     public BigDecimal evaluatePreferredSkills(List<JobRequirement> prefSkills, String cvRawText) {
         if (prefSkills == null || prefSkills.isEmpty()) {
             return BigDecimal.valueOf(100.00);
@@ -19,11 +29,10 @@ public class PreferredSkillMatcher {
             return BigDecimal.valueOf(50.00); // Missing preferred skill does NOT equal hard failure
         }
 
-        String cvLower = cvRawText.toLowerCase();
         int matchedCount = 0;
 
         for (JobRequirement pref : prefSkills) {
-            if (cvLower.contains(pref.getSkillName().toLowerCase())) {
+            if (skillNormalizer.matchesSkill(pref.getSkillName(), cvRawText)) {
                 matchedCount++;
             }
         }

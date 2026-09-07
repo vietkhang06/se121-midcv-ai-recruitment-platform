@@ -110,6 +110,7 @@ C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\j
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\matching\PreferredSkillMatcher.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\matching\ProjectRelevanceMatcher.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\matching\RequiredSkillMatcher.java
+C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\matching\SkillNormalizer.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\RecruitmentApplication.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\user\Role.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\user\User.java
