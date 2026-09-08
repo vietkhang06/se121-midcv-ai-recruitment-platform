@@ -29,19 +29,19 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
     }
 
     return (
-      <div data-testid="github-assessment" className="p-6 rounded-2xl bg-white border border-[#E2E8F0] text-[#64748B] text-xs space-y-3 shadow-sm font-sans">
+      <div data-testid="github-assessment" className="p-6 rounded-2xl bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] text-slate-600 dark:text-slate-300 text-xs space-y-3 shadow-xs font-sans transition-colors">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[#0C2B24] font-bold text-sm">
-            <GitBranch className="w-5 h-5 text-[#10B981]" />
+          <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-sm font-editorial">
+            <GitBranch className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             <span>Đánh giá Tín hiệu GitHub Cá nhân (GitHub Evidence Assessment)</span>
           </div>
-          <span data-testid="github-status" className={`px-2.5 py-1 rounded-md text-[11px] font-bold border ${badgeColor}`}>
+          <span data-testid="github-status" className={`px-2.5 py-1 rounded-md text-[11px] font-bold border font-mono ${badgeColor}`}>
             {assessment.status || 'NOT_CONNECTED'}
           </span>
         </div>
-        <div className="p-4 rounded-xl bg-[#F8FAF9] border border-[#E2E8F0] space-y-1.5">
-          <span className="font-semibold text-[#0C2B24] block">{branchTitle}</span>
-          <p className="text-[11px] text-[#475569]">
+        <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] space-y-1.5 transition-colors">
+          <span className="font-semibold text-slate-900 dark:text-white block">{branchTitle}</span>
+          <p className="text-[11px] text-slate-600 dark:text-slate-300">
             {branchDesc} Nền tảng tự động kích hoạt cơ chế <strong>Graceful Fallback: Overall Score = Core JD-CV Score</strong>, hoàn toàn <strong>không phạt trừ 0 điểm</strong> hay làm sai lệch thứ hạng của ứng viên.
           </p>
         </div>

@@ -60,17 +60,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#F8FAF9] flex items-center justify-center p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-4xl bg-white border border-[#E2E8F0] rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
+    <div className="min-h-[calc(100vh-4rem)] bg-[#F8FAF9] dark:bg-[#071410] flex items-center justify-center p-4 sm:p-6 lg:p-8 transition-colors">
+      <div className="w-full max-w-4xl bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
         
-        {/* Left Column: MatchProof Editorial Branding */}
+        {/* Left Column: MatchJD Editorial Branding */}
         <div className="hidden md:flex md:w-5/12 bg-[#0C2B24] p-8 text-white flex-col justify-between relative overflow-hidden">
           <div className="relative z-10 space-y-6">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-[#133E34] border border-[#10B981]/30 flex items-center justify-center text-[#10B981] shadow-xs">
                 <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
               </div>
-              <span className="font-editorial text-2xl tracking-normal text-white">MatchProof</span>
+              <span className="font-editorial text-2xl tracking-normal text-white">MatchJD</span>
             </div>
 
             <div className="space-y-2">
@@ -79,7 +79,7 @@ export default function LoginPage() {
                 Evidence-Based Portal
               </span>
               <h1 className="font-editorial text-3xl text-white leading-tight">
-                Sign in to your MatchProof Account
+                Sign in to your MatchJD Account
               </h1>
               <p className="text-xs text-slate-300 leading-relaxed">
                 Experience precision talent matching backed by verified credentials and immutable assessment records.
@@ -120,27 +120,27 @@ export default function LoginPage() {
         </div>
 
         {/* Right Column: Login Form */}
-        <div className="w-full md:w-7/12 p-6 sm:p-10 bg-[#FBF9F5] flex flex-col justify-between">
+        <div className="w-full md:w-7/12 p-6 sm:p-10 bg-[#FBF9F5] dark:bg-[#0A1A15] flex flex-col justify-between">
           <div>
             <div className="mb-6 space-y-1">
-              <h2 className="font-editorial text-2xl font-bold text-slate-900 tracking-tight">
+              <h2 className="font-editorial text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
                 Đăng Nhập Tài Khoản
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Nhập email và mật khẩu của bạn để tiếp tục.
               </p>
             </div>
 
             {error && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+              <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-300 text-xs flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
                 <div className="space-y-1">
                   <span>{error}</span>
                   {isUnverified && (
                     <div className="pt-1">
                       <Link
                         href="/verify-email"
-                        className="text-emerald-700 underline font-semibold hover:text-emerald-900"
+                        className="text-emerald-700 dark:text-emerald-400 underline font-semibold hover:text-emerald-900 dark:hover:text-emerald-300"
                       >
                         Đến trang xác thực email
                       </Link>
@@ -152,8 +152,8 @@ export default function LoginPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                  <Mail className="w-3.5 h-3.5 text-slate-500" />
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
+                  <Mail className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                   <span>Email đăng nhập</span>
                 </label>
                 <input
@@ -161,14 +161,14 @@ export default function LoginPage() {
                   placeholder="name@example.com"
                   value={email || ''}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#0C2B24] focus:ring-1 focus:ring-[#0C2B24] placeholder-slate-400"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 focus:ring-1 focus:ring-[#0C2B24] dark:focus:ring-emerald-500 placeholder-slate-400 dark:placeholder-slate-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                  <Lock className="w-3.5 h-3.5 text-slate-500" />
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
+                  <Lock className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                   <span>Mật khẩu</span>
                 </label>
                 <input
@@ -176,7 +176,7 @@ export default function LoginPage() {
                   placeholder="Nhập mật khẩu..."
                   value={password || ''}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#0C2B24] focus:ring-1 focus:ring-[#0C2B24] placeholder-slate-400"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 focus:ring-1 focus:ring-[#0C2B24] dark:focus:ring-emerald-500 placeholder-slate-400 dark:placeholder-slate-500"
                   required
                 />
               </div>
@@ -184,7 +184,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0C2B24] hover:bg-[#133E34] shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0C2B24] dark:bg-emerald-600 hover:bg-[#133E34] dark:hover:bg-emerald-700 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <LogIn className="w-4 h-4" />
                 <span>{isLoading ? 'Đang đăng nhập...' : 'Đăng nhập ngay'}</span>
@@ -192,11 +192,11 @@ export default function LoginPage() {
             </form>
           </div>
 
-          <div className="mt-8 pt-4 border-t border-slate-200 text-xs text-slate-600 flex items-center justify-between">
-            <span>Chưa có tài khoản MatchProof?</span>
+          <div className="mt-8 pt-4 border-t border-slate-200 dark:border-[#1B3D34] text-xs text-slate-600 dark:text-slate-400 flex items-center justify-between">
+            <span>Chưa có tài khoản MatchJD?</span>
             <Link
               href="/register"
-              className="font-semibold text-[#0C2B24] hover:text-[#10B981] flex items-center gap-1 transition"
+              className="font-semibold text-[#0C2B24] dark:text-emerald-400 hover:text-[#10B981] flex items-center gap-1 transition"
             >
               <span>Đăng ký tài khoản</span>
               <ArrowRight className="w-3.5 h-3.5" />

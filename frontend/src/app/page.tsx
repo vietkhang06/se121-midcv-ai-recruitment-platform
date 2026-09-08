@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Job } from '@/types';
 import { fetchJobs } from '@/lib/api';
+import { EmptyState } from '@/components/common/EmptyState';
 import { QuickApplyModal } from '@/components/application/QuickApplyModal';
 import {
   ShieldCheck,
@@ -39,7 +40,7 @@ export default function Home() {
   };
 
   return (
-    <div className="space-y-0 text-slate-800 bg-[#F8FAF9]">
+    <div className="space-y-0 text-slate-800 dark:text-slate-100 bg-[#F8FAF9] dark:bg-[#071410] transition-colors">
       
       {/* 01 — HERO SECTION (Figma: Dark Forest Green #0C2B24) */}
       <section className="bg-[#0C2B24] text-white pt-14 pb-20 px-4 sm:px-6 lg:px-8 border-b border-[#133E34]">
@@ -60,7 +61,7 @@ export default function Home() {
             </h1>
 
             <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl font-light">
-              MatchProof maps code vectors, code repositories, and work histories directly to Job Descriptions. No black-box filtering, just transparent, explainable matches.
+              MatchJD maps code vectors, code repositories, and work histories directly to Job Descriptions. No black-box filtering, just transparent, explainable matches.
             </p>
 
             {/* CTA Buttons */}
@@ -149,64 +150,64 @@ export default function Home() {
         </div>
       </section>
 
-      {/* KPI METRICS BANNER (Figma: 320k+, 94.6%, 11 Days, 180+) */}
-      <section className="bg-white border-b border-[#E2E8F0] py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-slate-100">
+      {/* KPI ARCHITECTURE BANNER (Transparent System Attributes) */}
+      <section className="bg-white dark:bg-[#0E241E] border-b border-[#E2E8F0] dark:border-[#1B3D34] py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-[#1B3D34]">
           <div className="pt-2 md:pt-0">
-            <div className="text-3xl sm:text-4xl font-editorial font-bold text-slate-900">320k+</div>
-            <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">Verifiable Profiles Indexed</div>
+            <div className="text-3xl sm:text-4xl font-editorial font-bold text-slate-900 dark:text-white font-mono">1536D</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Vector Embedding Space</div>
           </div>
           <div className="pt-2 md:pt-0">
-            <div className="text-3xl sm:text-4xl font-editorial font-bold text-slate-900">94.6%</div>
-            <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">Average Acceptance Rate</div>
+            <div className="text-3xl sm:text-4xl font-editorial font-bold text-slate-900 dark:text-white font-mono">3-Tier</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Multi-factor Scoring Engine</div>
           </div>
           <div className="pt-2 md:pt-0">
-            <div className="text-3xl sm:text-4xl font-editorial font-bold text-slate-900">11 Days</div>
-            <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">Average Time-to-Hire</div>
+            <div className="text-3xl sm:text-4xl font-editorial font-bold text-slate-900 dark:text-white font-mono">Deep AST</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Code Repository Parsing</div>
           </div>
           <div className="pt-2 md:pt-0">
-            <div className="text-3xl sm:text-4xl font-editorial font-bold text-slate-900">180+</div>
-            <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">Enterprise Tech Partners</div>
+            <div className="text-3xl sm:text-4xl font-editorial font-bold text-slate-900 dark:text-white font-mono">0-Penalty</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Grounded GitHub Fallback</div>
           </div>
         </div>
       </section>
 
-      {/* 01 — THE MATCHPROOF EVIDENCE PIPELINE (4 Steps) */}
+      {/* 01 — THE MATCHJD EVIDENCE PIPELINE (4 Steps) */}
       <section id="pipeline" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-12">
-          <span className="text-xs font-semibold uppercase tracking-widest text-amber-700">EMPIRICAL PROCESS</span>
-          <h2 className="text-3xl sm:text-4xl font-editorial text-slate-900 mt-2">The MatchProof Evidence Pipeline</h2>
+          <span className="text-xs font-semibold uppercase tracking-widest text-amber-700 dark:text-amber-400">EMPIRICAL PROCESS</span>
+          <h2 className="text-3xl sm:text-4xl font-editorial text-slate-900 dark:text-white mt-2">The MatchJD Evidence Pipeline</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-xl border border-[#E2E8F0] shadow-xs relative">
-            <div className="text-xs font-mono font-bold text-amber-600 mb-3">01</div>
-            <h3 className="font-semibold text-slate-900 text-base mb-2">Upload & Ingest</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
+          <div className="bg-white dark:bg-[#0E241E] p-6 rounded-xl border border-[#E2E8F0] dark:border-[#1B3D34] shadow-xs relative">
+            <div className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 mb-3">01</div>
+            <h3 className="font-semibold text-slate-900 dark:text-white text-base mb-2">Upload & Ingest</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               Candidate paper resume, GitHub repository, or direct commit ledger integration.
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-xl border border-[#E2E8F0] shadow-xs relative">
-            <div className="text-xs font-mono font-bold text-amber-600 mb-3">02</div>
-            <h3 className="font-semibold text-slate-900 text-base mb-2">Evidence Parsing</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
+          <div className="bg-white dark:bg-[#0E241E] p-6 rounded-xl border border-[#E2E8F0] dark:border-[#1B3D34] shadow-xs relative">
+            <div className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 mb-3">02</div>
+            <h3 className="font-semibold text-slate-900 dark:text-white text-base mb-2">Evidence Parsing</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               Deep AST parsing: Go public repos, commit history, and Pull Request reviews without subjective bias.
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-xl border border-[#E2E8F0] shadow-xs relative">
-            <div className="text-xs font-mono font-bold text-amber-600 mb-3">03</div>
-            <h3 className="font-semibold text-slate-900 text-base mb-2">Semantic Matching</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
+          <div className="bg-white dark:bg-[#0E241E] p-6 rounded-xl border border-[#E2E8F0] dark:border-[#1B3D34] shadow-xs relative">
+            <div className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 mb-3">03</div>
+            <h3 className="font-semibold text-slate-900 dark:text-white text-base mb-2">Semantic Matching</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               AI maps candidate verified skills against employer technical rubrics using 1536D embedding vectors.
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-xl border border-[#E2E8F0] shadow-xs relative">
-            <div className="text-xs font-mono font-bold text-amber-600 mb-3">04</div>
-            <h3 className="font-semibold text-slate-900 text-base mb-2">Explainable Report</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
+          <div className="bg-white dark:bg-[#0E241E] p-6 rounded-xl border border-[#E2E8F0] dark:border-[#1B3D34] shadow-xs relative">
+            <div className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 mb-3">04</div>
+            <h3 className="font-semibold text-slate-900 dark:text-white text-base mb-2">Explainable Report</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               A detailed comparison report is generated detailing exact match evidence and confidence levels.
             </p>
           </div>
@@ -214,57 +215,57 @@ export default function Home() {
       </section>
 
       {/* 01 — ENGINEERED FOR VERIFIED EVALUATION (4 Feature Cards) */}
-      <section className="py-16 bg-[#F1F5F3] border-y border-[#E2E8F0]">
+      <section className="py-16 bg-[#F1F5F3] dark:bg-[#091C16] border-y border-[#E2E8F0] dark:border-[#1B3D34]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-12">
-            <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">ARCHITECTED FOR TRUTH</span>
-            <h2 className="text-3xl sm:text-4xl font-editorial text-slate-900 mt-2">Engineered for verified evaluation</h2>
+            <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">ARCHITECTED FOR TRUTH</span>
+            <h2 className="text-3xl sm:text-4xl font-editorial text-slate-900 dark:text-white mt-2">Engineered for verified evaluation</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-8 rounded-xl border border-[#E2E8F0] shadow-xs flex items-start gap-4">
-              <div className="w-10 h-10 rounded-lg bg-[#0C2B24] text-emerald-400 flex items-center justify-center shrink-0">
+            <div className="bg-white dark:bg-[#0E241E] p-8 rounded-xl border border-[#E2E8F0] dark:border-[#1B3D34] shadow-xs flex items-start gap-4">
+              <div className="w-10 h-10 rounded-lg bg-[#0C2B24] dark:bg-[#133E34] text-emerald-400 flex items-center justify-center shrink-0">
                 <GitBranch className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-1">Deep GitHub Assessment</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">Deep GitHub Assessment</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                   Inspecting code quality, commit density, code reuse, and test coverage directly to verify authentic technical claims.
                 </p>
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-xl border border-[#E2E8F0] shadow-xs flex items-start gap-4">
-              <div className="w-10 h-10 rounded-lg bg-[#0C2B24] text-emerald-400 flex items-center justify-center shrink-0">
+            <div className="bg-white dark:bg-[#0E241E] p-8 rounded-xl border border-[#E2E8F0] dark:border-[#1B3D34] shadow-xs flex items-start gap-4">
+              <div className="w-10 h-10 rounded-lg bg-[#0C2B24] dark:bg-[#133E34] text-emerald-400 flex items-center justify-center shrink-0">
                 <LineChart className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-1">Explainable Ranking System</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">Explainable Ranking System</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                   Transparent matching matrix separating required skills, bonus skills, and repo telemetry without opaque black-boxes.
                 </p>
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-xl border border-[#E2E8F0] shadow-xs flex items-start gap-4">
-              <div className="w-10 h-10 rounded-lg bg-[#0C2B24] text-emerald-400 flex items-center justify-center shrink-0">
+            <div className="bg-white dark:bg-[#0E241E] p-8 rounded-xl border border-[#E2E8F0] dark:border-[#1B3D34] shadow-xs flex items-start gap-4">
+              <div className="w-10 h-10 rounded-lg bg-[#0C2B24] dark:bg-[#133E34] text-emerald-400 flex items-center justify-center shrink-0">
                 <FileCheck2 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-1">Structured CV Builder</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">Structured CV Builder</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                   Translate prior project work into structured evidence containers tailored for multi-industry technical matching.
                 </p>
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-xl border border-[#E2E8F0] shadow-xs flex items-start gap-4">
-              <div className="w-10 h-10 rounded-lg bg-[#0C2B24] text-emerald-400 flex items-center justify-center shrink-0">
+            <div className="bg-white dark:bg-[#0E241E] p-8 rounded-xl border border-[#E2E8F0] dark:border-[#1B3D34] shadow-xs flex items-start gap-4">
+              <div className="w-10 h-10 rounded-lg bg-[#0C2B24] dark:bg-[#133E34] text-emerald-400 flex items-center justify-center shrink-0">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-1">Instant Verification</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">Instant Verification</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                   Unified candidate credential validation, company verification checks, and snapshot data integrity guaranteed.
                 </p>
               </div>
@@ -277,10 +278,10 @@ export default function Home() {
       <section id="indexes" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">SECTOR COVERAGE</span>
-            <h2 className="text-3xl font-editorial text-slate-900 mt-1">Specialised matching indexes</h2>
+            <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">SECTOR COVERAGE</span>
+            <h2 className="text-3xl font-editorial text-slate-900 dark:text-white mt-1">Specialised matching indexes</h2>
           </div>
-          <Link href="/jobs" className="text-xs font-semibold text-[#0C2B24] hover:underline flex items-center gap-1">
+          <Link href="/jobs" className="text-xs font-semibold text-[#0C2B24] dark:text-emerald-400 hover:underline flex items-center gap-1">
             <span>Explore All Sectors</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </Link>
@@ -288,55 +289,55 @@ export default function Home() {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
-            { title: 'Distributed Systems', count: '1,248 verified candidates', href: '/jobs?sector=DistributedSystems' },
-            { title: 'Artificial Intelligence', count: '940 verified candidates', href: '/jobs?sector=AI' },
-            { title: 'Cloud & DevOps', count: '1,520 verified candidates', href: '/jobs?sector=Cloud' },
-            { title: 'Quantitative Finance', count: '680 verified candidates', href: '/jobs?sector=Finance' },
-            { title: 'Enterprise Security', count: '890 verified candidates', href: '/jobs?sector=Security' },
-            { title: 'Data Infrastructure', count: '1,100 verified candidates', href: '/jobs?sector=Data' },
+            { title: 'Distributed Systems', sector: 'Technology', href: '/jobs?sector=Technology' },
+            { title: 'Artificial Intelligence', sector: 'Technology', href: '/jobs?sector=Technology' },
+            { title: 'Cloud & DevOps', sector: 'Technology', href: '/jobs?sector=Technology' },
+            { title: 'Quantitative Finance', sector: 'Finance', href: '/jobs?sector=Finance' },
+            { title: 'Growth Marketing', sector: 'Marketing', href: '/jobs?sector=Marketing' },
+            { title: 'UI/UX Design Systems', sector: 'Design', href: '/jobs?sector=Design' },
           ].map((item, idx) => (
             <Link
               key={idx}
               href={item.href}
-              className="bg-white p-4 rounded-xl border border-[#E2E8F0] hover:border-[#0C2B24] hover:shadow-sm transition text-left"
+              className="bg-white dark:bg-[#0E241E] p-4 rounded-xl border border-[#E2E8F0] dark:border-[#1B3D34] hover:border-[#0C2B24] dark:hover:border-emerald-500 hover:shadow-sm transition text-left"
             >
-              <div className="font-semibold text-slate-900 text-xs mb-1">{item.title}</div>
-              <div className="text-[10px] text-slate-500">{item.count}</div>
+              <div className="font-semibold text-slate-900 dark:text-white text-xs mb-1">{item.title}</div>
+              <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-mono">{item.sector} Sector</div>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* 01 — TESTIMONIAL QUOTE (Figma: Forest Green Card with Large Quotes) */}
+      {/* 01 — RESEARCH & METHODOLOGY MISSION STATEMENT */}
       <section className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-[#0C2B24] text-white p-10 sm:p-14 rounded-2xl border border-[#133E34] relative text-center">
-          <div className="font-editorial text-6xl sm:text-7xl text-amber-400 font-bold mb-4 leading-none">
-            “
+        <div className="bg-[#0C2B24] text-white p-10 sm:p-14 rounded-2xl border border-[#133E34] relative text-center space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#133E34] text-emerald-300 text-xs font-mono font-semibold">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            <span>ĐỀ TÀI NGHIÊN CỨU KỸ THUẬT</span>
           </div>
-          <blockquote className="text-lg sm:text-2xl font-editorial font-light max-w-3xl mx-auto leading-relaxed text-slate-100">
-            Before MatchProof, we screened dozens of engineers who listed Kubernetes on their resumes but couldn’t architect a robust deployment. MatchProof verified their hands-on infrastructure commits instantly. Our match-to-hire accuracy tripled.
-          </blockquote>
-          <div className="mt-6">
-            <div className="font-semibold text-sm text-emerald-300">Dr. Aris Vance</div>
-            <div className="text-xs text-slate-400">VP of Engineering, DevOpsCloud LLC</div>
-          </div>
+          <h3 className="text-xl sm:text-2xl font-editorial font-normal max-w-3xl mx-auto leading-relaxed text-slate-100">
+            "Nền tảng tuyển dụng thông minh hỗ trợ đối sánh ngữ nghĩa JD – CV và xác thực năng lực qua GitHub"
+          </h3>
+          <p className="text-xs sm:text-sm font-light max-w-2xl mx-auto text-slate-300 leading-relaxed">
+            Loại bỏ thiên vị và rào cản từ khóa bằng cách kết hợp trích xuất thực thể, mô hình nhúng vector 1536 chiều và phân tích mã nguồn GitHub có giải trình chi tiết.
+          </p>
         </div>
       </section>
 
       {/* 01 — DUAL CTAs */}
       <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-white p-8 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-4">
-          <span className="text-[11px] font-mono uppercase text-slate-500">FOR HIRING TEAMS</span>
-          <h3 className="text-2xl font-editorial text-slate-900">Ready to recruit with structural evidence?</h3>
-          <p className="text-xs text-slate-600 leading-relaxed">
+        <div className="bg-white dark:bg-[#0E241E] p-8 rounded-2xl border border-[#E2E8F0] dark:border-[#1B3D34] shadow-xs space-y-4">
+          <span className="text-[11px] font-mono uppercase text-slate-500 dark:text-slate-400">FOR HIRING TEAMS</span>
+          <h3 className="text-2xl font-editorial text-slate-900 dark:text-white">Ready to recruit with structural evidence?</h3>
+          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
             Deploy modern recruitment rubrics. Stop the facade of standardized resumes and connect with pre-validated engineering talent.
           </p>
           <div className="pt-2">
             <Link
               href="/recruiter"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-semibold bg-[#0C2B24] text-white hover:bg-[#133E34] transition"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-semibold bg-[#0C2B24] dark:bg-emerald-600 text-white hover:bg-[#133E34] dark:hover:bg-emerald-700 transition"
             >
-              <span>Request Platform Demo</span>
+              <span>Recruiter Console</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -361,47 +362,61 @@ export default function Home() {
       </section>
 
       {/* 01 — ACTIVE JOB OPPORTUNITIES CATALOG */}
-      <section className="py-16 bg-white border-t border-[#E2E8F0]">
+      <section className="py-16 bg-white dark:bg-[#071410] border-t border-[#E2E8F0] dark:border-[#1B3D34]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-widest text-amber-700">OPPORTUNITIES</span>
-              <h2 className="text-3xl font-editorial text-slate-900 mt-1">Featured Verified Positions</h2>
+              <span className="text-xs font-semibold uppercase tracking-widest text-amber-700 dark:text-amber-400">OPPORTUNITIES</span>
+              <h2 className="text-3xl font-editorial text-slate-900 dark:text-white mt-1">Featured Verified Positions</h2>
             </div>
-            <Link href="/jobs" className="text-xs font-semibold text-[#0C2B24] hover:underline flex items-center gap-1">
+            <Link href="/jobs" className="text-xs font-semibold text-[#0C2B24] dark:text-emerald-400 hover:underline flex items-center gap-1">
               <span>View All Positions ({jobs.length})</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {jobs.slice(0, 6).map((job) => (
-              <div key={job.id} className="bg-[#F8FAF9] p-6 rounded-xl border border-[#E2E8F0] flex flex-col justify-between hover:border-[#0C2B24] transition">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[10px] font-mono uppercase text-slate-500">{job.department || 'Engineering'}</span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-amber-50 text-amber-800 border border-amber-200">
-                      94% MATCH
-                    </span>
+          {jobs.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {jobs.slice(0, 6).map((job) => (
+                <div key={job.id} className="bg-[#F8FAF9] dark:bg-[#0E241E] p-6 rounded-xl border border-[#E2E8F0] dark:border-[#1B3D34] flex flex-col justify-between hover:border-[#0C2B24] dark:hover:border-emerald-500 transition">
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400">{job.department || 'Engineering'}</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
+                        {job.industry}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-slate-900 dark:text-white text-base mb-1 hover:text-[#0C2B24] dark:hover:text-emerald-400">
+                      <Link href={`/jobs/${job.id}`}>{job.title}</Link>
+                    </h3>
+                    <div className="text-xs text-slate-600 dark:text-slate-300 mb-3">{job.companyName} • {job.location}</div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 leading-relaxed">{job.description}</p>
                   </div>
-                  <h3 className="font-semibold text-slate-900 text-base mb-1 hover:text-[#0C2B24]">
-                    <Link href={`/jobs/${job.id}`}>{job.title}</Link>
-                  </h3>
-                  <div className="text-xs text-slate-600 mb-3">{job.companyName} • {job.location}</div>
-                  <p className="text-xs text-slate-500 line-clamp-2 mb-4 leading-relaxed">{job.description}</p>
+                  <div className="pt-4 border-t border-slate-200/80 dark:border-[#1B3D34] flex items-center justify-between">
+                    <span className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300">
+                      {job.salaryMin ? `$${job.salaryMin} - $${job.salaryMax} /mo` : (job.salaryRange || 'Thoả thuận')}
+                    </span>
+                    <button
+                      onClick={() => setApplyJob(job)}
+                      className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-[#0C2B24] dark:bg-emerald-600 text-white hover:bg-[#133E34] dark:hover:bg-emerald-700 transition cursor-pointer"
+                    >
+                      Quick Apply
+                    </button>
+                  </div>
                 </div>
-                <div className="pt-4 border-t border-slate-200/80 flex items-center justify-between">
-                  <span className="text-xs font-mono font-semibold text-slate-700">{job.salaryRange || '£95k - £120k'}</span>
-                  <button
-                    onClick={() => setApplyJob(job)}
-                    className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-[#0C2B24] text-white hover:bg-[#133E34] transition"
-                  >
-                    Quick Apply
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              type="EMPTY"
+              title="Chưa có vị trí tuyển dụng nào được xuất bản"
+              description="Hệ thống hiện chưa có tin tuyển dụng nào từ doanh nghiệp. Bạn có thể là nhà tuyển dụng đầu tiên đăng tin tuyển dụng."
+              primaryCtaText="Đăng tin tuyển dụng"
+              primaryCtaHref="/recruiter/jobs/new"
+              secondaryCtaText="Về cổng nhà tuyển dụng"
+              secondaryCtaHref="/recruiter"
+            />
+          )}
         </div>
       </section>
 

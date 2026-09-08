@@ -17,9 +17,8 @@ export default function CompanyProfilePage() {
 
   if (!company) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100">
-        <RecruiterNavbar />
-        <div className="p-10 text-center text-slate-400">Đang tải thông tin doanh nghiệp...</div>
+      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] text-slate-800 dark:text-slate-100 transition-colors">
+        <div className="p-10 text-center text-slate-500 dark:text-slate-400">Đang tải thông tin doanh nghiệp...</div>
       </div>
     );
   }
@@ -32,18 +31,16 @@ export default function CompanyProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      <RecruiterNavbar />
-
+    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] text-slate-800 dark:text-slate-100 flex flex-col transition-colors">
       <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 w-full">
         {/* Page Header */}
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs font-semibold text-amber-400 uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider font-mono">
             <Building2 className="w-4 h-4" />
             <span>Company Profile & Verification</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">Hồ Sơ Doanh Nghiệp & Trạng Thái Xác Minh</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="text-3xl font-editorial font-bold text-slate-900 dark:text-white tracking-tight">Hồ Sơ Doanh Nghiệp & Trạng Thái Xác Minh</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Quản lý thông tin công ty và kiểm tra quyền hạn xuất bản tin tuyển dụng
           </p>
         </div>
@@ -62,76 +59,76 @@ export default function CompanyProfilePage() {
           </div>
         )}
 
-        <form onSubmit={handleSaveCompany} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-          <h3 className="text-lg font-bold text-white border-b border-slate-800 pb-3">Thông tin Doanh nghiệp</h3>
+        <form onSubmit={handleSaveCompany} className="bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-6 sm:p-8 shadow-xs space-y-6 transition-colors">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-[#1B3D34] pb-3">Thông tin Doanh nghiệp</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Tên Doanh nghiệp chính thức</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Tên Doanh nghiệp chính thức</label>
               <input
                 type="text"
                 value={company.name ?? ''}
                 onChange={(e) => setCompany({ ...company, name: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-amber-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Lĩnh vực hoạt động (Industry)</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Lĩnh vực hoạt động (Industry)</label>
               <input
                 type="text"
                 value={company.industry ?? ''}
                 disabled
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 text-sm cursor-not-allowed"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-[#071410]/50 border border-slate-200 dark:border-[#1B3D34] text-slate-400 dark:text-slate-500 text-sm cursor-not-allowed"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Website công ty</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Website công ty</label>
               <input
                 type="url"
                 value={company.website ?? ''}
                 onChange={(e) => setCompany({ ...company, website: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-amber-500 font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 font-mono"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Quy mô nhân sự</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Quy mô nhân sự</label>
               <input
                 type="text"
                 value={company.companySize ?? ''}
                 onChange={(e) => setCompany({ ...company, companySize: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-amber-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Email liên hệ tuyển dụng</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Email liên hệ tuyển dụng</label>
               <input
                 type="email"
                 value={company.contactEmail ?? ''}
                 onChange={(e) => setCompany({ ...company, contactEmail: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-amber-500 font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 font-mono"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Số điện thoại liên hệ</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Số điện thoại liên hệ</label>
               <input
                 type="text"
                 value={company.contactPhone ?? ''}
                 onChange={(e) => setCompany({ ...company, contactPhone: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-amber-500 font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 font-mono"
               />
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-slate-800">
+          <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-[#1B3D34]">
             <button
               type="submit"
-              className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-amber-600 to-indigo-600 hover:from-amber-500 hover:to-indigo-500 shadow-lg shadow-amber-500/20 transition active:scale-95 cursor-pointer"
+              className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-xs text-white bg-[#0C2B24] hover:bg-[#133E34] dark:bg-[#10B981] dark:hover:bg-[#059669] dark:text-[#040D0A] shadow-xs transition active:scale-95 cursor-pointer"
             >
               <Save className="w-4 h-4" />
               <span>Lưu Thông Tin Doanh Nghiệp</span>

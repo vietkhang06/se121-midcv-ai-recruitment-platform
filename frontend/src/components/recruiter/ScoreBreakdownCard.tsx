@@ -14,8 +14,8 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
       {/* 3-Tier Official Scores Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {/* Overall Score */}
-        <div className="bg-[#0C2B24] border border-[#164E41] rounded-2xl p-6 text-white shadow-md relative overflow-hidden space-y-2">
-          <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider block">Overall Match Score</span>
+        <div className="bg-[#0C2B24] border border-[#164E41] rounded-2xl p-6 text-white shadow-xs relative overflow-hidden space-y-2">
+          <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider block font-mono">Overall Match Score</span>
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-extrabold text-white font-mono">{data.overallScore.toFixed(1)}%</span>
             <span className="text-xs text-emerald-200/80 font-medium">/ 100%</span>
@@ -26,68 +26,68 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
         </div>
 
         {/* Core JD-CV Score */}
-        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-sm space-y-2">
-          <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider block">Core JD-CV Score</span>
+        <div className="bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-6 shadow-xs space-y-2 transition-colors">
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block font-mono">Core JD-CV Score</span>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-[#0C2B24] font-mono">{data.coreScore.toFixed(1)}%</span>
+            <span className="text-3xl font-bold text-slate-900 dark:text-white font-mono">{data.coreScore.toFixed(1)}%</span>
           </div>
-          <p className="text-[11px] text-[#64748B]">Đánh giá trực tiếp CV so với yêu cầu JD (Primary Evidence)</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">Đánh giá trực tiếp CV so với yêu cầu JD (Primary Evidence)</p>
         </div>
 
         {/* GitHub Supporting Score */}
-        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-sm space-y-2">
-          <span className="text-xs font-bold text-[#0C2B24] uppercase tracking-wider flex items-center gap-1">
-            <GitBranch className="w-3.5 h-3.5 text-[#10B981]" />
+        <div className="bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-6 shadow-xs space-y-2 transition-colors">
+          <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1 font-mono">
+            <GitBranch className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>GitHub Supporting Score</span>
           </span>
           <div className="flex items-baseline gap-2">
             {data.githubScoreActive && data.githubScore !== undefined ? (
-              <span className="text-3xl font-bold text-[#0C2B24] font-mono">{data.githubScore.toFixed(1)}%</span>
+              <span className="text-3xl font-bold text-slate-900 dark:text-white font-mono">{data.githubScore.toFixed(1)}%</span>
             ) : (
-              <span className="text-sm font-semibold text-[#94A3B8] italic">Not connected / Non-technical</span>
+              <span className="text-sm font-semibold text-slate-400 dark:text-slate-500 italic">Not connected / Non-technical</span>
             )}
           </div>
-          <p className="text-[11px] text-[#64748B]">Tín hiệu minh chứng mã nguồn bổ trợ (Secondary Signal)</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">Tín hiệu minh chứng mã nguồn bổ trợ (Secondary Signal)</p>
         </div>
       </div>
 
       {/* Semantic Skills Status Section: Required vs Preferred */}
-      <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 sm:p-7 shadow-sm space-y-6">
-        <div className="border-b border-[#F1F5F9] pb-4">
-          <h3 className="text-base font-bold text-[#0C2B24] flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-[#10B981]" />
+      <div className="bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-6 sm:p-7 shadow-xs space-y-6 transition-colors">
+        <div className="border-b border-slate-100 dark:border-[#1B3D34] pb-4">
+          <h3 className="text-base font-bold font-editorial text-slate-900 dark:text-white flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             <span>Skills Proficiency Mapping Audit (Đánh giá Kỹ năng Bắt buộc vs Kỹ năng Ưu tiên)</span>
           </h3>
-          <p className="text-xs text-[#64748B] mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Audit comparing candidate demonstrated capabilities directly against job gating baselines.
           </p>
         </div>
 
         {/* Required Skills Grid */}
         <div className="space-y-3">
-          <span className="text-xs font-bold text-[#0C2B24] uppercase tracking-wider block">
+          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block font-mono">
             1. Kỹ năng Bắt buộc (Required Skills - Gate Baseline)
           </span>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {data.requiredSkillsStatus.map((item, idx) => (
               <div
                 key={idx}
-                className={`p-3.5 rounded-xl border space-y-1 text-xs ${
+                className={`p-3.5 rounded-xl border space-y-1 text-xs transition-colors ${
                   item.status === 'MATCH'
-                    ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
-                    : 'bg-rose-50/70 border-rose-200 text-rose-950'
+                    ? 'bg-emerald-50/70 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200'
+                    : 'bg-rose-50/70 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800 text-rose-950 dark:text-rose-200'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-[#0C2B24]">{item.skillName}</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                    item.status === 'MATCH' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                  <span className="font-bold text-slate-900 dark:text-white font-mono">{item.skillName}</span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
+                    item.status === 'MATCH' ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200' : 'bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200'
                   }`}>
                     {item.status === 'MATCH' ? 'MATCH ✓' : 'MISSING ✗'}
                   </span>
                 </div>
                 {item.evidenceText && (
-                  <p className="text-[11px] text-[#475569]">{item.evidenceText}</p>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300">{item.evidenceText}</p>
                 )}
               </div>
             ))}
@@ -96,23 +96,23 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
 
         {/* Preferred Skills Grid */}
         {data.preferredSkillsStatus.length > 0 && (
-          <div className="space-y-3 pt-4 border-t border-[#F1F5F9]">
-            <span className="text-xs font-semibold text-[#64748B] uppercase tracking-wider block">
+          <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-[#1B3D34]">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block font-mono">
               2. Kỹ năng Ưu tiên (Preferred Skills - Point Bonus Only)
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {data.preferredSkillsStatus.map((item, idx) => (
                 <div
                   key={idx}
-                  className={`p-3 rounded-xl border space-y-1 text-xs ${
+                  className={`p-3 rounded-xl border space-y-1 text-xs transition-colors ${
                     item.status === 'MATCH'
-                      ? 'bg-[#F8FAF9] border-emerald-200 text-emerald-900'
-                      : 'bg-[#F8FAF9] border-[#E2E8F0] text-[#64748B]'
+                      ? 'bg-slate-50 dark:bg-[#071410] border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300'
+                      : 'bg-slate-50 dark:bg-[#071410] border-slate-200 dark:border-[#1B3D34] text-slate-600 dark:text-slate-400'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-[#0C2B24]">{item.skillName}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-white border border-[#CBD5E1] text-[#475569] font-medium">
+                    <span className="font-semibold text-slate-900 dark:text-white font-mono">{item.skillName}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] text-slate-600 dark:text-slate-400 font-medium font-mono">
                       {item.status === 'MATCH' ? '+ Point Bonus' : 'Not Provided'}
                     </span>
                   </div>
@@ -124,22 +124,22 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
       </div>
 
       {/* Match Factor Breakdown List */}
-      <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-sm space-y-4">
-        <h3 className="text-base font-bold text-[#0C2B24] border-b border-[#F1F5F9] pb-3 flex items-center gap-2">
+      <div className="bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-6 shadow-xs space-y-4 transition-colors">
+        <h3 className="text-base font-bold font-editorial text-slate-900 dark:text-white border-b border-slate-100 dark:border-[#1B3D34] pb-3 flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-amber-500" />
           <span>Chi tiết Các Thành phần Trọng số (Match Factors Breakdown)</span>
         </h3>
 
         <div className="space-y-3">
           {data.matchFactors.map((factor, idx) => (
-            <div key={idx} className="p-3.5 rounded-xl bg-[#F8FAF9] border border-[#E2E8F0] space-y-1.5 text-xs">
+            <div key={idx} className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] space-y-1.5 text-xs transition-colors">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-[#0C2B24]">{factor.factorName}</span>
-                <span className="font-mono font-bold text-[#10B981]">{factor.score.toFixed(1)}%</span>
+                <span className="font-bold text-slate-900 dark:text-white font-mono">{factor.factorName}</span>
+                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{factor.score.toFixed(1)}%</span>
               </div>
-              <p className="text-[#475569]">{factor.explanation}</p>
+              <p className="text-slate-600 dark:text-slate-300">{factor.explanation}</p>
               {factor.evidence && (
-                <p className="text-[11px] text-[#0C2B24] font-mono bg-white p-2 rounded-lg border border-[#E2E8F0]">
+                <p className="text-[11px] text-slate-800 dark:text-slate-200 font-mono bg-white dark:bg-[#0E241E] p-2 rounded-lg border border-slate-200 dark:border-[#1B3D34]">
                   Minh chứng: {factor.evidence}
                 </p>
               )}

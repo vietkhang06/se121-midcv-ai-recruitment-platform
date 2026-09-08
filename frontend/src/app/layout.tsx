@@ -21,7 +21,7 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: "MatchProof - AI Recruitment Platform | Verified Evidence Matching",
+  title: "MatchJD - AI Recruitment Platform | Verified Evidence Matching",
   description: "Objective evaluation layer for modern technical recruitment. Built to empower developers and infrastructure experts with transparent matching vectors.",
 };
 
@@ -31,7 +31,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${newsreader.variable}`}>
+    <html lang="en" className={`${inter.variable} ${newsreader.variable}`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('matchjd_theme')||localStorage.getItem('matchproof_theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className="bg-[var(--background)] text-[var(--foreground)] min-h-screen flex flex-col antialiased selection:bg-[#0C2B24] selection:text-white transition-colors duration-200">
         <ThemeProvider>
           <LanguageProvider>

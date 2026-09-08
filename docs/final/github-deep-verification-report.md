@@ -1,7 +1,7 @@
 # Báo Cáo Kiểm Tra Thực Tế Chuyên Sâu Tính Năng GitHub (GitHub Deep Reality Verification Report)
 
 > **Tài liệu kiểm định kỹ thuật độc lập — Current Codebase & Current Runtime**  
-> **Hệ thống:** MatchProof / AI Recruitment Platform  
+> **Hệ thống:** MatchJD / AI Recruitment Platform  
 > **Mục tiêu:** Xác minh nghiêm ngặt tính năng tích hợp GitHub, cuộc gọi GitHub API thực tế, trích xuất ngôn ngữ, phát hiện repository phù hợp với JD, tín hiệu hoạt động công khai, và công thức tính điểm bổ trợ không thiên vị.  
 > **Thời điểm thẩm định:** 2026-09-07  
 

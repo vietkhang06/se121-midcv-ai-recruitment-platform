@@ -100,7 +100,7 @@ def run_evaluation():
     }
 
     print("==========================================================")
-    print("MATCHPROOF ACADEMIC AI EVALUATION — INFORMATION EXTRACTION")
+    print("MATCHJD ACADEMIC AI EVALUATION — INFORMATION EXTRACTION")
     print("==========================================================")
 
     for item in dataset:
@@ -181,7 +181,7 @@ def run_evaluation():
 
     # Ranking Evaluation (NDCG@K)
     print("\n==========================================================")
-    print("MATCHPROOF ACADEMIC EVALUATION — CANDIDATE RANKING (NDCG@K)")
+    print("MATCHJD ACADEMIC EVALUATION — CANDIDATE RANKING (NDCG@K)")
     print("==========================================================")
     ranking_path = os.path.join(os.path.dirname(__file__), "ranking_dataset.json")
     with open(ranking_path, "r", encoding="utf-8") as f:

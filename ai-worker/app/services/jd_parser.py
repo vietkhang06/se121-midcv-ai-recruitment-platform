@@ -17,10 +17,24 @@ class JDParser:
 You are an expert HR Solution Architect & Business Analyst.
 Your task is to parse a raw Job Description (JD) and extract structured requirements into JSON format.
 
+OUTPUT JSON SCHEMA:
+{
+  "seniority": "Senior",
+  "responsibilities": ["Core responsibility 1"],
+  "required_skills": [
+    {"skill_name": "SkillName", "min_years_exp": 3, "section": "Requirements", "snippet": "Exact quote from text"}
+  ],
+  "preferred_skills": [
+    {"skill_name": "SkillName", "min_years_exp": 1, "section": "Nice to have", "snippet": "Exact quote from text"}
+  ],
+  "education_requirement": "Degree requirement or null",
+  "spoken_languages": ["Language 1"]
+}
+
 CRITICAL INSTRUCTIONS:
 1. REQUIRED VS PREFERRED: Distinguish strictly between REQUIRED (mandatory qualifications) and PREFERRED (nice to have qualifications).
 2. EVIDENCE: For each skill, extract the exact source section and original text quote snippet from the raw JD.
-3. UNKNOWN VALUES: If education or languages are not mentioned, return null or empty array. DO NOT invent facts.
+3. UNKNOWN VALUES: If education or languages are not mentioned, return empty list or null. DO NOT invent facts.
 """
         
         raw_result = self.llm_client.generate_json(system_instruction, request.raw_description)

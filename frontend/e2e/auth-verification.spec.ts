@@ -242,6 +242,10 @@ test.describe('Authentication, Email Verification & Runtime Stability Suite', ()
 
     // Click logout
     await page.getByRole('button', { name: /đăng xuất/i }).click();
+    const confirmLogout = page.locator('#confirm-logout-btn');
+    if (await confirmLogout.isVisible()) {
+      await confirmLogout.click();
+    }
 
     // Header immediately switches to anonymous state
     await expect(page.getByRole('button', { name: /đăng nhập/i })).toBeVisible();
@@ -258,6 +262,7 @@ test.describe('Authentication, Email Verification & Runtime Stability Suite', ()
 
   test('11: Auth Gate intercepts protected actions for anonymous users', async ({ page }) => {
     await page.addInitScript(() => {
+      window.sessionStorage.setItem('e2e_seed_benchmark', 'true');
       window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
     });
 

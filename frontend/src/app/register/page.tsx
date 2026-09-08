@@ -144,17 +144,17 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#F8FAF9] flex items-center justify-center p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-4xl bg-white border border-[#E2E8F0] rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
+    <div className="min-h-[calc(100vh-4rem)] bg-[#F8FAF9] dark:bg-[#071410] flex items-center justify-center p-4 sm:p-6 lg:p-8 transition-colors">
+      <div className="w-full max-w-4xl bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
         
-        {/* Left Column: MatchProof Editorial Branding */}
+        {/* Left Column: MatchJD Editorial Branding */}
         <div className="hidden md:flex md:w-5/12 bg-[#0C2B24] p-8 text-white flex-col justify-between relative overflow-hidden">
           <div className="relative z-10 space-y-6">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-[#133E34] border border-[#10B981]/30 flex items-center justify-center text-[#10B981] shadow-xs">
                 <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
               </div>
-              <span className="font-editorial text-2xl tracking-normal text-white">MatchProof</span>
+              <span className="font-editorial text-2xl tracking-normal text-white">MatchJD</span>
             </div>
 
             <div className="space-y-2">
@@ -163,7 +163,7 @@ export default function RegisterPage() {
                 Join the Network
               </span>
               <h1 className="font-editorial text-3xl text-white leading-tight">
-                Create your Verifiable MatchProof Profile
+                Create your Verifiable MatchJD Profile
               </h1>
               <p className="text-xs text-slate-300 leading-relaxed">
                 Build an authenticated talent profile where every claimed skill traces to demonstrable proof and multidimensional matching.
@@ -184,27 +184,27 @@ export default function RegisterPage() {
         </div>
 
         {/* Right Column: Register Form or Success Screen */}
-        <div className="w-full md:w-7/12 p-6 sm:p-10 bg-[#FBF9F5] flex flex-col justify-between">
+        <div className="w-full md:w-7/12 p-6 sm:p-10 bg-[#FBF9F5] dark:bg-[#0A1A15] flex flex-col justify-between">
           <div>
             {registeredEmail ? (
               <div className="space-y-4 py-4">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-700 dark:text-emerald-300">
                   <Mail className="w-6 h-6" />
                 </div>
-                <h2 className="font-editorial text-2xl font-bold text-slate-900">
+                <h2 className="font-editorial text-2xl font-bold text-slate-900 dark:text-white">
                   Kiểm tra hộp thư email của bạn
                 </h2>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Chúng tôi đã tạo tài khoản và gửi liên kết kích hoạt đến địa chỉ <strong className="text-emerald-800">{registeredEmail}</strong>.
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Chúng tôi đã tạo tài khoản và gửi liên kết kích hoạt đến địa chỉ <strong className="text-emerald-800 dark:text-emerald-400">{registeredEmail}</strong>.
                   Tài khoản hiện đang ở trạng thái chưa xác thực.
                 </p>
-                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+                <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 text-amber-900 dark:text-amber-300 text-xs">
                   Vui lòng bấm vào liên kết trong email để xác thực tài khoản trước khi đăng nhập.
                 </div>
                 <div className="pt-2">
                   <Link
                     href="/login"
-                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-[#0C2B24] hover:bg-[#133E34] text-white text-xs font-semibold shadow-sm transition"
+                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-[#0C2B24] dark:bg-emerald-600 hover:bg-[#133E34] dark:hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition"
                   >
                     Đến màn hình đăng nhập
                   </Link>
@@ -213,17 +213,17 @@ export default function RegisterPage() {
             ) : (
               <>
                 <div className="mb-5 space-y-1">
-                  <h2 className="font-editorial text-2xl font-bold text-slate-900 tracking-tight">
+                  <h2 className="font-editorial text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
                     Đăng Ký Tài Khoản Mới
                   </h2>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Tạo tài khoản để đối sánh năng lực thực và ứng tuyển.
                   </p>
                 </div>
 
                 {error && (
-                  <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                  <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
                     <span>{error}</span>
                   </div>
                 )}
@@ -235,8 +235,8 @@ export default function RegisterPage() {
                     onClick={() => setRole('CANDIDATE')}
                     className={`p-2 rounded-xl border text-center text-xs font-semibold transition ${
                       role === 'CANDIDATE'
-                        ? 'border-[#0C2B24] bg-[#0C2B24] text-white shadow-xs'
-                        : 'border-slate-200 bg-white text-slate-600 hover:text-slate-900'
+                        ? 'border-[#0C2B24] dark:border-emerald-500 bg-[#0C2B24] dark:bg-emerald-600 text-white shadow-xs'
+                        : 'border-slate-200 dark:border-[#1B3D34] bg-white dark:bg-[#071410] text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     Ứng viên tìm việc
@@ -247,7 +247,7 @@ export default function RegisterPage() {
                     className={`p-2 rounded-xl border text-center text-xs font-semibold transition ${
                       role === 'RECRUITER'
                         ? 'border-[#D97706] bg-[#D97706] text-white shadow-xs'
-                        : 'border-slate-200 bg-white text-slate-600 hover:text-slate-900'
+                        : 'border-slate-200 dark:border-[#1B3D34] bg-white dark:bg-[#071410] text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     Nhà tuyển dụng (HR)
@@ -256,7 +256,7 @@ export default function RegisterPage() {
 
                 <form onSubmit={handleSubmit} className="space-y-3 text-xs">
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       {role === 'CANDIDATE' ? 'Họ và tên ứng viên' : 'Họ và tên người tuyển dụng'}
                     </label>
                     <input
@@ -264,26 +264,26 @@ export default function RegisterPage() {
                       placeholder="Nguyễn Văn A"
                       value={fullName || ''}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#0C2B24]"
+                      className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Email tài khoản</label>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Email tài khoản</label>
                     <input
                       type="email"
                       placeholder="name@example.com"
                       value={email || ''}
                       onChange={(e) => handleEmailChange(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#0C2B24]"
+                      className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
                       required
                     />
                     {emailStatus === 'AVAILABLE' && (
-                      <span className="text-emerald-700 text-[11px] pt-1 block">Email có thể sử dụng.</span>
+                      <span className="text-emerald-700 dark:text-emerald-400 text-[11px] pt-1 block">Email có thể sử dụng.</span>
                     )}
                     {emailStatus === 'ALREADY_EXISTS' && (
-                      <span className="text-rose-700 text-[11px] pt-1 block">Email này đã được sử dụng.</span>
+                      <span className="text-rose-700 dark:text-rose-400 text-[11px] pt-1 block">Email này đã được sử dụng.</span>
                     )}
                   </div>
 
@@ -297,7 +297,7 @@ export default function RegisterPage() {
                           max={70}
                           value={age || ''}
                           onChange={(e) => setAge(parseInt(e.target.value) || 22)}
-                          className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#0E241E] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24]"
+                          className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
                           required
                         />
                       </div>
@@ -338,7 +338,7 @@ export default function RegisterPage() {
                         placeholder="CloudScale Systems Corp"
                         value={companyName || ''}
                         onChange={(e) => setCompanyName(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#0E241E] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24]"
+                        className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
                         required
                       />
                     </div>
@@ -352,7 +352,7 @@ export default function RegisterPage() {
                         placeholder="Ít nhất 8 ký tự"
                         value={password || ''}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#0E241E] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24]"
+                        className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
                         required
                       />
                     </div>
@@ -363,7 +363,7 @@ export default function RegisterPage() {
                         placeholder="Xác nhận"
                         value={confirmPassword || ''}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#0E241E] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24]"
+                        className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
                         required
                       />
                     </div>
@@ -378,7 +378,7 @@ export default function RegisterPage() {
                   <button
                     type="submit"
                     disabled={isLoading || emailStatus === 'ALREADY_EXISTS'}
-                    className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0C2B24] hover:bg-[#133E34] shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2"
+                    className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0C2B24] dark:bg-emerald-600 hover:bg-[#133E34] dark:hover:bg-emerald-700 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2"
                   >
                     <UserPlus className="w-4 h-4" />
                     <span>{isLoading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản & nhận link xác thực'}</span>
@@ -388,11 +388,11 @@ export default function RegisterPage() {
             )}
           </div>
 
-          <div className="mt-6 pt-4 border-t border-slate-200 text-xs text-slate-600 flex items-center justify-between">
+          <div className="mt-6 pt-4 border-t border-slate-200 dark:border-[#1B3D34] text-xs text-slate-600 dark:text-slate-400 flex items-center justify-between">
             <span>Đã có tài khoản?</span>
             <Link
               href="/login"
-              className="font-semibold text-[#0C2B24] hover:text-[#10B981] flex items-center gap-1 transition"
+              className="font-semibold text-[#0C2B24] dark:text-emerald-400 hover:text-[#10B981] flex items-center gap-1 transition"
             >
               <span>Đăng nhập</span>
               <ArrowRight className="w-3.5 h-3.5" />

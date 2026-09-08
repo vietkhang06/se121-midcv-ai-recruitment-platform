@@ -303,9 +303,9 @@ class RealityMatchingManipulationTest {
         double naivePenaltyScore = (0.85 * candACore) + (0.15 * 0.0);
         assertEquals(68.0, naivePenaltyScore);
 
-        // MatchProof fallback architecture guarantees:
-        double matchproofOverall = candACore;
-        assertEquals(80.0, matchproofOverall, "Candidate with no GitHub must receive exactly Core score (80.0), NOT penalized 68.0");
+        // MatchJD fallback architecture guarantees:
+        double matchjdOverall = candACore;
+        assertEquals(80.0, matchjdOverall, "Candidate with no GitHub must receive exactly Core score (80.0), NOT penalized 68.0");
     }
 
     @Test

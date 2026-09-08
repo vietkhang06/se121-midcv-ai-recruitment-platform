@@ -16,6 +16,7 @@ import {
   ChevronRight,
   FileText
 } from 'lucide-react';
+import { EmptyState } from '@/components/common/EmptyState';
 
 export default function JobApplicationsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -36,19 +37,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
     );
   }
 
-  const rawJobApps = applications.filter(a => a.job?.id === job.id);
-  const jobApplications = rawJobApps.length > 0 ? rawJobApps : (job.id === 'job-tech-01' ? [
-    {
-      id: 'app-001',
-      job: job,
-      appliedCvId: 'cv-01',
-      appliedCvTitle: 'Senior Java Backend Engineer (v1.0)',
-      appliedCvVersion: 1,
-      status: 'SUBMITTED' as const,
-      appliedDate: '2026-08-29',
-      candidateNotes: 'Java & Vector AI candidate'
-    }
-  ] : []);
+  const jobApplications = applications.filter(a => a.job?.id === job.id);
   const submittedApps = jobApplications.filter(a => a.status === 'SUBMITTED');
   const reviewApps = jobApplications.filter(a => a.status === 'UNDER_REVIEW');
   const shortlistApps = jobApplications.filter(a => a.status === 'SHORTLISTED');
@@ -119,53 +108,68 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
         </div>
 
         {/* Dynamic Pipeline Stages */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start pb-4">
-          {columns.map((col, idx) => (
-            <div key={idx} className="bg-slate-100/70 dark:bg-[#0E241E]/80 border border-slate-200 dark:border-[#1B3D34] rounded-xl p-3.5 space-y-3 min-w-[220px]">
-              <div className="flex items-center justify-between font-semibold text-xs text-slate-800 dark:text-slate-200 px-1">
-                <span>{col.title}</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34]">
-                  {col.count}
-                </span>
-              </div>
+        {jobApplications.length === 0 ? (
+          <EmptyState
+            type="EMPTY"
+            title={t('emptyStates.applications.recruiterEmptyTitle', "Chưa có ứng viên ứng tuyển vào vị trí này")}
+            description={t('emptyStates.applications.recruiterEmptyDesc', "Vị trí tuyển dụng chưa nhận được hồ sơ ứng tuyển nào từ ứng viên.")}
+            primaryCtaText="Xem trang bài đăng JD"
+            primaryCtaHref={`/jobs/${job.id}`}
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start pb-4">
+            {columns.map((col, idx) => (
+              <div key={idx} className="bg-slate-100/70 dark:bg-[#0E241E]/80 border border-slate-200 dark:border-[#1B3D34] rounded-xl p-3.5 space-y-3 min-w-[220px]">
+                <div className="flex items-center justify-between font-semibold text-xs text-slate-800 dark:text-slate-200 px-1">
+                  <span>{col.title}</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34]">
+                    {col.count}
+                  </span>
+                </div>
 
-              <div className="space-y-3">
-                {col.items.length > 0 ? (
-                  col.items.map((app) => (
-                    <div key={app.id} className="bg-white dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] rounded-lg p-3.5 space-y-2 shadow-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-xs text-slate-900 dark:text-white">
-                          {app.appliedCvTitle || 'Ứng viên'}
-                        </span>
-                        <span className="text-[10px] font-bold font-mono text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
-                          v{app.appliedCvVersion}.0
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                        Nộp ngày: {app.appliedDate}
-                      </div>
-                      {app.candidateNotes && (
-                        <div className="text-[10px] text-slate-600 dark:text-slate-300 italic line-clamp-2">
-                          "{app.candidateNotes}"
+                <div className="space-y-3">
+                  {col.items.length > 0 ? (
+                    col.items.map((app) => (
+                      <div key={app.id} className="bg-white dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] rounded-lg p-3.5 space-y-2 shadow-xs">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="font-semibold text-xs text-slate-900 dark:text-white block">
+                              {app.candidateName || app.candidateProfile?.fullName || 'Nguyễn Văn Java'}
+                            </span>
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                              {app.appliedCvTitle || 'Ứng viên'}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-bold font-mono text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                            v{app.appliedCvVersion}.0
+                          </span>
                         </div>
-                      )}
-                      <Link
-                        href={`/recruiter/applications/${app.id}`}
-                        className="block text-center py-1 rounded text-[10px] font-semibold border border-slate-200 dark:border-[#1B3D34] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#14332B]"
-                      >
-                        Kiểm tra hồ sơ đối sánh
-                      </Link>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                          Nộp ngày: {app.appliedDate}
+                        </div>
+                        {app.candidateNotes && (
+                          <div className="text-[10px] text-slate-600 dark:text-slate-300 italic line-clamp-2">
+                            "{app.candidateNotes}"
+                          </div>
+                        )}
+                        <Link
+                          href={`/recruiter/applications/${app.id}`}
+                          className="block text-center py-1 rounded text-[10px] font-semibold border border-slate-200 dark:border-[#1B3D34] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#14332B]"
+                        >
+                          Kiểm tra hồ sơ đối sánh
+                        </Link>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
+                      Chưa có ứng viên
                     </div>
-                  ))
-                ) : (
-                  <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
-                    Chưa có ứng viên
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
       </main>
     </div>

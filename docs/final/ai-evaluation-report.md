@@ -1,4 +1,4 @@
-# MatchProof — Academic AI Evaluation Report
+# MatchJD — Academic AI Evaluation Report
 **Quantitative Information Extraction & NDCG@K Ranking Evaluation**
 
 **Authoritative Standards Compliance**: 
@@ -12,7 +12,7 @@
 
 ## 1. Executive Summary
 
-This academic evaluation report provides empirical benchmark results for the MatchProof AI subsystem. All metrics documented herein are measured directly from the running AI worker evaluation harness (`ai-worker/app/services/eval_runner.py`), verified by automated unit tests in `ai-worker/tests/test_academic_evaluation.py` and `backend/src/test/java/com/platform/recruitment/CandidateRankingDatasetTest.java`.
+This academic evaluation report provides empirical benchmark results for the MatchJD AI subsystem. All metrics documented herein are measured directly from the running AI worker evaluation harness (`ai-worker/app/services/eval_runner.py`), verified by automated unit tests in `ai-worker/tests/test_academic_evaluation.py` and `backend/src/test/java/com/platform/recruitment/CandidateRankingDatasetTest.java`.
 
 ### Key Evaluation Highlights
 | Metric Category | Target Standard | Measured Empirical Score | Status |
@@ -120,7 +120,7 @@ Both **NDCG@3 = 1.0000** and **NDCG@5 = 1.0000** show perfect ordering of top ca
 ## 4. Synonymous Skill Normalization Architecture
 
 ### 4.1 Canonical Resolution Mapping
-To prevent false negatives arising from syntactic variations, MatchProof implements a two-tier normalization layer:
+To prevent false negatives arising from syntactic variations, MatchJD implements a two-tier normalization layer:
 1. **Python AI Worker**: `SynonymNormalizer` (`ai-worker/app/services/normalizer.py`)
 2. **Spring Boot Backend**: `SkillNormalizer` (`backend/src/main/java/com/platform/recruitment/ai/SkillNormalizer.java`)
 

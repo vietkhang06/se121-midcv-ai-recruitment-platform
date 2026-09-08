@@ -75,10 +75,10 @@ export const IMAGE_CONFIG: Record<string, ImageSlotConfig> = {
     aspectRatio: '1:1',
     placeholderUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&auto=format&fit=crop&q=80',
   },
-  // Auth Hero Image Slot (MatchProof Editorial Split Layout)
+  // Auth Hero Image Slot (MatchJD Editorial Split Layout)
   IMAGE_PLACEHOLDER_AUTH_HERO: {
     slot: 'IMAGE_PLACEHOLDER_AUTH_HERO',
-    label: 'MatchProof Authentication Split Hero Image',
+    label: 'MatchJD Authentication Split Hero Image',
     width: 1920,
     height: 1280,
     aspectRatio: '3:2',

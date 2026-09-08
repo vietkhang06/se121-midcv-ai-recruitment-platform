@@ -1,5 +1,5 @@
 # FINAL AUTH + REAL DATA INTEGRATION AUDIT REPORT
-**Platform**: MatchProof — Evidence-Based AI Recruitment Platform  
+**Platform**: MatchJD — Evidence-Based AI Recruitment Platform  
 **Audit Scope**: Authentication, Data Isolation, Email Verification Integrity, Figma UI Migration, Playwright E2E & Backend Verification  
 **Date**: September 5, 2026  
 **Status**: COMPLETE & VERIFIED
@@ -47,7 +47,7 @@ Every core domain in the application now maps directly to Spring Boot REST endpo
 ## 3. Login UI Migration
 
 - **Legacy Interface**: Single-column modal in dark-blue/indigo (`bg-slate-900 border-slate-800`, `from-indigo-600 to-cyan-500`).
-- **MatchProof Figma Migration**:
+- **MatchJD Figma Migration**:
   - **Color Palette**: Deep Forest Green (`#0C2B24`, `#081C15`), Ivory Canvas (`#FBF9F5`, `#FAF8F5`), Emerald Accent (`#10B981`), Amber Accent (`#D97706`).
   - **Typography**: Editorial Serif headings (`font-editorial`, `font-serif`), Inter clean UI body text.
   - **Architecture**: Split layout with left-hand editorial branding hero containing `IMAGE_PLACEHOLDER_AUTH_HERO` (SVG semantic vector matching artwork with external URL fallback) and right-hand ivory card.
@@ -58,7 +58,7 @@ Every core domain in the application now maps directly to Spring Boot REST endpo
 
 ## 4. Registration UI Migration
 
-- **MatchProof Figma Migration**:
+- **MatchJD Figma Migration**:
   - Full-page `/register` route (`frontend/src/app/register/page.tsx`) and modal integration.
   - Role switcher between **Candidate** and **Recruiter (HR)** with clean pill selectors.
   - **Candidate Fields**: Full Name, Email, Password, Confirm Password, Age (18-70), Target Industry.

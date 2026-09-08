@@ -1,8 +1,8 @@
-# MatchProof: Final Advisor Requirements Compliance Audit
+# MatchJD: Final Advisor Requirements Compliance Audit
 
 ## 1. Authoritative Audit Mandate & Verification Framework
 
-This document represents the definitive, strict compliance audit against the graduation thesis advisor's explicit requirements for the **MatchProof** (Intelligent Recruitment Platform) project.
+This document represents the definitive, strict compliance audit against the graduation thesis advisor's explicit requirements for the **MatchJD** (Intelligent Recruitment Platform) project.
 
 ### 1.1 Strict Compliance Principles
 - **No Reliance on Unverified Claims**: Every capability marked as **PASS** is verified against active source code, relational database schema, REST API contracts, reproducible evaluation scripts, and automated test execution.

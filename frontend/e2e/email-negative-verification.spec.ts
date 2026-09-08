@@ -104,6 +104,10 @@ test.describe('Negative Email Verification & User Data Isolation Suite', () => {
 
     // User A logs out
     await page.getByRole('button', { name: /đăng xuất/i }).click();
+    const confirmLogout = page.locator('#confirm-logout-btn');
+    if (await confirmLogout.isVisible()) {
+      await confirmLogout.click();
+    }
     await page.goto('/');
     await expect(page.getByRole('button', { name: 'Đăng nhập', exact: true })).toBeVisible();
 

@@ -106,7 +106,7 @@ export default function CreateJobPage() {
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span className="font-semibold">
-              Bài tuyển dụng đã được lưu thành công vào hệ thống MatchProof Engine!
+              Bài tuyển dụng đã được lưu thành công vào hệ thống MatchJD Engine!
             </span>
           </div>
         )}
@@ -285,7 +285,7 @@ export default function CreateJobPage() {
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1 text-xs text-amber-900">
                 <div className="font-semibold text-amber-950 text-[11px]">Requirement Warning</div>
                 <p className="text-[11px] leading-relaxed text-amber-900/90 font-light">
-                  Requiring exactly &quot;10 years Kubernetes&quot; may reduce candidate matches by 70%. MatchProof suggests reducing to &quot;Hands-on orchestration commits.&quot;
+                  Requiring exactly &quot;10 years Kubernetes&quot; may reduce candidate matches by 70%. MatchJD suggests reducing to &quot;Hands-on orchestration commits.&quot;
                 </p>
               </div>
 

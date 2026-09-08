@@ -1,11 +1,11 @@
-# AI Recruitment Platform
+# MatchJD — AI Recruitment Platform
 
-Nền tảng tuyển dụng thông minh hỗ trợ đối sánh JD và hồ sơ ứng viên bằng **Vector Embedding (Pgvector)** và **LLM Document Parsing**.
+Nền tảng tuyển dụng thông minh **MatchJD** hỗ trợ đối sánh JD và hồ sơ ứng viên bằng **Vector Embedding (Pgvector)** và **LLM Document Parsing** (hỗ trợ cả Ollama local và OpenAI).
 
 ---
 
 ## 1. Project Overview
-The **AI Recruitment Platform** automates the recruitment pipeline by extracting structured requirements from Job Descriptions (JDs), parsing candidate Resumes/CVs into canonical profiles, generating 1536-dimensional vector embeddings, computing 3-tier match scores, and ranking applicants with transparent quote-based evidence and developer GitHub profile activity analysis.
+**MatchJD** automates the recruitment pipeline by extracting structured requirements from Job Descriptions (JDs), parsing candidate Resumes/CVs into canonical profiles, generating vector embeddings, computing 3-tier match scores, and ranking applicants with transparent quote-based evidence and developer GitHub profile activity analysis.
 
 ---
 

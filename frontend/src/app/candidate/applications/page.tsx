@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Application, CV } from '@/types';
 import { fetchCandidateApplications, saveCandidateCV } from '@/lib/api';
 import { CVUploadModal } from '@/components/cv/CVUploadModal';
+import { EmptyState } from '@/components/common/EmptyState';
 import { useLanguage } from '@/context/LanguageContext';
 import {
   Send,
@@ -33,37 +34,7 @@ export default function ApplicationHistoryPage() {
 
   useEffect(() => {
     fetchCandidateApplications().then((apps) => {
-      if (apps && apps.length > 0) {
-        setApplications(apps);
-      } else {
-        setApplications([
-          {
-            id: 'app-001',
-            job: {
-              id: 'job-tech-01',
-              title: 'Senior Java Backend Engineer (Spring Boot & Vector AI)',
-              companyName: 'FPT Software Corporation',
-              companyVerified: true,
-              industry: 'Technology',
-              employmentType: 'FULL_TIME',
-              seniority: 'Senior',
-              location: 'Hồ Chí Minh',
-              salaryMin: 2200,
-              salaryMax: 3500,
-              publishedDate: '2026-08-28',
-              description: 'Microservices & Vector AI position.',
-              requirements: [],
-              status: 'PUBLISHED'
-            },
-            appliedCvId: 'cv-01',
-            appliedCvTitle: 'CV Senior Java Backend Engineer (Tech Standard)',
-            appliedCvVersion: 1,
-            status: 'SUBMITTED',
-            appliedDate: '2026-08-29',
-            candidateNotes: 'Ứng viên nộp đơn có snapshot bất biến.'
-          }
-        ]);
-      }
+      setApplications(apps || []);
     });
   }, []);
 
@@ -85,7 +56,7 @@ export default function ApplicationHistoryPage() {
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-[11px] font-mono font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
               <ShieldCheck className="w-4 h-4" />
-              <span>MATCHPROOF AUDITABLE APPLICATION & MATCH REPORTS</span>
+              <span>MATCHJD AUDITABLE APPLICATION & MATCH REPORTS</span>
             </div>
             <h1 className="text-3xl font-editorial font-bold text-slate-900 dark:text-white tracking-tight">
               {t('applications.title', 'Danh Sách Việc Làm Đã Nộp Đơn')}
@@ -195,7 +166,7 @@ export default function ApplicationHistoryPage() {
                     <div className="pt-3 border-t border-slate-200 dark:border-[#1B3D34] space-y-4 animate-fade-in">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                          BÁO CÁO PHÂN TÍCH ĐỐI SÁNH MATCHPROOF AI
+                          BÁO CÁO PHÂN TÍCH ĐỐI SÁNH MATCHJD AI
                         </span>
                         <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
                           Xác thực bảo vệ ứng viên
@@ -244,35 +215,16 @@ export default function ApplicationHistoryPage() {
             })}
           </div>
         ) : (
-          <div className="py-20 text-center bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-8 flex flex-col items-center justify-center space-y-4 shadow-xs">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-700 dark:text-emerald-400">
-              <FileText className="w-8 h-8" />
-            </div>
-            <div className="space-y-1 max-w-md">
-              <h3 className="text-lg font-editorial font-bold text-slate-900 dark:text-white">
-                {t('applications.noReportsTitle', 'No Applications Submitted Yet')}
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t('applications.noReportsSubtitle', 'Discover verified jobs and complete the 5-step Quick Apply workflow.')}
-              </p>
-            </div>
-            <div className="flex items-center gap-3 pt-2">
-              <Link
-                href="/jobs"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#0C2B24] hover:bg-[#133E34] transition shadow-sm"
-              >
-                <span>{t('applications.exploreCta', 'Khám phá việc làm ngay')}</span>
-                <ArrowRight className="w-4 h-4 text-emerald-400" />
-              </Link>
-              <button
-                onClick={() => setIsUploadOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-[#14332B] hover:bg-slate-200 dark:hover:bg-[#1c453a] transition cursor-pointer"
-              >
-                <UploadCloud className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Tải lên CV kiểm tra</span>
-              </button>
-            </div>
-          </div>
+          <EmptyState
+            type="EMPTY"
+            icon={<FileText className="w-8 h-8 text-emerald-700 dark:text-emerald-400" />}
+            title={t('emptyStates.applications.candidateEmptyTitle', 'Bạn chưa có đơn ứng tuyển nào')}
+            description={t('emptyStates.applications.candidateEmptyDesc', 'Khám phá các vị trí tuyển dụng phù hợp và nộp đơn để theo dõi tiến trình đối sánh tại đây.')}
+            primaryCtaText={t('emptyStates.applications.exploreJobsCta', 'Khám Phá Việc Làm Ngay')}
+            primaryCtaHref="/jobs"
+            secondaryCtaText="Tải lên CV kiểm tra"
+            onSecondaryCtaClick={() => setIsUploadOpen(true)}
+          />
         )}
 
         {/* CV Upload Modal */}

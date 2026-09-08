@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Job, CV, Application } from '@/types';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { fetchCandidateCVs, fetchCandidateProfile, submitApplication } from '@/lib/api';
 import {
   X,
@@ -30,6 +31,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
   onSuccess,
 }) => {
   const { user, isAuthenticated, openAuthModal } = useAuth();
+  const { t } = useLanguage();
 
   // Step 1: Select CV, Step 2: Review Match Grid (Figma 07), Step 3: Confirm & Send
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(2);
@@ -55,16 +57,16 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
   if (!isAuthenticated) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-        <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl p-6 text-slate-900 text-center space-y-4 shadow-2xl">
+        <div className="w-full max-w-md bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-6 text-slate-900 dark:text-slate-100 text-center space-y-4 shadow-2xl">
           <ShieldAlert className="w-12 h-12 mx-auto text-amber-500" />
-          <h2 className="text-lg font-bold font-editorial">Yêu cầu Đăng nhập để Ứng tuyển</h2>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Bạn cần đăng nhập tài khoản Ứng viên để thực hiện quy trình nộp đơn Quick Apply chuẩn MatchProof.
+          <h2 className="text-lg font-bold font-editorial text-slate-900 dark:text-white">Yêu cầu Đăng nhập để Ứng tuyển</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            Bạn cần đăng nhập tài khoản Ứng viên để thực hiện quy trình nộp đơn Quick Apply chuẩn MatchJD.
           </p>
           <div className="flex justify-center gap-3 pt-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-xs text-slate-500 hover:text-slate-800"
+              className="px-4 py-2 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
             >
               Hủy
             </button>
@@ -73,7 +75,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
                 onClose();
                 openAuthModal('LOGIN', { type: 'NAVIGATE', target: `/jobs/${job.id}` });
               }}
-              className="px-4 py-2 text-xs font-semibold text-white bg-[#0C2B24] rounded-lg hover:bg-[#133E34] transition"
+              className="px-4 py-2 text-xs font-semibold text-white bg-[#0C2B24] dark:bg-emerald-600 rounded-lg hover:bg-[#133E34] dark:hover:bg-emerald-700 transition"
             >
               Đăng nhập ngay
             </button>
@@ -99,7 +101,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
         expectedSalary: 2500,
         noticePeriodDays: 30,
         portfolioUrl: 'https://github.com/candidate-profile',
-        candidateNotes: 'Applied via MatchProof recruitment platform.',
+        candidateNotes: 'Applied via MatchJD recruitment platform.',
       });
       setIsSubmitted(true);
       if (onApplySubmitted) onApplySubmitted(newApp);
@@ -113,7 +115,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#081C15]/70 backdrop-blur-xs overflow-y-auto">
       
       {/* 07 — Modal Card (Figma Screen 07: 1440x1332 node container) */}
-      <div className="w-full max-w-2xl bg-white border border-[#E2E8F0] rounded-2xl shadow-2xl relative overflow-hidden my-8">
+      <div className="w-full max-w-2xl bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-2xl shadow-2xl text-slate-900 dark:text-slate-100 relative overflow-hidden my-8">
         
         {/* Hidden SEO/Test Assertions for 100% E2E Compatibility */}
         <div className="sr-only">
@@ -122,49 +124,49 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
         </div>
 
         {/* Modal Header */}
-        <div className="p-6 sm:p-8 border-b border-slate-100 relative">
+        <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-[#1B3D34] relative">
           <button
             onClick={onClose}
-            className="absolute right-6 top-6 w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-slate-50 transition"
+            className="absolute right-6 top-6 w-8 h-8 rounded-full border border-slate-200 dark:border-[#1B3D34] flex items-center justify-center text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#133E34] transition"
           >
             <X className="w-4 h-4" />
           </button>
 
           <div className="space-y-1">
-            <span className="text-[10px] font-mono font-bold text-amber-700 uppercase tracking-widest">
-              MATCHPROOF APPLICATION NODE
+            <span className="text-[10px] font-mono font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest">
+              MATCHJD APPLICATION NODE
             </span>
-            <h2 className="text-2xl font-editorial font-bold text-slate-900">
+            <h2 className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">
               {job.title}
             </h2>
-            <div className="text-xs text-slate-500 font-mono">
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-mono">
               {job.companyName} — {job.location}
             </div>
           </div>
 
           {/* 3-Step Indicator (Figma Screen 07: 1 Select CV -> 2 Review Match Grid -> 3 Confirm & Send) */}
-          <div className="pt-6 flex items-center justify-between text-xs font-medium border-t border-slate-100 mt-5">
-            <div className="flex items-center gap-2 text-slate-700">
-              <span className="w-5 h-5 rounded-full bg-[#0C2B24] text-white text-[10px] font-bold flex items-center justify-center">
+          <div className="pt-6 flex items-center justify-between text-xs font-medium border-t border-slate-100 dark:border-[#1B3D34] mt-5">
+            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+              <span className="w-5 h-5 rounded-full bg-[#0C2B24] dark:bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center">
                 1
               </span>
-              <span>Select CV</span>
+              <span>{t('quickApply.step1', 'Select CV')}</span>
             </div>
-            <div className="h-0.5 w-12 bg-[#0C2B24]" />
+            <div className="h-0.5 w-12 bg-[#0C2B24] dark:bg-emerald-500" />
 
-            <div className="flex items-center gap-2 text-[#0C2B24] font-bold">
-              <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-900 text-[10px] font-bold flex items-center justify-center ring-4 ring-amber-100">
+            <div className="flex items-center gap-2 text-[#0C2B24] dark:text-emerald-400 font-bold">
+              <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-900 text-[10px] font-bold flex items-center justify-center ring-4 ring-amber-100 dark:ring-amber-950/40">
                 2
               </span>
-              <span>Review Match Grid</span>
+              <span>{t('quickApply.step2', 'Review Match Grid')}</span>
             </div>
-            <div className="h-0.5 w-12 bg-slate-200" />
+            <div className="h-0.5 w-12 bg-slate-200 dark:bg-[#1B3D34]" />
 
-            <div className="flex items-center gap-2 text-slate-400">
-              <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-400 text-[10px] font-bold flex items-center justify-center">
+            <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
+              <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-[10px] font-bold flex items-center justify-center">
                 3
               </span>
-              <span>Confirm & Send</span>
+              <span>{t('quickApply.step3', 'Confirm & Send')}</span>
             </div>
           </div>
         </div>
@@ -174,66 +176,66 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
           
           {isSubmitted ? (
             <div className="text-center py-8 space-y-3">
-              <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
-              <h3 className="text-xl font-editorial font-bold text-slate-900">Application Submitted!</h3>
-              <p className="text-xs text-slate-600 max-w-md mx-auto">
-                Your verifiable skill evidence snapshot has been locked and forwarded to the engineering recruitment rubric team.
+              <CheckCircle2 className="w-12 h-12 text-emerald-600 dark:text-emerald-400 mx-auto" />
+              <h3 className="text-xl font-editorial font-bold text-slate-900 dark:text-white">{t('quickApply.successTitle', 'Application Submitted!')}</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300 max-w-md mx-auto">
+                {t('quickApply.successDesc', 'Your verifiable skill evidence snapshot has been locked and forwarded to the engineering recruitment rubric team.')}
               </p>
               <div className="pt-4">
                 <button
                   onClick={onClose}
-                  className="px-6 py-2 rounded-lg text-xs font-semibold bg-[#0C2B24] text-white hover:bg-[#133E34] transition"
+                  className="px-6 py-2 rounded-lg text-xs font-semibold bg-[#0C2B24] dark:bg-emerald-600 text-white hover:bg-[#133E34] dark:hover:bg-emerald-700 transition"
                 >
-                  Close Window
+                  {t('common.close', 'Close Window')}
                 </button>
               </div>
             </div>
           ) : (
             <>
               {/* Yellow Tip Callout (Figma Screen 07) */}
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-900 space-y-1">
-                <div className="font-semibold flex items-center gap-1.5 text-amber-950">
+              <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 rounded-xl p-4 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                <div className="font-semibold flex items-center gap-1.5 text-amber-950 dark:text-amber-100">
                   <span>Tailor Recommendation:</span>
                 </div>
-                <p className="leading-relaxed text-amber-900/90 font-light">
+                <p className="leading-relaxed text-amber-900/90 dark:text-amber-200/90 font-light">
                   Add details regarding your gRPC protocol buffer setups. DevOpsCloud LLC prioritizes transport layer scaling.
                 </p>
               </div>
 
               {/* Match Evaluation Breakdown Table (Figma Screen 07) */}
               <div className="space-y-3">
-                <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
+                <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   MATCH EVALUATION BREAKDOWN — TARGET JOB REQUIREMENTS
                 </div>
 
-                <div className="border border-[#E2E8F0] rounded-xl overflow-hidden">
+                <div className="border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl overflow-hidden">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-[#F8FAF9] text-slate-500 font-mono text-[10px] uppercase border-b border-slate-200">
+                    <thead className="bg-[#F8FAF9] dark:bg-[#071410] text-slate-500 dark:text-slate-400 font-mono text-[10px] uppercase border-b border-slate-200 dark:border-[#1B3D34]">
                       <tr>
                         <th className="py-2.5 px-4 font-semibold">Skill Required</th>
                         <th className="py-2.5 px-4 font-semibold">Your Evidence Match</th>
                         <th className="py-2.5 px-4 font-semibold text-right">Verification</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                    <tbody className="divide-y divide-slate-100 dark:divide-[#1B3D34] text-slate-700 dark:text-slate-300">
                       {job.requirements && job.requirements.length > 0 ? (
                         job.requirements.map((req, idx) => {
                           const cvTextLower = (selectedCv?.rawText || selectedCv?.title || '').toLowerCase();
                           const hasSkill = cvTextLower.includes(req.skillName.toLowerCase());
                           return (
                             <tr key={idx}>
-                              <td className="py-3 px-4 font-semibold text-slate-900">
+                              <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">
                                 <span>{req.skillName}</span>
                                 <span className="ml-1.5 text-[9px] font-mono font-bold text-slate-400">({req.requirementType})</span>
                               </td>
-                              <td className="py-3 px-4 text-slate-600">
+                              <td className="py-3 px-4 text-slate-600 dark:text-slate-300">
                                 {hasSkill ? 'Matched in selected CV document' : 'No explicit mention detected in CV'}
                               </td>
                               <td className="py-3 px-4 text-right">
                                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                                  hasSkill 
-                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                                    : 'bg-rose-50 text-rose-800 border-rose-200'
+                                   hasSkill 
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40' 
+                                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-900/40'
                                 }`}>
                                   {hasSkill ? 'Matched ✓' : 'Missing ✗'}
                                 </span>
@@ -254,22 +256,22 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-4">
+              <div className="pt-4 border-t border-slate-100 dark:border-[#1B3D34] flex items-center justify-between gap-4">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50 transition"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-slate-300 dark:border-[#1B3D34] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#133E34] transition"
                 >
-                  Back to CVs
+                  {t('quickApply.back', 'Back')}
                 </button>
 
                 <button
                   type="button"
                   disabled={isSubmitting}
                   onClick={handleConfirmApplication}
-                  className="px-6 py-2.5 rounded-lg text-xs font-semibold text-white bg-[#0C2B24] hover:bg-[#133E34] transition shadow-xs flex items-center gap-1.5"
+                  className="px-6 py-2.5 rounded-lg text-xs font-semibold text-white bg-[#0C2B24] dark:bg-emerald-600 hover:bg-[#133E34] dark:hover:bg-emerald-700 transition shadow-xs flex items-center gap-1.5"
                 >
-                  <span>{isSubmitting ? 'Submitting...' : 'Confirm & Proceed'}</span>
+                  <span>{isSubmitting ? t('quickApply.submitting', 'Submitting...') : t('quickApply.submitApplication', 'Confirm & Proceed')}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>

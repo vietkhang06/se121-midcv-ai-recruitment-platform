@@ -1,10 +1,10 @@
-# MatchProof: Candidate Ranking Evaluation with NDCG@K
+# MatchJD: Candidate Ranking Evaluation with NDCG@K
 
 ## 1. Executive Summary
 
 In recruitment systems, ranking quality is paramount: qualified candidates must appear at the top of the recruiter's candidate pipeline, while unqualified candidates must not outrank strong candidates due to superficial keyword overlap.
 
-In accordance with the thesis advisor's authoritative requirements, this report evaluates MatchProof's ranking pipeline using:
+In accordance with the thesis advisor's authoritative requirements, this report evaluates MatchJD's ranking pipeline using:
 
 - **NDCG@3 (Normalized Discounted Cumulative Gain at rank 3)**
 - **NDCG@5 (Normalized Discounted Cumulative Gain at rank 5)**

@@ -5,6 +5,7 @@ test.describe('Stabilization & Complete Product Verification Suite', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
+      window.sessionStorage.setItem('e2e_seed_benchmark', 'true');
       window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
       window.localStorage.setItem('auth_user', JSON.stringify({
         id: 'usr-cand-01',

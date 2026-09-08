@@ -28,6 +28,12 @@ ALIAS_MAP = {
     "kubernetes": "Kubernetes",
     "docker": "Docker",
     "golang": "Go",
+    "sql": "SQL",
+    "css": "CSS",
+    "html": "HTML",
+    "api": "API",
+    "rest": "REST",
+    "ci/cd": "CI/CD",
 }
 
 # Explicit Distinct Technologies that MUST NOT be merged

@@ -1,11 +1,16 @@
 export const vi = {
   nav: {
-    brand: "MATCHPROOF",
+    brand: "MATCHJD",
     searchJobs: "Tìm Việc Làm",
+    matching: "Đối Sánh",
     matchReports: "Báo Cáo Phù Hợp",
     dashboard: "Tổng Quan",
+    myCv: "CV Của Tôi",
     cvManagement: "Quản Lý CV",
+    profile: "Hồ Sơ Năng Lực",
     help: "Hướng Dẫn Sử Dụng",
+    features: "Tính Năng",
+    forEmployers: "Dành Cho Doanh Nghiệp",
     signIn: "Đăng nhập",
     register: "Đăng ký",
     signOut: "Đăng xuất",
@@ -13,18 +18,29 @@ export const vi = {
     recruiterRole: "Nhà tuyển dụng",
     switchTheme: "Chế độ giao diện",
     switchLang: "Ngôn ngữ",
-    profileStrength: "Độ hoàn thiện hồ sơ"
+    profileStrength: "Hồ sơ đã xác minh",
+    mobileMenu: "Menu điều hướng"
+  },
+  recruiterNav: {
+    brand: "MatchJD HR Portal",
+    dashboard: "Tổng Quan Tuyển Dụng",
+    company: "Doanh nghiệp",
+    jobs: "Quản Lý Bài Đăng",
+    createJob: "Tạo Bài Tuyển Dụng",
+    candidatePortal: "Về Cổng Ứng Viên",
+    verifiedStatus: "Đã Xác Minh"
   },
   auth: {
-    signInTitle: "Truy Cập MatchProof",
+    signInTitle: "Truy Cập MatchJD",
     signInSubtitle: "Đăng nhập với thông tin đã xác thực để xem điểm số đối sánh AI chuẩn xác.",
     registerTitle: "Tạo Tài Khoản Mới",
-    registerSubtitle: "Tham gia MatchProof với mã hóa minh bạch và định hướng đa ngành nghề.",
+    registerSubtitle: "Tham gia MatchJD với mã hóa minh bạch và định hướng đa ngành nghề.",
     emailLabel: "Địa Chỉ Email",
     emailPlaceholder: "ten@congty.com hoặc ungvien@domain.com",
     passwordLabel: "Mật Khẩu",
     passwordPlaceholder: "Tối thiểu 8 ký tự, chữ hoa, số & ký tự đặc biệt",
     confirmPasswordLabel: "Xác Nhận Mật Khẩu",
+    confirmPasswordPlaceholder: "Nhập lại mật khẩu...",
     fullNameLabel: "Họ Và Tên",
     fullNamePlaceholder: "Nguyễn Văn A",
     ageLabel: "Tuổi (Tùy chọn)",
@@ -52,14 +68,22 @@ export const vi = {
     reqSpecial: "Có ký tự đặc biệt",
     emailCheckChecking: "Đang kiểm tra tính khả dụng email...",
     emailCheckAvailable: "Email hợp lệ và sẵn sàng đăng ký",
-    emailCheckTaken: "Email này đã được sử dụng"
+    emailCheckTaken: "Email này đã được sử dụng",
+    rememberMe: "Ghi nhớ đăng nhập",
+    forgotPassword: "Quên mật khẩu?"
+  },
+  logoutModal: {
+    title: "Xác Nhận Đăng Xuất",
+    message: "Bạn có chắc chắn muốn đăng xuất khỏi tài khoản MatchJD không? Mọi tiến trình chưa lưu có thể bị mất.",
+    confirm: "Đăng Xuất",
+    cancel: "Hủy"
   },
   verifyEmail: {
     verifyingTitle: "Đang Xác Thực Tài Khoản",
     verifyingDesc: "Hệ thống đang kiểm tra tính hợp lệ của mã xác thực với máy chủ...",
     successTitle: "Xác thực email thành công!",
-    successDesc: "Tài khoản của bạn đã được xác minh và kích hoạt đầy đủ trên MatchProof.",
-    continueCta: "Tiếp Tục Với MatchProof",
+    successDesc: "Tài khoản của bạn đã được xác minh và kích hoạt đầy đủ trên MatchJD.",
+    continueCta: "Tiếp Tục Với MatchJD",
     errorTitle: "Xác thực không thành công",
     errorDesc: "Mã xác thực không hợp lệ, đã được sử dụng hoặc đã hết thời hạn 24 giờ.",
     resendPrompt: "Yêu cầu gửi lại mã xác thực mới:",
@@ -85,11 +109,100 @@ export const vi = {
     salaryLow: "Lương thấp nhất",
     resultsCount: "việc làm phù hợp",
     noJobsFound: "Không tìm thấy việc làm phù hợp với bộ lọc hiện tại.",
-    recommendedForYou: "Gợi ý theo ngành nghề mục tiêu của bạn"
+    recommendedForYou: "Gợi ý theo ngành nghề mục tiêu của bạn",
+    applyNow: "Ứng Tuyển Nhanh",
+    viewDetails: "Xem Chi Tiết",
+    matchUnavailable: "Chưa thể tính mức độ phù hợp",
+    matchUnavailableTooltip: "Bạn hãy thêm CV hoặc bổ sung thông tin kinh nghiệm, kỹ năng và thế mạnh để AI có đủ dữ liệu tính toán."
   },
   candidate: {
     matchUnavailable: "Chưa thể tính mức độ phù hợp",
     matchUnavailableTooltip: "Bạn hãy thêm CV hoặc bổ sung thông tin kinh nghiệm, kỹ năng và thế mạnh để AI có đủ dữ liệu tính toán."
+  },
+  candidatePages: {
+    myCvsTitle: "Thư Viện CV Của Tôi",
+    myCvsSubtitle: "Quản lý các phiên bản CV, theo dõi lịch sử cập nhật và tối ưu hóa theo vị trí tuyển dụng.",
+    createCv: "Tạo CV Mới",
+    uploadCv: "Tải Lên CV (PDF/DOCX)",
+    cvBuilderTitle: "Trình Soạn Thảo CV AI",
+    cvBuilderSubtitle: "Thiết kế và tối ưu hồ sơ chuẩn ATS với hỗ trợ ngữ nghĩa AI thời gian thực.",
+    profileTitle: "Hồ Sơ Năng Lực Ứng Viên",
+    profileSubtitle: "Thông tin cá nhân, định hướng nghề nghiệp và liên kết xác thực năng lực GitHub.",
+    saveProfile: "Lưu Hồ Sơ",
+    savedSuccess: "Đã lưu thông tin thành công!",
+    version: "Phiên bản",
+    targetRole: "Vị trí mục tiêu",
+    lastUpdated: "Cập nhật lần cuối"
+  },
+  cvUpload: {
+    badge: "MATCHJD PARSER PIPELINE",
+    title: "Tải Lên & Phân Tích CV (PDF / DOCX)",
+    subtitle: "Trích xuất kỹ năng, kinh nghiệm và cấu trúc thực thể qua AI Worker trước khi lưu vào Thư Viện.",
+    industry: "Ngành nghề định hướng",
+    role: "Vị trí mong muốn",
+    rolePlaceholder: "Ví dụ: Backend Software Engineer",
+    dropzoneText: "Nhấp hoặc kéo thả file CV tại đây",
+    dropzoneHint: "Hỗ trợ định dạng PDF hoặc DOCX (Tối đa 10MB)",
+    fileReady: "Đã chọn sẵn sàng",
+    startParse: "Bắt Đầu Phân Tích & Trích Xuất AI",
+    statusUploading: "Đang tải file an toàn lên máy chủ...",
+    statusQueued: "Đang phân phối vào hàng đợi AI Worker...",
+    statusProcessing: "AI đang trích xuất thực thể, kỹ năng & kinh nghiệm...",
+    statusCompleted: "Trích xuất hoàn tất! Chuẩn bị chuyển sang màn hình Đánh giá...",
+    normalizationHint: "Chuẩn hóa các kỹ năng đồng nghĩa (JS → JavaScript, Postgres → PostgreSQL) và vector embedding.",
+    reviewSuccess: "Trích xuất thành công! Kiểm tra và tinh chỉnh thông tin trước khi lưu.",
+    cvTitleLabel: "Tên hiển thị CV",
+    summaryLabel: "Tóm tắt bản thân (Extracted Professional Summary)",
+    skillsLabel: "Kỹ năng chuyên môn trích xuất (Technical Skills Index)",
+    skillsPlaceholder: "Gõ để tìm kiếm và bổ sung kỹ năng (ví dụ: Spring Boot, Docker, React)...",
+    experienceLabel: "Kinh nghiệm làm việc trích xuất",
+    uploadAnother: "Tải file khác",
+    confirmSave: "Xác Nhận & Lưu Thư Viện CV",
+    failedTitle: "Phân Tích Thất Bại",
+    failedDesc: "Định dạng tệp tin hoặc nội dung văn bản không thể nhận diện. Vui lòng kiểm tra lại file.",
+    retry: "Thử Lại (Retry)"
+  },
+  quickApply: {
+    badge: "MATCHJD APPLICATION NODE",
+    step1: "Chọn Bản CV",
+    step2: "Xem Điểm Đối Sánh",
+    step3: "Xác Nhận & Nộp Đơn",
+    selectCvLabel: "Chọn Bản CV Ứng Tuyển",
+    coverNoteLabel: "Lời nhắn gửi nhà tuyển dụng (Tùy chọn)",
+    coverNotePlaceholder: "Nêu bật lý do bạn phù hợp với vị trí này...",
+    back: "Quay lại",
+    continue: "Tiếp tục",
+    submitApplication: "Nộp Đơn Ứng Tuyển",
+    submitting: "Đang gửi hồ sơ...",
+    successTitle: "Ứng Tuyển Thành Công!",
+    successDesc: "Hồ sơ của bạn đã được ghi nhận cùng snapshot CV bất biến và phân tích đối sánh AI.",
+    viewApplications: "Xem Báo Cáo Ứng Tuyển"
+  },
+  match: {
+    overallScore: "Điểm Đối Sánh Tổng Hợp",
+    coreScore: "Điểm Đối Sánh Cốt Lõi",
+    githubEvidence: "Bằng Chứng Thực Tế GitHub",
+    groundedExplanation: "Giải Trình Bằng Chứng Cụ Thể (XAI)",
+    matchedSkills: "Kỹ năng Bắt buộc (Required Skills)",
+    missingSkills: "Kỹ năng Còn thiếu",
+    semanticSimilarity: "Độ tương đồng ngữ nghĩa",
+    experienceRelevance: "Độ phù hợp kinh nghiệm",
+    zeroPenaltyNotice: "Ứng viên không bị trừ điểm khi chưa có GitHub hoặc trong ngành nghề không viết code (Zero-penalty fallback).",
+    insufficientData: "Chưa Đủ Dữ Liệu Đối Sánh",
+    insufficientDataHint: "Vui lòng tải lên hoặc tạo CV đầy đủ để kích hoạt đối sánh ngữ nghĩa AI."
+  },
+  recruiterPages: {
+    dashboardTitle: "Bảng Điều Khiển Tuyển Dụng",
+    dashboardSubtitle: "Tổng quan các vị trí đang tuyển, số lượng ứng viên và phân tích chất lượng nguồn tuyển.",
+    jobsTitle: "Danh Sách Tin Tuyển Dụng",
+    jobsSubtitle: "Quản lý trạng thái đăng tuyển, xem xếp hạng ứng viên và phân tích độ phù hợp.",
+    createJdTitle: "Tạo & Phân Tích Mô Tả Công Việc (JD)",
+    createJdSubtitle: "Nhập mô tả tuyển dụng để AI tự động trích xuất yêu cầu kỹ năng, kinh nghiệm và tính toán vector embedding.",
+    rankingTitle: "Bảng Xếp Hạng Ứng Viên Theo AI",
+    rankingSubtitle: "Xếp hạng minh bạch dựa trên phân tích ngữ nghĩa JD-CV và tín hiệu đóng góp GitHub thực tế.",
+    candidateDetailTitle: "Chi Tiết Đánh Giá Ứng Viên",
+    companyTitle: "Hồ Sơ Doanh Nghiệp Tuyển Dụng",
+    companySubtitle: "Thông tin pháp lý, ngành nghề hoạt động và trạng thái xác minh doanh nghiệp."
   },
   applications: {
     title: "Danh Sách Việc Làm Đã Nộp Đơn — Báo Cáo Phù Hợp",
@@ -103,11 +216,86 @@ export const vi = {
     exploreCta: "Khám Phá Việc Làm Ngay"
   },
   help: {
-    title: "Hướng Dẫn Sử Dụng Nền Tảng MatchProof",
+    title: "Hướng Dẫn Sử Dụng Nền Tảng MatchJD",
     subtitle: "Tài liệu vận hành chi tiết và giải trình thuật toán minh bạch cho Ứng Viên và Nhà Tuyển Dụng.",
     candidateTab: "Dành Cho Ứng Viên",
     recruiterTab: "Dành Cho Nhà Tuyển Dụng",
     tocTitle: "Mục Lục Hướng Dẫn"
+  },
+  landing: {
+    heroTag: "Vector Embedding 1536D • AI Evidence Pipeline",
+    heroTitle: "Tuyển dụng dựa trên bằng chứng xác thực, không phải lời khai trên CV.",
+    heroSubtitle: "Đối Sánh JD & Hồ Sơ Tuyển Dụng",
+    heroDesc: "MatchJD đối sánh vector ngữ nghĩa, kho mã nguồn GitHub và lịch sử làm việc trực tiếp với Mô tả công việc. Không lọc hộp đen, đối sánh minh bạch và giải trình được.",
+    heroForEmployers: "Dành Cho Doanh Nghiệp — Đăng Tuyển",
+    heroForCandidates: "Dành Cho Ứng Viên — Khám Phá Việc Làm",
+    heroSearchPlaceholder: "Tìm kiếm vị trí: Kỹ sư Phần mềm, Java, Spring Boot, React...",
+    heroSearchBtn: "Tìm Kiếm"
+  },
+  emptyStates: {
+    jobs: {
+      emptyTitle: "Chưa có việc làm",
+      emptyDesc: "Hiện tại chưa có vị trí tuyển dụng nào trên hệ thống.",
+      noMatchTitle: "Không tìm thấy việc làm phù hợp",
+      noMatchDesc: "Hiện chưa có công việc nào phù hợp với điều kiện tìm kiếm và bộ lọc của bạn.",
+      resetFilters: "Xóa tất cả bộ lọc",
+      errorTitle: "Không thể tải danh sách việc làm",
+      errorDesc: "Đã xảy ra lỗi khi kết nối với máy chủ dữ liệu. Vui lòng thử lại sau.",
+      loading: "Đang tải việc làm..."
+    },
+    candidates: {
+      emptyTitle: "Chưa có ứng viên",
+      emptyDesc: "Hiện chưa có ứng viên nào trong danh sách.",
+      noMatchTitle: "Không tìm thấy ứng viên phù hợp",
+      noMatchDesc: "Không có ứng viên nào phù hợp với các tiêu chí lọc điểm số hoặc kỹ năng hiện tại.",
+      errorTitle: "Không thể tải danh sách ứng viên",
+      errorDesc: "Đã xảy ra lỗi khi tải danh sách ứng viên từ hệ thống.",
+      resetFilters: "Hiển thị toàn bộ bảng xếp hạng",
+      loading: "Đang tải danh sách ứng viên..."
+    },
+    applications: {
+      candidateEmptyTitle: "Bạn chưa có đơn ứng tuyển nào",
+      candidateEmptyDesc: "Khám phá các vị trí tuyển dụng phù hợp và nộp đơn để theo dõi tiến trình đối sánh tại đây.",
+      exploreJobsCta: "Khám Phá Việc Làm Ngay",
+      recruiterEmptyTitle: "Chưa có ứng viên ứng tuyển vào vị trí này",
+      recruiterEmptyDesc: "Vị trí tuyển dụng chưa nhận được hồ sơ ứng tuyển nào từ ứng viên.",
+      noMatchTitle: "Không tìm thấy đơn ứng tuyển phù hợp",
+      noMatchDesc: "Không có đơn ứng tuyển nào khớp với bộ lọc trạng thái hiện tại.",
+      errorTitle: "Không thể tải danh sách đơn ứng tuyển",
+      errorDesc: "Không thể tải lịch sử ứng tuyển từ máy chủ."
+    },
+    cvs: {
+      emptyTitle: "Bạn chưa có CV nào",
+      emptyDesc: "Tạo hồ sơ CV có cấu trúc hoặc tải lên bản CV để hệ thống trích xuất năng lực và kích hoạt đối sánh AI.",
+      createCvCta: "Tạo CV Mới",
+      uploadCvCta: "Tải CV Lên",
+      emptyVersionsTitle: "Chưa có phiên bản CV nào",
+      emptyVersionsDesc: "Bản CV này chưa ghi nhận lịch sử phiên bản nào được lưu trữ.",
+      errorTitle: "Không thể tải danh sách CV",
+      errorDesc: "Đã xảy ra lỗi khi kết nối với thư viện CV cá nhân."
+    },
+    companies: {
+      emptyTitle: "Chưa có thông tin doanh nghiệp",
+      emptyDesc: "Hồ sơ doanh nghiệp tuyển dụng chưa được khởi tạo.",
+      errorTitle: "Không thể tải thông tin doanh nghiệp",
+      errorDesc: "Đã xảy ra lỗi khi tải hồ sơ doanh nghiệp."
+    },
+    match: {
+      insufficientData: "Chưa thể tính mức độ phù hợp",
+      notCalculated: "Chưa tính toán đối sánh",
+      processing: "Đang phân tích và đối sánh ngữ nghĩa...",
+      failed: "Tính toán đối sánh thất bại",
+      available: "Đã có kết quả đối sánh",
+      noMatchDataTitle: "Không tìm thấy dữ liệu đối sánh",
+      noMatchDataDesc: "Đơn ứng tuyển này chưa được tính toán đối sánh hoặc không tồn tại trong hệ thống."
+    },
+    github: {
+      notConnected: "Chưa liên kết tài khoản GitHub",
+      privateInaccessible: "Kho mã nguồn ở chế độ riêng tư hoặc không thể truy cập",
+      noPublicData: "Không tìm thấy repository công khai hoặc hoạt động gần đây",
+      apiError: "Lỗi kết nối dịch vụ GitHub API",
+      notApplicable: "Ngành nghề không yêu cầu mã nguồn (Không phạt điểm)"
+    }
   },
   common: {
     loading: "Đang tải dữ liệu...",
@@ -118,6 +306,20 @@ export const vi = {
     save: "Lưu thay đổi",
     retry: "Thử lại",
     notCalculated: "Chưa tính",
-    unavailable: "Không khả dụng"
+    unavailable: "Không khả dụng",
+    viewDetails: "Xem Chi Tiết",
+    applyNow: "Ứng Tuyển Nhanh",
+    status: "Trạng thái",
+    actions: "Thao tác",
+    back: "Quay lại",
+    saveDraft: "Lưu Bản Nháp",
+    publish: "Xuất Bản",
+    delete: "Xóa",
+    edit: "Chỉnh Sửa",
+    view: "Xem",
+    download: "Tải Xuống",
+    filter: "Bộ Lọc",
+    search: "Tìm Kiếm"
   }
 };
+

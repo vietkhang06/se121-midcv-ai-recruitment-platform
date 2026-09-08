@@ -21,7 +21,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [locale, setLocaleState] = useState<Locale>('vi');
 
   useEffect(() => {
-    const stored = localStorage.getItem('matchproof_lang') as Locale | null;
+    const stored = (localStorage.getItem('matchjd_lang') || localStorage.getItem('matchproof_lang')) as Locale | null;
     if (stored === 'en' || stored === 'vi') {
       setLocaleState(stored);
     }
@@ -29,7 +29,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale);
-    localStorage.setItem('matchproof_lang', newLocale);
+    localStorage.setItem('matchjd_lang', newLocale);
   };
 
   const toggleLocale = () => {

@@ -11,7 +11,7 @@ class ExtractedSkill(BaseModel):
     skill_name: str
     normalized_name: str
     years_exp: int = 0
-    section: str
+    section: str = "SKILLS"
 
 class ExtractedExperience(BaseModel):
     company_name: str
@@ -19,7 +19,7 @@ class ExtractedExperience(BaseModel):
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     is_current: bool = False
-    description: str
+    description: str = ""
     technologies: List[str] = Field(default_factory=list)
 
 class ExtractedEducation(BaseModel):
@@ -32,17 +32,23 @@ class ExtractedEducation(BaseModel):
 class ExtractedProject(BaseModel):
     name: str
     role: Optional[str] = None
-    description: str
+    description: str = ""
     tech_stack: List[str] = Field(default_factory=list)
 
 class ExtractedLanguage(BaseModel):
     language_name: str
     proficiency_level: str = "INTERMEDIATE"
 
+class ContactInfo(BaseModel):
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    linkedin_url: Optional[str] = None
+
 class CVExtractRequest(BaseModel):
     cv_id: str
     cv_version_id: str
-    file_type: str  # PDF or DOCX
+    candidate_id: Optional[str] = None
+    file_type: str = "PDF"  # PDF, DOCX, or TEXT
     raw_text: Optional[str] = None
     file_base64: Optional[str] = None
     correlation_id: Optional[str] = None
@@ -55,6 +61,9 @@ class CVExtractResponse(BaseModel):
     age: Optional[int] = None
     headline: Optional[str] = None
     bio: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    contact_info: Optional[ContactInfo] = None
     github_url: Optional[str] = None
     portfolio_url: Optional[str] = None
     skills: List[ExtractedSkill] = Field(default_factory=list)

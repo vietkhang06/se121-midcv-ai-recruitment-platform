@@ -6,6 +6,7 @@ import { Job, Company, Application } from '@/types';
 import { fetchRecruiterJobs, fetchRecruiterProfile, getAuthUser, fetchCandidateApplications } from '@/lib/api';
 import { CompanyVerificationBanner } from '@/components/recruiter/CompanyVerificationBanner';
 import { useLanguage } from '@/context/LanguageContext';
+import { EmptyState } from '@/components/common/EmptyState';
 import {
   Briefcase,
   Users,
@@ -109,7 +110,7 @@ export default function HRDashboardPage() {
               Chào mừng trở lại, {recruiterName}
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 font-light leading-relaxed">
-              Hệ sinh thái MatchProof đang đồng bộ các vị trí tuyển dụng với mô hình trích xuất thực thể và đối sánh vector chuẩn hóa.
+              Hệ sinh thái MatchJD đang đồng bộ các vị trí tuyển dụng với mô hình trích xuất thực thể và đối sánh vector chuẩn hóa.
             </p>
           </div>
 
@@ -255,15 +256,14 @@ export default function HRDashboardPage() {
                     </table>
                   </div>
                 ) : (
-                  <div className="py-10 text-center text-xs text-slate-500 dark:text-slate-400 space-y-2">
-                    <p>Chưa có bài tuyển dụng nào được tạo.</p>
-                    <Link
-                      href="/recruiter/jobs/new"
-                      className="inline-block px-4 py-2 rounded-lg text-xs font-semibold text-white bg-[#0C2B24] hover:bg-[#133E34]"
-                    >
-                      Tạo tin tuyển dụng đầu tiên
-                    </Link>
-                  </div>
+                  <EmptyState
+                    type="EMPTY"
+                    compact
+                    title={t('emptyStates.jobs.emptyTitle', "Chưa có bài tuyển dụng nào")}
+                    description={t('emptyStates.jobs.emptyDesc', "Hiện tại chưa có vị trí tuyển dụng nào trên hệ thống.")}
+                    primaryCtaText="Tạo tin tuyển dụng đầu tiên"
+                    primaryCtaHref="/recruiter/jobs/new"
+                  />
                 )}
               </div>
 
@@ -287,9 +287,12 @@ export default function HRDashboardPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
-                    Chưa có đơn ứng tuyển nào được ghi nhận.
-                  </div>
+                  <EmptyState
+                    type="EMPTY"
+                    compact
+                    title={t('emptyStates.applications.candidateEmptyTitle', "Chưa có đơn ứng tuyển nào")}
+                    description={t('emptyStates.applications.recruiterEmptyDesc', "Chưa có đơn ứng tuyển nào được ghi nhận.")}
+                  />
                 )}
               </div>
 

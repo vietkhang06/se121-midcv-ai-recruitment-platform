@@ -18,7 +18,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     setMounted(true);
-    const stored = localStorage.getItem('matchproof_theme') as Theme | null;
+    const stored = (localStorage.getItem('matchjd_theme') || localStorage.getItem('matchproof_theme')) as Theme | null;
     if (stored === 'light' || stored === 'dark') {
       setThemeState(stored);
       if (stored === 'dark') {
@@ -40,7 +40,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem('matchproof_theme', newTheme);
+    localStorage.setItem('matchjd_theme', newTheme);
     if (newTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {

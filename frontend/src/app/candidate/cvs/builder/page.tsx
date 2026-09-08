@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Industry, CV } from '@/types';
+import { Industry, CV, CVVersion } from '@/types';
 import { fetchCandidateCVs, saveCandidateCV } from '@/lib/api';
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
 import {
@@ -40,21 +40,38 @@ export default function CVBuilderPage() {
   const [newSkill, setNewSkill] = useState<string>('');
   const [aiSuggestions, setAiSuggestions] = useState<boolean>(true);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
+  const [existingCv, setExistingCv] = useState<CV | null>(null);
+  const [currentVersionNumber, setCurrentVersionNumber] = useState<number>(1);
 
   // Load existing CV if query parameter ?edit= is provided
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const editId = params.get('edit');
+      const versionParam = params.get('v');
       if (editId) {
         fetchCandidateCVs().then((cvs) => {
           const found = cvs.find((c) => c.id === editId);
           if (found) {
+            setExistingCv(found);
             setCvTitle(found.title);
-            const v1 = found.versions[0];
-            if (v1) {
-              const eSec = v1.sections.find((s) => s.sectionType === 'EXPERIENCE');
+            let targetVersion = found.versions?.[0];
+            if (versionParam) {
+              const matched = found.versions?.find((v) => v.versionNumber === Number(versionParam));
+              if (matched) targetVersion = matched;
+            }
+            if (targetVersion) {
+              setCurrentVersionNumber(targetVersion.versionNumber);
+              const eSec = targetVersion.sections.find((s) => s.sectionType === 'EXPERIENCE');
               if (eSec) setBulletPoints(eSec.content);
+              const sSec = targetVersion.sections.find((s) => s.sectionType === 'SKILLS');
+              if (sSec && sSec.content) {
+                const parsedSkills = sSec.content.split(',').map((s) => s.trim()).filter(Boolean);
+                if (parsedSkills.length > 0) setSkills(parsedSkills);
+              }
+            } else {
+              setCurrentVersionNumber(found.currentVersionNumber || 1);
             }
           }
         });
@@ -87,33 +104,44 @@ export default function CVBuilderPage() {
   };
 
   const handleSaveCV = async () => {
+    let nextVersion = 1;
+    let targetCvId = existingCv?.id || `cv-${Date.now()}`;
+    let previousVersions = existingCv?.versions ? [...existingCv.versions] : [];
+
+    if (existingCv) {
+      nextVersion = (existingCv.currentVersionNumber || previousVersions.length || 1) + 1;
+    }
+
+    const newVersion: CVVersion = {
+      id: `v-${Date.now()}`,
+      versionNumber: nextVersion,
+      title: `${cvTitle} (v${nextVersion}.0)`,
+      summaryText: bulletPoints,
+      sections: [
+        { id: `sec-exp-${Date.now()}`, sectionType: 'EXPERIENCE', title: 'Experience', content: bulletPoints },
+        { id: `sec-skill-${Date.now()}`, sectionType: 'SKILLS', title: 'Skills', content: skills.join(', ') },
+      ],
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+
     const cvToSave: CV = {
-      id: `cv-${Date.now()}`,
+      id: targetCvId,
       title: cvTitle,
-      targetIndustry: 'Technology',
+      targetIndustry: existingCv?.targetIndustry || 'Technology',
       targetRole: roleTitle,
       creationPath: 'BUILDER',
-      isDefault: true,
-      currentVersionNumber: 1,
+      isDefault: existingCv ? existingCv.isDefault : true,
+      currentVersionNumber: nextVersion,
       updatedAt: new Date().toISOString().split('T')[0],
-      versions: [
-        {
-          id: `v-${Date.now()}`,
-          versionNumber: 1,
-          title: cvTitle,
-          summaryText: bulletPoints,
-          sections: [
-            { id: 'sec-1', sectionType: 'EXPERIENCE', title: 'Experience', content: bulletPoints },
-            { id: 'sec-2', sectionType: 'SKILLS', title: 'Skills', content: skills.join(', ') },
-          ],
-          createdAt: new Date().toISOString().split('T')[0],
-        },
-      ],
+      versions: [newVersion, ...previousVersions.filter((v) => v.versionNumber !== nextVersion)],
     };
 
     await saveCandidateCV(cvToSave);
+    setExistingCv(cvToSave);
+    setCurrentVersionNumber(nextVersion);
+    setSuccessMessage(`Đã xuất bản phiên bản mới v${nextVersion}.0 thành công!`);
     setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
+    setTimeout(() => setSaveSuccess(false), 4000);
   };
 
   const handlePrint = () => {
@@ -121,7 +149,7 @@ export default function CVBuilderPage() {
   };
 
   return (
-    <div className="bg-[#F8FAF9] min-h-screen text-slate-800">
+    <div className="bg-[#F8FAF9] dark:bg-[#071410] min-h-screen text-slate-800 dark:text-slate-100 transition-colors">
       
       {/* Hidden SEO/Test Strings for 100% E2E Compatibility */}
       <div className="sr-only">
@@ -131,51 +159,79 @@ export default function CVBuilderPage() {
       </div>
 
       {/* 05 — Top Navigation Header (Figma Screen 05) */}
-      <div className="bg-white border-b border-[#E2E8F0] px-4 sm:px-8 py-3 flex items-center justify-between shadow-xs">
+      <div className="bg-white dark:bg-[#0E241E] border-b border-[#E2E8F0] dark:border-[#1B3D34] px-4 sm:px-8 py-3 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-4">
-          <Link href="/candidate/cvs" className="text-slate-500 hover:text-slate-800 transition">
+          <Link href="/candidate/cvs" className="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition">
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono uppercase text-slate-400">Template:</span>
+            <span className="text-xs font-mono uppercase text-slate-400 dark:text-slate-500">Template:</span>
             <div className="relative">
-              <select className="bg-[#F8FAF9] border border-slate-200 rounded-md px-3 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0C2B24]">
+              <select className="bg-[#F8FAF9] dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] rounded-md px-3 py-1 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500">
                 <option>Standard Technical (Default)</option>
                 <option>Systems & Distributed Architecture</option>
                 <option>Modern Executive Engineering</option>
               </select>
             </div>
           </div>
+
+          {/* Immutable Version Badge */}
+          <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-[#1B3D34]">
+            <span
+              id="cv-version-badge"
+              className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
+            >
+              v{currentVersionNumber}.0
+            </span>
+            {existingCv && (
+              <span className="hidden sm:inline text-[11px] text-slate-400 font-mono">
+                (Lưu tiếp theo: v{currentVersionNumber + 1}.0)
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
             <span>AI Suggestions:</span>
             <button
               type="button"
               onClick={() => setAiSuggestions(!aiSuggestions)}
-              className={`w-9 h-5 rounded-full p-0.5 transition ${aiSuggestions ? 'bg-[#0C2B24]' : 'bg-slate-300'}`}
+              className={`w-9 h-5 rounded-full p-0.5 transition ${aiSuggestions ? 'bg-[#0C2B24] dark:bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'}`}
             >
               <div className={`w-4 h-4 rounded-full bg-white transition transform ${aiSuggestions ? 'translate-x-4' : 'translate-x-0'}`} />
             </button>
           </div>
 
           <button
+            id="save-cv-btn"
             onClick={handleSaveCV}
-            className="px-3.5 py-1.5 rounded-md text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50 transition"
+            className="px-3.5 py-1.5 rounded-md text-xs font-semibold border border-slate-300 dark:border-[#1B3D34] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#133E34] transition flex items-center gap-1.5"
           >
-            {saveSuccess ? 'Saved!' : 'Save Profile'}
+            <Save className="w-3.5 h-3.5" />
+            <span>{saveSuccess ? 'Saved!' : 'Save Profile'}</span>
           </button>
 
           <button
             onClick={handlePrint}
-            className="px-4 py-1.5 rounded-md text-xs font-semibold text-white bg-[#0C2B24] hover:bg-[#133E34] transition flex items-center gap-1.5 shadow-xs"
+            className="px-4 py-1.5 rounded-md text-xs font-semibold text-white bg-[#0C2B24] dark:bg-emerald-600 hover:bg-[#133E34] dark:hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-xs"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export PDF</span>
           </button>
         </div>
       </div>
+
+      {/* Save Success Banner */}
+      {saveSuccess && (
+        <div id="save-success-banner" className="bg-emerald-50 dark:bg-emerald-950 border-b border-emerald-200 dark:border-emerald-800 px-4 sm:px-8 py-2.5 flex items-center justify-between text-xs text-emerald-900 dark:text-emerald-200 transition-all">
+          <div className="flex items-center gap-2 max-w-7xl mx-auto w-full">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="font-semibold">{successMessage || `Đã lưu phiên bản mới v${currentVersionNumber}.0 thành công!`}</span>
+            <span className="text-[11px] opacity-75 font-mono ml-auto">Bản lưu bất biến (Immutable Snapshot)</span>
+          </div>
+        </div>
+      )}
 
       {/* 05 — Main Studio Layout (Figma Screen 05: Left Form, Right Live A4 Sheet) */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -184,64 +240,64 @@ export default function CVBuilderPage() {
         <div className="lg:col-span-7 space-y-6">
           
           {/* Card 1: Resume Evidence Editor Progress */}
-          <div className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-xs space-y-3">
+          <div className="bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-6 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-sm text-slate-900">Resume Evidence Editor</h2>
-              <span className="text-xs font-semibold text-amber-700 font-mono">Completeness: 78%</span>
+              <h2 className="font-semibold text-sm text-slate-900 dark:text-white">Resume Evidence Editor</h2>
+              <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 font-mono">Completeness: 78%</span>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Complete profiles achieve up to 3x matching accuracy against automated engineering rubrics.
             </p>
-            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-              <div className="bg-amber-600 h-1.5 rounded-full" style={{ width: '78%' }} />
+            <div className="w-full bg-slate-100 dark:bg-[#071410] rounded-full h-1.5 overflow-hidden">
+              <div className="bg-amber-600 dark:bg-amber-500 h-1.5 rounded-full" style={{ width: '78%' }} />
             </div>
           </div>
 
           {/* Card 2: Section Work History & Project Commit Evidence */}
-          <div className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-xs space-y-4">
-            <div className="text-xs font-semibold uppercase tracking-wider text-slate-700">
+          <div className="bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-6 shadow-xs space-y-4">
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               Section: Work History & Project Commit Evidence
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-mono font-semibold uppercase text-slate-500">COMPANY NAME</label>
+                <label className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">COMPANY NAME</label>
                 <input
                   type="text"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  className="w-full bg-[#F8FAF9] border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#0C2B24]"
+                  className="w-full bg-[#F8FAF9] dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-mono font-semibold uppercase text-slate-500">ROLE TITLE</label>
+                <label className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">ROLE TITLE</label>
                 <input
                   type="text"
                   value={roleTitle}
                   onChange={(e) => setRoleTitle(e.target.value)}
-                  className="w-full bg-[#F8FAF9] border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#0C2B24]"
+                  className="w-full bg-[#F8FAF9] dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-mono font-semibold uppercase text-slate-500">TIMELINE DATES</label>
+              <label className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">TIMELINE DATES</label>
               <input
                 type="text"
                 value={timelineDates}
                 onChange={(e) => setTimelineDates(e.target.value)}
-                className="w-full bg-[#F8FAF9] border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#0C2B24]"
+                className="w-full bg-[#F8FAF9] dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-mono font-semibold uppercase text-slate-500">KEY CONTRIBUTION BULLET POINTS</label>
+              <label className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">KEY CONTRIBUTION BULLET POINTS</label>
               <textarea
                 rows={4}
                 value={bulletPoints}
                 onChange={(e) => setBulletPoints(e.target.value)}
-                className="w-full bg-[#F8FAF9] border border-slate-200 rounded-lg p-3 text-xs text-slate-900 focus:outline-none focus:border-[#0C2B24] leading-relaxed"
+                className="w-full bg-[#F8FAF9] dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] rounded-lg p-3 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 leading-relaxed"
               />
             </div>
 
@@ -250,18 +306,18 @@ export default function CVBuilderPage() {
               <button
                 type="button"
                 onClick={handleStrengthenBullet}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 transition"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800/40 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition"
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 <span>Strengthen this bullet point</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleAddMetric}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 transition"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800/40 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition"
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 <span>Add quantifiable metric (e.g. % performance increase)</span>
               </button>
             </div>
@@ -291,52 +347,52 @@ export default function CVBuilderPage() {
         <div className="lg:col-span-5 sticky top-24">
           <div
             id="printable-cv"
-            className="bg-white border border-slate-200 rounded-xl p-8 sm:p-10 shadow-lg space-y-6 text-slate-900 min-h-[680px]"
+            className="bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-xl p-8 sm:p-10 shadow-lg space-y-6 text-slate-900 dark:text-slate-100 min-h-[680px]"
           >
             {/* CV Header */}
-            <div className="border-b border-slate-200 pb-5 space-y-1">
-              <h1 className="text-2xl font-editorial font-bold text-slate-900 tracking-tight">
+            <div className="border-b border-slate-200 dark:border-[#1B3D34] pb-5 space-y-1">
+              <h1 className="text-2xl font-editorial font-bold text-slate-900 dark:text-white tracking-tight">
                 {fullName}
               </h1>
-              <div className="text-xs text-slate-600 font-mono">
+              <div className="text-xs text-slate-600 dark:text-slate-400 font-mono">
                 {location} • {email}
               </div>
             </div>
 
             {/* Professional Summary */}
             <div className="space-y-1.5">
-              <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
+              <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 PROFESSIONAL SUMMARY
               </div>
-              <p className="text-xs text-slate-700 leading-relaxed font-light">
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-light">
                 Systems engineer specializing in high-concurrency cloud environments and automated cluster scaling structures. Over 4 years deployment infrastructure development experience.
               </p>
             </div>
 
             {/* Professional Experience */}
             <div className="space-y-2">
-              <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
+              <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 PROFESSIONAL EXPERIENCE
               </div>
               <div className="space-y-1">
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-900">
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-900 dark:text-white">
                   <span>{companyName} — {roleTitle}</span>
-                  <span className="text-[10px] font-mono text-slate-500">{timelineDates}</span>
+                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{timelineDates}</span>
                 </div>
-                <p className="text-xs text-slate-600 leading-relaxed pl-3 border-l-2 border-slate-200">
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pl-3 border-l-2 border-slate-200 dark:border-[#1B3D34]">
                   {bulletPoints}
                 </p>
               </div>
             </div>
 
             {/* Technical Skills Map */}
-            <div className="space-y-2 pt-2 border-t border-slate-100">
-              <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1B3D34]">
+              <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 TECHNICAL SKILLS MAP
               </div>
               <div className="flex flex-wrap gap-1.5 text-[10px] font-mono">
                 {skills.map((s) => (
-                  <span key={s} className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                  <span key={s} className="px-2 py-0.5 rounded bg-slate-100 dark:bg-[#133E34] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-emerald-500/20">
                     {s}
                   </span>
                 ))}

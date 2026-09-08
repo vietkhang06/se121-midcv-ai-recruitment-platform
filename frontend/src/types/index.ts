@@ -137,6 +137,7 @@ export interface Application {
   appliedCvId: string;
   appliedCvTitle: string;
   appliedCvVersion: number;
+  candidateName?: string;
   status: 'SUBMITTED' | 'UNDER_REVIEW' | 'SHORTLISTED' | 'REJECTED';
   appliedDate: string;
   expectedSalary?: number;

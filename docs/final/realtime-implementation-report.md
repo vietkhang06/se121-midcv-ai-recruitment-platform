@@ -1,4 +1,4 @@
-# MatchProof — Realtime Architecture & Implementation Report
+# MatchJD — Realtime Architecture & Implementation Report
 **Asynchronous Event Streaming, Worker Telemetry & Fallback Polling**
 
 **Document Version**: 1.0.0  
@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary
 
-This report documents the design, evaluation, and implementation of realtime streaming and reactive status synchronization within MatchProof. Realtime capabilities are strategically focused on long-running AI inference flows (CV extraction, vector indexing, and candidate pipeline notifications) rather than arbitrarily applied to static catalog views.
+This report documents the design, evaluation, and implementation of realtime streaming and reactive status synchronization within MatchJD. Realtime capabilities are strategically focused on long-running AI inference flows (CV extraction, vector indexing, and candidate pipeline notifications) rather than arbitrarily applied to static catalog views.
 
 ---
 

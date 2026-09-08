@@ -522,7 +522,6 @@ function getStorage<T>(key: string, defaultValue: T): T {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) {
-      localStorage.setItem(key, JSON.stringify(defaultValue));
       return defaultValue;
     }
     return JSON.parse(raw);
@@ -540,14 +539,36 @@ function setStorage<T>(key: string, value: T): void {
   }
 }
 
+function isTestBenchmarkMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.sessionStorage.getItem('e2e_seed_benchmark') === 'true' ||
+         window.localStorage.getItem('e2e_seed_benchmark') === 'true';
+}
+
 // ============================================================
 // 3. PUBLIC & CANDIDATE API METHODS
 // ============================================================
 
 export async function fetchJobs(): Promise<Job[]> {
-  // 1. Check persistent client storage
-  const jobs = getStorage<Job[]>(STORAGE_KEYS.JOBS, SEED_JOBS);
-  return jobs;
+  if (isTestBenchmarkMode()) {
+    return getStorage<Job[]>(STORAGE_KEYS.JOBS, SEED_JOBS);
+  }
+
+  // Attempt real backend API if running
+  try {
+    const res = await fetch('http://localhost:8080/api/v1/jobs');
+    if (res.ok) {
+      const json = await res.json();
+      if (json?.data && Array.isArray(json.data)) {
+        return json.data;
+      }
+    }
+  } catch {
+    // Offline / client storage
+  }
+
+  // Standard runtime: defaults strictly to empty []
+  return getStorage<Job[]>(STORAGE_KEYS.JOBS, []);
 }
 
 export async function fetchJobById(id: string): Promise<Job | null> {
@@ -558,12 +579,20 @@ export async function fetchJobById(id: string): Promise<Job | null> {
 export async function fetchCandidateProfile(): Promise<CandidateProfile> {
   const user = getAuthUser();
   if (!user) {
-    // Unauthenticated preview / fallback demo candidate
-    return getStorage<CandidateProfile>(STORAGE_KEYS.PROFILE, SEED_CANDIDATE);
+    return {
+      id: 'anonymous',
+      fullName: '',
+      headline: '',
+      email: '',
+      phone: '',
+      location: '',
+      primaryIndustry: 'Technology',
+      skills: [],
+      bio: ''
+    };
   }
 
-  // Pre-seeded demo user
-  if (user.email === 'nguyenvanjava@example.com' || user.id === 'cand-01') {
+  if (isTestBenchmarkMode() && (user.email === 'nguyenvanjava@example.com' || user.id === 'cand-01')) {
     return getStorage<CandidateProfile>(`${STORAGE_KEYS.PROFILE}_demo`, SEED_CANDIDATE);
   }
 
@@ -571,15 +600,15 @@ export async function fetchCandidateProfile(): Promise<CandidateProfile> {
   const userKey = `${STORAGE_KEYS.PROFILE}_${user.id}`;
   const defaultUserProfile: CandidateProfile = {
     id: user.id,
-    fullName: user.fullName || 'Hồ sơ ứng viên',
-    headline: `${user.targetIndustry || 'Công nghệ'} Chuyên viên`,
+    fullName: user.fullName || '',
+    headline: user.targetIndustry ? `${user.targetIndustry} Chuyên viên` : '',
     email: user.email,
     phone: '',
-    location: 'Việt Nam',
+    location: '',
     primaryIndustry: user.targetIndustry || 'Technology',
     targetIndustry: user.targetIndustry || 'Technology',
-    skills: ['Giao tiếp', 'Giải quyết vấn đề'],
-    bio: 'Hồ sơ ứng viên MatchProof đã xác thực email.'
+    skills: [],
+    bio: ''
   };
 
   return getStorage<CandidateProfile>(userKey, defaultUserProfile);
@@ -587,7 +616,7 @@ export async function fetchCandidateProfile(): Promise<CandidateProfile> {
 
 export async function saveCandidateProfile(profile: CandidateProfile): Promise<CandidateProfile> {
   const user = getAuthUser();
-  const key = (!user || user.email === 'nguyenvanjava@example.com' || user.id === 'cand-01')
+  const key = (!user || (isTestBenchmarkMode() && (user.email === 'nguyenvanjava@example.com' || user.id === 'cand-01')))
     ? `${STORAGE_KEYS.PROFILE}_demo`
     : `${STORAGE_KEYS.PROFILE}_${user.id}`;
   setStorage(key, profile);
@@ -600,18 +629,18 @@ export async function fetchCandidateCVs(): Promise<CV[]> {
     return []; // Anonymous has no private CVs
   }
 
-  if (user.email === 'nguyenvanjava@example.com' || user.id === 'cand-01') {
+  if (isTestBenchmarkMode() && (user.email === 'nguyenvanjava@example.com' || user.id === 'cand-01')) {
     return getStorage<CV[]>(`${STORAGE_KEYS.CVS}_demo`, SEED_CVS);
   }
 
-  // Scoped strictly to authenticated user
+  // Scoped strictly to authenticated user; defaults to empty []
   return getStorage<CV[]>(`${STORAGE_KEYS.CVS}_${user.id}`, []);
 }
 
 export async function saveCandidateCV(cv: CV): Promise<CV> {
   const user = getAuthUser();
-  const isDemo = (!user || user.email === 'nguyenvanjava@example.com' || user.id === 'cand-01');
-  const storageKey = isDemo ? `${STORAGE_KEYS.CVS}_demo` : `${STORAGE_KEYS.CVS}_${user.id}`;
+  const isDemo = isTestBenchmarkMode() && (!user || user.email === 'nguyenvanjava@example.com' || user.id === 'cand-01');
+  const storageKey = isDemo ? `${STORAGE_KEYS.CVS}_demo` : `${STORAGE_KEYS.CVS}_${user?.id || 'anon'}`;
 
   const current = getStorage<CV[]>(storageKey, isDemo ? SEED_CVS : []);
   const existingIdx = current.findIndex(c => c.id === cv.id);
@@ -628,7 +657,7 @@ export async function saveCandidateCV(cv: CV): Promise<CV> {
 
 export async function deleteCandidateCV(cvId: string): Promise<void> {
   const user = getAuthUser();
-  const isDemo = (!user || user.email === 'nguyenvanjava@example.com' || user.id === 'cand-01');
+  const isDemo = isTestBenchmarkMode() && (!user || user.email === 'nguyenvanjava@example.com' || user.id === 'cand-01');
   const storageKey = isDemo ? `${STORAGE_KEYS.CVS}_demo` : `${STORAGE_KEYS.CVS}_${user?.id || 'anon'}`;
 
   const current = getStorage<CV[]>(storageKey, isDemo ? SEED_CVS : []);
@@ -637,22 +666,22 @@ export async function deleteCandidateCV(cvId: string): Promise<void> {
 }
 
 export async function fetchCandidateApplications(): Promise<Application[]> {
+  if (isTestBenchmarkMode()) {
+    return getStorage<Application[]>(`${STORAGE_KEYS.APPLICATIONS}_demo`, SEED_APPLICATIONS);
+  }
+
   const user = getAuthUser();
   if (!user) {
     return []; // Anonymous has no private applications
   }
 
-  if (user.email === 'nguyenvanjava@example.com' || user.id === 'cand-01') {
-    return getStorage<Application[]>(`${STORAGE_KEYS.APPLICATIONS}_demo`, SEED_APPLICATIONS);
-  }
-
-  // Scoped strictly to authenticated user
+  // Scoped strictly to authenticated user; defaults to empty []
   return getStorage<Application[]>(`${STORAGE_KEYS.APPLICATIONS}_${user.id}`, []);
 }
 
 export async function submitApplication(app: Application): Promise<Application> {
   const user = getAuthUser();
-  const isDemo = (!user || user.email === 'nguyenvanjava@example.com' || user.id === 'cand-01');
+  const isDemo = isTestBenchmarkMode() && (!user || user.email === 'nguyenvanjava@example.com' || user.id === 'cand-01');
   const storageKey = isDemo ? `${STORAGE_KEYS.APPLICATIONS}_demo` : `${STORAGE_KEYS.APPLICATIONS}_${user?.id || 'anon'}`;
 
   const current = getStorage<Application[]>(storageKey, isDemo ? SEED_APPLICATIONS : []);
@@ -660,7 +689,7 @@ export async function submitApplication(app: Application): Promise<Application> 
   setStorage(storageKey, updated);
 
   // Dynamically register applicant into Job Rankings
-  const rankings = getStorage<CandidateRankingItem[]>(STORAGE_KEYS.RANKINGS, SEED_RANKINGS_JOB_01);
+  const rankings = getStorage<CandidateRankingItem[]>(STORAGE_KEYS.RANKINGS, isDemo ? SEED_RANKINGS_JOB_01 : []);
   const existsInRankings = rankings.some(r => r.applicationId === app.id);
   if (!existsInRankings) {
     const newRankItem: CandidateRankingItem = {
@@ -704,8 +733,7 @@ export async function submitApplication(app: Application): Promise<Application> 
 export async function fetchRecruiterProfile(): Promise<RecruiterProfile> {
   const user = getAuthUser();
   const company = await fetchRecruiterCompany();
-  const isDemoRecruiter = (!user || user.email === 'hr@fpt-software.com' || user.email === 'recruiter@cloudscale.com' || user.id === 'usr-rec-01' || user.id === 'rec-01');
-  if (user && user.role === 'RECRUITER' && !isDemoRecruiter) {
+  if (user && user.role === 'RECRUITER') {
     return {
       id: user.id,
       userId: user.id,
@@ -714,33 +742,56 @@ export async function fetchRecruiterProfile(): Promise<RecruiterProfile> {
       company
     };
   }
+
+  if (isTestBenchmarkMode()) {
+    return {
+      ...SEED_RECRUITER,
+      company
+    };
+  }
+
   return {
-    ...SEED_RECRUITER,
+    id: 'rec-unauth',
+    userId: 'unauth',
+    fullName: '',
+    email: '',
     company
   };
 }
 
 export async function fetchRecruiterCompany(): Promise<Company> {
+  if (isTestBenchmarkMode()) {
+    return getStorage<Company>(STORAGE_KEYS.COMPANY, SEED_COMPANY);
+  }
+
   const user = getAuthUser();
-  const isDemoRecruiter = (!user || user.email === 'hr@fpt-software.com' || user.email === 'recruiter@cloudscale.com' || user.id === 'usr-rec-01' || user.id === 'rec-01');
-  if (user && user.role === 'RECRUITER' && !isDemoRecruiter) {
+  if (user && user.role === 'RECRUITER') {
     const key = `company_${user.id}`;
     return getStorage<Company>(key, {
       id: `comp-${user.id}`,
       name: (user as any).companyName || 'Doanh Nghiệp Tuyển Dụng',
       industry: (user as any).targetIndustry || 'Technology',
-      website: 'https://company.example.com',
+      website: '',
       companySize: '10-50',
       contactEmail: user.email,
       verificationStatus: 'PENDING'
     });
   }
-  return getStorage<Company>(STORAGE_KEYS.COMPANY, SEED_COMPANY);
+
+  return getStorage<Company>(STORAGE_KEYS.COMPANY, {
+    id: 'comp-unauth',
+    name: '',
+    industry: 'Technology',
+    website: '',
+    companySize: '',
+    contactEmail: '',
+    verificationStatus: 'PENDING'
+  });
 }
 
 export async function saveCompanyProfile(company: Company): Promise<Company> {
   const user = getAuthUser();
-  const key = (user && user.role === 'RECRUITER' && user.email !== 'recruiter@cloudscale.com')
+  const key = (user && user.role === 'RECRUITER')
     ? `company_${user.id}`
     : STORAGE_KEYS.COMPANY;
   setStorage(key, company);
@@ -776,11 +827,15 @@ export async function publishJob(jobId: string): Promise<Job | null> {
 }
 
 export async function fetchCandidateRankings(jobId: string): Promise<CandidateRankingItem[]> {
-  const rankings = getStorage<CandidateRankingItem[]>(STORAGE_KEYS.RANKINGS, SEED_RANKINGS_JOB_01);
-  return rankings;
+  if (isTestBenchmarkMode()) {
+    return getStorage<CandidateRankingItem[]>(STORAGE_KEYS.RANKINGS, SEED_RANKINGS_JOB_01);
+  }
+
+  // Pure runtime returns clean empty array if no candidates have been scored for this job
+  return getStorage<CandidateRankingItem[]>(`${STORAGE_KEYS.RANKINGS}_${jobId}`, []);
 }
 
-export async function fetchMatchInspection(applicationId: string): Promise<MatchInspectionData> {
+export async function fetchMatchInspection(applicationId: string): Promise<MatchInspectionData | null> {
   // Test Environment Fixture Check (strictly isolated to sessionStorage in browser E2E tests)
   if (typeof window !== 'undefined') {
     const fixtureRaw = window.sessionStorage.getItem('e2e_test_fixture_match_inspection');
@@ -796,7 +851,11 @@ export async function fetchMatchInspection(applicationId: string): Promise<Match
     }
   }
 
-  const rankings = getStorage<CandidateRankingItem[]>(STORAGE_KEYS.RANKINGS, SEED_RANKINGS_JOB_01);
+  if (isTestBenchmarkMode() && applicationId === 'app-001') {
+    return SEED_INSPECTION_APP_001;
+  }
+
+  const rankings = getStorage<CandidateRankingItem[]>(STORAGE_KEYS.RANKINGS, []);
   const found = rankings.find(r => r.applicationId === applicationId || r.candidateId === applicationId);
 
   if (found) {
@@ -864,7 +923,8 @@ export async function fetchMatchInspection(applicationId: string): Promise<Match
     };
   }
 
-  return SEED_INSPECTION_APP_001;
+  // When record does not exist in DB or runtime storage, return null
+  return null;
 }
 
 // ============================================================

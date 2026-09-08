@@ -1,4 +1,4 @@
-# MatchProof — User Guide Implementation Report
+# MatchJD — User Guide Implementation Report
 **Comprehensive Candidate & Recruiter Operational Manual at `/help`**
 
 **Document Version**: 1.0.0  
@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-The MatchProof platform now features a dedicated, production-grade **User Guide** accessible directly from the main navigation header at `/help`. The guide is fully bilingual (Vietnamese and English), responsive, supports Light and Dark modes, and provides exhaustive operational guidelines for both primary user personas: **Candidates** and **Recruiters**.
+The MatchJD platform now features a dedicated, production-grade **User Guide** accessible directly from the main navigation header at `/help`. The guide is fully bilingual (Vietnamese and English), responsive, supports Light and Dark modes, and provides exhaustive operational guidelines for both primary user personas: **Candidates** and **Recruiters**.
 
 ---
 
