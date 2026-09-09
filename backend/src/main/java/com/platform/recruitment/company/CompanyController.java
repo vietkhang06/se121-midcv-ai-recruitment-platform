@@ -23,6 +23,14 @@ public class CompanyController {
         return ResponseEntity.ok(ApiResponse.success(company));
     }
 
+    @PutMapping("/recruiter/company")
+    public ResponseEntity<ApiResponse<Company>> updateMyCompany(
+            @AuthenticationPrincipal User currentUser,
+            @RequestBody Company updateData) {
+        Company company = companyService.updateMyCompany(currentUser, updateData);
+        return ResponseEntity.ok(ApiResponse.success("Company profile updated successfully", company));
+    }
+
     @PutMapping("/admin/companies/{id}/verification")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Company>> updateVerificationStatus(

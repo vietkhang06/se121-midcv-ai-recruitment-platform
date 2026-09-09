@@ -28,6 +28,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.platform.recruitment.cv.CVVersion;
+import com.platform.recruitment.cv.CVVersionRepository;
+import com.platform.recruitment.matching.MatchingEngineService;
+import java.util.List;
+
 @ExtendWith(MockitoExtension.class)
 class ApplicationSnapshotImmutableTest {
 
@@ -45,6 +50,12 @@ class ApplicationSnapshotImmutableTest {
 
     @Mock
     private CVRepository cvRepository;
+
+    @Mock
+    private CVVersionRepository cvVersionRepository;
+
+    @Mock
+    private MatchingEngineService matchingEngineService;
 
     @InjectMocks
     private ApplicationService applicationService;
@@ -92,6 +103,10 @@ class ApplicationSnapshotImmutableTest {
                 .rawText("Skill: Java 17, Spring Boot. Experience: 2 Years.")
                 .build();
         originalCV.setId(UUID.randomUUID());
+
+        CVVersion version = CVVersion.builder().cv(originalCV).versionNumber(1).rawTextContent(originalCV.getRawText()).build();
+        version.setId(UUID.randomUUID());
+        lenient().when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(any())).thenReturn(List.of(version));
     }
 
     @Test

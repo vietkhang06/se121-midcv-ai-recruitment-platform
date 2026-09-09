@@ -108,6 +108,20 @@ public class JobService {
         return jobs.stream().map(this::mapToResponse).toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<JobResponse> getRecruiterJobs(User recruiterUser) {
+        RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
+
+        if (recruiter.getCompany() == null) {
+            return List.of();
+        }
+
+        return jobRepository.findByCompanyId(recruiter.getCompany().getId()).stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
     public JobResponse mapToResponse(Job job) {
         List<JobResponse.RequirementResponse> reqResponses = job.getRequirements().stream()
                 .map(req -> JobResponse.RequirementResponse.builder()

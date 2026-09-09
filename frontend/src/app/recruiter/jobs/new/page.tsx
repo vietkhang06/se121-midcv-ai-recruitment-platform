@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Industry, EmploymentType, Job, Company } from '@/types';
-import { fetchRecruiterProfile, saveJob, MOCK_COMPANY } from '@/lib/api';
+import { fetchRecruiterProfile, saveJob } from '@/lib/api';
 import {
   ArrowLeft,
   Sparkles,
@@ -16,18 +16,16 @@ import {
 } from 'lucide-react';
 
 export default function CreateJobPage() {
-  const [company, setCompany] = useState<Company>(MOCK_COMPANY);
+  const [company, setCompany] = useState<Company | null>(null);
 
-  const [title, setTitle] = useState<string>('Senior Systems Architect');
-  const [department, setDepartment] = useState<string>('Platform Engineering');
-  const [location, setLocation] = useState<string>('London, UK (Hybrid)');
+  const [title, setTitle] = useState<string>('');
+  const [department, setDepartment] = useState<string>('');
+  const [location, setLocation] = useState<string>('');
   const [employmentType, setEmploymentType] = useState<EmploymentType>('FULL_TIME');
-  const [salaryRange, setSalaryRange] = useState<string>('£110,000 - £130,000');
-  const [seniority, setSeniority] = useState<string>('Senior (5+ Years)');
+  const [salaryRange, setSalaryRange] = useState<string>('');
+  const [seniority, setSeniority] = useState<string>('');
   const [industry, setIndustry] = useState<Industry>('Technology');
-  const [responsibilities, setResponsibilities] = useState<string>(
-    '• Architect high-concurrency event routing microservices using Go and Rust. • Deliver resilient multi-region infrastructure orchestration through custom Terraform structures. • Audit Kubernetes production environments and maintain strict Service Mesh routing matrices.'
-  );
+  const [responsibilities, setResponsibilities] = useState<string>('');
 
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
   const [publishBlockedMessage, setPublishBlockedMessage] = useState<string | null>(null);

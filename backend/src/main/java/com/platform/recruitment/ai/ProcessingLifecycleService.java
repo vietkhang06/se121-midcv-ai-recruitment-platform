@@ -13,6 +13,7 @@ import com.platform.recruitment.github.*;
 import com.platform.recruitment.job.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +38,12 @@ public class ProcessingLifecycleService {
     private final GitHubProfileRepository gitHubProfileRepository;
     private final GitHubRepositoryRepository gitHubRepositoryRepository;
     private final GitHubAssessmentRepository gitHubAssessmentRepository;
+
+    @Autowired(required = false)
+    private GitHubRepositoryLanguageRepository gitHubRepositoryLanguageRepository;
+
+    @Autowired(required = false)
+    private GitHubRepositoryTopicRepository gitHubRepositoryTopicRepository;
 
     @Transactional
     public void processJobDescription(UUID jobId) {
@@ -143,7 +150,13 @@ public class ProcessingLifecycleService {
         profile.setStatus(statusStr);
         profile.setActivitySignal(signal);
         profile.setPublicReposCount(result.get("public_repos_count") != null ? ((Number) result.get("public_repos_count")).intValue() : 0);
+        if (result.get("latest_activity_at") != null) {
+            try {
+                profile.setLatestActivityAt(ZonedDateTime.parse((String) result.get("latest_activity_at")));
+            } catch (Exception ignored) {}
+        }
         profile.setCalculatedAt(ZonedDateTime.now());
+        profile.setSyncedAt(ZonedDateTime.now());
         GitHubProfile savedProfile = gitHubProfileRepository.save(profile);
 
         // Persist GitHub Assessment
@@ -155,7 +168,7 @@ public class ProcessingLifecycleService {
         assessment.setOverallSupportingRating((String) result.getOrDefault("overall_supporting_rating", "UNAVAILABLE"));
         gitHubAssessmentRepository.save(assessment);
 
-        // Persist Observable Public Repositories
+        // Persist Observable Public Repositories, Languages, and Topics
         if (result.get("repositories") instanceof List<?> repoList && !repoList.isEmpty()) {
             List<GitHubRepository> existingRepos = gitHubRepositoryRepository.findByGithubProfileId(savedProfile.getId());
             if (!existingRepos.isEmpty()) {
@@ -190,7 +203,39 @@ public class ProcessingLifecycleService {
                             .isArchived(archived)
                             .updatedAtGithub(updatedAt)
                             .build();
-                    gitHubRepositoryRepository.save(repoEntity);
+                    GitHubRepository savedRepo = gitHubRepositoryRepository.save(repoEntity);
+
+                    // Persist exact Language distribution by bytes
+                    if (gitHubRepositoryLanguageRepository != null && repoMap.get("languages") instanceof List<?> langList) {
+                        for (Object langObj : langList) {
+                            if (langObj instanceof Map<?, ?> langMap) {
+                                String lname = (String) langMap.get("language_name");
+                                long bytesCnt = langMap.get("bytes_count") != null ? ((Number) langMap.get("bytes_count")).longValue() : 0L;
+                                BigDecimal ratio = langMap.get("percentage_ratio") != null ? BigDecimal.valueOf(((Number) langMap.get("percentage_ratio")).doubleValue()) : BigDecimal.ZERO;
+
+                                GitHubRepositoryLanguage repoLang = GitHubRepositoryLanguage.builder()
+                                        .repository(savedRepo)
+                                        .languageName(lname != null ? lname : "Other")
+                                        .bytesCount(bytesCnt)
+                                        .percentageRatio(ratio)
+                                        .build();
+                                gitHubRepositoryLanguageRepository.save(repoLang);
+                            }
+                        }
+                    }
+
+                    // Persist Topics
+                    if (gitHubRepositoryTopicRepository != null && repoMap.get("topics") instanceof List<?> topicList) {
+                        for (Object topicObj : topicList) {
+                            if (topicObj instanceof String topicStr && !topicStr.isBlank()) {
+                                GitHubRepositoryTopic topicEntity = GitHubRepositoryTopic.builder()
+                                        .repository(savedRepo)
+                                        .topicName(topicStr.trim())
+                                        .build();
+                                gitHubRepositoryTopicRepository.save(topicEntity);
+                            }
+                        }
+                    }
                 }
             }
         }

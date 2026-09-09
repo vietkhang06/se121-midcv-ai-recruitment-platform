@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Application, CV } from '@/types';
-import { fetchCandidateApplications, saveCandidateCV } from '@/lib/api';
+import { Application, CV, MatchInspectionData } from '@/types';
+import { fetchCandidateApplications, saveCandidateCV, fetchMatchInspection } from '@/lib/api';
 import { CVUploadModal } from '@/components/cv/CVUploadModal';
 import { EmptyState } from '@/components/common/EmptyState';
 import { useLanguage } from '@/context/LanguageContext';
@@ -29,13 +29,27 @@ import {
 export default function ApplicationHistoryPage() {
   const { t } = useLanguage();
   const [applications, setApplications] = useState<Application[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState<boolean>(false);
   const [expandedAppId, setExpandedAppId] = useState<string | null>(null);
+  const [inspections, setInspections] = useState<Record<string, MatchInspectionData | null>>({});
+
+  const loadApplications = () => {
+    setIsLoading(true);
+    fetchCandidateApplications()
+      .then((apps) => {
+        setApplications(apps || []);
+        setFetchError(null);
+      })
+      .catch((err) => {
+        setFetchError(err.message || 'Không thể tải danh sách đơn ứng tuyển.');
+      })
+      .finally(() => setIsLoading(false));
+  };
 
   useEffect(() => {
-    fetchCandidateApplications().then((apps) => {
-      setApplications(apps || []);
-    });
+    loadApplications();
   }, []);
 
   const handleUploadSuccess = (newCv: CV) => {
@@ -43,8 +57,18 @@ export default function ApplicationHistoryPage() {
     setIsUploadOpen(false);
   };
 
-  const toggleExpand = (id: string) => {
-    setExpandedAppId(prev => (prev === id ? null : id));
+  const toggleExpand = async (id: string) => {
+    const nextId = expandedAppId === id ? null : id;
+    setExpandedAppId(nextId);
+    if (nextId && inspections[nextId] === undefined) {
+      try {
+        const data = await fetchMatchInspection(nextId);
+        setInspections(prev => ({ ...prev, [nextId]: data }));
+      } catch (err) {
+        console.error('Failed to load match inspection:', err);
+        setInspections(prev => ({ ...prev, [nextId]: null }));
+      }
+    }
   };
 
   return (
@@ -75,8 +99,22 @@ export default function ApplicationHistoryPage() {
           </button>
         </div>
 
-        {/* Applications List */}
-        {applications.length > 0 ? (
+        {/* Applications List, Loading, Error or Genuine Empty State */}
+        {isLoading ? (
+          <EmptyState
+            type="LOADING"
+            title={t('common.loading', 'Đang tải danh sách đơn ứng tuyển...')}
+            description="Hệ thống đang kết nối dữ liệu đơn nộp và phân tích đối sánh..."
+          />
+        ) : fetchError ? (
+          <EmptyState
+            type="ERROR"
+            title="Không thể tải lịch sử ứng tuyển"
+            description={fetchError}
+            primaryCtaText={t('common.retry', 'Thử lại')}
+            onPrimaryCtaClick={loadApplications}
+          />
+        ) : applications.length > 0 ? (
           <div className="space-y-4">
             {applications.map((app) => {
               const isExpanded = expandedAppId === app.id;
@@ -173,37 +211,47 @@ export default function ApplicationHistoryPage() {
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] space-y-1">
-                          <span className="text-[10px] font-mono uppercase text-slate-400">ĐIỂM ĐỐI SÁNH TỔNG THỂ</span>
-                          <div className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">
-                            91.2%
-                          </div>
-                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium block">
-                            Đạt ngưỡng tiến cử trực tiếp
-                          </span>
-                        </div>
+                      {(() => {
+                        const insp = inspections[app.id];
+                        const overall = insp ? `${Number(insp.overallScore).toFixed(1)}%` : '---';
+                        const core = insp ? `${Number(insp.coreScore).toFixed(1)}%` : '---';
+                        const gh = insp?.githubScore != null ? `${Number(insp.githubScore).toFixed(1)}%` : (insp ? 'N/A' : '---');
+                        const isHigh = insp && Number(insp.overallScore) >= 80;
 
-                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] space-y-1">
-                          <span className="text-[10px] font-mono uppercase text-slate-400">TRỌNG SỐ CORE JD-CV</span>
-                          <div className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">
-                            91.5%
-                          </div>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
-                            Trùng khớp kỹ năng bắt buộc
-                          </span>
-                        </div>
+                        return (
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] space-y-1">
+                              <span className="text-[10px] font-mono uppercase text-slate-400">ĐIỂM ĐỐI SÁNH TỔNG THỂ</span>
+                              <div className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">
+                                {overall}
+                              </div>
+                              <span className={`text-[10px] font-medium block ${isHigh ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'}`}>
+                                {insp ? (isHigh ? 'Đạt ngưỡng tiến cử trực tiếp' : 'Đang trong diện xem xét') : 'Đang tính toán điểm...'}
+                              </span>
+                            </div>
 
-                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] space-y-1">
-                          <span className="text-[10px] font-mono uppercase text-slate-400">TÍN HIỆU GITHUB (PHỤ TRỢ)</span>
-                          <div className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">
-                            89.5%
+                            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] space-y-1">
+                              <span className="text-[10px] font-mono uppercase text-slate-400">TRỌNG SỐ CORE JD-CV</span>
+                              <div className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">
+                                {core}
+                              </div>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                                {insp ? `Khớp ${insp.requiredSkillsStatus?.filter(s => s.status === 'MATCH').length || 0}/${insp.requiredSkillsStatus?.length || 0} kỹ năng bắt buộc` : 'Phân tích tiêu chí'}
+                              </span>
+                            </div>
+
+                            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] space-y-1">
+                              <span className="text-[10px] font-mono uppercase text-slate-400">TÍN HIỆU GITHUB (PHỤ TRỢ)</span>
+                              <div className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">
+                                {gh}
+                              </div>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                                {insp?.githubScoreActive ? 'Tín hiệu bổ trợ (15% trọng số)' : 'Không áp dụng (Zero Penalty)'}
+                              </span>
+                            </div>
                           </div>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
-                            Tín hiệu bổ trợ (Zero Penalty)
-                          </span>
-                        </div>
-                      </div>
+                        );
+                      })()}
 
                       <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-[#071410] p-3 rounded-xl border border-slate-200 dark:border-[#1B3D34] leading-relaxed">
                         <strong>Lưu ý bảo mật & minh bạch:</strong> Snapshot CV phiên bản v{app.appliedCvVersion}.0 đã được cố định tại thời điểm nộp đơn. Bất kỳ chỉnh sửa nào trong tương lai đối với hồ sơ gốc của bạn sẽ không làm thay đổi bản lưu hồ sơ này mà Nhà tuyển dụng đang xem xét.

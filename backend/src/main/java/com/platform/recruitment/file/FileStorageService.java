@@ -30,19 +30,43 @@ public class FileStorageService {
     }
 
     public FileMetadata storeFile(MultipartFile file, UUID candidateId) {
-        // Validate MIME type
-        String contentType = file.getContentType();
-        if (contentType == null || (!contentType.equals("application/pdf") && 
-            !contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))) {
-            throw new CustomException(ErrorCode.INVALID_FILE, "Only PDF and DOCX files are allowed");
+        if (file == null || file.isEmpty() || file.getSize() == 0) {
+            throw new CustomException(ErrorCode.INVALID_FILE, "FILE_EMPTY: Uploaded file is empty (0 bytes)");
         }
 
         // Validate File Size <= 10MB
         if (file.getSize() > 10 * 1024 * 1024) {
-            throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED, "File size exceeds maximum limit of 10MB");
+            throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED, "FILE_TOO_LARGE: File size exceeds maximum limit of 10MB");
         }
 
         String originalFileName = file.getOriginalFilename();
+        if (originalFileName == null || (!originalFileName.toLowerCase().endsWith(".pdf") && !originalFileName.toLowerCase().endsWith(".docx"))) {
+            throw new CustomException(ErrorCode.INVALID_FILE, "UNSUPPORTED_FILE_TYPE: Only .pdf and .docx file formats are supported");
+        }
+
+        // Validate Magic Bytes
+        try {
+            byte[] header = new byte[5];
+            int read = file.getInputStream().read(header);
+            if (read >= 4) {
+                if (originalFileName.toLowerCase().endsWith(".pdf")) {
+                    if (header[0] != 0x25 || header[1] != 0x50 || header[2] != 0x44 || header[3] != 0x46) {
+                        throw new CustomException(ErrorCode.INVALID_FILE, "UNSUPPORTED_FILE_TYPE: File declared as PDF does not have valid %PDF header");
+                    }
+                } else if (originalFileName.toLowerCase().endsWith(".docx")) {
+                    if (header[0] != 0x50 || header[1] != 0x4B || header[2] != 0x03 || header[3] != 0x04) {
+                        throw new CustomException(ErrorCode.INVALID_FILE, "UNSUPPORTED_FILE_TYPE: File declared as DOCX does not have valid PK zip header");
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to inspect file header: " + e.getMessage());
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || contentType.isBlank()) {
+            contentType = originalFileName.toLowerCase().endsWith(".pdf") ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        }
         String fileExtension = "";
         if (originalFileName != null && originalFileName.contains(".")) {
             fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));

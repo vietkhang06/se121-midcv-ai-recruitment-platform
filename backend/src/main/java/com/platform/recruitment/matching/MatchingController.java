@@ -32,4 +32,10 @@ public class MatchingController {
         List<MatchResult> ranked = candidateRankingService.getRankedCandidatesForJob(jobId, minScore);
         return ResponseEntity.ok(ApiResponse.success("Candidate rankings retrieved successfully", ranked));
     }
+
+    @GetMapping("/applications/{id}/inspection")
+    public ResponseEntity<ApiResponse<MatchInspectionResponse>> getMatchInspection(@PathVariable UUID id) {
+        MatchInspectionResponse response = matchingEngineService.getMatchInspection(id);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }

@@ -105,6 +105,7 @@ C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\j
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\matching\MatchFactorRepository.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\matching\MatchingController.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\matching\MatchingEngineService.java
+C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\matching\MatchInspectionResponse.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\matching\MatchResult.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\matching\MatchResultRepository.java
 C:\Users\Khang\OneDrive\Desktop\SE121\ai-recruitment-platform\backend\src\main\java\com\platform\recruitment\matching\PreferredSkillMatcher.java

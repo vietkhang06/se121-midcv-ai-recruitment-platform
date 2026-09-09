@@ -19,6 +19,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.platform.recruitment.cv.CVVersion;
+import com.platform.recruitment.cv.CVVersionRepository;
+import com.platform.recruitment.matching.MatchingEngineService;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -43,6 +47,12 @@ public class ApplicationDuplicateProtectionTest {
 
     @Mock
     private CVRepository cvRepository;
+
+    @Mock
+    private CVVersionRepository cvVersionRepository;
+
+    @Mock
+    private MatchingEngineService matchingEngineService;
 
     @InjectMocks
     private ApplicationService applicationService;
@@ -80,6 +90,10 @@ public class ApplicationDuplicateProtectionTest {
         request1 = new SubmitApplicationRequest();
         request1.setJobId(job1Id);
         request1.setCvId(cvId);
+
+        CVVersion version = CVVersion.builder().cv(cv).versionNumber(1).build();
+        version.setId(UUID.randomUUID());
+        lenient().when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(any())).thenReturn(List.of(version));
     }
 
     @Test

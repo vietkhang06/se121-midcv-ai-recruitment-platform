@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Job, Company, Application } from '@/types';
-import { fetchRecruiterJobs, fetchRecruiterProfile, getAuthUser, fetchCandidateApplications } from '@/lib/api';
+import { fetchRecruiterJobs, fetchRecruiterProfile, getAuthUser, fetchJobApplications } from '@/lib/api';
 import { CompanyVerificationBanner } from '@/components/recruiter/CompanyVerificationBanner';
 import { useLanguage } from '@/context/LanguageContext';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -29,13 +29,39 @@ export default function HRDashboardPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'console' | 'analytics'>('console');
   const user = getAuthUser();
 
+  const loadDashboardData = () => {
+    setIsLoading(true);
+    setFetchError(null);
+    Promise.all([
+      fetchRecruiterJobs(),
+      fetchRecruiterProfile().catch(() => null),
+    ])
+      .then(async ([recJobs, profile]) => {
+        setJobs(recJobs);
+        if (profile?.company) setCompany(profile.company);
+
+        if (recJobs.length > 0) {
+          const appLists = await Promise.all(
+            recJobs.map((j) => fetchJobApplications(j.id).catch(() => []))
+          );
+          setApplications(appLists.flat());
+        } else {
+          setApplications([]);
+        }
+      })
+      .catch((err) => {
+        setFetchError(err.message || 'Lỗi khi tải dữ liệu nhà tuyển dụng.');
+      })
+      .finally(() => setIsLoading(false));
+  };
+
   useEffect(() => {
-    fetchRecruiterJobs().then(setJobs);
-    fetchRecruiterProfile().then((p) => setCompany(p.company));
-    fetchCandidateApplications().then(setApplications);
+    loadDashboardData();
   }, []);
 
   const publishedJobs = jobs.filter((j) => j.status === 'PUBLISHED');
@@ -132,7 +158,21 @@ export default function HRDashboardPage() {
           </div>
         </div>
 
-        {activeTab === 'console' ? (
+        {isLoading ? (
+          <EmptyState
+            type="LOADING"
+            title="Đang tải dữ liệu tuyển dụng..."
+            description="Hệ thống đang kết nối cơ sở dữ liệu doanh nghiệp và trích xuất số liệu..."
+          />
+        ) : fetchError ? (
+          <EmptyState
+            type="ERROR"
+            title="Không thể tải dữ liệu tuyển dụng"
+            description={fetchError}
+            primaryCtaText="Thử lại"
+            onPrimaryCtaClick={loadDashboardData}
+          />
+        ) : activeTab === 'console' ? (
           <>
             {/* 4 KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">

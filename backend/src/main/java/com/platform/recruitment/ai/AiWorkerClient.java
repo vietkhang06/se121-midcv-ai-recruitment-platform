@@ -47,6 +47,29 @@ public class AiWorkerClient {
         }
     }
 
+    public Map<String, Object> extractDocument(byte[] fileBytes, String fileName, String fileType) {
+        String correlationId = UUID.randomUUID().toString();
+        String fileBase64 = java.util.Base64.getEncoder().encodeToString(fileBytes);
+        Map<String, Object> body = Map.of(
+                "file_base64", fileBase64,
+                "file_name", fileName != null ? fileName : "uploaded_document",
+                "file_type", fileType != null ? fileType : "PDF",
+                "correlation_id", correlationId
+        );
+
+        try {
+            return restClient.post()
+                    .uri("/extract-document")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (Exception ex) {
+            log.error("Failed to call AI Worker /extract-document: {}", ex.getMessage());
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "AI Worker extract-document failed: " + ex.getMessage());
+        }
+    }
+
     public Map<String, Object> extractCv(UUID cvId, UUID cvVersionId, String fileType, String rawText) {
         String correlationId = UUID.randomUUID().toString();
         Map<String, Object> body = Map.of(

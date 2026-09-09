@@ -3,7 +3,7 @@
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { Job, Application } from '@/types';
-import { fetchJobById, fetchCandidateApplications } from '@/lib/api';
+import { fetchJobById, fetchJobApplications } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
 import {
   ArrowLeft,
@@ -23,16 +23,52 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
   const { t } = useLanguage();
   const [job, setJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const loadData = () => {
+    setIsLoading(true);
+    setFetchError(null);
+    Promise.all([
+      fetchJobById(resolvedParams.id),
+      fetchJobApplications(resolvedParams.id),
+    ])
+      .then(([j, apps]) => {
+        setJob(j);
+        setApplications(apps);
+      })
+      .catch((err) => {
+        setFetchError(err.message || 'Không thể tải dữ liệu tuyển dụng.');
+      })
+      .finally(() => setIsLoading(false));
+  };
 
   useEffect(() => {
-    fetchJobById(resolvedParams.id).then(setJob);
-    fetchCandidateApplications().then(setApplications);
+    loadData();
   }, [resolvedParams.id]);
 
-  if (!job) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] p-12 text-center text-slate-500">
-        Loading pipeline telemetry...
+      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] p-12 text-center text-slate-500 flex items-center justify-center">
+        <EmptyState
+          type="LOADING"
+          title="Đang tải pipeline ứng viên..."
+          description="Hệ thống đang đồng bộ danh sách đơn ứng tuyển..."
+        />
+      </div>
+    );
+  }
+
+  if (fetchError || !job) {
+    return (
+      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] p-12 text-center text-slate-500 flex items-center justify-center">
+        <EmptyState
+          type="ERROR"
+          title="Không thể tải pipeline ứng viên"
+          description={fetchError || 'Không tìm thấy vị trí tuyển dụng.'}
+          primaryCtaText="Thử lại"
+          onPrimaryCtaClick={loadData}
+        />
       </div>
     );
   }
@@ -134,7 +170,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                         <div className="flex items-center justify-between">
                           <div>
                             <span className="font-semibold text-xs text-slate-900 dark:text-white block">
-                              {app.candidateName || app.candidateProfile?.fullName || 'Nguyễn Văn Java'}
+                              {app.candidateName || app.candidateProfile?.fullName || 'Ứng viên'}
                             </span>
                             <span className="text-[11px] text-slate-500 dark:text-slate-400">
                               {app.appliedCvTitle || 'Ứng viên'}

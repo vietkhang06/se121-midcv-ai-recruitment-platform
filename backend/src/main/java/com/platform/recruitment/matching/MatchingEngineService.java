@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,6 +37,11 @@ public class MatchingEngineService {
     private final CVRepository cvRepository;
     private final MatchResultRepository matchResultRepository;
     private final MatchFactorRepository matchFactorRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private EvidenceRepository evidenceRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.platform.recruitment.github.GitHubProfileRepository gitHubProfileRepository;
 
     private final RequiredSkillMatcher requiredSkillMatcher;
     private final PreferredSkillMatcher preferredSkillMatcher;
@@ -197,15 +203,169 @@ public class MatchingEngineService {
         saveMatchFactor(savedResult, "EDUCATION", eduScore, BigDecimal.valueOf(0.10));
         saveMatchFactor(savedResult, "PROJECT", projScore, BigDecimal.valueOf(0.10));
         saveMatchFactor(savedResult, "SEMANTIC", semanticScore, BigDecimal.valueOf(0.15));
+        if (scoreGithub != null && weightGithub.compareTo(BigDecimal.ZERO) > 0) {
+            saveMatchFactor(savedResult, "GITHUB_SUPPORTING", scoreGithub, weightGithub);
+        }
+
+        // 7. Save Grounded Evidences into PostgreSQL evidences table
+        if (evidenceRepository != null) {
+            for (JobRequirement req : allReqs) {
+                if (skillNormalizer.matchesSkill(req.getSkillName(), cvRawText)) {
+                    Evidence skillEvidence = Evidence.builder()
+                            .matchResult(savedResult)
+                            .sourceType("CV")
+                            .section("SKILLS")
+                            .snippet(String.format("Kỹ năng '%s' (%s) được xác thực trong hồ sơ CV ứng viên.", req.getSkillName(), req.getRequirementType()))
+                            .normalizedValue(BigDecimal.valueOf(100.00))
+                            .validationStatus("VERIFIED")
+                            .build();
+                    evidenceRepository.save(skillEvidence);
+                }
+            }
+            if (expScore.compareTo(BigDecimal.ZERO) > 0) {
+                Evidence expEvidence = Evidence.builder()
+                        .matchResult(savedResult)
+                        .sourceType("CV")
+                        .section("EXPERIENCE")
+                        .snippet(String.format("Kinh nghiệm làm việc được ghi nhận trong CV với mức đánh giá %s%% phù hợp ngành %s.", expScore, job.getIndustry()))
+                        .normalizedValue(expScore)
+                        .validationStatus("VERIFIED")
+                        .build();
+                evidenceRepository.save(expEvidence);
+            }
+            if (scoreGithub != null && weightGithub.compareTo(BigDecimal.ZERO) > 0) {
+                List<String> relevantRepos = gitHubScoringService.findRelevantRepositories(candidateId, job.getDescription());
+                for (String rName : relevantRepos) {
+                    Evidence ghEvidence = Evidence.builder()
+                            .matchResult(savedResult)
+                            .sourceType("GITHUB")
+                            .section("REPOSITORIES")
+                            .snippet(String.format("Kho lưu trữ mã nguồn '%s' được ghi nhận trong hồ sơ GitHub công khai của ứng viên, phù hợp yêu cầu kỹ thuật vị trí %s.", rName, job.getTitle()))
+                            .normalizedValue(scoreGithub)
+                            .validationStatus("VERIFIED")
+                            .build();
+                    evidenceRepository.save(ghEvidence);
+                }
+            }
+        }
 
         log.info("Persisted MatchResult ID: {} with ReqMissing: {}, S_core: {}, S_github: {}, S_overall: {}", savedResult.getId(), reqMissing, scoreCore, scoreGithub, scoreOverall);
         return savedResult;
     }
 
+    @Transactional
+    public MatchInspectionResponse getMatchInspection(UUID applicationId) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Application", "id", applicationId));
+
+        UUID jobId = application.getJob().getId();
+        UUID candidateId = application.getCandidate().getId();
+
+        MatchResult result = matchResultRepository.findByApplicationId(applicationId)
+                .orElseGet(() -> calculateAndPersistMatchResult(jobId, candidateId));
+
+        Job job = application.getJob();
+        CandidateProfile candidate = application.getCandidate();
+
+        List<JobRequirement> allReqs = jobRequirementRepository.findByJobId(jobId);
+
+        String cvRawText = "";
+        if (application.getAppliedCv() != null && application.getAppliedCv().getRawText() != null) {
+            cvRawText = application.getAppliedCv().getRawText();
+        } else {
+            List<CV> cvs = cvRepository.findByCandidateId(candidateId);
+            if (!cvs.isEmpty() && cvs.get(0).getRawText() != null) {
+                cvRawText = cvs.get(0).getRawText();
+            }
+        }
+
+        List<MatchInspectionResponse.SkillItem> reqSkillItems = new ArrayList<>();
+        List<MatchInspectionResponse.SkillItem> prefSkillItems = new ArrayList<>();
+
+        for (JobRequirement req : allReqs) {
+            boolean matched = skillNormalizer.matchesSkill(req.getSkillName(), cvRawText);
+            MatchInspectionResponse.SkillItem item = MatchInspectionResponse.SkillItem.builder()
+                    .skillName(req.getSkillName())
+                    .requirementType(req.getRequirementType().name())
+                    .status(matched ? "MATCH" : "MISSING")
+                    .evidenceText(matched ? "Kỹ năng được ghi nhận trong hồ sơ CV ứng viên." : "Không tìm thấy minh chứng trực tiếp trong CV.")
+                    .build();
+            if (req.getRequirementType() == RequirementType.REQUIRED) {
+                reqSkillItems.add(item);
+            } else {
+                prefSkillItems.add(item);
+            }
+        }
+
+        List<MatchFactor> factors = matchFactorRepository.findByMatchResultId(result.getId());
+        List<MatchInspectionResponse.FactorItem> factorItems = new ArrayList<>();
+        for (MatchFactor f : factors) {
+            String status = "MODERATE";
+            if (f.getScore() != null) {
+                if (f.getScore().compareTo(BigDecimal.valueOf(80)) >= 0) status = "HIGH";
+                else if (f.getScore().compareTo(BigDecimal.valueOf(50)) < 0) status = "LOW";
+            }
+            factorItems.add(MatchInspectionResponse.FactorItem.builder()
+                    .factorName(f.getFactorType())
+                    .score(f.getScore())
+                    .status(status)
+                    .explanation("Đánh giá thành phần " + f.getFactorType() + " với trọng số " + f.getWeight())
+                    .evidence(f.getEvidenceReference())
+                    .build());
+        }
+
+        // GitHub Assessment
+        MatchInspectionResponse.GitHubAssessmentInfo ghInfo;
+        Optional<com.platform.recruitment.github.GitHubProfile> ghProfileOpt = gitHubProfileRepository.findByCandidateId(candidateId);
+        if (ghProfileOpt.isPresent() && Boolean.TRUE.equals(result.getIsGithubActive()) && result.getGithubScore() != null) {
+            com.platform.recruitment.github.GitHubProfile gh = ghProfileOpt.get();
+            ghInfo = MatchInspectionResponse.GitHubAssessmentInfo.builder()
+                    .connected(true)
+                    .status("SYNCED")
+                    .username(gh.getUsername())
+                    .publicRepoCount(gh.getPublicReposCount())
+                    .activitySignal(gh.getActivitySignal() != null ? gh.getActivitySignal().name() : "HIGH")
+                    .overallAssessment("Ứng viên có tài khoản GitHub công khai liên kết với hồ sơ tuyển dụng.")
+                    .build();
+        } else {
+            ghInfo = MatchInspectionResponse.GitHubAssessmentInfo.builder()
+                    .connected(false)
+                    .status("NOT_CONNECTED")
+                    .build();
+        }
+
+        String explanation = result.getAiSummary();
+        if (explanation == null || explanation.isBlank()) {
+            explanation = String.format("Ứng viên %s đạt điểm tổng thể %s%%. Đáp ứng %d/%d kỹ năng bắt buộc.",
+                    candidate.getFullName(), result.getOverallScore(), result.getRequiredSkillsMatched(), result.getRequiredSkillsTotal());
+        }
+
+        return MatchInspectionResponse.builder()
+                .applicationId(applicationId)
+                .jobTitle(job.getTitle())
+                .candidateName(candidate.getFullName())
+                .overallScore(result.getOverallScore())
+                .coreScore(result.getCoreScore())
+                .githubScore(result.getGithubScore())
+                .githubScoreActive(result.getIsGithubActive() != null ? result.getIsGithubActive() : false)
+                .requiredSkillsStatus(reqSkillItems)
+                .preferredSkillsStatus(prefSkillItems)
+                .matchFactors(factorItems)
+                .humanReadableExplanation(explanation)
+                .githubAssessment(ghInfo)
+                .build();
+    }
+
     private void saveMatchFactor(MatchResult result, String factorType, BigDecimal score, BigDecimal weight) {
+        String sourceType = "CV";
+        if ("GITHUB_SUPPORTING".equalsIgnoreCase(factorType)) {
+            sourceType = "GITHUB";
+        }
         MatchFactor factor = MatchFactor.builder()
                 .matchResult(result)
+                .sourceType(sourceType)
                 .factorType(factorType)
+                .factorName(factorType)
                 .score(score)
                 .weight(weight)
                 .build();

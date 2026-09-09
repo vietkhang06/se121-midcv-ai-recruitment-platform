@@ -12,14 +12,27 @@ import { Briefcase, PlusCircle, Search, Filter, Eye, Award, Users } from 'lucide
 export default function RecruiterJobsListPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
 
+  const loadJobs = () => {
+    setIsLoading(true);
+    fetchRecruiterJobs()
+      .then(data => {
+        setJobs(data);
+        setFilteredJobs(data);
+        setFetchError(null);
+      })
+      .catch((err) => {
+        setFetchError(err.message || 'Không thể tải danh sách bài tuyển dụng.');
+      })
+      .finally(() => setIsLoading(false));
+  };
+
   useEffect(() => {
-    fetchRecruiterJobs().then(data => {
-      setJobs(data);
-      setFilteredJobs(data);
-    });
+    loadJobs();
   }, []);
 
   useEffect(() => {
@@ -83,8 +96,22 @@ export default function RecruiterJobsListPage() {
           </div>
         </div>
 
-        {/* Job Grid or Empty State */}
-        {jobs.length === 0 ? (
+        {/* Job Grid or Loading / Error / Empty State */}
+        {isLoading ? (
+          <EmptyState
+            type="LOADING"
+            title="Đang tải danh sách bài tuyển dụng..."
+            description="Hệ thống đang kết nối dữ liệu việc làm..."
+          />
+        ) : fetchError ? (
+          <EmptyState
+            type="ERROR"
+            title="Không thể tải danh sách bài tuyển dụng"
+            description={fetchError}
+            primaryCtaText="Thử lại"
+            onPrimaryCtaClick={loadJobs}
+          />
+        ) : jobs.length === 0 ? (
           <EmptyState
             type="EMPTY"
             title="Chưa có bài tuyển dụng nào"

@@ -38,6 +38,6 @@ class Settings(BaseModel):
     
     # GitHub Integration
     GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
-    USE_MOCK_GITHUB: bool = os.getenv("USE_MOCK_GITHUB", "false").lower() == "true"
+    GITHUB_API_BASE_URL: str = os.getenv("GITHUB_API_BASE_URL", "https://api.github.com").rstrip("/")
 
 settings = Settings()

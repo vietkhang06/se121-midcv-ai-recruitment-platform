@@ -2,21 +2,40 @@ import logging
 from fastapi import APIRouter, HTTPException, status
 from app.schemas.jd import JDExtractRequest, JDExtractResponse
 from app.schemas.cv import CVExtractRequest, CVExtractResponse
+from app.schemas.document import DocumentExtractRequest, DocumentExtractResponse
 from app.schemas.github import GitHubAnalyzeRequest, GitHubAnalyzeResponse
 from app.services.jd_parser import JDParser
 from app.services.cv_parser import CVParser
+from app.services.document_extractor import DocumentExtractor
 from app.services.github_analyzer import GitHubAnalyzer
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 jd_parser = JDParser()
-cv_parser = CVParser()
+document_extractor = DocumentExtractor()
+cv_parser = CVParser(document_extractor=document_extractor)
 github_analyzer = GitHubAnalyzer()
 
 @router.get("/health")
 def health_check():
     return {"status": "UP", "service": "AI Recruitment Worker", "version": "1.0.0"}
+
+@router.post("/extract-document", response_model=DocumentExtractResponse)
+def extract_document(request: DocumentExtractRequest):
+    try:
+        logger.info(f"Received Document Extraction request [file_name={request.file_name}, declared_type={request.file_type}]")
+        return document_extractor.extract_document(request)
+    except Exception as e:
+        logger.error(f"Document Extraction unhandled exception: {e}", exc_info=True)
+        return DocumentExtractResponse(
+            status="FAILED",
+            source_type=request.file_type or "UNKNOWN",
+            used_ocr=False,
+            text=None,
+            error_code="EXTRACTION_ERROR",
+            error_message=f"Document extraction unexpected error: {str(e)}"
+        )
 
 @router.post("/extract-jd", response_model=JDExtractResponse)
 def extract_jd(request: JDExtractRequest):

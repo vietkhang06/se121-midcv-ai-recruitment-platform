@@ -85,27 +85,36 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
     );
   }
 
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const selectedCv = candidateCVs.find((c) => c.id === selectedCvId) || candidateCVs[0];
 
   const handleConfirmApplication = async () => {
+    if (!selectedCv) {
+      setSubmitError('Bạn chưa có CV nào trong tài khoản. Vui lòng tải lên hoặc tạo CV trước.');
+      return;
+    }
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
       const newApp = await submitApplication({
         id: `app-${Date.now()}`,
         job: job,
-        appliedCvId: selectedCv?.id || 'cv-01',
-        appliedCvTitle: selectedCv?.title || 'CV Chính',
-        appliedCvVersion: selectedCv?.currentVersionNumber || 1,
+        appliedCvId: selectedCv.id,
+        appliedCvTitle: selectedCv.title || 'CV Chính',
+        appliedCvVersion: selectedCv.currentVersionNumber || 1,
         status: 'SUBMITTED',
         appliedDate: new Date().toISOString().split('T')[0],
         expectedSalary: 2500,
         noticePeriodDays: 30,
-        portfolioUrl: 'https://github.com/candidate-profile',
+        portfolioUrl: user?.targetIndustry ? `https://github.com/${user.fullName?.toLowerCase().replace(/\s+/g, '-')}` : '',
         candidateNotes: 'Applied via MatchJD recruitment platform.',
       });
       setIsSubmitted(true);
       if (onApplySubmitted) onApplySubmitted(newApp);
       if (onSuccess) onSuccess();
+    } catch (err: any) {
+      setSubmitError(err.message || 'Nộp hồ sơ thất bại. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
     }
@@ -201,6 +210,40 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
                   Add details regarding your gRPC protocol buffer setups. DevOpsCloud LLC prioritizes transport layer scaling.
                 </p>
               </div>
+
+              {/* CV Selection */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                  <span>Bản CV ứng tuyển:</span>
+                  {candidateCVs.length === 0 && (
+                    <span className="text-rose-500 text-[11px]">Chưa có CV nào — hãy tải lên trước!</span>
+                  )}
+                </label>
+                {candidateCVs.length > 0 ? (
+                  <select
+                    value={selectedCvId}
+                    onChange={(e) => setSelectedCvId(e.target.value)}
+                    className="w-full text-xs bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] rounded-lg px-3 py-2 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                  >
+                    {candidateCVs.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title} ({c.creationPath === 'UPLOAD' ? 'File tải lên' : 'Tạo từ Builder'}) {c.isDefault ? '— Mặc định' : ''}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 rounded-lg text-xs text-rose-700 dark:text-rose-300">
+                    Bạn chưa có bản CV nào trong hệ thống. Vui lòng vào trang Quản lý CV để tải lên hoặc tạo mới.
+                  </div>
+                )}
+              </div>
+
+              {submitError && (
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 rounded-lg text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                  <span>{submitError}</span>
+                </div>
+              )}
 
               {/* Match Evaluation Breakdown Table (Figma Screen 07) */}
               <div className="space-y-3">

@@ -6,6 +6,8 @@ import com.platform.recruitment.github.GitHubAssessmentRepository;
 import com.platform.recruitment.github.GitHubProfile;
 import com.platform.recruitment.github.GitHubProfileRepository;
 import com.platform.recruitment.github.GitHubRepository;
+import com.platform.recruitment.github.GitHubRepositoryLanguage;
+import com.platform.recruitment.github.GitHubRepositoryLanguageRepository;
 import com.platform.recruitment.github.GitHubRepositoryRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,9 @@ public class GitHubScoringService {
     private final GitHubProfileRepository gitHubProfileRepository;
     private final GitHubAssessmentRepository gitHubAssessmentRepository;
     private final GitHubRepositoryRepository gitHubRepositoryRepository;
+
+    @Autowired(required = false)
+    private GitHubRepositoryLanguageRepository gitHubRepositoryLanguageRepository;
 
     public GitHubScoringService(GitHubProfileRepository gitHubProfileRepository,
                                 GitHubAssessmentRepository gitHubAssessmentRepository) {
@@ -89,12 +94,25 @@ public class GitHubScoringService {
             boolean matchesKeyLang = false;
             boolean hasAnyOverlap = false;
             for (GitHubRepository r : repos) {
-                String rLang = r.getPrimaryLanguage() != null ? r.getPrimaryLanguage().toLowerCase() : "";
-                if (!rLang.isEmpty() && lowerJd.contains(rLang)) {
-                    hasAnyOverlap = true;
-                    if (lowerJd.contains("java") && rLang.contains("java")) matchesKeyLang = true;
-                    if (lowerJd.contains("python") && rLang.contains("python")) matchesKeyLang = true;
-                    if (lowerJd.contains("typescript") && rLang.contains("typescript")) matchesKeyLang = true;
+                List<String> rLangs = new ArrayList<>();
+                if (r.getPrimaryLanguage() != null && !r.getPrimaryLanguage().isBlank()) {
+                    rLangs.add(r.getPrimaryLanguage().toLowerCase());
+                }
+                if (gitHubRepositoryLanguageRepository != null) {
+                    List<GitHubRepositoryLanguage> subLangs = gitHubRepositoryLanguageRepository.findByRepositoryId(r.getId());
+                    for (GitHubRepositoryLanguage sl : subLangs) {
+                        if (sl.getLanguageName() != null && !sl.getLanguageName().isBlank()) {
+                            rLangs.add(sl.getLanguageName().toLowerCase());
+                        }
+                    }
+                }
+                for (String rLang : rLangs) {
+                    if (!rLang.isEmpty() && lowerJd.contains(rLang)) {
+                        hasAnyOverlap = true;
+                        if (lowerJd.contains("java") && rLang.contains("java")) matchesKeyLang = true;
+                        if (lowerJd.contains("python") && rLang.contains("python")) matchesKeyLang = true;
+                        if (lowerJd.contains("typescript") && rLang.contains("typescript")) matchesKeyLang = true;
+                    }
                 }
             }
             if (matchesKeyLang) {

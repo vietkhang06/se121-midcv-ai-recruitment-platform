@@ -1,5 +1,6 @@
 import io
 import re
+import time
 import uuid
 import base64
 import logging
@@ -51,21 +52,35 @@ def map_heading_to_canonical_section(heading: str) -> str:
     clean = heading.strip().lower()
     return SECTION_ALIASES.get(clean, "GENERAL")
 
+from app.schemas.document import DocumentExtractRequest
+from app.services.document_extractor import DocumentExtractor
+
 class CVParser:
-    def __init__(self, llm_client: LLMClient = None):
+    def __init__(self, llm_client: LLMClient = None, document_extractor: DocumentExtractor = None):
         self.llm_client = llm_client or LLMClient()
+        self.document_extractor = document_extractor or DocumentExtractor()
 
     def parse_cv_document(self, request: CVExtractRequest) -> CVExtractResponse:
         correlation_id = request.correlation_id or str(uuid.uuid4())
         raw_text = request.raw_text
 
-        # Extract text from base64 if PDF or DOCX provided
+        # Extract text using DocumentExtractor if base64 file provided and raw_text is empty
         if not raw_text and request.file_base64:
-            file_bytes = base64.b64decode(request.file_base64)
-            if request.file_type.upper() == "PDF":
-                raw_text = self._extract_text_from_pdf(file_bytes)
-            elif request.file_type.upper() in ["DOCX", "DOC"]:
-                raw_text = self._extract_text_from_docx(file_bytes)
+            doc_req = DocumentExtractRequest(
+                file_base64=request.file_base64,
+                file_type=request.file_type,
+                correlation_id=correlation_id
+            )
+            doc_res = self.document_extractor.extract_document(doc_req)
+            if doc_res.status == "FAILED":
+                return CVExtractResponse(
+                    cv_id=request.cv_id,
+                    cv_version_id=request.cv_version_id,
+                    correlation_id=correlation_id,
+                    status="FAILED",
+                    error_message=f"{doc_res.error_code}: {doc_res.error_message}"
+                )
+            raw_text = doc_res.text
 
         if not raw_text or not raw_text.strip():
             return CVExtractResponse(
@@ -362,27 +377,10 @@ OUTPUT JSON SCHEMA:
         )
 
     def _extract_text_from_pdf(self, file_bytes: bytes) -> str:
-        try:
-            import pypdf
-            reader = pypdf.PdfReader(io.BytesIO(file_bytes))
-            text = ""
-            for page in reader.pages:
-                text += page.extract_text() or ""
-            return text
-        except Exception as e:
-            logger.error(f"Failed to parse PDF bytes: {e}")
-            return ""
+        res = self.document_extractor._extract_pdf(file_bytes, "cv_parser_internal", "uploaded.pdf", time.time())
+        return res.text or ""
 
     def _extract_text_from_docx(self, file_bytes: bytes) -> str:
-        try:
-            import docx
-            doc = docx.Document(io.BytesIO(file_bytes))
-            text = "\n".join([p.text for p in doc.paragraphs if p.text])
-            return text
-        except Exception as e:
-            logger.error(f"Failed to parse DOCX bytes: {e}")
-            return ""
+        res = self.document_extractor._extract_docx(file_bytes, "cv_parser_internal", "uploaded.docx", time.time())
+        return res.text or ""
 
-    def _extract_name_fallback(self, raw_text: str) -> str:
-        lines = [l.strip() for l in raw_text.split("\n") if l.strip() and not l.strip().startswith("http") and "@" not in l.strip()]
-        return lines[0] if lines else "Candidate Name"

@@ -2,6 +2,8 @@ import uuid
 import logging
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
+from urllib.parse import urlparse
+
 from app.schemas.github import (
     GitHubAnalyzeRequest, GitHubAnalyzeResponse,
     LanguageDistribution, ExtractedRepo
@@ -11,69 +13,84 @@ from app.services.github_client import GitHubClient
 logger = logging.getLogger(__name__)
 
 class GitHubAnalyzer:
-    def __init__(self, github_client: GitHubClient = None):
+    """
+    Deterministic GitHub Analyzer for MatchJD.
+    Transforms raw GitHub API data into normalized metrics, language distributions,
+    and observable activity signals without subjective human-character judgments.
+    """
+    def __init__(self, github_client: Optional[GitHubClient] = None):
         self.github_client = github_client or GitHubClient()
 
     def analyze_candidate_github(self, request: GitHubAnalyzeRequest) -> GitHubAnalyzeResponse:
-        correlation_id = request.correlation_id or str(uuid.uuid4())
         username = self._extract_username(request.github_url)
+        logger.info(f"[GitHubAnalyzer] Analyzing candidate_id='{request.candidate_id}' username='{username}'")
 
         raw_data = self.github_client.fetch_user_repositories(username)
-        if not raw_data or raw_data.get("status") == "NOT_FOUND" or raw_data.get("error") == "NOT_FOUND":
+        status = raw_data.get("status", "SYNCED")
+
+        # Handle explicit lifecycle states
+        if status == "NOT_FOUND":
             return GitHubAnalyzeResponse(
                 candidate_id=request.candidate_id,
                 username=username,
                 github_url=request.github_url,
                 public_repos_count=0,
                 activity_signal="LIMITED_OBSERVABLE_ACTIVITY",
-                summary_notes="Candidate GitHub profile was not found or is not connected. Core matching fallback active.",
-                language_rank_summary="No observable public profile.",
+                summary_notes=f"Tài khoản GitHub '{username}' không tồn tại hoặc không tìm thấy trên GitHub công khai. Áp dụng cơ chế fallback bảo toàn điểm cốt lõi (zero-penalty).",
+                language_rank_summary="Không có dữ liệu tài khoản công khai.",
                 overall_supporting_rating="UNAVAILABLE",
                 status="NOT_FOUND"
             )
 
-        if raw_data.get("status") == "API_UNAVAILABLE" or raw_data.get("error") == "API_UNAVAILABLE":
+        if status in ("API_UNAVAILABLE", "RATE_LIMITED"):
+            error_note = (
+                "Giới hạn tần suất gọi GitHub API (Rate Limit) đã chạm ngưỡng. Áp dụng fallback zero-penalty."
+                if status == "RATE_LIMITED"
+                else "Dịch vụ GitHub API tạm thời không khả dụng hoặc timeout. Áp dụng fallback zero-penalty."
+            )
             return GitHubAnalyzeResponse(
                 candidate_id=request.candidate_id,
                 username=username,
                 github_url=request.github_url,
                 public_repos_count=0,
                 activity_signal="LIMITED_OBSERVABLE_ACTIVITY",
-                summary_notes="GitHub API is currently unavailable or rate limited. Core matching fallback active.",
-                language_rank_summary="GitHub API service temporarily unavailable.",
+                summary_notes=error_note,
+                language_rank_summary="Dịch vụ GitHub API tạm thời không khả dụng.",
                 overall_supporting_rating="UNAVAILABLE",
-                status="API_UNAVAILABLE"
+                status=status
             )
 
-        if raw_data.get("status") == "PRIVATE_ONLY" or raw_data.get("public_repos_count", 0) == 0 or not raw_data.get("repositories"):
+        if status == "PRIVATE_ONLY" or raw_data.get("public_repos_count", 0) == 0 or not raw_data.get("repositories"):
             return GitHubAnalyzeResponse(
                 candidate_id=request.candidate_id,
                 username=username,
                 github_url=request.github_url,
-                public_repos_count=0,
+                public_repos_count=raw_data.get("public_repos_count", 0),
                 activity_signal="LIMITED_OBSERVABLE_ACTIVITY",
-                summary_notes="Candidate GitHub profile exists, but relevant repositories are private or inaccessible. Core matching fallback active.",
-                language_rank_summary="No public repositories accessible.",
+                summary_notes=f"Tài khoản GitHub '{username}' tồn tại nhưng không có kho lưu trữ mã nguồn công khai (private hoặc rỗng). Áp dụng fallback zero-penalty.",
+                language_rank_summary="Không có kho lưu trữ công khai khả dụng.",
                 overall_supporting_rating="UNAVAILABLE",
                 status="PRIVATE_ONLY"
             )
 
-
-        # 1. Process Repositories & Language Distribution
+        # 1. Process Repositories & Real Language Distribution
         repos: List[ExtractedRepo] = []
         language_bytes_map: Dict[str, int] = {}
-        total_bytes = 0
+        total_code_bytes = 0
 
         for r in raw_data.get("repositories", []):
             langs: List[LanguageDistribution] = []
             for lang_info in r.get("languages", []):
                 lname = lang_info["language_name"]
-                bcount = lang_info["bytes_count"]
-                pratio = lang_info["percentage_ratio"]
-                langs.append(LanguageDistribution(language_name=lname, bytes_count=bcount, percentage_ratio=pratio))
-                
+                bcount = int(lang_info["bytes_count"])
+                pratio = float(lang_info["percentage_ratio"])
+                langs.append(LanguageDistribution(
+                    language_name=lname,
+                    bytes_count=bcount,
+                    percentage_ratio=pratio
+                ))
                 language_bytes_map[lname] = language_bytes_map.get(lname, 0) + bcount
-                total_bytes += bcount
+                total_code_bytes += bcount
 
             repos.append(ExtractedRepo(
                 name=r["name"],
@@ -88,29 +105,37 @@ class GitHubAnalyzer:
                 topics=r.get("topics", [])
             ))
 
-        # Calculate Overall Repository Language Distribution (Ratio %)
+        # 2. Aggregate Overall Language Distribution by Code Bytes
         overall_languages: List[LanguageDistribution] = []
-        if total_bytes > 0:
+        if total_code_bytes > 0:
             for lname, bcount in sorted(language_bytes_map.items(), key=lambda item: item[1], reverse=True):
-                ratio = round((bcount / total_bytes) * 100.0, 2)
-                overall_languages.append(LanguageDistribution(language_name=lname, bytes_count=bcount, percentage_ratio=ratio))
+                ratio = round((bcount / total_code_bytes) * 100.0, 2)
+                overall_languages.append(LanguageDistribution(
+                    language_name=lname,
+                    bytes_count=bcount,
+                    percentage_ratio=ratio
+                ))
 
-        # Format Language Rank Summary
-        rank_summaries = [f"Rank #{idx+1}: {l.language_name} ({l.percentage_ratio}%)" for idx, l in enumerate(overall_languages[:3])]
-        lang_rank_str = " | ".join(rank_summaries) if rank_summaries else "No language distribution data available."
+        # 3. Format Language Rank Summary
+        rank_summaries = [f"Rank #{idx+1}: {l.language_name} ({l.percentage_ratio}%)" for idx, l in enumerate(overall_languages[:5])]
+        lang_rank_str = " | ".join(rank_summaries) if rank_summaries else "Chưa có số liệu phân bố mã nguồn."
 
-        # 2. Compute Deterministic Activity Signal based on Latest Observable Timestamp
+        # 4. Deterministic Observable Activity Signal
         latest_activity_str = raw_data.get("latest_activity_at")
         activity_signal = self._compute_activity_signal(latest_activity_str)
 
-        # 3. Formulate Neutral Summary Notes
-        latest_text = f"was on {latest_activity_str[:10]}" if latest_activity_str else "was not observable"
+        # 5. Objective Informational Summary Notes
+        latest_text = f"vào ngày {latest_activity_str[:10]}" if latest_activity_str else "chưa xác định"
         summary_notes = (
-            f"Public GitHub profile analysis for candidate '{username}': "
-            f"Public repos count: {raw_data.get('public_repos_count', 0)}. "
-            f"Latest observable public activity {latest_text}. "
-            f"Activity Signal: {activity_signal}."
+            f"Phân tích tài khoản GitHub công khai '{username}': "
+            f"Số kho lưu trữ công khai: {raw_data.get('public_repos_count', len(repos))}. "
+            f"Hoạt động công khai gần nhất {latest_text}. "
+            f"Tín hiệu hoạt động quan sát được: {activity_signal}."
         )
+
+        overall_rating = "STRONG_SIGNAL" if activity_signal == "HIGH" else ("MODERATE_SIGNAL" if activity_signal == "MODERATE" else "LIMITED_SIGNAL")
+
+        logger.info(f"[GitHubAnalyzer] Completed analysis for '{username}': activity={activity_signal}, topLang='{lang_rank_str}'")
 
         return GitHubAnalyzeResponse(
             candidate_id=request.candidate_id,
@@ -124,19 +149,33 @@ class GitHubAnalyzer:
             repositories=repos,
             summary_notes=summary_notes,
             language_rank_summary=lang_rank_str,
-            overall_supporting_rating="STRONG_SIGNAL" if activity_signal == "HIGH" else "MODERATE_SIGNAL",
+            overall_supporting_rating=overall_rating,
             status="SYNCED"
         )
 
     def _extract_username(self, url: str) -> str:
-        clean = url.rstrip("/").split("/")[-1]
-        return clean if clean else "candidate"
+        if not url:
+            return "candidate"
+        url = url.strip().rstrip("/")
+        if url.startswith("http://") or url.startswith("https://"):
+            parsed = urlparse(url)
+            path_parts = [p for p in parsed.path.split("/") if p]
+            if path_parts:
+                return path_parts[0]
+        elif "github.com/" in url:
+            parts = [p for p in url.split("github.com/")[-1].split("/") if p]
+            if parts:
+                return parts[0]
+        return url.split("/")[-1] if url else "candidate"
 
     def _compute_activity_signal(self, timestamp_str: Optional[str]) -> str:
+        """
+        Deterministic, objective activity signal based strictly on observable timestamp.
+        Does not infer human personality, work ethic, or professionalism.
+        """
         if not timestamp_str:
             return "LIMITED_OBSERVABLE_ACTIVITY"
         try:
-            # Parse ISO timestamp
             dt = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
             days_ago = (datetime.now(timezone.utc) - dt).days
             if days_ago <= 14:
@@ -148,4 +187,4 @@ class GitHubAnalyzer:
             else:
                 return "LIMITED_OBSERVABLE_ACTIVITY"
         except Exception:
-            return "MODERATE"
+            return "LIMITED_OBSERVABLE_ACTIVITY"

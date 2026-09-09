@@ -16,7 +16,6 @@ import {
   X,
   ArrowLeft
 } from 'lucide-react';
-import { MOCK_COMPANY } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 

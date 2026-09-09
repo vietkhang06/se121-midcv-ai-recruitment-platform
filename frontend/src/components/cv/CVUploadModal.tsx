@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Industry, CV } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
+import { uploadCandidateCV } from '@/lib/api';
 import {
   X,
   UploadCloud,
@@ -34,11 +35,11 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
   const [status, setStatus] = useState<ProcessingStatus>('IDLE');
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  // Extracted fields editable during REVIEW step
+  // Extracted fields editable
   const [cvTitle, setCvTitle] = useState<string>('');
-  const [extractedSkills, setExtractedSkills] = useState<string[]>(['Java', 'Spring Boot', 'PostgreSQL', 'Docker']);
-  const [extractedSummary, setExtractedSummary] = useState<string>('Backend Engineer with demonstrated experience in scalable cloud services.');
-  const [extractedExp, setExtractedExp] = useState<string>('2023 - Present: Backend Software Engineer\n- Developed high-throughput microservices\n- Automated CI/CD pipelines');
+  const [extractedSkills, setExtractedSkills] = useState<string[]>([]);
+  const [extractedSummary, setExtractedSummary] = useState<string>('');
+  const [extractedExp, setExtractedExp] = useState<string>('');
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -70,58 +71,57 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
     }
   };
 
-  const handleStartProcessing = (e: React.FormEvent) => {
+  const handleStartProcessing = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) return;
 
     setStatus('UPLOADING');
     setErrorMessage('');
 
-    // Simulated reliable AI Worker lifecycle pipeline
-    setTimeout(() => {
-      setStatus('QUEUED');
+    try {
+      const savedCv = await uploadCandidateCV(
+        file,
+        cvTitle || file.name.replace(/\.[^/.]+$/, ''),
+        targetIndustry,
+        false
+      );
+      setStatus('COMPLETED');
+      if (onUploadSuccess) onUploadSuccess(savedCv);
+      if (onSuccess) onSuccess();
       setTimeout(() => {
-        setStatus('PROCESSING');
-        setTimeout(() => {
-          setStatus('COMPLETED');
-          setTimeout(() => {
-            setStatus('REVIEW');
-          }, 600);
-        }, 1200);
-      }, 700);
-    }, 700);
+        onClose();
+        setStatus('IDLE');
+        setFile(null);
+      }, 800);
+    } catch (err: any) {
+      setStatus('FAILED');
+      setErrorMessage(err.message || 'Lỗi khi tải lên và phân tích CV.');
+    }
   };
 
-  const handleSaveParsedCV = () => {
-    const newCv: CV = {
-      id: `cv-uploaded-${Date.now()}`,
-      title: cvTitle || (file ? file.name.replace(/\.[^/.]+$/, '') : 'Uploaded CV'),
-      targetIndustry: targetIndustry,
-      targetRole: targetRole || 'Professional',
-      creationPath: 'UPLOAD',
-      isDefault: false,
-      currentVersionNumber: 1,
-      updatedAt: new Date().toISOString().split('T')[0],
-      versions: [
-        {
-          id: `ver-${Date.now()}`,
-          versionNumber: 1,
-          summaryText: extractedSummary,
-          createdAt: new Date().toISOString().split('T')[0],
-          sections: [
-            { sectionType: 'SUMMARY', title: 'Tóm tắt bản thân', content: extractedSummary },
-            { sectionType: 'SKILLS', title: 'Kỹ năng chuyên môn', content: extractedSkills.join(', ') },
-            { sectionType: 'EXPERIENCE', title: 'Kinh nghiệm làm việc', content: extractedExp }
-          ]
-        }
-      ]
-    };
+  const [isSaving, setIsSaving] = useState(false);
 
-    if (onUploadSuccess) onUploadSuccess(newCv);
-    if (onSuccess) onSuccess();
-    onClose();
-    setStatus('IDLE');
-    setFile(null);
+  const handleSaveParsedCV = async () => {
+    if (!file) return;
+    setIsSaving(true);
+    setErrorMessage('');
+    try {
+      const savedCv = await uploadCandidateCV(
+        file,
+        cvTitle || file.name.replace(/\.[^/.]+$/, ''),
+        targetIndustry,
+        false
+      );
+      if (onUploadSuccess) onUploadSuccess(savedCv);
+      if (onSuccess) onSuccess();
+      onClose();
+      setStatus('IDLE');
+      setFile(null);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Lưu CV thất bại. Vui lòng thử lại.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAddSkill = (skill: string) => {
@@ -348,11 +348,13 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
 
               <button
                 type="button"
+                disabled={isSaving}
                 onClick={handleSaveParsedCV}
-                className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#0C2B24] hover:bg-[#133E34] transition shadow-md flex items-center gap-1.5 cursor-pointer"
+                className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#0C2B24] hover:bg-[#133E34] disabled:opacity-50 transition shadow-md flex items-center gap-1.5 cursor-pointer"
               >
-                <span>{t('cvUpload.confirmSave', 'Xác Nhận & Lưu Thư Viện CV')}</span>
-                <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
+                {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>{isSaving ? 'Đang tải lên...' : t('cvUpload.confirmSave', 'Xác Nhận & Lưu Thư Viện CV')}</span>
+                {!isSaving && <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />}
               </button>
             </div>
           </div>

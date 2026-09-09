@@ -11,6 +11,32 @@ const STORAGE_KEYS = {
 
 test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tests', () => {
 
+  let mockJobsResponse: any[] = [];
+  let mockRecruiterJobsResponse: any[] = [];
+
+  test.beforeEach(async ({ page }) => {
+    mockJobsResponse = [];
+    mockRecruiterJobsResponse = [];
+    await page.route('**/api/v1/**', async (route) => {
+      const url = route.request().url();
+      if (url.includes('/api/v1/recruiter/jobs')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockRecruiterJobsResponse) });
+      } else if (url.includes('/api/v1/jobs')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockJobsResponse) });
+      } else if (url.includes('/api/v1/candidate/cvs')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
+      } else if (url.includes('/api/v1/candidate/applications')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
+      } else if (url.includes('/api/v1/recruiter/profile')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ company: null }) });
+      } else if (url.includes('/inspection')) {
+        await route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ message: 'Inspection not found' }) });
+      } else {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
+      }
+    });
+  });
+
   test.describe('Default Pristine Session (0 DB / 0 LocalStorage Records)', () => {
 
     test('DATA-01: Landing Page renders genuine empty state for featured jobs without fabricated metrics', async ({ page }) => {
@@ -124,7 +150,7 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
     });
 
     test('DATA-06: Recruiter Candidate Ranking renders authentic EMPTY state when zero candidates exist', async ({ page }) => {
-      await page.addInitScript((key) => {
+      await page.addInitScript(() => {
         window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
         window.localStorage.setItem('matchjd_lang', 'vi');
         window.localStorage.setItem('auth_user', JSON.stringify({
@@ -135,23 +161,37 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
           emailVerified: true
         }));
         window.localStorage.setItem('auth_token', 'jwt-rec-clean');
-        // Inject single empty job so page loads
-        window.localStorage.setItem(key, JSON.stringify([{
-          id: 'job-empty-01',
-          title: 'Software Engineer',
-          department: 'Engineering',
-          location: 'Hanoi',
-          workplaceType: 'HYBRID',
-          employmentType: 'FULL_TIME',
-          industry: 'Technology',
-          salaryMin: 1000,
-          salaryMax: 2000,
-          currency: 'USD',
-          status: 'PUBLISHED',
-          requiredSkills: [{ skillName: 'React', importanceWeight: 1.0 }],
-          optionalSkills: []
-        }]));
-      }, STORAGE_KEYS.JOBS);
+      });
+
+      await page.route('**/api/v1/jobs/job-empty-01', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            id: 'job-empty-01',
+            title: 'Software Engineer',
+            department: 'Engineering',
+            location: 'Hanoi',
+            workplaceType: 'HYBRID',
+            employmentType: 'FULL_TIME',
+            industry: 'Technology',
+            salaryMin: 1000,
+            salaryMax: 2000,
+            currency: 'USD',
+            status: 'PUBLISHED',
+            requiredSkills: [{ skillName: 'React', importanceWeight: 1.0 }],
+            optionalSkills: []
+          })
+        });
+      });
+
+      await page.route('**/api/v1/**/job-empty-01/rankings', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([])
+        });
+      });
 
       await page.goto('/recruiter/jobs/job-empty-01/ranking');
 
@@ -175,7 +215,7 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
         window.localStorage.setItem('auth_token', 'jwt-rec-clean');
       });
 
-      await page.goto('/recruiter/applications/app-non-existent');
+      await page.goto('/recruiter/applications/app-nonexistent-999');
 
       const emptyState = page.locator('[data-testid="empty-state-empty"]');
       await expect(emptyState).toBeVisible();
@@ -187,6 +227,7 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
   test.describe('Bilingual Empty State Synchronization (VI <-> EN)', () => {
 
     test('DATA-08: Empty state messages seamlessly switch between Vietnamese and English', async ({ page }) => {
+      // 1. Initial State: Vietnamese
       await page.addInitScript(() => {
         window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
         window.localStorage.setItem('matchjd_lang', 'vi');
@@ -194,19 +235,19 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
 
       await page.goto('/jobs');
 
-      const emptyStateVi = page.locator('[data-testid="empty-state-empty"]');
-      await expect(emptyStateVi).toBeVisible();
-      await expect(emptyStateVi).toContainText('Chưa có việc làm');
+      const emptyStateVI = page.locator('[data-testid="empty-state-empty"]');
+      await expect(emptyStateVI).toBeVisible();
+      await expect(emptyStateVI).toContainText('Chưa có việc làm');
 
-      // Click Language Switcher button in navbar
-      const langBtn = page.getByRole('button', { name: /VI/i }).first();
+      // 2. Switch Language: toggle to English
+      const langBtn = page.getByRole('button', { name: 'VI' });
       await expect(langBtn).toBeVisible();
       await langBtn.click();
 
-      // Should now display English copy
-      const emptyStateEn = page.locator('[data-testid="empty-state-empty"]');
-      await expect(emptyStateEn).toBeVisible();
-      await expect(emptyStateEn).toContainText('No jobs found');
+      // Verify the empty state is now in English
+      const emptyStateEN = page.locator('[data-testid="empty-state-empty"]');
+      await expect(emptyStateEN).toBeVisible();
+      await expect(emptyStateEN).toContainText('No jobs found');
     });
 
   });
@@ -214,26 +255,26 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
   test.describe('Filter NO_MATCH vs Database EMPTY State Differentiation', () => {
 
     test('DATA-09: Filtering jobs with non-matching query displays NO_MATCH, resetting returns EMPTY or items', async ({ page }) => {
-      await page.addInitScript((key) => {
+      await page.addInitScript(() => {
         window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
         window.localStorage.setItem('matchjd_lang', 'vi');
-        // Put a single real record in storage
-        window.localStorage.setItem(key, JSON.stringify([{
-          id: 'job-real-01',
-          title: 'Golang Distributed Engineer',
-          department: 'Core Infrastructure',
-          location: 'Da Nang',
-          workplaceType: 'REMOTE',
-          employmentType: 'FULL_TIME',
-          industry: 'Technology',
-          salaryMin: 2000,
-          salaryMax: 3500,
-          currency: 'USD',
-          status: 'PUBLISHED',
-          requiredSkills: [{ skillName: 'Go', importanceWeight: 1.0 }],
-          optionalSkills: []
-        }]));
-      }, STORAGE_KEYS.JOBS);
+      });
+
+      mockJobsResponse = [{
+        id: 'job-real-01',
+        title: 'Golang Distributed Engineer',
+        department: 'Core Infrastructure',
+        location: 'Da Nang',
+        workplaceType: 'REMOTE',
+        employmentType: 'FULL_TIME',
+        industry: 'Technology',
+        salaryMin: 2000,
+        salaryMax: 3500,
+        currency: 'USD',
+        status: 'PUBLISHED',
+        requiredSkills: [{ skillName: 'Go', importanceWeight: 1.0 }],
+        optionalSkills: []
+      }];
 
       await page.goto('/jobs');
 
@@ -277,41 +318,39 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
         window.localStorage.setItem('auth_token', 'jwt-rec-lifecycle');
       });
 
+      mockRecruiterJobsResponse = [];
+
       // 1. Initial State: Empty
       await page.goto('/recruiter/jobs');
       await expect(page.locator('[data-testid="empty-state-empty"]')).toBeVisible();
 
-      // 2. Add single record to storage
-      await page.evaluate((key) => {
-        window.localStorage.setItem(key, JSON.stringify([{
-          id: 'job-lifecycle-01',
-          title: 'Fullstack Rust & Next.js Engineer',
-          companyName: 'Clean Code Labs',
-          description: 'High performance systems',
-          department: 'Platform',
-          location: 'Ho Chi Minh',
-          workplaceType: 'ON_SITE',
-          employmentType: 'FULL_TIME',
-          industry: 'Technology',
-          salaryMin: 2500,
-          salaryMax: 4000,
-          currency: 'USD',
-          seniority: 'Senior',
-          requirements: [],
-          requiredSkills: [],
-          optionalSkills: []
-        }]));
-      }, STORAGE_KEYS.JOBS);
+      // 2. Add single record to backend
+      mockRecruiterJobsResponse = [{
+        id: 'job-lifecycle-01',
+        title: 'Fullstack Rust & Next.js Engineer',
+        companyName: 'Clean Code Labs',
+        description: 'High performance systems',
+        department: 'Platform',
+        location: 'Ho Chi Minh',
+        workplaceType: 'ON_SITE',
+        employmentType: 'FULL_TIME',
+        industry: 'Technology',
+        salaryMin: 2500,
+        salaryMax: 4000,
+        currency: 'USD',
+        seniority: 'Senior',
+        requirements: [],
+        requiredSkills: [],
+        optionalSkills: []
+      }];
       await page.goto('/recruiter/jobs');
 
       // 3. Verified State: Exact record is rendered, empty state is gone
       await expect(page.locator('[data-testid="empty-state-empty"]')).not.toBeVisible();
       await expect(page.getByText('Fullstack Rust & Next.js Engineer')).toBeVisible();
 
-      // 4. Delete record from storage
-      await page.evaluate((key) => {
-        window.localStorage.setItem(key, JSON.stringify([]));
-      }, STORAGE_KEYS.JOBS);
+      // 4. Delete record from backend
+      mockRecruiterJobsResponse = [];
       await page.goto('/recruiter/jobs');
 
       // 5. Final State: Returns authentically to empty state

@@ -24,18 +24,36 @@ import {
 export default function CVLibraryPage() {
   const { t } = useLanguage();
   const [cvList, setCvList] = useState<CV[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
   const [selectedCvForHistory, setSelectedCvForHistory] = useState<CV | null>(null);
 
+  const loadCVs = () => {
+    setIsLoading(true);
+    fetchCandidateCVs()
+      .then((data) => {
+        setCvList(data);
+        setFetchError(null);
+      })
+      .catch((err) => {
+        setFetchError(err.message || 'Không thể tải danh sách CV.');
+      })
+      .finally(() => setIsLoading(false));
+  };
+
   useEffect(() => {
-    fetchCandidateCVs().then(setCvList);
+    loadCVs();
   }, []);
 
   const handleDelete = async (targetCv: CV) => {
     if (confirm(`Are you sure you want to delete profile "${targetCv.title}"?`)) {
-      await deleteCandidateCV(targetCv.id);
-      const updated = await fetchCandidateCVs();
-      setCvList(updated);
+      try {
+        await deleteCandidateCV(targetCv.id);
+        loadCVs();
+      } catch (err: any) {
+        alert(err.message || 'Lỗi khi xóa CV');
+      }
     }
   };
 
@@ -78,8 +96,22 @@ export default function CVLibraryPage() {
         </div>
 
 
-        {/* 06 — CV Cards Grid or Genuine Empty State */}
-        {cvList.length > 0 ? (
+        {/* 06 — CV Cards Grid, Loading, Error or Genuine Empty State */}
+        {isLoading ? (
+          <EmptyState
+            type="LOADING"
+            title={t('common.loading', 'Đang tải danh sách CV...')}
+            description="Hệ thống đang đồng bộ danh sách hồ sơ năng lực..."
+          />
+        ) : fetchError ? (
+          <EmptyState
+            type="ERROR"
+            title="Không thể tải thư viện CV"
+            description={fetchError}
+            primaryCtaText={t('common.retry', 'Thử lại')}
+            onPrimaryCtaClick={loadCVs}
+          />
+        ) : cvList.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {cvList.map((cv) => (
               <div

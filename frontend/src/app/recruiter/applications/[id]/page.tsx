@@ -33,12 +33,25 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
   const { t } = useLanguage();
   const [data, setData] = useState<MatchInspectionData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [isContactUnlocked, setIsContactUnlocked] = useState<boolean>(false);
 
-  useEffect(() => {
+  const loadInspection = () => {
+    setLoading(true);
+    setFetchError(null);
     fetchMatchInspection(resolvedParams.id)
-      .then(setData)
+      .then((d) => {
+        setData(d);
+        setFetchError(null);
+      })
+      .catch((err) => {
+        setFetchError(err.message || 'Lỗi khi tải dữ liệu đối sánh ứng viên.');
+      })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadInspection();
   }, [resolvedParams.id]);
 
   if (loading) {
@@ -48,6 +61,26 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
           type="LOADING"
           title={t('common.loading', 'Đang tải dữ liệu...')}
           description="Đang kết nối AI telemetry và trích xuất điểm số đối sánh..."
+        />
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] text-slate-800 dark:text-slate-100 transition-colors py-12 px-4 sm:px-6 max-w-4xl mx-auto">
+        <div className="mb-6">
+          <Link href="/recruiter/jobs" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Quay lại Bảng Xếp Hạng & Quản lý Đơn Nộp</span>
+          </Link>
+        </div>
+        <EmptyState
+          type="ERROR"
+          title="Lỗi khi tải báo cáo đối sánh"
+          description={fetchError}
+          primaryCtaText="Thử lại"
+          onPrimaryCtaClick={loadInspection}
         />
       </div>
     );
@@ -73,10 +106,12 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
     );
   }
 
-  const maskedEmail = 'n***@example.com';
-  const realEmail = 'nguyenvanjava@example.com';
-  const maskedPhone = '091***678';
-  const realPhone = '0912345678';
+  const candidateInitials = data.candidateName ? data.candidateName.charAt(0).toLowerCase() : 'c';
+  const emailPrefix = data.candidateName ? data.candidateName.toLowerCase().replace(/\s+/g, '.') : 'candidate';
+  const maskedEmail = `${candidateInitials}***@contact.protected`;
+  const realEmail = `${emailPrefix}@talent.matchjd.ai`;
+  const maskedPhone = '09***-***';
+  const realPhone = 'Liên hệ qua MatchJD Relay (+84)';
 
   const matchedSkillsCount = data.requiredSkillsStatus.filter((s) => s.status === 'MATCH').length;
   const totalSkillsCount = data.requiredSkillsStatus.length;
@@ -271,23 +306,29 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
 
           <div className="p-5 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] space-y-4 text-xs transition-colors">
             <div className="space-y-1">
-              <h4 className="font-bold font-mono text-slate-900 dark:text-white uppercase text-[11px]">CV Tóm tắt Bản thân</h4>
+              <h4 className="font-bold font-mono text-slate-900 dark:text-white uppercase text-[11px]">Hồ sơ ứng viên</h4>
               <p className="text-slate-600 dark:text-slate-300">
-                Lập trình viên Backend với 3.5 năm kinh nghiệm Java 21, Spring Boot và PostgreSQL. Đam mê thiết kế hệ thống Microservices quy mô lớn.
+                {data.candidateName} — Vị trí ứng tuyển: {data.jobTitle}
               </p>
             </div>
 
             <div className="space-y-1 border-t border-slate-200 dark:border-[#1B3D34] pt-3">
-              <h4 className="font-bold font-mono text-slate-900 dark:text-white uppercase text-[11px]">Kỹ năng Chuyên môn Trích xuất</h4>
-              <p className="text-slate-600 dark:text-slate-300">Java 21, Spring Boot, PostgreSQL, Docker, Redis, REST API, Git</p>
-            </div>
-
-            <div className="space-y-1 border-t border-slate-200 dark:border-[#1B3D34] pt-3">
-              <h4 className="font-bold font-mono text-slate-900 dark:text-white uppercase text-[11px]">Kinh nghiệm Làm việc Thực tế</h4>
+              <h4 className="font-bold font-mono text-slate-900 dark:text-white uppercase text-[11px]">Kỹ năng Trích xuất từ Hồ sơ</h4>
               <p className="text-slate-600 dark:text-slate-300">
-                2023 - Nay: Senior Java Backend Engineer tại FPT Software. Thiết kế Microservices xử lý 100,000+ request/ngày.
+                {data.requiredSkillsStatus && data.requiredSkillsStatus.length > 0
+                  ? data.requiredSkillsStatus.map(s => s.skillName).join(', ')
+                  : 'Chưa có kỹ năng trích xuất'}
               </p>
             </div>
+
+            {data.humanReadableExplanation && (
+              <div className="space-y-1 border-t border-slate-200 dark:border-[#1B3D34] pt-3">
+                <h4 className="font-bold font-mono text-slate-900 dark:text-white uppercase text-[11px]">Giải thích Đánh giá Đối sánh AI</h4>
+                <p className="text-slate-600 dark:text-slate-300">
+                  {data.humanReadableExplanation}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </main>

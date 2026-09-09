@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { Job, CandidateRankingItem } from '@/types';
-import { fetchJobById, fetchCandidateRankings } from '@/lib/api';
+import { Job, CandidateRankingItem, MatchInspectionData } from '@/types';
+import { fetchJobById, fetchCandidateRankings, fetchMatchInspection } from '@/lib/api';
 import { RecruiterNavbar } from '@/components/recruiter/RecruiterNavbar';
 import { CandidateRankingTable } from '@/components/recruiter/CandidateRankingTable';
 import { CandidateCompareModal } from '@/components/recruiter/CandidateCompareModal';
@@ -18,19 +18,48 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
   const [job, setJob] = useState<Job | null>(null);
   const [rankings, setRankings] = useState<CandidateRankingItem[]>([]);
   const [filteredRankings, setFilteredRankings] = useState<CandidateRankingItem[]>([]);
+  const [topInspection, setTopInspection] = useState<MatchInspectionData | null>(null);
   
   const [minScoreFilter, setMinScoreFilter] = useState<number>(0);
   const [onlyFullRequired, setOnlyFullRequired] = useState<boolean>(false);
   const [selectedCompareCandidates, setSelectedCompareCandidates] = useState<CandidateRankingItem[]>([]);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const loadData = () => {
+    setIsLoading(true);
+    setFetchError(null);
+    Promise.all([
+      fetchJobById(resolvedParams.id),
+      fetchCandidateRankings(resolvedParams.id),
+    ])
+      .then(([j, data]) => {
+        setJob(j);
+        setRankings(data);
+        setFilteredRankings(data);
+      })
+      .catch((err) => {
+        setFetchError(err.message || 'Không thể tải Bảng Xếp Hạng AI.');
+      })
+      .finally(() => setIsLoading(false));
+  };
 
   useEffect(() => {
-    fetchJobById(resolvedParams.id).then(setJob);
-    fetchCandidateRankings(resolvedParams.id).then((data) => {
-      setRankings(data);
-      setFilteredRankings(data);
-    });
+    loadData();
   }, [resolvedParams.id]);
+
+  const topCandidate = rankings.length > 0 ? rankings[0] : null;
+
+  useEffect(() => {
+    if (topCandidate?.applicationId) {
+      fetchMatchInspection(topCandidate.applicationId)
+        .then(setTopInspection)
+        .catch(() => setTopInspection(null));
+    } else {
+      setTopInspection(null);
+    }
+  }, [topCandidate?.applicationId]);
 
   useEffect(() => {
     let result = [...rankings];
@@ -43,15 +72,31 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
     setFilteredRankings(result);
   }, [minScoreFilter, onlyFullRequired, rankings]);
 
-  if (!job) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] text-slate-800 dark:text-slate-100 transition-colors">
-        <div className="p-16 text-center text-slate-500 dark:text-slate-400">Đang tải Bảng Xếp Hạng AI Engine...</div>
+      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center p-16">
+        <EmptyState
+          type="LOADING"
+          title="Đang tải Bảng Xếp Hạng AI Engine..."
+          description="Hệ thống đang truy vấn các vector điểm số đối sánh..."
+        />
       </div>
     );
   }
 
-  const topCandidate = rankings.length > 0 ? rankings[0] : null;
+  if (fetchError || !job) {
+    return (
+      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center p-16">
+        <EmptyState
+          type="ERROR"
+          title="Không thể tải Bảng Xếp Hạng AI"
+          description={fetchError || 'Không tìm thấy vị trí tuyển dụng.'}
+          primaryCtaText="Thử lại"
+          onPrimaryCtaClick={loadData}
+        />
+      </div>
+    );
+  }
 
   const handleSelectCompare = (item: CandidateRankingItem) => {
     if (!selectedCompareCandidates.find((c) => c.applicationId === item.applicationId)) {
@@ -77,7 +122,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
               Bảng Xếp Hạng Ứng Viên Chuẩn AI
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Match Report Evaluation • Vị trí: <strong className="text-slate-900 dark:text-white">{job.title}</strong> • Candidate verification vector analysis vs. core systems requirement rubric
+              Match Report Evaluation • Vị trí: <strong className="text-slate-900 dark:text-white">{job.title}</strong> • Phân tích tương thích hồ sơ ứng viên so với chuẩn yêu cầu công việc
             </p>
           </div>
 
@@ -109,11 +154,11 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
               <section className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-serif font-bold text-[#0C2B24]">Match Report Evaluation</h2>
-                    <p className="text-xs text-[#64748B]">Candidate verification vector analysis vs. core systems requirement rubric</p>
+                    <h2 className="text-xl font-serif font-bold text-[#0C2B24] dark:text-emerald-400">Match Report Evaluation</h2>
+                    <p className="text-xs text-[#64748B] dark:text-slate-400">Đánh giá đa chiều dựa trên mô hình đối sánh ngữ nghĩa và năng lực kỹ thuật</p>
                   </div>
-                  <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-                    Spotlight Candidate
+                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-full">
+                    Ứng viên dẫn đầu (Spotlight)
                   </span>
                 </div>
 
@@ -128,7 +173,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                         {topCandidate.candidateName}
                       </h3>
                       <p className="text-xs text-emerald-200/80 font-medium">
-                        {topCandidate.headline || 'Systems Engineer • London, UK • devops@sterling.io'}
+                        {topCandidate.headline || topInspection?.candidateName || 'Ứng viên tiềm năng'}
                       </p>
                     </div>
                   </div>
@@ -141,41 +186,52 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                       href={`/recruiter/applications/${topCandidate.applicationId}`}
                       className="px-4 py-2 rounded-xl bg-white text-[#0C2B24] hover:bg-emerald-50 font-bold text-xs shadow-md transition active:scale-95"
                     >
-                      Advance Candidate
+                      Xem Hồ Sơ & Đánh Giá Chi Tiết
                     </Link>
                   </div>
                 </div>
 
                 {/* Two-Column Figma Screen 13 Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Left Column: Professional Experience & GitHub Activity */}
+                  {/* Left Column: Match Factors & GitHub Activity */}
                   <div className="space-y-6">
-                    {/* Professional Experience Card */}
+                    {/* Professional Experience & Match Factors Card */}
                     <div className="bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-6 shadow-xs space-y-4 transition-colors">
                       <h4 className="text-sm font-bold font-editorial text-slate-900 dark:text-white border-b border-slate-100 dark:border-[#1B3D34] pb-3">
-                        Professional Experience
+                        Đánh Giá Yếu Tố Hồ Sơ & Kinh Nghiệm
                       </h4>
                       <div className="space-y-4 text-xs">
-                        <div>
-                          <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white">
-                            <span>Systems Engineer — CloudScale Systems</span>
-                            <span className="text-slate-400 font-normal">2022 - Present</span>
+                        {topInspection?.matchFactors && topInspection.matchFactors.length > 0 ? (
+                          topInspection.matchFactors.map((factor, idx) => (
+                            <div key={idx} className={idx > 0 ? "pt-2 border-t border-slate-100 dark:border-[#1B3D34]" : ""}>
+                              <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white">
+                                <span>{factor.factorName}</span>
+                                <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${
+                                  factor.status === 'HIGH' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
+                                  factor.status === 'MODERATE' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' :
+                                  'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                                }`}>
+                                  {factor.status === 'HIGH' ? 'Xuất sắc' : factor.status === 'MODERATE' ? 'Đạt' : 'Cần chú ý'} ({factor.score}%)
+                                </span>
+                              </div>
+                              <p className="mt-1 text-slate-600 dark:text-slate-300 leading-relaxed">
+                                {factor.explanation}
+                              </p>
+                              {factor.evidence && (
+                                <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500 italic">
+                                  Bằng chứng: {factor.evidence}
+                                </p>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="space-y-2 text-slate-600 dark:text-slate-300">
+                            <p>Số năm kinh nghiệm liên quan: <strong className="text-slate-900 dark:text-white">{topCandidate.relevantExperienceYears} năm</strong></p>
+                            <p>Điểm tương quan hồ sơ gốc (Core Match): <strong className="text-slate-900 dark:text-white">{topCandidate.coreJdCvScore.toFixed(1)}%</strong></p>
+                            <p>Trạng thái nộp đơn: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{topCandidate.status}</span></p>
+                            <p className="text-slate-400">Thời gian ứng tuyển: {new Date(topCandidate.appliedDate).toLocaleDateString('vi-VN')}</p>
                           </div>
-                          <ul className="mt-1.5 space-y-1 text-slate-600 dark:text-slate-300 list-disc list-inside leading-relaxed">
-                            <li>Architected core microservices writing low-latency production pipelines.</li>
-                            <li>Configured container orchestration environments scaling multiple Kubernetes worker namespaces.</li>
-                          </ul>
-                        </div>
-
-                        <div className="pt-2 border-t border-slate-100 dark:border-[#1B3D34]">
-                          <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white">
-                            <span>Infrastructure Dev — SecurTech Labs</span>
-                            <span className="text-slate-400 font-normal">2020 - 2022</span>
-                          </div>
-                          <ul className="mt-1.5 space-y-1 text-slate-600 dark:text-slate-300 list-disc list-inside leading-relaxed">
-                            <li>Delivered Terraform automated modules deploying IAM structures secure at rest.</li>
-                          </ul>
-                        </div>
+                        )}
                       </div>
                     </div>
 
@@ -186,24 +242,46 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                           <GitBranch className="w-4 h-4 text-emerald-400" />
                           <span>GitHub Activity Analytics</span>
                         </span>
-                        <span className="text-[11px] font-mono text-emerald-400/80">Codebase Audit Verified</span>
+                        <span className="text-[11px] font-mono text-emerald-400/80">
+                          {topCandidate.gitHubConnected ? 'Đã liên kết GitHub' : 'Chưa liên kết'}
+                        </span>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="p-3 rounded-xl bg-[#0C2B24]/90 border border-[#164E41]">
-                          <span className="text-[10px] text-emerald-200/70 block uppercase font-bold">Commit Volume (YTD)</span>
-                          <span className="text-lg font-extrabold text-amber-400 font-mono">1,248 commits</span>
-                        </div>
+                      {topCandidate.gitHubConnected && topInspection?.githubAssessment?.connected ? (
+                        <>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="p-3 rounded-xl bg-[#0C2B24]/90 border border-[#164E41]">
+                              <span className="text-[10px] text-emerald-200/70 block uppercase font-bold">Public Repositories</span>
+                              <span className="text-lg font-extrabold text-amber-400 font-mono">
+                                {topInspection.githubAssessment.publicRepoCount ?? 0} repos
+                              </span>
+                            </div>
 
-                        <div className="p-3 rounded-xl bg-[#0C2B24]/90 border border-[#164E41]">
-                          <span className="text-[10px] text-emerald-200/70 block uppercase font-bold">Core Lang</span>
-                          <span className="text-lg font-extrabold text-amber-400 font-mono">Go / Rust</span>
-                        </div>
-                      </div>
+                            <div className="p-3 rounded-xl bg-[#0C2B24]/90 border border-[#164E41]">
+                              <span className="text-[10px] text-emerald-200/70 block uppercase font-bold">Tín hiệu hoạt động</span>
+                              <span className="text-lg font-extrabold text-amber-400 font-mono">
+                                {topInspection.githubAssessment.activitySignal || 'ACTIVE'}
+                              </span>
+                            </div>
+                          </div>
 
-                      <p className="text-[11px] text-emerald-100/70 leading-relaxed">
-                        Top repository &apos;scaling-k8s-ingress&apos; is in the top 4% of assessed codebases globally for code reuse, thread-safety patterns, and dependency health.
-                      </p>
+                          {topInspection.githubAssessment.topLanguages && topInspection.githubAssessment.topLanguages.length > 0 && (
+                            <div className="text-[11px] text-emerald-200/80">
+                              <span className="font-semibold text-white">Ngôn ngữ chính: </span>
+                              {topInspection.githubAssessment.topLanguages.join(', ')}
+                            </div>
+                          )}
+
+                          <p className="text-[11px] text-emerald-100/70 leading-relaxed">
+                            {topInspection.githubAssessment.overallAssessment ||
+                              `Tài khoản GitHub @${topInspection.githubAssessment.username || ''} đã được tích hợp đối soát tự động vào hệ thống xếp hạng.`}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-[11px] text-emerald-100/70 leading-relaxed">
+                          Ứng viên này chưa liên kết tài khoản GitHub công khai. Điểm xếp hạng được tính toán dựa hoàn toàn trên kinh nghiệm thực tế và kỹ năng đối sánh trong hồ sơ CV.
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -211,49 +289,66 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                   <div className="space-y-6">
                     {/* Verified Skill Comparison Card */}
                     <div className="bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-6 shadow-xs space-y-4 transition-colors">
-                      <h4 className="text-sm font-bold font-editorial text-slate-900 dark:text-white border-b border-slate-100 dark:border-[#1B3D34] pb-3">
-                        Verified Skill Comparison
-                      </h4>
-                      <div className="space-y-3.5 text-xs">
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-bold text-slate-900 dark:text-white">Go (Golang)</span>
-                            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">Matched</span>
-                          </div>
-                          <div className="w-full h-2 bg-slate-100 dark:bg-[#071410] rounded-full overflow-hidden">
-                            <div className="bg-[#10B981] h-full rounded-full" style={{ width: '92%' }} />
-                          </div>
-                        </div>
+                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1B3D34] pb-3">
+                        <h4 className="text-sm font-bold font-editorial text-slate-900 dark:text-white">
+                          Kỹ Năng Đối Sánh Với Yêu Cầu JD
+                        </h4>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                          {topCandidate.requiredSkillsMatched} / {topCandidate.requiredSkillsTotal} Kỹ năng bắt buộc
+                        </span>
+                      </div>
 
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-bold text-slate-900 dark:text-white">Kubernetes</span>
-                            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">Matched</span>
+                      <div className="space-y-3.5 text-xs max-h-64 overflow-y-auto pr-1">
+                        {topInspection?.requiredSkillsStatus && topInspection.requiredSkillsStatus.length > 0 ? (
+                          topInspection.requiredSkillsStatus.map((skill, idx) => (
+                            <div key={idx}>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-bold text-slate-900 dark:text-white">{skill.skillName}</span>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                                  skill.status === 'MATCH'
+                                    ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800'
+                                    : skill.status === 'PARTIAL'
+                                    ? 'text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800'
+                                    : 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950 border-rose-200 dark:border-rose-800'
+                                }`}>
+                                  {skill.status === 'MATCH' ? 'Khớp 100%' : skill.status === 'PARTIAL' ? 'Khớp một phần' : 'Còn thiếu'}
+                                </span>
+                              </div>
+                              <div className="w-full h-2 bg-slate-100 dark:bg-[#071410] rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    skill.status === 'MATCH' ? 'bg-[#10B981]' : skill.status === 'PARTIAL' ? 'bg-amber-500' : 'bg-rose-400'
+                                  }`}
+                                  style={{ width: skill.status === 'MATCH' ? '100%' : skill.status === 'PARTIAL' ? '50%' : '15%' }}
+                                />
+                              </div>
+                              {skill.evidenceText && (
+                                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 italic">
+                                  {skill.evidenceText}
+                                </p>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-slate-500 dark:text-slate-400 py-2">
+                            {topCandidate.requiredSkillsMissingNames.length > 0 ? (
+                              <div>
+                                <p className="text-amber-600 dark:text-amber-400 font-semibold mb-1">Kỹ năng bắt buộc còn thiếu:</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {topCandidate.requiredSkillsMissingNames.map((s, i) => (
+                                    <span key={i} className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[11px]">
+                                      {s}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                                Đã đáp ứng đầy đủ tất cả kỹ năng yêu cầu của bài đăng tuyển!
+                              </p>
+                            )}
                           </div>
-                          <div className="w-full h-2 bg-slate-100 dark:bg-[#071410] rounded-full overflow-hidden">
-                            <div className="bg-[#10B981] h-full rounded-full" style={{ width: '88%' }} />
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-bold text-slate-900 dark:text-white">AWS Infrastructure</span>
-                            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">Matched</span>
-                          </div>
-                          <div className="w-full h-2 bg-slate-100 dark:bg-[#071410] rounded-full overflow-hidden">
-                            <div className="bg-[#10B981] h-full rounded-full" style={{ width: '82%' }} />
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-bold text-slate-900 dark:text-white">Prometheus / Monitoring</span>
-                            <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800">Partial Match</span>
-                          </div>
-                          <div className="w-full h-2 bg-slate-100 dark:bg-[#071410] rounded-full overflow-hidden">
-                            <div className="bg-amber-500 h-full rounded-full" style={{ width: '64%' }} />
-                          </div>
-                        </div>
+                        )}
                       </div>
                     </div>
 
@@ -263,10 +358,11 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                         Rank Alignment Audit
                       </h4>
                       <span className="text-sm font-bold text-amber-700 dark:text-amber-400 block font-mono">
-                        Ranked #{topCandidate.rank || 1} of {rankings.length} candidates
+                        Xếp hạng #{topCandidate.rank || 1} trên tổng số {rankings.length} ứng viên
                       </span>
                       <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                        This match ranking is driven strictly by direct code execution indicators and multi-region deployment evidence. {topCandidate.candidateName} is highly optimized for Distributed Systems operations.
+                        {topInspection?.humanReadableExplanation ||
+                          `Kết quả xếp hạng được tổng hợp tự động bởi thuật toán Matching Engine. Điểm số dựa trên sự tương thích giữa CV, yêu cầu JD (${topCandidate.coreJdCvScore.toFixed(1)}%) và các chỉ số kỹ thuật bổ trợ.`}
                       </p>
                     </div>
                   </div>

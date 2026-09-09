@@ -40,12 +40,26 @@ def test_extract_cv_endpoint():
     assert data["status"] == "SUCCESS"
 
 def test_analyze_github_endpoint():
-    payload = {
-        "candidate_id": "cand-301",
-        "github_url": "https://github.com/candidate-java"
-    }
-    response = client.post("/internal/ai/analyze-github", json=payload)
-    assert response.status_code == 200
-    data = response.json()
-    assert data["candidate_id"] == "cand-301"
-    assert data["status"] == "SYNCED"
+    from unittest.mock import patch
+    from app.schemas.github import GitHubAnalyzeResponse
+    mock_resp = GitHubAnalyzeResponse(
+        candidate_id="cand-301",
+        username="candidate-java",
+        github_url="https://github.com/candidate-java",
+        public_repos_count=1,
+        activity_signal="HIGH",
+        summary_notes="Mock notes",
+        language_rank_summary="Java 100%",
+        overall_supporting_rating="STRONG_SIGNAL",
+        status="SYNCED"
+    )
+    with patch("app.api.endpoints.github_analyzer.analyze_candidate_github", return_value=mock_resp):
+        payload = {
+            "candidate_id": "cand-301",
+            "github_url": "https://github.com/candidate-java"
+        }
+        response = client.post("/internal/ai/analyze-github", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["candidate_id"] == "cand-301"
+        assert data["status"] == "SYNCED"

@@ -22,6 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
+import com.platform.recruitment.cv.CVVersion;
+import com.platform.recruitment.cv.CVVersionRepository;
+import com.platform.recruitment.matching.MatchingEngineService;
+
 @Service
 @RequiredArgsConstructor
 public class ApplicationService {
@@ -32,6 +36,8 @@ public class ApplicationService {
     private final CandidateProfileRepository candidateProfileRepository;
     private final RecruiterProfileRepository recruiterProfileRepository;
     private final CVRepository cvRepository;
+    private final CVVersionRepository cvVersionRepository;
+    private final MatchingEngineService matchingEngineService;
 
     @Transactional
     public ApplicationResponse submitApplication(User candidateUser, SubmitApplicationRequest request) {
@@ -61,11 +67,26 @@ public class ApplicationService {
             throw new DuplicateApplicationException("Candidate has already submitted an application for this job");
         }
 
+        // Get or initialize CVVersion
+        List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cv.getId());
+        CVVersion appliedVersion;
+        if (versions.isEmpty()) {
+            appliedVersion = cvVersionRepository.save(CVVersion.builder()
+                    .cv(cv)
+                    .versionNumber(1)
+                    .title(cv.getTitle() + " v1.0")
+                    .rawTextContent(cv.getRawText())
+                    .build());
+        } else {
+            appliedVersion = versions.get(0);
+        }
+
         // Atomic Transaction: Create Application + Immutable ApplicationCVSnapshot
         Application application = Application.builder()
                 .job(job)
                 .candidate(candidate)
                 .appliedCv(cv)
+                .appliedCvVersion(appliedVersion)
                 .status(ApplicationStatus.SUBMITTED)
                 .build();
         Application savedApplication = applicationRepository.save(application);
@@ -81,6 +102,12 @@ public class ApplicationService {
                 .structuredJsonSnapshot(jsonSnapshotContent)
                 .build();
         snapshotRepository.save(snapshot);
+
+        // Immediate matching persistence (match_results, match_factors, evidences)
+        try {
+            matchingEngineService.calculateAndPersistMatchResult(job.getId(), candidate.getId());
+        } catch (Exception ignored) {
+        }
 
         return mapToResponse(savedApplication, snapshot);
     }

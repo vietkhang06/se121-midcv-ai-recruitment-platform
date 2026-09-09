@@ -19,19 +19,31 @@ import {
   ExternalLink,
   ChevronRight,
   Database,
-  Lock,
   LineChart
 } from 'lucide-react';
 
 export default function Home() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [applyJob, setApplyJob] = useState<Job | null>(null);
 
+  const loadJobs = () => {
+    setIsLoading(true);
+    fetchJobs()
+      .then((allJobs) => {
+        setJobs(allJobs.filter((j) => j.status === 'PUBLISHED'));
+        setFetchError(null);
+      })
+      .catch((err) => {
+        setFetchError(err.message || 'Không thể tải danh sách việc làm.');
+      })
+      .finally(() => setIsLoading(false));
+  };
+
   useEffect(() => {
-    fetchJobs().then((allJobs) => {
-      setJobs(allJobs.filter((j) => j.status === 'PUBLISHED'));
-    });
+    loadJobs();
   }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -375,7 +387,21 @@ export default function Home() {
             </Link>
           </div>
 
-          {jobs.length > 0 ? (
+          {isLoading ? (
+            <EmptyState
+              type="LOADING"
+              title="Đang tải danh sách việc làm..."
+              description="Hệ thống đang đồng bộ cơ sở dữ liệu việc làm..."
+            />
+          ) : fetchError ? (
+            <EmptyState
+              type="ERROR"
+              title="Không thể tải danh sách việc làm"
+              description={fetchError}
+              primaryCtaText="Thử lại"
+              onPrimaryCtaClick={loadJobs}
+            />
+          ) : jobs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {jobs.slice(0, 6).map((job) => (
                 <div key={job.id} className="bg-[#F8FAF9] dark:bg-[#0E241E] p-6 rounded-xl border border-[#E2E8F0] dark:border-[#1B3D34] flex flex-col justify-between hover:border-[#0C2B24] dark:hover:border-emerald-500 transition">

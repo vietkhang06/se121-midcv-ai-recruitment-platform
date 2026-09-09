@@ -87,7 +87,24 @@ def test_manipulation_cache_hit_and_miss_behavior():
     assert cache.get("CV", content_b) is None
 
 def test_manipulation_github_5_branches():
-    analyzer = GitHubAnalyzer()
+    from app.services.github_client import GitHubClient
+    class MockBranchesClient(GitHubClient):
+        def fetch_user_repositories(self, username: str):
+            if username == "candidate-java":
+                return {
+                    "username": username,
+                    "status": "SYNCED",
+                    "public_repos_count": 1,
+                    "latest_activity_at": "2026-09-01T10:00:00Z",
+                    "repositories": [{"name": "backend", "repo_url": "https://github.com/candidate-java/backend", "languages": [{"language_name": "Java", "bytes_count": 100, "percentage_ratio": 100.0}], "primary_language": "Java"}]
+                }
+            elif username == "candidate-private":
+                return {"username": username, "status": "PRIVATE_ONLY", "public_repos_count": 0, "repositories": []}
+            elif username == "candidate-rate-limited":
+                return {"username": username, "status": "API_UNAVAILABLE", "error": "API_UNAVAILABLE"}
+            return {"username": username, "status": "NOT_FOUND", "error": "NOT_FOUND"}
+
+    analyzer = GitHubAnalyzer(github_client=MockBranchesClient())
     
     # Case 1: GitHub available
     res1 = analyzer.analyze_candidate_github(GitHubAnalyzeRequest(
