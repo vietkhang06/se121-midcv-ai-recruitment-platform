@@ -1,7 +1,7 @@
-# MatchJD — Local Ollama Setup & Configuration Guide
+# MidCV — Local Ollama Setup & Configuration Guide
 
 ## 1. Overview
-MatchJD provides zero-cost, privacy-first local AI execution for entity extraction (Job Descriptions & CVs) and semantic embedding generation via **Ollama**.
+MidCV provides zero-cost, privacy-first local AI execution for entity extraction (Job Descriptions & CVs) and semantic embedding generation via **Ollama**.
 
 ## 2. Prerequisites
 - **Ollama** installed on the local system ([https://ollama.com](https://ollama.com))

@@ -56,7 +56,7 @@ export const RecruiterNavbar: React.FC = () => {
               <Building2 className="w-4 h-4" />
             </div>
             <span className="font-editorial text-2xl tracking-normal text-[#0C2B24] dark:text-white">
-              MatchJD <span className="text-amber-700 dark:text-amber-400 text-xs font-semibold px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-500/30 font-sans tracking-wide">HR Portal</span>
+              MidCV <span className="text-amber-700 dark:text-amber-400 text-xs font-semibold px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-500/30 font-sans tracking-wide">HR Portal</span>
             </span>
           </Link>
         </div>
@@ -174,7 +174,7 @@ export const RecruiterNavbar: React.FC = () => {
                 <Building2 className="w-4 h-4" />
               </div>
               <span className="text-xs font-bold text-slate-900 dark:text-white">
-                MatchJD HR Portal
+                MidCV HR Portal
               </span>
             </div>
             <span className="text-[10px] font-mono font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800">

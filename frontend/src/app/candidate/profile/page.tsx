@@ -37,7 +37,7 @@ export default function CandidateProfilePage() {
   if (!profile) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center text-slate-500">
-        <p className="text-sm">Đang tải hồ sơ ứng viên MatchJD...</p>
+        <p className="text-sm">Đang tải hồ sơ ứng viên MidCV...</p>
       </div>
     );
   }

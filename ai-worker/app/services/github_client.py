@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 class GitHubClient:
     """
-    Live Public GitHub REST API Client for MatchJD.
+    Live Public GitHub REST API Client for MidCV.
     Strictly interacts with api.github.com without mock data or fabricated metrics.
     """
     def __init__(self, api_base_url: Optional[str] = None, token: Optional[str] = None):
@@ -17,7 +17,7 @@ class GitHubClient:
     def _get_headers(self) -> Dict[str, str]:
         headers = {
             "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "MatchJD-Worker/1.0"
+            "User-Agent": "MidCV-Worker/1.0"
         }
         if self.token and self.token.strip():
             # GitHub supports Bearer token authentication for personal access / fine-grained tokens

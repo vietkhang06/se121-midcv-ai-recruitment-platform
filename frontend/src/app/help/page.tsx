@@ -38,10 +38,10 @@ export default function UserGuidePage() {
         <div className="space-y-2 border-b border-slate-200 dark:border-[#1B3D34] pb-6">
           <div className="flex items-center gap-2 text-[11px] font-mono font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
             <BookOpen className="w-4 h-4" />
-            <span>MATCHJD DOCUMENTATION & OPERATIONAL MANUAL</span>
+            <span>MIDCV DOCUMENTATION & OPERATIONAL MANUAL</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-editorial font-bold text-slate-900 dark:text-white tracking-tight">
-            {t('help.title', 'MatchJD Platform User Guide')}
+            {t('help.title', 'MidCV Platform User Guide')}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-3xl leading-relaxed">
             {t('help.subtitle', 'Complete operational instructions and algorithmic transparency for Candidates and Recruiters.')}
@@ -126,12 +126,12 @@ export default function UserGuidePage() {
                   </h2>
                 </div>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Để đảm bảo tính xác thực và ngăn chặn gian lận, mọi tài khoản đăng ký trên MatchJD phải trải qua quy trình xác thực email thực tế:
+                  Để đảm bảo tính xác thực và ngăn chặn gian lận, mọi tài khoản đăng ký trên MidCV phải trải qua quy trình xác thực email thực tế:
                 </p>
                 <ul className="text-xs space-y-2 text-slate-600 dark:text-slate-300 list-disc pl-5">
                   <li><strong>Đăng ký (Registration):</strong> Nhập Họ tên, Email hợp lệ, Mật khẩu có đánh giá độ an toàn (Password Strength Meter) và chọn các Ngành nghề định hướng.</li>
                   <li><strong>Khóa đăng nhập trước xác thực:</strong> Người dùng chưa xác thực email sẽ bị từ chối đăng nhập (HTTP 403 Forbidden) cho tới khi mở liên kết xác thực.</li>
-                  <li><strong>Liên kết xác thực:</strong> Hệ thống gửi một token bảo mật có hạn sử dụng (24 giờ). Khi mở liên kết, hệ thống chuyển sang trang <code className="bg-slate-100 dark:bg-[#071410] px-1.5 py-0.5 rounded text-emerald-700 dark:text-emerald-400 font-mono">/verify-email</code> với giao diện MatchJD hiển thị trạng thái thành công và cho phép tiếp tục vào hệ thống.</li>
+                  <li><strong>Liên kết xác thực:</strong> Hệ thống gửi một token bảo mật có hạn sử dụng (24 giờ). Khi mở liên kết, hệ thống chuyển sang trang <code className="bg-slate-100 dark:bg-[#071410] px-1.5 py-0.5 rounded text-emerald-700 dark:text-emerald-400 font-mono">/verify-email</code> với giao diện MidCV hiển thị trạng thái thành công và cho phép tiếp tục vào hệ thống.</li>
                 </ul>
               </section>
 
@@ -254,7 +254,7 @@ export default function UserGuidePage() {
                   </h2>
                 </div>
                 <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 space-y-1">
-                  <span className="font-semibold block">Chính sách minh bạch thuật toán MatchJD:</span>
+                  <span className="font-semibold block">Chính sách minh bạch thuật toán MidCV:</span>
                   <p className="leading-relaxed">
                     Một ứng viên mới đăng ký chưa có CV hoặc chưa có thông tin kinh nghiệm/kỹ năng sẽ <strong>KHÔNG BAO GIỜ</strong> bị gán một con số ảo (như 96%, 85% hay 80%).
                   </p>
@@ -280,7 +280,7 @@ export default function UserGuidePage() {
                   </h2>
                 </div>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  MatchJD hỗ trợ tùy chỉnh trải nghiệm đầy đủ trên thanh điều hướng (Navbar):
+                  MidCV hỗ trợ tùy chỉnh trải nghiệm đầy đủ trên thanh điều hướng (Navbar):
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] space-y-1">
@@ -354,7 +354,7 @@ export default function UserGuidePage() {
                   </h2>
                 </div>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Nhà tuyển dụng hoạt động trên MatchJD được liên kết với một Doanh nghiệp chính thức. Huy hiệu <strong>Company Verified</strong> đảm bảo các vị trí tuyển dụng được chứng thực và bảo vệ quyền lợi ứng viên.
+                  Nhà tuyển dụng hoạt động trên MidCV được liên kết với một Doanh nghiệp chính thức. Huy hiệu <strong>Company Verified</strong> đảm bảo các vị trí tuyển dụng được chứng thực và bảo vệ quyền lợi ứng viên.
                 </p>
                 <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
@@ -409,7 +409,7 @@ export default function UserGuidePage() {
                   </h2>
                 </div>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  MatchJD kiên quyết từ chối phương pháp "Hộp đen" (Black Box AI). Mọi điểm số đưa ra cho Nhà tuyển dụng đều kèm theo bằng chứng cụ thể trích xuất trực tiếp từ CV của ứng viên:
+                  MidCV kiên quyết từ chối phương pháp "Hộp đen" (Black Box AI). Mọi điểm số đưa ra cho Nhà tuyển dụng đều kèm theo bằng chứng cụ thể trích xuất trực tiếp từ CV của ứng viên:
                 </p>
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] text-xs space-y-1.5">
                   <p><strong>Core JD-CV Score:</strong> Mức độ đáp ứng trực tiếp các tiêu chí kỹ năng cốt lõi và số năm kinh nghiệm.</p>
@@ -427,7 +427,7 @@ export default function UserGuidePage() {
                   </h2>
                 </div>
                 <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 space-y-1">
-                  <span className="font-semibold block">NGUYÊN TẮC BẢO VỆ ỨNG VIÊN CỦA MATCHJD:</span>
+                  <span className="font-semibold block">NGUYÊN TẮC BẢO VỆ ỨNG VIÊN CỦA MIDCV:</span>
                   <p className="leading-relaxed">
                     Tín hiệu GitHub chỉ là tín hiệu <strong>BỔ TRỢ (Supplementary Only)</strong>. Không bao giờ hạ điểm hoặc phạt một ứng viên đủ điều kiện chỉ vì họ không cung cấp hoặc không có hoạt động GitHub công khai.
                   </p>

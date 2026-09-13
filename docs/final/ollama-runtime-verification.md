@@ -1,7 +1,7 @@
-# MatchJD — Ollama Runtime Verification Report
+# MidCV — Ollama Runtime Verification Report
 
 ## 1. Executive Summary
-- **Product Name**: MatchJD (rebranded from MatchProof)
+- **Product Name**: MidCV (rebranded from MatchProof / MatchJD)
 - **Runtime Environment**: Local Ollama Server (`http://localhost:11434`)
 - **LLM Model**: `dna5rm/granite4.2:3b-8k`
 - **Embedding Model**: `nomic-embed-text:latest`
@@ -19,7 +19,7 @@
 | **Anti-Mock Test** | Quantum Warehouse Engineer -> Rust, Pulsar, Temporal | **PASS** | Real input reflected, generic mock rejected |
 | **Pgvector Schema** | Vector dimension check | **AUDITED** | 768 generated vs 1536 database schema (non-destructive preservation) |
 | **GitHub Integration** | Public REST API | **PRESERVED** | Real GitHub analysis untouched by LLM provider |
-| **Branding Audit** | MatchProof -> MatchJD | **PASS** | UI, Nav, Footer, Metadata, Locales updated |
+| **Branding Audit** | Rebranded to MidCV | **PASS** | UI, Nav, Footer, Metadata, Locales updated |
 
 ## 3. Database Vector Dimension Audit (Prompt Section 10)
 In accordance with Section 10 of the implementation specification:

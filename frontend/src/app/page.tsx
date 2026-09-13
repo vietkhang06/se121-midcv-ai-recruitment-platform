@@ -73,7 +73,7 @@ export default function Home() {
             </h1>
 
             <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl font-light">
-              MatchJD maps code vectors, code repositories, and work histories directly to Job Descriptions. No black-box filtering, just transparent, explainable matches.
+              MidCV maps code vectors, code repositories, and work histories directly to Job Descriptions. No black-box filtering, just transparent, explainable matches.
             </p>
 
             {/* CTA Buttons */}
@@ -184,11 +184,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 01 — THE MATCHJD EVIDENCE PIPELINE (4 Steps) */}
+      {/* 01 — THE MIDCV EVIDENCE PIPELINE (4 Steps) */}
       <section id="pipeline" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-12">
           <span className="text-xs font-semibold uppercase tracking-widest text-amber-700 dark:text-amber-400">EMPIRICAL PROCESS</span>
-          <h2 className="text-3xl sm:text-4xl font-editorial text-slate-900 dark:text-white mt-2">The MatchJD Evidence Pipeline</h2>
+          <h2 className="text-3xl sm:text-4xl font-editorial text-slate-900 dark:text-white mt-2">The MidCV Evidence Pipeline</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

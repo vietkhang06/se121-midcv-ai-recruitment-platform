@@ -276,7 +276,7 @@ export const AuthModal: React.FC = () => {
           <X className="w-5 h-5" />
         </button>
 
-        {/* LEFT COLUMN: MatchJD Editorial Brand Visual & Hero Placeholder */}
+        {/* LEFT COLUMN: MidCV Editorial Brand Visual & Hero Placeholder */}
         <div className="hidden md:flex md:w-5/12 bg-[#0C2B24] p-8 text-white flex-col justify-between relative overflow-hidden select-none">
           {/* Subtle background radial accent */}
           <div className="absolute -top-24 -left-24 w-72 h-72 bg-[#10B981]/15 rounded-full blur-3xl pointer-events-none" />
@@ -288,7 +288,7 @@ export const AuthModal: React.FC = () => {
               <div className="w-8 h-8 rounded-lg bg-[#133E34] border border-[#10B981]/30 flex items-center justify-center text-[#10B981] shadow-xs">
                 <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
               </div>
-              <span className="font-editorial text-2xl tracking-normal text-white">MatchJD</span>
+              <span className="font-editorial text-2xl tracking-normal text-white">MidCV</span>
             </div>
 
             <div className="space-y-2">
@@ -367,7 +367,7 @@ export const AuthModal: React.FC = () => {
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {activeTab === 'LOGIN'
-                  ? 'Nhập email và mật khẩu của bạn để truy cập MatchJD.'
+                  ? 'Nhập email và mật khẩu của bạn để truy cập MidCV.'
                   : activeTab === 'REGISTER'
                   ? 'Tạo tài khoản để đối sánh năng lực thực và ứng tuyển.'
                   : `Mã xác thực đã được gửi đến ${pendingVerificationEmail}`}
@@ -792,7 +792,7 @@ export const AuthModal: React.FC = () => {
           {/* Footer Note */}
           <div className="mt-6 pt-3 border-t border-slate-200 dark:border-[#1B3D34] text-[11px] text-slate-500 dark:text-slate-400 text-center flex items-center justify-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>MatchJD bảo vệ quyền riêng tư & chuẩn hóa đối sánh năng lực thực.</span>
+            <span>MidCV bảo vệ quyền riêng tư & chuẩn hóa đối sánh năng lực thực.</span>
           </div>
         </div>
 

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class GitHubAnalyzer:
     """
-    Deterministic GitHub Analyzer for MatchJD.
+    Deterministic GitHub Analyzer for MidCV.
     Transforms raw GitHub API data into normalized metrics, language distributions,
     and observable activity signals without subjective human-character judgments.
     """

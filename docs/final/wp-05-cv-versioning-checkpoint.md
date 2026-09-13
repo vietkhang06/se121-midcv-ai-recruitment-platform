@@ -12,7 +12,7 @@
 
 Work Package WP-05 implements the **Immutable CV Version Creation & Save** (`CVVER-01`) system.
 
-In MatchJD's academic framework (*"Nền tảng tuyển dụng thông minh hỗ trợ đối sánh ngữ nghĩa JD – CV và xác thực năng lực qua GitHub"*), candidate applications are legally and algorithmically tied to specific audit snapshots. When a candidate updates their CV, modifying or overwriting the original record would invalidate existing applications, distort historical match scores, and corrupt recruiter candidate ranking telemetry.
+In MidCV's academic framework (*"Nền tảng tuyển dụng thông minh hỗ trợ đối sánh ngữ nghĩa JD – CV và xác thực năng lực qua GitHub"*), candidate applications are legally and algorithmically tied to specific audit snapshots. When a candidate updates their CV, modifying or overwriting the original record would invalidate existing applications, distort historical match scores, and corrupt recruiter candidate ranking telemetry.
 
 Under WP-05:
 - Any modification to an existing CV in the CV Studio auto-increments the version (`v1.0 -> v2.0 -> v3.0`) without destroying or mutating prior versions.

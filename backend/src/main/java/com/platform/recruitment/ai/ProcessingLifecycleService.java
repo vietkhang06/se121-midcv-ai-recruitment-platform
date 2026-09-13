@@ -107,17 +107,51 @@ public class ProcessingLifecycleService {
         log.info("Processing CV extraction lifecycle for cv_id: {}, version_id: {}", cvId, version.getId());
         Map<String, Object> result = aiWorkerClient.extractCv(cvId, version.getId(), cv.getFileType(), cv.getRawText());
 
-        // Idempotency: Create CVSections linked to this exact CVVersion
-        CVSection skillsSection = CVSection.builder()
-                .cvVersion(version)
-                .sectionType("SKILLS")
-                .content(result.get("skills") != null ? result.get("skills").toString() : "")
-                .build();
-        cvSectionRepository.save(skillsSection);
+        String status = (String) result.getOrDefault("status", "SUCCESS");
+        if ("FAILED".equalsIgnoreCase(status)) {
+            cv.setStatus("FAILED");
+            cvRepository.save(cv);
+            log.warn("CV extraction failed for cv_id: {}, version_id: {}, error: {}",
+                    cvId, version.getId(), result.get("error_message"));
+            return;
+        }
+
+        // Idempotency: Clear existing extracted sections (preserve SUMMARY) before re-persisting
+        List<CVSection> existingSections = cvSectionRepository.findByCvVersionId(version.getId());
+        if (existingSections != null && !existingSections.isEmpty()) {
+            List<CVSection> toDelete = existingSections.stream()
+                    .filter(s -> !"SUMMARY".equalsIgnoreCase(s.getSectionType()))
+                    .toList();
+            if (!toDelete.isEmpty()) {
+                cvSectionRepository.deleteAll(toDelete);
+            }
+        }
+
+        // Persist structured sections
+        persistSectionIfPresent(version, "SKILLS", result.get("skills"));
+        persistSectionIfPresent(version, "WORK_EXPERIENCE", result.get("work_experiences"));
+        persistSectionIfPresent(version, "EDUCATION", result.get("educations"));
+        persistSectionIfPresent(version, "PROJECTS", result.get("projects"));
+        persistSectionIfPresent(version, "CERTIFICATIONS", result.get("certifications"));
+        persistSectionIfPresent(version, "LANGUAGES", result.get("languages"));
 
         cv.setStatus("PARSED");
         cvRepository.save(cv);
         log.info("Successfully persisted extracted CV sections for version_id: {}", version.getId());
+    }
+
+    private void persistSectionIfPresent(CVVersion version, String sectionType, Object data) {
+        if (data != null) {
+            String content = data.toString().trim();
+            if (!content.isEmpty() && !"[]".equals(content) && !"null".equalsIgnoreCase(content)) {
+                CVSection section = CVSection.builder()
+                        .cvVersion(version)
+                        .sectionType(sectionType)
+                        .content(content)
+                        .build();
+                cvSectionRepository.save(section);
+            }
+        }
     }
 
     @Transactional

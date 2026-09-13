@@ -17,7 +17,7 @@ except ImportError:
     pass
 
 class Settings(BaseModel):
-    PROJECT_NAME: str = "MatchJD AI Worker"
+    PROJECT_NAME: str = "MidCV AI Worker"
     VERSION: str = "1.0.0"
     API_PREFIX: str = "/internal/ai"
     

@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary & Objectives
 
-Work Package **WP-03 (Navigation / Top Bar UX)** has been completed and verified with zero regressions. In alignment with MatchJD's university thesis topic (*"Nền tảng tuyển dụng thông minh hỗ trợ đối sánh ngữ nghĩa JD – CV và xác thực năng lực qua GitHub"*), the navigation layer for both Candidate and Recruiter personas has been hardened to eliminate cognitive clutter, eliminate stacked/duplicated navbars, ensure responsive zero-overflow behavior across viewports, and provide mobile slide-out drawers.
+Work Package **WP-03 (Navigation / Top Bar UX)** has been completed and verified with zero regressions. In alignment with MidCV's university thesis topic (*"Nền tảng tuyển dụng thông minh hỗ trợ đối sánh ngữ nghĩa JD – CV và xác thực năng lực qua GitHub"*), the navigation layer for both Candidate and Recruiter personas has been hardened to eliminate cognitive clutter, eliminate stacked/duplicated navbars, ensure responsive zero-overflow behavior across viewports, and provide mobile slide-out drawers.
 
 ### Key Achievements:
 1. **Candidate Navigation Streamlining (`Navbar.tsx`)**:
@@ -115,7 +115,7 @@ Running 60 tests using 1 worker
 
 ## 5. Traceability Matrix Status
 
-Requirement `NAV-01` has been updated to **PASSED** in `docs/final/matchjd-controlled-implementation-traceability.md`.
+Requirement `NAV-01` has been updated to **PASSED** in `docs/final/midcv-controlled-implementation-traceability.md`.
 
 ---
 

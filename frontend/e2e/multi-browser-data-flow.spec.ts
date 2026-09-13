@@ -9,7 +9,7 @@ test.describe('E2E Real Database Data Flow: Browser A & Browser B', () => {
 
     // Generate unique user credentials
     const timestamp = Date.now();
-    const candidateEmail = `playwright_cand_${timestamp}@matchjd.vn`;
+    const candidateEmail = `playwright_cand_${timestamp}@midcv.vn`;
     const password = 'SecurePassword123!';
 
     // Register candidate via real backend API
@@ -47,7 +47,7 @@ test.describe('E2E Real Database Data Flow: Browser A & Browser B', () => {
       window.localStorage.setItem('auth_token', token);
       window.localStorage.setItem('auth_user', JSON.stringify(user));
       window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-      window.localStorage.setItem('matchjd_lang', 'vi');
+      window.localStorage.setItem('midcv_lang', 'vi');
     }, { token, user });
 
     // Create CV via real API
@@ -78,7 +78,7 @@ test.describe('E2E Real Database Data Flow: Browser A & Browser B', () => {
       window.localStorage.setItem('auth_token', token);
       window.localStorage.setItem('auth_user', JSON.stringify(user));
       window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-      window.localStorage.setItem('matchjd_lang', 'vi');
+      window.localStorage.setItem('midcv_lang', 'vi');
     }, { token, user });
 
     // Navigate Browser B to Candidate CVs page

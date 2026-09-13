@@ -56,7 +56,7 @@ def create_real_files():
     table.cell(1, 0).text = "Kỹ năng chuyên môn"
     table.cell(1, 1).text = "Python, PyTorch, LangChain, PostgreSQL, pgvector, Docker"
     table.cell(2, 0).text = "Dự án tiêu biểu"
-    table.cell(2, 1).text = "MatchJD — Nền tảng tuyển dụng thông minh và xác thực năng lực qua GitHub"
+    table.cell(2, 1).text = "MidCV — Nền tảng tuyển dụng thông minh và xác thực năng lực qua GitHub"
     
     doc.save("scratch/test_files/real_cv.docx")
 
@@ -71,7 +71,7 @@ def run_real_verification():
     extractor = DocumentExtractor()
 
     print("\n==================================================")
-    print("MATCHJD REAL CV DOCUMENT EXTRACTION VERIFICATION")
+    print("MIDCV REAL CV DOCUMENT EXTRACTION VERIFICATION")
     print("==================================================")
 
     # Test 1: Real PDF
@@ -104,7 +104,7 @@ def run_real_verification():
     assert res_docx.status == "SUCCESS"
     assert "TRẦN BẢO NGỌC" in res_docx.text
     assert "Thạc sĩ Khoa học Máy tính — Đại học Bách Khoa TP.HCM" in res_docx.text
-    assert "MatchJD" in res_docx.text
+    assert "MidCV" in res_docx.text
 
     # Test 3: Scanned PDF (verifying OCR route)
     with open("scratch/test_files/scanned_image.pdf", "rb") as f:

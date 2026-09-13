@@ -34,6 +34,7 @@ ALIAS_MAP = {
     "api": "API",
     "rest": "REST",
     "ci/cd": "CI/CD",
+    "fastapi": "FastAPI",
 }
 
 # Explicit Distinct Technologies that MUST NOT be merged

@@ -61,7 +61,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
           <ShieldAlert className="w-12 h-12 mx-auto text-amber-500" />
           <h2 className="text-lg font-bold font-editorial text-slate-900 dark:text-white">Yêu cầu Đăng nhập để Ứng tuyển</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-            Bạn cần đăng nhập tài khoản Ứng viên để thực hiện quy trình nộp đơn Quick Apply chuẩn MatchJD.
+            Bạn cần đăng nhập tài khoản Ứng viên để thực hiện quy trình nộp đơn Quick Apply chuẩn MidCV.
           </p>
           <div className="flex justify-center gap-3 pt-2">
             <button
@@ -108,7 +108,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
         expectedSalary: 2500,
         noticePeriodDays: 30,
         portfolioUrl: user?.targetIndustry ? `https://github.com/${user.fullName?.toLowerCase().replace(/\s+/g, '-')}` : '',
-        candidateNotes: 'Applied via MatchJD recruitment platform.',
+        candidateNotes: 'Applied via MidCV recruitment platform.',
       });
       setIsSubmitted(true);
       if (onApplySubmitted) onApplySubmitted(newApp);
@@ -143,7 +143,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
 
           <div className="space-y-1">
             <span className="text-[10px] font-mono font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest">
-              MATCHJD APPLICATION NODE
+              MIDCV APPLICATION NODE
             </span>
             <h2 className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">
               {job.title}

@@ -1,6 +1,6 @@
 """
-MatchJD - Ollama LLM Smoke Test & Anti-Mock Verification Script
-Product: MatchJD
+MidCV - Ollama LLM Smoke Test & Anti-Mock Verification Script
+Product: MidCV
 LLM Model: dna5rm/granite4.2:3b-8k
 Provider: Ollama (http://localhost:11434)
 
@@ -35,7 +35,7 @@ from app.schemas.jd import JDExtractRequest
 from app.schemas.cv import CVExtractRequest
 
 def run_ollama_smoke_test():
-    product = "MatchJD"
+    product = "MidCV"
     mode = "OLLAMA"
     model = settings.OLLAMA_MODEL
     base_url = settings.OLLAMA_BASE_URL
@@ -171,12 +171,12 @@ Mandatory Requirements:
     # Final Evaluation
     if jd_status == "PASS" and cv_status == "PASS" and anti_mock_status == "PASS":
         print("\n==========================================")
-        print("ALL MATCHJD OLLAMA SMOKE TESTS PASSED")
+        print("ALL MIDCV OLLAMA SMOKE TESTS PASSED")
         print("==========================================")
         sys.exit(0)
     else:
         print("\n==========================================")
-        print("MATCHJD OLLAMA SMOKE TEST FAILED")
+        print("MIDCV OLLAMA SMOKE TEST FAILED")
         print("==========================================")
         sys.exit(1)
 

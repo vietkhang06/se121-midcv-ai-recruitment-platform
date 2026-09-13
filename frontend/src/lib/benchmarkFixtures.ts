@@ -215,7 +215,7 @@ export const SEED_APPLICATIONS: Application[] = [
     noticePeriodDays: 30,
     githubUrl: 'https://github.com/candidate-java',
     portfolioUrl: 'https://candidate-java.dev',
-    candidateNotes: 'Đã ứng tuyển qua hệ thống MatchJD AI Engine.'
+    candidateNotes: 'Đã ứng tuyển qua hệ thống MidCV AI Engine.'
   }
 ];
 

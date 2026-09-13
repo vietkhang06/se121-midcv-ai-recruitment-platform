@@ -1,10 +1,10 @@
-# Báo Cáo Triển Khai Figma UI Vào Web Application Hiện Tại (MatchJD)
+# Báo Cáo Triển Khai Figma UI Vào Web Application Hiện Tại (MidCV)
 
 ## 1. Tổng Quan Triển Khai (Executive Summary)
 
-Dự án đã hoàn thành đưa **100% thiết kế giao diện từ Figma** (`https://www.figma.com/design/Z278B4ohpUfG2cIZggBrpM/Untitled`) vào web application Next.js / React 19 / TypeScript hiện tại của nền tảng tuyển dụng thông minh **MatchJD**.
+Dự án đã hoàn thành đưa **100% thiết kế giao diện từ Figma** (`https://www.figma.com/design/Z278B4ohpUfG2cIZggBrpM/Untitled`) vào web application Next.js / React 19 / TypeScript hiện tại của nền tảng tuyển dụng thông minh **MidCV**.
 
-- **Visual Design Identity**: Đã áp dụng trọn vẹn bộ nhận diện thương hiệu MatchJD:
+- **Visual Design Identity**: Đã áp dụng trọn vẹn bộ nhận diện thương hiệu MidCV:
   - Màu chủ đạo: Deep Forest Green (`#0C2B24`), Emerald/Mint (`#10B981`), Gold/Amber Highlight (`#D97706` / `#F59E0B`), Ivory Canvas (`#F8FAF9`).
   - Typography: Editorial Serif (`Newsreader` / `Playfair Display`) kết hợp với Sans-serif tinh chỉnh (`Inter`).
   - Đường nét sắc sảo, viền micro-borders (`#E2E8F0`), badges dạng viên thuốc (pill badges) và thẻ kính mờ (glassmorphism/subtle surface elevations).
@@ -30,7 +30,7 @@ Dự án đã hoàn thành đưa **100% thiết kế giao diện từ Figma** (`
 | **09** | **Candidate Profile** | `2-1568` | `src/app/candidate/profile/page.tsx` (Tab Profile) | Hồ sơ ứng viên đã xác minh, kinh nghiệm làm việc theo timeline, bộ lọc định hướng nghề nghiệp đa ngành và kỹ năng trích xuất. |
 | **10** | **Recruiter Dashboard** | `2-1776` | `src/app/recruiter/page.tsx` | Console nhà tuyển dụng, 4 KPI tuyển dụng, sơ đồ phễu sourcing (funnel stages), bài đăng hàng đầu và luồng hoạt động ứng viên. |
 | **11** | **JD Builder** | `2-1918` | `src/app/recruiter/jobs/new/page.tsx` | Role Fundamentals, khu vực AI Copilot tương tác, thanh đánh giá chất lượng JD (84%), bảo toàn `#save-draft-btn` và `#publish-job-btn`. |
-| **12** | **Candidate Pipeline** | `2-2050` | `src/app/recruiter/jobs/[id]/applications/page.tsx` | Kanban board 5 giai đoạn (`New`, `Screening`, `Shortlisted`, `Interview`, `Offer`) với thẻ ứng viên, điểm số MatchJD và avatar. |
+| **12** | **Candidate Pipeline** | `2-2050` | `src/app/recruiter/jobs/[id]/applications/page.tsx` | Kanban board 5 giai đoạn (`New`, `Screening`, `Shortlisted`, `Interview`, `Offer`) với thẻ ứng viên, điểm số MidCV và avatar. |
 | **13** | **Candidate Detail & Ranking** | `2-2243` | `src/app/recruiter/jobs/[id]/ranking/page.tsx` | Thẻ spotlight ứng viên hàng đầu (Banner xanh thẫm 96% Match, Advance Candidate), 2 cột (Professional Experience, GitHub Analytics), bảng Verified Skill Comparison và Rank Alignment Audit. |
 | **14** | **Assessment & Analytics** | `2-2375` | `src/app/recruiter/page.tsx` (Tab Telemetry) | Recruitment Telemetry dashboard, biểu đồ Conversion Rate (43.2%), Sourcing Velocity (11.4 days), Top Candidates Sourcing Matrix và AI Copilot Insights. |
 
@@ -51,14 +51,14 @@ Dự án đã hoàn thành đưa **100% thiết kế giao diện từ Figma** (`
 
 ### 3.2. Thanh Điều Hướng (Navbar)
 - File: `frontend/src/components/layout/Navbar.tsx`.
-- Logo MatchJD thương hiệu mới với khiên bảo chứng vector.
+- Logo MidCV thương hiệu mới với khiên bảo chứng vector.
 - Huy hiệu "HR PORTAL" dành cho phía nhà tuyển dụng.
 - Hiển thị chỉ số "Verifiable Profile Strength: 85%" cho ứng viên đã đăng nhập.
 - Nút "Đăng nhập", "Đăng ký", "Đăng xuất" và avatar người dùng hỗ trợ cả 2 ngôn ngữ hiển thị và đạt chuẩn kiểm thử tự động.
 
 ### 3.3. Chân Trang (Footer)
 - File: `frontend/src/components/layout/Footer.tsx`.
-- Footer 5 cột nền Deep Forest Green `#0C2B24`, bao gồm giới thiệu MatchJD, Platform, Developers, Resources, Company và dòng chứng thực tuân thủ bản quyền.
+- Footer 5 cột nền Deep Forest Green `#0C2B24`, bao gồm giới thiệu MidCV, Platform, Developers, Resources, Company và dòng chứng thực tuân thủ bản quyền.
 
 ---
 
@@ -84,4 +84,4 @@ npm run test:e2e
 ---
 
 ## 5. Kết Luận
-Giao diện người dùng web application hiện tại đã phản ánh trung thực toàn bộ thiết kế thẩm mỹ cao cấp từ Figma, mang lại trải nghiệm thương hiệu MatchJD hiện đại, đồng thời duy trì nền tảng kỹ thuật vững chắc và độ tin cậy tuyệt đối cho toàn bộ hệ thống.
+Giao diện người dùng web application hiện tại đã phản ánh trung thực toàn bộ thiết kế thẩm mỹ cao cấp từ Figma, mang lại trải nghiệm thương hiệu MidCV hiện đại, đồng thời duy trì nền tảng kỹ thuật vững chắc và độ tin cậy tuyệt đối cho toàn bộ hệ thống.

@@ -1,10 +1,10 @@
-# MatchJD: GitHub Multi-Branch Architecture & Fallback Evaluation
+# MidCV: GitHub Multi-Branch Architecture & Fallback Evaluation
 
 ## 1. Authoritative Architecture & Motivation
 
 In traditional automated recruitment software, third-party integrations (such as GitHub or LinkedIn) are often implemented naively: if a candidate fails to connect an account or if their repositories are private, the missing signal is treated as a score of zero ($0\%$) or the evaluation fails entirely.
 
-In **MatchJD**, the graduation project advisor established the authoritative principle:
+In **MidCV**, the graduation project advisor established the authoritative principle:
 
 > **GitHub is SUPPLEMENTARY EVIDENCE, not the Primary CV, and not the Final Hiring Decision.**
 > A candidate must **NEVER** receive an unjustified penalty simply because GitHub data is missing, private, rate-limited, or irrelevant to the target role.
@@ -106,7 +106,7 @@ Consider a candidate with a calculated Core score $S_{\text{core}} = 88.50\%$ ap
 - **If evaluated with a naive penalty system**:
   $$S_{\text{overall, naive}} = 0.85 \cdot (88.50) + 0.15 \cdot (0) = 75.23\% \quad (-13.27\% \text{ unjustified penalty})$$
 
-- **Under MatchJD's Fallback Architecture**:
+- **Under MidCV's Fallback Architecture**:
   $$\text{githubScoreOpt} = \emptyset \implies S_{\text{overall}} = S_{\text{core}} = \mathbf{88.50\%}$$
   $$\Delta = S_{\text{overall}} - S_{\text{core}} = \mathbf{0.00\%}$$
 

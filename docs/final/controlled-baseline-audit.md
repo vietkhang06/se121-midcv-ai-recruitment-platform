@@ -1,7 +1,7 @@
-# MatchJD — Controlled Baseline Audit (WP-00)
+# MidCV — Controlled Baseline Audit (WP-00)
 
 > **Document Type**: Controlled Baseline Audit & System Snapshot  
-> **Product Name**: **MatchJD**  
+> **Product Name**: **MidCV**  
 > **Primary Research Topic**: "Nền tảng tuyển dụng thông minh hỗ trợ đối sánh ngữ nghĩa JD – CV và xác thực năng lực qua GitHub"  
 > **Date**: September 7, 2026  
 > **Git Commit HEAD**: `68e891c fix: fix playwright github test`  
@@ -45,7 +45,7 @@ Python 3.11 FastAPI AI Worker (Port 8000)
 
 | Subsystem | Target Specification | Current State | Verification Evidence |
 |:---|:---|:---|:---|
-| **Branding** | MatchJD (Zero user-facing MatchProof) | Fully rebranded across UI, modals, metadata, locales | Audited 0 occurrences of MatchProof in user-facing UI |
+| **Branding** | MidCV (Rebranded product identity) | Fully rebranded across UI, modals, metadata, locales | Audited 0 occurrences of legacy branding in user-facing UI |
 | **Theme System** | Global Dark/Light mode | Functional in `ThemeContext.tsx`, custom CSS variables in `globals.css` | Sun/Moon toggle active, persistent |
 | **Language System** | Global Vietnamese / English switching | Functional in `LanguageContext.tsx`, dictionaries `vi.ts` / `en.ts` | VI/EN toggle active, persistent |
 | **AI LLM Runtime** | Local Ollama `dna5rm/granite4.2:3b-8k` | Operational on `http://localhost:11434` with `think: false` | `scripts/ollama_llm_smoke_test.py` (Exit 0) |

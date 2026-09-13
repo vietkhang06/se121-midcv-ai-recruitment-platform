@@ -1,8 +1,8 @@
-# MatchJD — AI Provider Architecture
+# MidCV — AI Provider Architecture
 
 ## 1. System Architecture
 ```
-Next.js Frontend (MatchJD)
+Next.js Frontend (MidCV)
        ↓
 Spring Boot Backend (API Gateway & Matching Coordinator)
        ↓

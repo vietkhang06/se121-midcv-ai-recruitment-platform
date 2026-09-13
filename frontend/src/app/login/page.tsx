@@ -63,14 +63,14 @@ export default function LoginPage() {
     <div className="min-h-[calc(100vh-4rem)] bg-[#F8FAF9] dark:bg-[#071410] flex items-center justify-center p-4 sm:p-6 lg:p-8 transition-colors">
       <div className="w-full max-w-4xl bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
         
-        {/* Left Column: MatchJD Editorial Branding */}
+        {/* Left Column: MidCV Editorial Branding */}
         <div className="hidden md:flex md:w-5/12 bg-[#0C2B24] p-8 text-white flex-col justify-between relative overflow-hidden">
           <div className="relative z-10 space-y-6">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-[#133E34] border border-[#10B981]/30 flex items-center justify-center text-[#10B981] shadow-xs">
                 <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
               </div>
-              <span className="font-editorial text-2xl tracking-normal text-white">MatchJD</span>
+              <span className="font-editorial text-2xl tracking-normal text-white">MidCV</span>
             </div>
 
             <div className="space-y-2">
@@ -79,7 +79,7 @@ export default function LoginPage() {
                 Evidence-Based Portal
               </span>
               <h1 className="font-editorial text-3xl text-white leading-tight">
-                Sign in to your MatchJD Account
+                Sign in to your MidCV Account
               </h1>
               <p className="text-xs text-slate-300 leading-relaxed">
                 Experience precision talent matching backed by verified credentials and immutable assessment records.
@@ -193,7 +193,7 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-8 pt-4 border-t border-slate-200 dark:border-[#1B3D34] text-xs text-slate-600 dark:text-slate-400 flex items-center justify-between">
-            <span>Chưa có tài khoản MatchJD?</span>
+            <span>Chưa có tài khoản MidCV?</span>
             <Link
               href="/register"
               className="font-semibold text-[#0C2B24] dark:text-emerald-400 hover:text-[#10B981] flex items-center gap-1 transition"

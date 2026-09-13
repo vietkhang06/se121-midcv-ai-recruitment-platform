@@ -109,9 +109,9 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
   const candidateInitials = data.candidateName ? data.candidateName.charAt(0).toLowerCase() : 'c';
   const emailPrefix = data.candidateName ? data.candidateName.toLowerCase().replace(/\s+/g, '.') : 'candidate';
   const maskedEmail = `${candidateInitials}***@contact.protected`;
-  const realEmail = `${emailPrefix}@talent.matchjd.ai`;
+  const realEmail = `${emailPrefix}@talent.midcv.ai`;
   const maskedPhone = '09***-***';
-  const realPhone = 'Liên hệ qua MatchJD Relay (+84)';
+  const realPhone = 'Liên hệ qua MidCV Relay (+84)';
 
   const matchedSkillsCount = data.requiredSkillsStatus.filter((s) => s.status === 'MATCH').length;
   const totalSkillsCount = data.requiredSkillsStatus.length;
@@ -138,7 +138,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
               {data.candidateName} vs. {data.jobTitle || 'CloudScale Systems'}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Hệ thống đối sánh đa chiều MatchJD • Phân tích độ tương thích thực tế dựa trên Grounded Evidence
+              Hệ thống đối sánh đa chiều MidCV • Phân tích độ tương thích thực tế dựa trên Grounded Evidence
             </p>
           </div>
 

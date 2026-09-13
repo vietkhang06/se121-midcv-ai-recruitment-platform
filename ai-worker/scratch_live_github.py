@@ -2,7 +2,7 @@ import httpx
 import json
 
 def test_live_github():
-    headers = {"Accept": "application/vnd.github.v3+json", "User-Agent": "MatchJD-Audit/1.0"}
+    headers = {"Accept": "application/vnd.github.v3+json", "User-Agent": "MidCV-Audit/1.0"}
     client = httpx.Client(timeout=10.0)
     
     # Test real public GitHub account: octocat

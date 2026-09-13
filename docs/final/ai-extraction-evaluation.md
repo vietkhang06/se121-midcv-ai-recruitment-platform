@@ -1,8 +1,8 @@
-# MatchJD: Quantitative Information Extraction Evaluation Report
+# MidCV: Quantitative Information Extraction Evaluation Report
 
 ## 1. Executive Summary
 
-This academic evaluation report provides rigorous, reproducible quantitative metrics for the Information Extraction (IE) subsystem of **MatchJD** (Intelligent Recruitment Platform). In accordance with the graduation project advisor's authoritative requirements, this report evaluates:
+This academic evaluation report provides rigorous, reproducible quantitative metrics for the Information Extraction (IE) subsystem of **MidCV** (Intelligent Recruitment Platform). In accordance with the graduation project advisor's authoritative requirements, this report evaluates:
 
 - **Precision**
 - **Recall**

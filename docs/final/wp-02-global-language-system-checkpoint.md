@@ -1,4 +1,4 @@
-# MatchJD — Work Package WP-02 Checkpoint Report: Global Language System
+# MidCV — Work Package WP-02 Checkpoint Report: Global Language System
 
 > **Work Package**: WP-02 — Global Language System (Vietnamese / English)  
 > **Status**: **100% COMPLETED AND VERIFIED**  
@@ -9,9 +9,9 @@
 
 ## 1. Executive Summary
 
-Work Package WP-02 establishes a unified, centralized, bilingual localization architecture (Vietnamese / English) across MatchJD:
+Work Package WP-02 establishes a unified, centralized, bilingual localization architecture (Vietnamese / English) across MidCV:
 1. **Single Source of Truth**: All user-facing strings are consolidated into dictionary objects in `frontend/src/locales/vi.ts` and `frontend/src/locales/en.ts`, accessed via `LanguageContext.tsx` (`useLanguage()` hook with fallback safety).
-2. **Persistence**: Locale preferences persist across full browser refreshes and tab navigations via `localStorage.getItem('matchjd_lang')`.
+2. **Persistence**: Locale preferences persist across full browser refreshes and tab navigations via `localStorage.getItem('midcv_lang')`.
 3. **Interactive Switching**: Both Candidate Navbar (`Navbar.tsx`) and Recruiter Portal Navbar (`RecruiterNavbar.tsx`) feature one-click locale toggle buttons (`VI` / `EN`).
 4. **Modal & Form Localization**: Modals (`QuickApplyModal.tsx`, `CVUploadModal.tsx`, `LogoutConfirmModal.tsx`, `AuthModal.tsx`) utilize dynamic dictionary keys rather than hardcoded copy.
 5. **Logout Confirmation (Accidental Logout Protection)**: Implemented `LogoutConfirmModal.tsx` preventing accidental session terminations, with bilingual prompts in accordance with `LANG-05` and `AUTH-LOGOUT-01`.

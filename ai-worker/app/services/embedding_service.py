@@ -18,7 +18,7 @@ class EmbeddingError(Exception):
 
 class OllamaEmbeddingService:
     """
-    MatchJD Local Embedding Service utilizing Ollama nomic-embed-text:latest.
+    MidCV Local Embedding Service utilizing Ollama nomic-embed-text:latest.
     Generates authentic 768-dimensional normalized dense vectors.
     """
     def __init__(

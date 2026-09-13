@@ -1,7 +1,7 @@
 # Walkthrough: WP-DATA-01 Runtime Data Purification & Empty-State Integrity
 
 ## Overview
-Implemented **WP-DATA-01: Runtime Data Purification & Empty-State Integrity** across the entire MatchJD platform, ensuring that when the database/storage contains zero records, the application renders as a legitimately empty production system without any fabricated runtime records, hidden seeds, mock testimonials, or synthetic metrics.
+Implemented **WP-DATA-01: Runtime Data Purification & Empty-State Integrity** across the entire MidCV platform, ensuring that when the database/storage contains zero records, the application renders as a legitimately empty production system without any fabricated runtime records, hidden seeds, mock testimonials, or synthetic metrics.
 
 ---
 

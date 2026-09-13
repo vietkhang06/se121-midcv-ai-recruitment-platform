@@ -136,7 +136,7 @@ export default function HRDashboardPage() {
               Chào mừng trở lại, {recruiterName}
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 font-light leading-relaxed">
-              Hệ sinh thái MatchJD đang đồng bộ các vị trí tuyển dụng với mô hình trích xuất thực thể và đối sánh vector chuẩn hóa.
+              Hệ sinh thái MidCV đang đồng bộ các vị trí tuyển dụng với mô hình trích xuất thực thể và đối sánh vector chuẩn hóa.
             </p>
           </div>
 

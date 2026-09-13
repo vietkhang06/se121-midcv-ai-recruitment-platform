@@ -7,7 +7,7 @@ test.describe('WP-05: Immutable CV Version Creation & Save (CVVER-01)', () => {
     await page.addInitScript(() => {
       window.sessionStorage.setItem('e2e_seed_benchmark', 'true');
       window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-      window.localStorage.setItem('matchjd_lang', 'vi');
+      window.localStorage.setItem('midcv_lang', 'vi');
       window.localStorage.setItem('auth_user', JSON.stringify({
         id: 'cand-01',
         email: 'nguyenvanjava@example.com',

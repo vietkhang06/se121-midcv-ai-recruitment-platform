@@ -1,6 +1,6 @@
 # WP-DATA-01: Runtime Data Source Inventory & Purification Audit
 
-**Platform**: MatchJD — Evidence-Based AI Recruitment Platform  
+**Platform**: MidCV — Evidence-Based AI Recruitment Platform  
 **Topic**: "Nền tảng tuyển dụng thông minh hỗ trợ đối sánh ngữ nghĩa JD – CV và xác thực năng lực qua GitHub"  
 **Work Package**: WP-DATA-01 Runtime Data Purification & Empty-State Integrity  
 **Audit Standard**: Zero Fabricated Records at Runtime • Absence of Data is a Valid State  
@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-This inventory audits and classifies every data source across MatchJD to enforce strict data integrity:
+This inventory audits and classifies every data source across MidCV to enforce strict data integrity:
 - **Core Principle**: Real runtime data must come exclusively from genuine runtime data sources (PostgreSQL database, Spring Boot REST API, authenticated user sessions).
 - **Rule of Truth**: When the database contains zero runtime records, the UI must look like an authentic, empty production system. No hidden fallbacks, mocks, seed data, or fabricated business records may appear in runtime.
 - **Controlled Test Isolation**: Test fixtures and benchmark datasets are strictly isolated to test runners and explicit test setups. They are never silently injected into normal user sessions.
@@ -18,7 +18,7 @@ This inventory audits and classifies every data source across MatchJD to enforce
 
 ## 2. Classification Schema
 
-Every data source in MatchJD is classified into exactly one category:
+Every data source in MidCV is classified into exactly one category:
 
 | Classification | Definition |
 |---|---|

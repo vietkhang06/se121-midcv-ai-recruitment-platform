@@ -82,7 +82,7 @@ export const Navbar: React.FC = () => {
             <div className="w-8 h-8 rounded-lg bg-[#0C2B24] dark:bg-[#10B981]/20 border border-emerald-500/30 flex items-center justify-center text-[#10B981] shadow-xs group-hover:bg-[#133E34] transition">
               <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
             </div>
-            <span className="font-editorial text-2xl tracking-normal text-[#0C2B24] dark:text-white">MatchJD</span>
+            <span className="font-editorial text-2xl tracking-normal text-[#0C2B24] dark:text-white">MidCV</span>
           </Link>
 
           {isRecruiter && (

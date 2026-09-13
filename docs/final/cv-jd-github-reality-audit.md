@@ -1,7 +1,7 @@
 # Nghiên Cứu Kiểm Chứng Thực Tế Tính Năng CV ↔ JD Matching + GitHub Supporting Analysis
 
 > **Tài liệu kiểm định kỹ thuật độc lập — Current Codebase & Current Runtime**  
-> **Hệ thống:** MatchJD / AI Recruitment Platform  
+> **Hệ thống:** MidCV / AI Recruitment Platform  
 > **Thời điểm thẩm định:** 2026-09-07  
 > **Nguyên tắc thẩm định:** Không tin tưởng báo cáo cũ; chỉ công nhận khi có bằng chứng trực tiếp từ mã nguồn, lược đồ CSDL, API runtime, thuật toán toán học, và kết quả kiểm thử tự động (automated tests).
 

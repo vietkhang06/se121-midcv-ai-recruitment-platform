@@ -4,7 +4,7 @@ test.describe('WP-03: Responsive Navigation & Top Bar UX (NAV-01)', () => {
 
   const candidateInitScript = () => {
     window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-    window.localStorage.setItem('matchjd_lang', 'vi');
+    window.localStorage.setItem('midcv_lang', 'vi');
     window.localStorage.setItem('auth_user', JSON.stringify({
       id: 'usr-cand-01',
       email: 'andrew@devops.sterling.io',
@@ -17,7 +17,7 @@ test.describe('WP-03: Responsive Navigation & Top Bar UX (NAV-01)', () => {
 
   const recruiterInitScript = () => {
     window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-    window.localStorage.setItem('matchjd_lang', 'vi');
+    window.localStorage.setItem('midcv_lang', 'vi');
     window.localStorage.setItem('auth_user', JSON.stringify({
       id: 'usr-rec-01',
       email: 'hr@fpt-software.com',
@@ -209,7 +209,7 @@ test.describe('WP-03: Responsive Navigation & Top Bar UX (NAV-01)', () => {
     await expect(recruiterDrawer).toBeVisible();
 
     // Check drawer items
-    await expect(page.getByText('MatchJD HR Portal').first()).toBeVisible();
+    await expect(page.getByText('MidCV HR Portal').first()).toBeVisible();
     const recruiterDrawerJobsLink = recruiterDrawer.locator('a[href="/recruiter/jobs"]');
     await expect(recruiterDrawerJobsLink).toBeVisible();
 

@@ -868,7 +868,7 @@ export function getActiveApiClient(): ApiClient {
 
 // Global browser test harness hook (only active in non-production environments when explicitly called)
 if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
-  (window as any).__MATCHJD_TEST_HARNESS__ = {
+  (window as any).__MIDCV_TEST_HARNESS__ = {
     injectBenchmarkClient: async () => {
       const { BenchmarkFixtureClient } = await import('./benchmarkFixtures');
       setApiClientForTesting(new BenchmarkFixtureClient());

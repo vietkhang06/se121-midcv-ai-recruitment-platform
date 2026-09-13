@@ -1,6 +1,6 @@
 export const vi = {
   nav: {
-    brand: "MATCHJD",
+    brand: "MIDCV",
     searchJobs: "Tìm Việc Làm",
     matching: "Đối Sánh",
     matchReports: "Báo Cáo Phù Hợp",
@@ -22,7 +22,7 @@ export const vi = {
     mobileMenu: "Menu điều hướng"
   },
   recruiterNav: {
-    brand: "MatchJD HR Portal",
+    brand: "MidCV HR Portal",
     dashboard: "Tổng Quan Tuyển Dụng",
     company: "Doanh nghiệp",
     jobs: "Quản Lý Bài Đăng",
@@ -31,10 +31,10 @@ export const vi = {
     verifiedStatus: "Đã Xác Minh"
   },
   auth: {
-    signInTitle: "Truy Cập MatchJD",
+    signInTitle: "Truy Cập MidCV",
     signInSubtitle: "Đăng nhập với thông tin đã xác thực để xem điểm số đối sánh AI chuẩn xác.",
     registerTitle: "Tạo Tài Khoản Mới",
-    registerSubtitle: "Tham gia MatchJD với mã hóa minh bạch và định hướng đa ngành nghề.",
+    registerSubtitle: "Tham gia MidCV với mã hóa minh bạch và định hướng đa ngành nghề.",
     emailLabel: "Địa Chỉ Email",
     emailPlaceholder: "ten@congty.com hoặc ungvien@domain.com",
     passwordLabel: "Mật Khẩu",
@@ -74,7 +74,7 @@ export const vi = {
   },
   logoutModal: {
     title: "Xác Nhận Đăng Xuất",
-    message: "Bạn có chắc chắn muốn đăng xuất khỏi tài khoản MatchJD không? Mọi tiến trình chưa lưu có thể bị mất.",
+    message: "Bạn có chắc chắn muốn đăng xuất khỏi tài khoản MidCV không? Mọi tiến trình chưa lưu có thể bị mất.",
     confirm: "Đăng Xuất",
     cancel: "Hủy"
   },
@@ -82,8 +82,8 @@ export const vi = {
     verifyingTitle: "Đang Xác Thực Tài Khoản",
     verifyingDesc: "Hệ thống đang kiểm tra tính hợp lệ của mã xác thực với máy chủ...",
     successTitle: "Xác thực email thành công!",
-    successDesc: "Tài khoản của bạn đã được xác minh và kích hoạt đầy đủ trên MatchJD.",
-    continueCta: "Tiếp Tục Với MatchJD",
+    successDesc: "Tài khoản của bạn đã được xác minh và kích hoạt đầy đủ trên MidCV.",
+    continueCta: "Tiếp Tục Với MidCV",
     errorTitle: "Xác thực không thành công",
     errorDesc: "Mã xác thực không hợp lệ, đã được sử dụng hoặc đã hết thời hạn 24 giờ.",
     resendPrompt: "Yêu cầu gửi lại mã xác thực mới:",
@@ -135,7 +135,7 @@ export const vi = {
     lastUpdated: "Cập nhật lần cuối"
   },
   cvUpload: {
-    badge: "MATCHJD PARSER PIPELINE",
+    badge: "MIDCV PARSER PIPELINE",
     title: "Tải Lên & Phân Tích CV (PDF / DOCX)",
     subtitle: "Trích xuất kỹ năng, kinh nghiệm và cấu trúc thực thể qua AI Worker trước khi lưu vào Thư Viện.",
     industry: "Ngành nghề định hướng",
@@ -163,7 +163,7 @@ export const vi = {
     retry: "Thử Lại (Retry)"
   },
   quickApply: {
-    badge: "MATCHJD APPLICATION NODE",
+    badge: "MIDCV APPLICATION NODE",
     step1: "Chọn Bản CV",
     step2: "Xem Điểm Đối Sánh",
     step3: "Xác Nhận & Nộp Đơn",
@@ -216,7 +216,7 @@ export const vi = {
     exploreCta: "Khám Phá Việc Làm Ngay"
   },
   help: {
-    title: "Hướng Dẫn Sử Dụng Nền Tảng MatchJD",
+    title: "Hướng Dẫn Sử Dụng Nền Tảng MidCV",
     subtitle: "Tài liệu vận hành chi tiết và giải trình thuật toán minh bạch cho Ứng Viên và Nhà Tuyển Dụng.",
     candidateTab: "Dành Cho Ứng Viên",
     recruiterTab: "Dành Cho Nhà Tuyển Dụng",
@@ -226,7 +226,7 @@ export const vi = {
     heroTag: "Vector Embedding 1536D • AI Evidence Pipeline",
     heroTitle: "Tuyển dụng dựa trên bằng chứng xác thực, không phải lời khai trên CV.",
     heroSubtitle: "Đối Sánh JD & Hồ Sơ Tuyển Dụng",
-    heroDesc: "MatchJD đối sánh vector ngữ nghĩa, kho mã nguồn GitHub và lịch sử làm việc trực tiếp với Mô tả công việc. Không lọc hộp đen, đối sánh minh bạch và giải trình được.",
+    heroDesc: "MidCV đối sánh vector ngữ nghĩa, kho mã nguồn GitHub và lịch sử làm việc trực tiếp với Mô tả công việc. Không lọc hộp đen, đối sánh minh bạch và giải trình được.",
     heroForEmployers: "Dành Cho Doanh Nghiệp — Đăng Tuyển",
     heroForCandidates: "Dành Cho Ứng Viên — Khám Phá Việc Làm",
     heroSearchPlaceholder: "Tìm kiếm vị trí: Kỹ sư Phần mềm, Java, Spring Boot, React...",

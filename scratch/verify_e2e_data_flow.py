@@ -23,12 +23,12 @@ def query_postgres(sql):
 
 def main():
     print("=================================================================")
-    print("MATCHJD COMPREHENSIVE END-TO-END DATA FLOW & PERSISTENCE AUDIT")
+    print("MIDCV COMPREHENSIVE END-TO-END DATA FLOW & PERSISTENCE AUDIT")
     print("=================================================================")
 
     timestamp = int(time.time())
-    cand_email = f"cand_test_{timestamp}@matchjd.vn"
-    rec_email = f"rec_test_{timestamp}@matchjd.vn"
+    cand_email = f"cand_test_{timestamp}@midcv.vn"
+    rec_email = f"rec_test_{timestamp}@midcv.vn"
     password = "SecurePassword123!"
 
     # -------------------------------------------------------------

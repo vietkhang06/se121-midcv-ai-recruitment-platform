@@ -1,6 +1,6 @@
-# Báo Cáo Kiểm Thử Chất Lượng Toàn Diện Sản Phẩm (Final Product QA & Demo Validation Report) — MatchJD
+# Báo Cáo Kiểm Thử Chất Lượng Toàn Diện Sản Phẩm (Final Product QA & Demo Validation Report) — MidCV
 
-**Dự Án**: MatchJD — Nền Tảng Tuyển Dụng Đa Ngành Thông Minh Dựa Trên Grounded Evidence & Semantic AI  
+**Dự Án**: MidCV — Nền Tảng Tuyển Dụng Đa Ngành Thông Minh Dựa Trên Grounded Evidence & Semantic AI  
 **Ngày Kiểm Thử**: 06/09/2026  
 **Môi Trường Kiểm Thử**: Local Windows Host, Next.js 16.3.3 App Router, React 19, Spring Boot 3.3.0 (Java 21), Python 3.11 FastAPI AI Worker, PostgreSQL + Pgvector, Playwright Headless Chromium  
 **Trạng Thái Sẵn Sàng (Final Readiness Status)**: **100% VERIFIED & PRODUCTION READY**
@@ -9,8 +9,8 @@
 
 ## 1. Executive Summary
 
-Báo cáo này đánh giá độc lập, trung thực và toàn diện tình trạng vận hành thực tế của nền tảng **MatchJD** trên cả 5 tầng kiến trúc:
-1. **Figma Visual Design**: 14/14 màn hình được đối soát trực tiếp với Figma Source of Truth, áp dụng bảng màu nhận diện MatchJD (`#0C2B24` Deep Forest Green, `#10B981` Emerald, `#F8FAF9` Ivory canvas, `#071410` Dark canvas, Typography Editorial Serif & Inter).
+Báo cáo này đánh giá độc lập, trung thực và toàn diện tình trạng vận hành thực tế của nền tảng **MidCV** trên cả 5 tầng kiến trúc:
+1. **Figma Visual Design**: 14/14 màn hình được đối soát trực tiếp với Figma Source of Truth, áp dụng bảng màu nhận diện MidCV (`#0C2B24` Deep Forest Green, `#10B981` Emerald, `#F8FAF9` Ivory canvas, `#071410` Dark canvas, Typography Editorial Serif & Inter).
 2. **Frontend Experience**: Next.js App Router, Dark/Light Mode với semantic tokens, bộ chuyển đổi ngôn ngữ Việt / Anh (`locales/vi.ts`, `locales/en.ts`), Password Strength Meter, Technical Skills Index Autocomplete với từ điển chuẩn hóa, bộ lọc Refine Matches thời gian thực.
 3. **Backend Service Layer**: Spring Boot 3.3.0, 50 bài kiểm thử tự động (`mvn test`), REST endpoints, Spring Security RBAC, bảo toàn Flyway migration DDL, quan hệ `candidate_target_industries` chuẩn hóa.
 4. **AI Worker**: FastAPI Python 3.11, 21 bài kiểm thử pytest (`pytest -v`), đánh giá trích xuất định lượng (Precision 71.88%, Recall 100%, F1 83.64%), đánh giá xếp hạng ứng viên (NDCG@3 = 1.0, NDCG@5 = 1.0), chuẩn hóa từ đồng nghĩa (JS→JavaScript, Postgres→PostgreSQL, K8s→Kubernetes, React.js→React), bộ nhớ đệm TTL/LRU và chính sách GitHub phụ trợ không phạt (Zero Penalty).
@@ -35,16 +35,16 @@ Báo cáo này đánh giá độc lập, trung thực và toàn diện tình tr�
 | **1. No Seed/Fake Runtime Data Policy** | **VERIFIED** | Ứng viên mới đăng ký khởi tạo với 0 CVs, 0 applications. Loại bỏ toàn bộ điểm số ảo cố định (96%, 85%, 84%) tại runtime. |
 | **2. Multiple Target Industries** | **VERIFIED** | `RegisterCandidateRequest.java` và `CandidateTargetIndustryRepository` lưu trữ quan hệ 1-N chuẩn hóa; form đăng ký hỗ trợ multi-select checkbox grid. |
 | **3. Password Strength Assessment** | **VERIFIED** | `PasswordStrengthMeter.tsx` đánh giá 5 cấp độ (Rất yếu → Rất mạnh) với thanh đo hoạt họa và danh sách tiêu chuẩn bắt buộc. |
-| **4. MatchJD Auth UI** | **VERIFIED** | `/login`, `/register`, `AuthModal.tsx` sử dụng Deep Forest Green, Ivory canvas, Editorial Serif và split-layout hero. |
+| **4. MidCV Auth UI** | **VERIFIED** | `/login`, `/register`, `AuthModal.tsx` sử dụng Deep Forest Green, Ivory canvas, Editorial Serif và split-layout hero. |
 | **5. Email Verification Gate** | **VERIFIED** | Tài khoản chưa xác thực nhận HTTP 403 khi đăng nhập. Token xác thực có thời hạn 24 giờ. |
-| **6. Email Verification Success UI** | **VERIFIED** | `/verify-email` hỗ trợ đầy đủ 6 trạng thái: `VERIFYING`, `SUCCESS`, `EXPIRED`, `INVALID`, `ALREADY_USED`, `ERROR` với CTA "Continue to MatchJD". |
+| **6. Email Verification Success UI** | **VERIFIED** | `/verify-email` hỗ trợ đầy đủ 6 trạng thái: `VERIFYING`, `SUCCESS`, `EXPIRED`, `INVALID`, `ALREADY_USED`, `ERROR` với CTA "Continue to MidCV". |
 | **7. Fake Email Protection** | **VERIFIED** | Email không tồn tại (`fake@invalid-domain-example.test`) không bao giờ tự động đánh dấu verified; đăng nhập luôn bị chặn. |
 | **8. Light Mode / Dark Mode** | **VERIFIED** | `ThemeContext.tsx`, semantic CSS tokens (`globals.css`), lưu trữ bền vững trong `localStorage`, nút chuyển đổi Sun/Moon trên Navbar. |
 | **9. Vietnamese / English Switching** | **VERIFIED** | `LanguageContext.tsx`, từ điển tập trung `locales/vi.ts` và `locales/en.ts`, lưu trữ bền vững, nút chuyển đổi VI/EN trên Navbar. |
 | **10. User Guide (/help)** | **VERIFIED** | Trang hướng dẫn song ngữ chi tiết tại `/help` với tabs riêng biệt cho Ứng Viên và Nhà Tuyển Dụng, TOC dính cạnh màn hình. |
 | **11. Insufficient Data Match State** | **VERIFIED** | Ứng viên chưa có CV nhận trạng thái `INSUFFICIENT_DATA` ("Match unavailable" / "Chưa thể tính mức độ phù hợp") kèm tooltip giải thích, không hiển thị điểm ảo. |
 | **12. Real Functional Refine Matches** | **VERIFIED** | `/jobs` lọc trực tiếp theo từ khóa, địa điểm, ngành nghề, hình thức, cấp bậc, mức lương tối thiểu, ngành mục tiêu và hỗ trợ Reset tức thì. |
-| **13. My Match Reports & CV Upload** | **VERIFIED** | `/candidate/applications` và `CVUploadModal.tsx` nâng cấp toàn diện sang MatchJD UI, hỗ trợ pipeline states (`QUEUED`, `PROCESSING`, `REVIEW`). |
+| **13. My Match Reports & CV Upload** | **VERIFIED** | `/candidate/applications` và `CVUploadModal.tsx` nâng cấp toàn diện sang MidCV UI, hỗ trợ pipeline states (`QUEUED`, `PROCESSING`, `REVIEW`). |
 | **14. Technical Skills Index Autocomplete** | **VERIFIED** | `SkillAutocomplete.tsx` tích hợp từ điển `skillTaxonomy.ts`, tìm kiếm tiền tố / fuzzy matching, điều hướng phím mũi tên và gắn nhãn canonical. |
 | **15. Skill Synonym Normalization** | **VERIFIED** | `SkillNormalizer.java` và `normalizer.py` ánh xạ từ đồng nghĩa (JS→JavaScript, Postgres→PostgreSQL, K8s→Kubernetes, React.js→React). |
 | **16. Academic Extraction Evaluation** | **VERIFIED** | `eval_runner.py` đo lường định lượng: Precision 71.88%, Recall 100%, F1 83.64%. |
@@ -89,4 +89,4 @@ Báo cáo này đánh giá độc lập, trung thực và toàn diện tình tr�
 
 ## 4. Kết Luận & Khẳng Định Chất Lượng
 
-Toàn bộ 30 tiêu chí nghiệm thu của bài toán **MatchJD — Final Corrective Implementation** đã được hiện thực hóa đầy đủ, đồng bộ trên cả 3 dịch vụ (Backend, AI Worker, Frontend), được kiểm chứng thông qua mã nguồn thực tế và vượt qua 100% các bộ bài kiểm thử tự động.
+Toàn bộ 30 tiêu chí nghiệm thu của bài toán **MidCV — Final Corrective Implementation** đã được hiện thực hóa đầy đủ, đồng bộ trên cả 3 dịch vụ (Backend, AI Worker, Frontend), được kiểm chứng thông qua mã nguồn thực tế và vượt qua 100% các bộ bài kiểm thử tự động.

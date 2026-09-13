@@ -147,14 +147,14 @@ export default function RegisterPage() {
     <div className="min-h-[calc(100vh-4rem)] bg-[#F8FAF9] dark:bg-[#071410] flex items-center justify-center p-4 sm:p-6 lg:p-8 transition-colors">
       <div className="w-full max-w-4xl bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
         
-        {/* Left Column: MatchJD Editorial Branding */}
+        {/* Left Column: MidCV Editorial Branding */}
         <div className="hidden md:flex md:w-5/12 bg-[#0C2B24] p-8 text-white flex-col justify-between relative overflow-hidden">
           <div className="relative z-10 space-y-6">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-[#133E34] border border-[#10B981]/30 flex items-center justify-center text-[#10B981] shadow-xs">
                 <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
               </div>
-              <span className="font-editorial text-2xl tracking-normal text-white">MatchJD</span>
+              <span className="font-editorial text-2xl tracking-normal text-white">MidCV</span>
             </div>
 
             <div className="space-y-2">
@@ -163,7 +163,7 @@ export default function RegisterPage() {
                 Join the Network
               </span>
               <h1 className="font-editorial text-3xl text-white leading-tight">
-                Create your Verifiable MatchJD Profile
+                Create your Verifiable MidCV Profile
               </h1>
               <p className="text-xs text-slate-300 leading-relaxed">
                 Build an authenticated talent profile where every claimed skill traces to demonstrable proof and multidimensional matching.

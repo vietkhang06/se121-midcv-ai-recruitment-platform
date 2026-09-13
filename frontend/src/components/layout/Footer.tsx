@@ -14,10 +14,10 @@ export const Footer: React.FC = () => {
             <div className="w-8 h-8 rounded-lg bg-[#10B981] flex items-center justify-center shadow-md">
               <ShieldCheck className="w-5 h-5 text-[#081C15] stroke-[2.5]" />
             </div>
-            <span className="font-editorial text-2xl tracking-normal text-white">MatchJD</span>
+            <span className="font-editorial text-2xl tracking-normal text-white">MidCV</span>
           </Link>
           <p className="text-xs text-slate-300/80 leading-relaxed max-w-sm">
-            MatchJD is an objective evaluation layer for modern technical recruitment. Built to empower developers and infrastructure experts with transparent matching vectors.
+            MidCV is an objective evaluation layer for modern technical recruitment. Built to empower developers and infrastructure experts with transparent matching vectors.
           </p>
           <div className="pt-2 flex items-center gap-3 text-xs text-emerald-400 font-mono">
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -61,7 +61,7 @@ export const Footer: React.FC = () => {
 
       {/* Bottom Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-6 border-t border-[#133E34]/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-        <div>© 2026 MatchJD Inc. All rights reserved. Recruiter & Candidate Platform.</div>
+        <div>© 2026 MidCV Inc. All rights reserved. Recruiter & Candidate Platform.</div>
         <div className="flex items-center gap-6 text-xs text-slate-400">
           <a href="#" className="hover:text-white transition">Privacy Policy</a>
           <a href="#" className="hover:text-white transition">Terms of Service</a>

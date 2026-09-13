@@ -42,7 +42,7 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
     test('DATA-01: Landing Page renders genuine empty state for featured jobs without fabricated metrics', async ({ page }) => {
       await page.addInitScript(() => {
         window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-        window.localStorage.setItem('matchjd_lang', 'vi');
+        window.localStorage.setItem('midcv_lang', 'vi');
       });
 
       await page.goto('/');
@@ -63,7 +63,7 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
     test('DATA-02: Public Job Search renders genuine EMPTY state when 0 jobs exist', async ({ page }) => {
       await page.addInitScript(() => {
         window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-        window.localStorage.setItem('matchjd_lang', 'vi');
+        window.localStorage.setItem('midcv_lang', 'vi');
       });
 
       await page.goto('/jobs');
@@ -80,7 +80,7 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
     test('DATA-03: Candidate CV Library renders authentic EMPTY state without fabricated profiles', async ({ page }) => {
       await page.addInitScript(() => {
         window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-        window.localStorage.setItem('matchjd_lang', 'vi');
+        window.localStorage.setItem('midcv_lang', 'vi');
         window.localStorage.setItem('auth_user', JSON.stringify({
           id: 'user-clean-01',
           email: 'clean@candidate.vn',
@@ -108,7 +108,7 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
     test('DATA-04: Candidate Applications renders authentic EMPTY state without fallback app-001', async ({ page }) => {
       await page.addInitScript(() => {
         window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-        window.localStorage.setItem('matchjd_lang', 'vi');
+        window.localStorage.setItem('midcv_lang', 'vi');
         window.localStorage.setItem('auth_user', JSON.stringify({
           id: 'user-clean-01',
           email: 'clean@candidate.vn',
@@ -130,7 +130,7 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
     test('DATA-05: Recruiter Jobs Management renders authentic EMPTY state', async ({ page }) => {
       await page.addInitScript(() => {
         window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-        window.localStorage.setItem('matchjd_lang', 'vi');
+        window.localStorage.setItem('midcv_lang', 'vi');
         window.localStorage.setItem('auth_user', JSON.stringify({
           id: 'rec-clean-01',
           email: 'recruiter@clean.vn',
@@ -152,7 +152,7 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
     test('DATA-06: Recruiter Candidate Ranking renders authentic EMPTY state when zero candidates exist', async ({ page }) => {
       await page.addInitScript(() => {
         window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-        window.localStorage.setItem('matchjd_lang', 'vi');
+        window.localStorage.setItem('midcv_lang', 'vi');
         window.localStorage.setItem('auth_user', JSON.stringify({
           id: 'rec-clean-01',
           email: 'recruiter@clean.vn',
@@ -204,7 +204,7 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
     test('DATA-07: Recruiter Match Inspection renders authentic EMPTY state for non-existent match calculation', async ({ page }) => {
       await page.addInitScript(() => {
         window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-        window.localStorage.setItem('matchjd_lang', 'vi');
+        window.localStorage.setItem('midcv_lang', 'vi');
         window.localStorage.setItem('auth_user', JSON.stringify({
           id: 'rec-clean-01',
           email: 'recruiter@clean.vn',
@@ -230,7 +230,7 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
       // 1. Initial State: Vietnamese
       await page.addInitScript(() => {
         window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-        window.localStorage.setItem('matchjd_lang', 'vi');
+        window.localStorage.setItem('midcv_lang', 'vi');
       });
 
       await page.goto('/jobs');
@@ -257,7 +257,7 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
     test('DATA-09: Filtering jobs with non-matching query displays NO_MATCH, resetting returns EMPTY or items', async ({ page }) => {
       await page.addInitScript(() => {
         window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-        window.localStorage.setItem('matchjd_lang', 'vi');
+        window.localStorage.setItem('midcv_lang', 'vi');
       });
 
       mockJobsResponse = [{
@@ -307,7 +307,7 @@ test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tes
     test('DATA-10: Database empty -> Job added -> UI shows exact job -> Job deleted -> UI returns to empty state', async ({ page }) => {
       await page.addInitScript(() => {
         window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-        window.localStorage.setItem('matchjd_lang', 'vi');
+        window.localStorage.setItem('midcv_lang', 'vi');
         window.localStorage.setItem('auth_user', JSON.stringify({
           id: 'rec-lifecycle-01',
           email: 'recruiter@lifecycle.vn',

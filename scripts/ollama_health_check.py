@@ -1,5 +1,5 @@
 """
-MatchJD - Ollama Local Health Check Script
+MidCV - Ollama Local Health Check Script
 Verifies:
 1. Ollama server reachable on OLLAMA_BASE_URL (http://localhost:11434)
 2. LLM model available (dna5rm/granite4.2:3b-8k)

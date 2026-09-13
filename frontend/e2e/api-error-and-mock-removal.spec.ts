@@ -5,7 +5,7 @@ test.describe('P0 Final Cleanup: API Error != Empty, API Error != Mock, Zero Pro
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-      window.localStorage.setItem('matchjd_lang', 'vi');
+      window.localStorage.setItem('midcv_lang', 'vi');
     });
   });
 

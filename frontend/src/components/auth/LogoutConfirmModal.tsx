@@ -61,7 +61,7 @@ export const LogoutConfirmModal: React.FC<LogoutConfirmModalProps> = ({
               {t('logoutModal.title', 'Xác Nhận Đăng Xuất')}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-              {t('logoutModal.message', 'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản MatchJD không? Mọi tiến trình chưa lưu có thể bị mất.')}
+              {t('logoutModal.message', 'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản MidCV không? Mọi tiến trình chưa lưu có thể bị mất.')}
             </p>
           </div>
         </div>

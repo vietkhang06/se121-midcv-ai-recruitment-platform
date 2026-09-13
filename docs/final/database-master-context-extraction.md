@@ -1,6 +1,6 @@
-# MatchJD Database Master Context Extraction & Full Repository Database Audit
+# MidCV Database Master Context Extraction & Full Repository Database Audit
 
-**Project**: MatchJD  
+**Project**: MidCV  
 **Research Topic**: *"Nền tảng tuyển dụng thông minh hỗ trợ đối sánh ngữ nghĩa JD – CV và xác thực năng lực qua GitHub"*  
 **Audit Mode**: STRICTLY READ-ONLY — NO CODE OR DATABASE MODIFICATION  
 **Database**: PostgreSQL 16.15 with Pgvector 0.8.6 & UUID-OSSP 1.1 on `airecruit_db`

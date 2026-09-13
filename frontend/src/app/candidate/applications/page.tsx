@@ -80,7 +80,7 @@ export default function ApplicationHistoryPage() {
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-[11px] font-mono font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
               <ShieldCheck className="w-4 h-4" />
-              <span>MATCHJD AUDITABLE APPLICATION & MATCH REPORTS</span>
+              <span>MIDCV AUDITABLE APPLICATION & MATCH REPORTS</span>
             </div>
             <h1 className="text-3xl font-editorial font-bold text-slate-900 dark:text-white tracking-tight">
               {t('applications.title', 'Danh Sách Việc Làm Đã Nộp Đơn')}
@@ -204,7 +204,7 @@ export default function ApplicationHistoryPage() {
                     <div className="pt-3 border-t border-slate-200 dark:border-[#1B3D34] space-y-4 animate-fade-in">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                          BÁO CÁO PHÂN TÍCH ĐỐI SÁNH MATCHJD AI
+                          BÁO CÁO PHÂN TÍCH ĐỐI SÁNH MIDCV AI
                         </span>
                         <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
                           Xác thực bảo vệ ứng viên

@@ -9,7 +9,7 @@ from app.services.github_analyzer import GitHubAnalyzer
 from app.schemas.github import GitHubAnalyzeRequest
 
 # ==============================================================================
-# MATCHJD COMPREHENSIVE GITHUB SCANNING & EVIDENCE PIPELINE TEST SUITE (GH-01 -> GH-08)
+# MIDCV COMPREHENSIVE GITHUB SCANNING & EVIDENCE PIPELINE TEST SUITE (GH-01 -> GH-08)
 # ==============================================================================
 
 def test_gh01_valid_real_public_github_account():
@@ -78,14 +78,14 @@ def test_gh03_repository_with_one_language():
 def test_gh04_invalid_github_username():
     """TEST GH-04: Invalid GitHub username returns NOT_FOUND with zero fake repos"""
     client = GitHubClient()
-    data = client.fetch_user_repositories("nonexistent-github-user-matchjd-404-xyz123")
+    data = client.fetch_user_repositories("nonexistent-github-user-midcv-404-xyz123")
     assert data["status"] == "NOT_FOUND"
     assert data.get("repositories") is None
 
     analyzer = GitHubAnalyzer(github_client=client)
     res = analyzer.analyze_candidate_github(GitHubAnalyzeRequest(
         candidate_id="cand-invalid",
-        github_url="https://github.com/nonexistent-github-user-matchjd-404-xyz123"
+        github_url="https://github.com/nonexistent-github-user-midcv-404-xyz123"
     ))
     assert res.status == "NOT_FOUND"
     assert res.public_repos_count == 0

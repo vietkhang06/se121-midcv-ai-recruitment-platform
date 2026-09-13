@@ -21,7 +21,7 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: "MatchJD - AI Recruitment Platform | Verified Evidence Matching",
+  title: "MidCV - AI Recruitment Platform | Verified Evidence Matching",
   description: "Objective evaluation layer for modern technical recruitment. Built to empower developers and infrastructure experts with transparent matching vectors.",
 };
 
@@ -35,7 +35,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('matchjd_theme')||localStorage.getItem('matchproof_theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})()`,
+            __html: `(function(){try{var t=localStorage.getItem('midcv_theme')||localStorage.getItem('matchjd_theme')||localStorage.getItem('matchproof_theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})()`,
           }}
         />
       </head>

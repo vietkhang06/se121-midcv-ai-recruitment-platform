@@ -1,4 +1,4 @@
-# MatchJD Data Integrity Forensic Audit
+# MidCV Data Integrity Forensic Audit
 
 ## 1. Observed Symptoms
 1. **Pervasive Hardcoded / Seed Records in Runtime**: Static seed records (e.g., `SEED_JOBS`, `SEED_CVS`, `SEED_RANKINGS_JOB_01`, `SEED_COMPANY`, `SEED_RECRUITER`, and `SEED_INSPECTION_APP_001`) remain defined in client code and are actively served as initial or benchmark states.
@@ -342,8 +342,8 @@ Application data is written strictly to `localStorage` under `airecruit_persiste
 | `localStorage` | `company_<id>` | **BUSINESS DATA** | `api.ts:770` | `api.ts:797` | `Company` JSON |
 | `localStorage` | `airecruit_persistent_rankings` | **BUSINESS DATA** | `api.ts:692, 858` | `api.ts:723` | Array of `CandidateRankingItem` |
 | `localStorage` | `hasSeenFirstVisitOnboarding` | UI PREFERENCE | `AuthContext.tsx:51` | `AuthContext.tsx:83` | `'true'` |
-| `localStorage` | `matchjd_lang` | UI PREFERENCE | `LanguageContext.tsx:24` | `LanguageContext.tsx:32` | `'vi'` \| `'en'` |
-| `localStorage` | `matchjd_theme` | UI PREFERENCE | `ThemeContext.tsx:21` | `ThemeContext.tsx:43` | `'dark'` \| `'light'` |
+| `localStorage` | `midcv_lang` | UI PREFERENCE | `LanguageContext.tsx:24` | `LanguageContext.tsx:32` | `'vi'` \| `'en'` |
+| `localStorage` | `midcv_theme` | UI PREFERENCE | `ThemeContext.tsx:21` | `ThemeContext.tsx:43` | `'dark'` \| `'light'` |
 | `sessionStorage` | `e2e_seed_benchmark` | TEST DATA | `api.ts:544` | E2E spec files | `'true'` |
 | `sessionStorage` | `e2e_test_fixture_match_inspection` | TEST DATA | `api.ts:841` | E2E test fixtures | `MatchInspectionData` JSON |
 
@@ -487,7 +487,7 @@ The isolation of runtime business data in Browser A stems from four interrelated
 ```
 
 Under this architecture:
-- `localStorage` retains ONLY UI preferences (`matchjd_lang`, `matchjd_theme`) and the active JWT bearer token (`auth_token`).
+- `localStorage` retains ONLY UI preferences (`midcv_lang`, `midcv_theme`) and the active JWT bearer token (`auth_token`).
 - All business records (Users, Jobs, CVs, Applications, Match Results) originate from and persist to PostgreSQL.
 - Both Browser A and Browser B observe identical, real-time database state.
 

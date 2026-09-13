@@ -18,7 +18,7 @@ test.describe('WP-02: Global Language Synchronization Suite (LANG-01 - LANG-06)'
 
   test('LANG-01: Vietnamese language consistency across major routes', async ({ page }) => {
     await page.addInitScript(() => {
-      window.localStorage.setItem('matchjd_lang', 'vi');
+      window.localStorage.setItem('midcv_lang', 'vi');
     });
 
     // Landing page
@@ -32,7 +32,7 @@ test.describe('WP-02: Global Language Synchronization Suite (LANG-01 - LANG-06)'
 
     // Help page
     await page.goto('/help');
-    await expect(page.getByText('Hướng Dẫn Sử Dụng Nền Tảng MatchJD')).toBeVisible();
+    await expect(page.getByText('Hướng Dẫn Sử Dụng Nền Tảng MidCV')).toBeVisible();
 
     // Candidate CVs
     await page.goto('/candidate/cvs');
@@ -41,7 +41,7 @@ test.describe('WP-02: Global Language Synchronization Suite (LANG-01 - LANG-06)'
 
   test('LANG-02: English language consistency across major routes', async ({ page }) => {
     await page.addInitScript(() => {
-      window.localStorage.setItem('matchjd_lang', 'en');
+      window.localStorage.setItem('midcv_lang', 'en');
     });
 
     // Landing page
@@ -55,7 +55,7 @@ test.describe('WP-02: Global Language Synchronization Suite (LANG-01 - LANG-06)'
 
     // Help page
     await page.goto('/help');
-    await expect(page.getByText('MatchJD Platform User Guide')).toBeVisible();
+    await expect(page.getByText('MidCV Platform User Guide')).toBeVisible();
 
     // Candidate CVs
     await page.goto('/candidate/cvs');
@@ -64,7 +64,7 @@ test.describe('WP-02: Global Language Synchronization Suite (LANG-01 - LANG-06)'
 
   test('LANG-03: Language persistence across page reload', async ({ page }) => {
     await page.addInitScript(() => {
-      window.localStorage.setItem('matchjd_lang', 'en');
+      window.localStorage.setItem('midcv_lang', 'en');
     });
 
     await page.goto('/jobs');
@@ -72,7 +72,7 @@ test.describe('WP-02: Global Language Synchronization Suite (LANG-01 - LANG-06)'
 
     await page.reload();
     await expect(page.getByText('Job Search & Discovery')).toBeVisible();
-    const storedLang = await page.evaluate(() => localStorage.getItem('matchjd_lang'));
+    const storedLang = await page.evaluate(() => localStorage.getItem('midcv_lang'));
     expect(storedLang).toBe('en');
 
     // Switch to Vietnamese via toggle button
@@ -80,7 +80,7 @@ test.describe('WP-02: Global Language Synchronization Suite (LANG-01 - LANG-06)'
     await langBtn.click();
     await page.waitForTimeout(300);
 
-    const updatedLang = await page.evaluate(() => localStorage.getItem('matchjd_lang'));
+    const updatedLang = await page.evaluate(() => localStorage.getItem('midcv_lang'));
     expect(updatedLang).toBe('vi');
     await expect(page.getByText('Tìm Kiếm Việc Làm Toàn Quốc')).toBeVisible();
   });
@@ -88,7 +88,7 @@ test.describe('WP-02: Global Language Synchronization Suite (LANG-01 - LANG-06)'
   test('LANG-04: Modal language consistency in both locales', async ({ page }) => {
     // English mode
     await page.addInitScript(() => {
-      window.localStorage.setItem('matchjd_lang', 'en');
+      window.localStorage.setItem('midcv_lang', 'en');
     });
 
     await page.goto('/jobs');
@@ -109,7 +109,7 @@ test.describe('WP-02: Global Language Synchronization Suite (LANG-01 - LANG-06)'
 
     // Expect modal dialog with Vietnamese text
     await expect(page.getByText('Xác Nhận Đăng Xuất')).toBeVisible();
-    await expect(page.getByText('Bạn có chắc chắn muốn đăng xuất khỏi tài khoản MatchJD không?')).toBeVisible();
+    await expect(page.getByText('Bạn có chắc chắn muốn đăng xuất khỏi tài khoản MidCV không?')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Hủy' })).toBeVisible();
 
     // Close modal
@@ -125,7 +125,7 @@ test.describe('WP-02: Global Language Synchronization Suite (LANG-01 - LANG-06)'
     await logoutBtnEn.click();
 
     await expect(page.getByText('Confirm Sign Out')).toBeVisible();
-    await expect(page.getByText('Are you sure you want to sign out of your MatchJD account?')).toBeVisible();
+    await expect(page.getByText('Are you sure you want to sign out of your MidCV account?')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Cancel' })).toBeVisible();
   });
 

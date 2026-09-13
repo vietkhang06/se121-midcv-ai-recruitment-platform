@@ -1,5 +1,5 @@
 """
-MatchJD - Ollama Embedding Smoke Test & Dimension Audit Script
+MidCV - Ollama Embedding Smoke Test & Dimension Audit Script
 Embedding Model: nomic-embed-text:latest
 Provider: Ollama (http://localhost:11434)
 
@@ -31,7 +31,7 @@ from app.config import settings
 from app.services.embedding_service import embedding_service
 
 def run_embedding_smoke_test():
-    print("=== MATCHJD OLLAMA EMBEDDING SMOKE TEST ===")
+    print("=== MIDCV OLLAMA EMBEDDING SMOKE TEST ===")
     print(f"PROVIDER=ollama")
     print(f"MODEL={settings.OLLAMA_EMBEDDING_MODEL}")
     print(f"BASE_URL={settings.OLLAMA_BASE_URL}")

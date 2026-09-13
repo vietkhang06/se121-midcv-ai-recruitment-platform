@@ -155,7 +155,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
           </div>
           <div>
             <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block">
-              {t('cvUpload.badge', 'MATCHJD PARSER PIPELINE')}
+              {t('cvUpload.badge', 'MIDCV PARSER PIPELINE')}
             </span>
             <h3 className="text-xl font-editorial font-bold text-slate-900 dark:text-white">
               {t('cvUpload.title', 'Tải Lên & Phân Tích CV (PDF / DOCX)')}

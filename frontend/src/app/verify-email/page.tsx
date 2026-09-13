@@ -93,7 +93,7 @@ function VerifyEmailContent() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-xl bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-3xl shadow-2xl p-8 sm:p-10 space-y-8 relative overflow-hidden transition-colors">
-        {/* Subtle MatchJD Forest Gradient Glow */}
+        {/* Subtle MidCV Forest Gradient Glow */}
         <div className="absolute -top-32 -right-32 w-64 h-64 bg-[#0C2B24]/10 dark:bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-[#D97706]/10 dark:bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -103,7 +103,7 @@ function VerifyEmailContent() {
             <div className="w-8 h-8 rounded-lg bg-[#0C2B24] dark:bg-emerald-950 flex items-center justify-center text-[#10B981] border border-emerald-500/30">
               <ShieldCheck className="w-4 h-4" />
             </div>
-            <span className="font-editorial text-xl font-bold text-slate-900 dark:text-white">MatchJD</span>
+            <span className="font-editorial text-xl font-bold text-slate-900 dark:text-white">MidCV</span>
           </div>
           <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-[#14332B] px-2.5 py-1 rounded-full">
             Auth Layer v2
@@ -166,7 +166,7 @@ function VerifyEmailContent() {
               }}
               className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#0C2B24] hover:bg-[#133E34] dark:bg-emerald-700 dark:hover:bg-emerald-600 shadow-md transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>{t('verifyEmail.continueCta', 'Continue to MatchJD')}</span>
+              <span>{t('verifyEmail.continueCta', 'Continue to MidCV')}</span>
               <span className="text-xs font-normal opacity-90">— Đăng nhập ngay</span>
               <ArrowRight className="w-4 h-4" />
             </button>

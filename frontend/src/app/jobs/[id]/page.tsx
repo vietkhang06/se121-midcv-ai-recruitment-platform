@@ -166,7 +166,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   onClick={() => setIsApplyModalOpen(true)}
                   className="w-full py-3 px-4 rounded-lg font-semibold text-xs text-white bg-[#0C2B24] hover:bg-[#133E34] dark:bg-[#10B981] dark:hover:bg-[#059669] dark:text-[#040D0A] transition shadow-xs text-center cursor-pointer"
                 >
-                  Apply via MatchJD (Quick Apply) — Nộp đơn
+                  Apply via MidCV (Quick Apply) — Nộp đơn
                 </button>
                 <button
                   onClick={() => setIsApplyModalOpen(true)}

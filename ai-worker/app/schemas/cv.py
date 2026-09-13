@@ -37,7 +37,12 @@ class ExtractedProject(BaseModel):
 
 class ExtractedLanguage(BaseModel):
     language_name: str
-    proficiency_level: str = "INTERMEDIATE"
+    proficiency_level: Optional[str] = None
+
+class ExtractedCertification(BaseModel):
+    name: str
+    issuer: Optional[str] = None
+    date: Optional[str] = None
 
 class ContactInfo(BaseModel):
     email: Optional[str] = None
@@ -65,12 +70,16 @@ class CVExtractResponse(BaseModel):
     phone: Optional[str] = None
     contact_info: Optional[ContactInfo] = None
     github_url: Optional[str] = None
+    linkedin_url: Optional[str] = None
     portfolio_url: Optional[str] = None
     skills: List[ExtractedSkill] = Field(default_factory=list)
     experiences: List[ExtractedExperience] = Field(default_factory=list)
     educations: List[ExtractedEducation] = Field(default_factory=list)
     projects: List[ExtractedProject] = Field(default_factory=list)
+    certifications: List[ExtractedCertification] = Field(default_factory=list)
     languages: List[ExtractedLanguage] = Field(default_factory=list)
     evidences: List[CVEvidence] = Field(default_factory=list)
     status: str = "SUCCESS"
+    error_code: Optional[str] = None
     error_message: Optional[str] = None
+

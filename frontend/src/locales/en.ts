@@ -1,6 +1,6 @@
 export const en = {
   nav: {
-    brand: "MATCHJD",
+    brand: "MIDCV",
     searchJobs: "Search Jobs",
     matching: "Matching",
     matchReports: "My Match Reports",
@@ -22,7 +22,7 @@ export const en = {
     mobileMenu: "Navigation Menu"
   },
   recruiterNav: {
-    brand: "MatchJD HR Portal",
+    brand: "MidCV HR Portal",
     dashboard: "HR Dashboard",
     company: "Company Profile",
     jobs: "Job Postings",
@@ -31,10 +31,10 @@ export const en = {
     verifiedStatus: "Verified"
   },
   auth: {
-    signInTitle: "Access MatchJD",
+    signInTitle: "Access MidCV",
     signInSubtitle: "Sign in with your verified credentials to access real algorithmic matching.",
     registerTitle: "Create Account",
-    registerSubtitle: "Join MatchJD with cryptographic proof and multi-industry target tracking.",
+    registerSubtitle: "Join MidCV with cryptographic proof and multi-industry target tracking.",
     emailLabel: "Email Address",
     emailPlaceholder: "name@company.com or candidate@domain.com",
     passwordLabel: "Password",
@@ -74,7 +74,7 @@ export const en = {
   },
   logoutModal: {
     title: "Confirm Sign Out",
-    message: "Are you sure you want to sign out of your MatchJD account? Any unsaved changes may be lost.",
+    message: "Are you sure you want to sign out of your MidCV account? Any unsaved changes may be lost.",
     confirm: "Sign Out",
     cancel: "Cancel"
   },
@@ -82,8 +82,8 @@ export const en = {
     verifyingTitle: "Verifying Your Account",
     verifyingDesc: "Validating your cryptographic verification token against the authorization server...",
     successTitle: "Email Verified Successfully!",
-    successDesc: "Your account is verified and ready to use on MatchJD.",
-    continueCta: "Continue to MatchJD",
+    successDesc: "Your account is verified and ready to use on MidCV.",
+    continueCta: "Continue to MidCV",
     errorTitle: "Verification Unsuccessful",
     errorDesc: "The verification token could not be validated or has expired.",
     resendPrompt: "Request a new verification token:",
@@ -135,7 +135,7 @@ export const en = {
     lastUpdated: "Last Updated"
   },
   cvUpload: {
-    badge: "MATCHJD PARSER PIPELINE",
+    badge: "MIDCV PARSER PIPELINE",
     title: "Upload & Parse CV (PDF / DOCX)",
     subtitle: "Extract skills, experience, and structured entities via AI Worker before saving to your CV Library.",
     industry: "Target Industry",
@@ -163,7 +163,7 @@ export const en = {
     retry: "Retry"
   },
   quickApply: {
-    badge: "MATCHJD APPLICATION NODE",
+    badge: "MIDCV APPLICATION NODE",
     step1: "Select CV",
     step2: "Review Match Grid",
     step3: "Confirm & Submit",
@@ -216,7 +216,7 @@ export const en = {
     exploreCta: "Explore Jobs Now"
   },
   help: {
-    title: "MatchJD Platform User Guide",
+    title: "MidCV Platform User Guide",
     subtitle: "Complete operational instructions and algorithmic transparency for Candidates and Recruiters.",
     candidateTab: "Candidate Guide",
     recruiterTab: "Recruiter Guide",
@@ -226,7 +226,7 @@ export const en = {
     heroTag: "Vector Embedding 1536D • AI Evidence Pipeline",
     heroTitle: "Hire with verified evidence, not resume claims.",
     heroSubtitle: "Semantic Matching of JDs and Verified Profiles",
-    heroDesc: "MatchJD maps semantic vectors, GitHub repositories, and work histories directly to Job Descriptions. No black-box filtering, just transparent, explainable matches.",
+    heroDesc: "MidCV maps semantic vectors, GitHub repositories, and work histories directly to Job Descriptions. No black-box filtering, just transparent, explainable matches.",
     heroForEmployers: "For Employers — Post Talent",
     heroForCandidates: "For Candidates — Explore Matches",
     heroSearchPlaceholder: "Search roles: Senior Infrastructure Engineer, Go, Kubernetes...",

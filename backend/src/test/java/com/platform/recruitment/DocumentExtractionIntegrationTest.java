@@ -59,7 +59,7 @@ public class DocumentExtractionIntegrationTest {
         UUID candidateId = UUID.randomUUID();
 
         testUser = User.builder()
-                .email("candidate@matchjd.com")
+                .email("candidate@midcv.com")
                 .role(Role.CANDIDATE)
                 .build();
         testUser.setId(userId);

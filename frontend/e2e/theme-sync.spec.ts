@@ -18,7 +18,7 @@ test.describe('WP-01: Global Theme Synchronization Suite (THEME-01 - THEME-05)',
 
   test('THEME-01: Start in light mode -> navigate through all major routes -> light remains active', async ({ page }) => {
     await page.addInitScript(() => {
-      window.localStorage.setItem('matchjd_theme', 'light');
+      window.localStorage.setItem('midcv_theme', 'light');
     });
 
     const routes = [
@@ -41,7 +41,7 @@ test.describe('WP-01: Global Theme Synchronization Suite (THEME-01 - THEME-05)',
 
   test('THEME-02: Switch to dark mode -> navigate through all major routes -> dark remains active', async ({ page }) => {
     await page.addInitScript(() => {
-      window.localStorage.setItem('matchjd_theme', 'dark');
+      window.localStorage.setItem('midcv_theme', 'dark');
     });
 
     const routes = [
@@ -64,7 +64,7 @@ test.describe('WP-01: Global Theme Synchronization Suite (THEME-01 - THEME-05)',
 
   test('THEME-03: Refresh any major route -> selected theme remains consistent', async ({ page }) => {
     await page.addInitScript(() => {
-      window.localStorage.setItem('matchjd_theme', 'dark');
+      window.localStorage.setItem('midcv_theme', 'dark');
     });
 
     await page.goto('/candidate/cvs');
@@ -75,13 +75,13 @@ test.describe('WP-01: Global Theme Synchronization Suite (THEME-01 - THEME-05)',
     isDark = await page.evaluate(() => document.documentElement.classList.contains('dark'));
     expect(isDark).toBeTruthy();
 
-    const storedTheme = await page.evaluate(() => localStorage.getItem('matchjd_theme'));
+    const storedTheme = await page.evaluate(() => localStorage.getItem('midcv_theme'));
     expect(storedTheme).toBe('dark');
   });
 
   test('THEME-04: Open modal in either theme -> modal uses the same theme', async ({ page }) => {
     await page.addInitScript(() => {
-      window.localStorage.setItem('matchjd_theme', 'dark');
+      window.localStorage.setItem('midcv_theme', 'dark');
     });
 
     await page.goto('/jobs');
