@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { getImageSlot } from '@/config/imageConfig';
+import { BrandLogo } from '@/components/common/BrandLogo';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -19,7 +20,6 @@ import {
 export default function LoginPage() {
   const router = useRouter();
   const { login, isAuthenticated, user } = useAuth();
-
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +46,11 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      router.push('/candidate/profile');
+      if (user?.role === 'RECRUITER') {
+        router.push('/recruiter');
+      } else {
+        router.push('/candidate/profile');
+      }
     } catch (err: any) {
       if (err.code === 'EMAIL_NOT_VERIFIED' || err.message?.includes('EMAIL_NOT_VERIFIED') || err.message?.toLowerCase().includes('not verified')) {
         setIsUnverified(true);
@@ -60,35 +64,30 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#F8FAF9] dark:bg-[#071410] flex items-center justify-center p-4 sm:p-6 lg:p-8 transition-colors">
-      <div className="w-full max-w-4xl bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
+    <div className="min-h-[calc(100vh-4rem)] bg-[#F8FAFC] dark:bg-[#071A17] flex items-center justify-center p-4 sm:p-6 lg:p-8 transition-colors">
+      <div className="w-full max-w-4xl bg-white dark:bg-[#102A25] border border-[#E2E8F0] dark:border-[#1F4A40] rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
         
-        {/* Left Column: MidCV Editorial Branding */}
-        <div className="hidden md:flex md:w-5/12 bg-[#0C2B24] p-8 text-white flex-col justify-between relative overflow-hidden">
+        {/* Left Column: midCV® Editorial Branding */}
+        <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0B211D] dark:to-[#102A25] p-8 text-white flex-col justify-between relative overflow-hidden">
           <div className="relative z-10 space-y-6">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#133E34] border border-[#10B981]/30 flex items-center justify-center text-[#10B981] shadow-xs">
-                <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
-              </div>
-              <span className="font-editorial text-2xl tracking-normal text-white">MidCV</span>
-            </div>
+            <BrandLogo size="md" />
 
             <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
-                <Sparkles className="w-3 h-3" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#2563EB]/20 text-[#D7F9FA] border border-[#2563EB]/40">
+                <Sparkles className="w-3 h-3 text-[#D7F9FA]" />
                 Evidence-Based Portal
               </span>
               <h1 className="font-editorial text-3xl text-white leading-tight">
-                Sign in to your MidCV Account
+                Đăng Nhập Tài Khoản midCV®
               </h1>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Experience precision talent matching backed by verified credentials and immutable assessment records.
+                Trải nghiệm đối sánh năng lực chuẩn xác trên dữ liệu thực tế và bản lưu đánh giá bất biến.
               </p>
             </div>
           </div>
 
           {/* Graphical Representation */}
-          <div className="relative z-10 my-6 py-4 px-3 rounded-xl bg-[#081C15]/70 border border-[#133E34]/80">
+          <div className="relative z-10 my-6 py-4 px-3 rounded-xl bg-white/10 dark:bg-black/30 border border-white/10">
             {authHeroSlot.placeholderUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -98,35 +97,35 @@ export default function LoginPage() {
               />
             ) : (
               <div className="h-28 w-full flex flex-col justify-center items-center">
-                <svg className="w-full h-full text-[#10B981]" viewBox="0 0 300 100" fill="none">
-                  <line x1="20" y1="50" x2="280" y2="50" stroke="#133E34" strokeDasharray="3 3" />
-                  <circle cx="60" cy="50" r="14" fill="#0C2B24" stroke="#10B981" strokeWidth="2" />
-                  <circle cx="240" cy="50" r="14" fill="#0C2B24" stroke="#D97706" strokeWidth="2" />
-                  <circle cx="150" cy="50" r="18" fill="#133E34" stroke="#10B981" strokeWidth="2.5" />
-                  <text x="60" y="54" fontSize="9" fill="#10B981" textAnchor="middle" fontWeight="bold">CV</text>
-                  <text x="240" y="54" fontSize="9" fill="#D97706" textAnchor="middle" fontWeight="bold">JD</text>
-                  <text x="150" y="54" fontSize="10" fill="#FFFFFF" textAnchor="middle" fontWeight="bold">94%</text>
+                <svg className="w-full h-full text-[#00B14F]" viewBox="0 0 300 100" fill="none">
+                  <line x1="20" y1="50" x2="280" y2="50" stroke="rgba(255,255,255,0.2)" strokeDasharray="3 3" />
+                  <circle cx="60" cy="50" r="14" fill="#2563EB" stroke="#D7F9FA" strokeWidth="2" />
+                  <circle cx="240" cy="50" r="14" fill="#00B14F" stroke="#A7F3D0" strokeWidth="2" />
+                  <circle cx="150" cy="50" r="18" fill="#1E3A5F" stroke="#00B14F" strokeWidth="2.5" />
+                  <text x="60" y="54" fontSize="9" fill="#FFFFFF" textAnchor="middle" fontWeight="bold">CV</text>
+                  <text x="240" y="54" fontSize="9" fill="#FFFFFF" textAnchor="middle" fontWeight="bold">JD</text>
+                  <text x="150" y="54" fontSize="10" fill="#FACC15" textAnchor="middle" fontWeight="bold">94%</text>
                 </svg>
               </div>
             )}
           </div>
 
-          <div className="relative z-10 space-y-2 pt-2 border-t border-[#133E34]">
+          <div className="relative z-10 space-y-2 pt-2 border-t border-white/10">
             <div className="flex items-center gap-2 text-[11px] text-slate-300">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981]" />
-              <span>Multi-dimensional semantic scoring</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#00B14F]" />
+              <span>Đối sánh vector ngữ nghĩa đa chiều</span>
             </div>
           </div>
         </div>
 
         {/* Right Column: Login Form */}
-        <div className="w-full md:w-7/12 p-6 sm:p-10 bg-[#FBF9F5] dark:bg-[#0A1A15] flex flex-col justify-between">
+        <div className="w-full md:w-7/12 p-6 sm:p-10 bg-white dark:bg-[#102A25] flex flex-col justify-between">
           <div>
             <div className="mb-6 space-y-1">
-              <h2 className="font-editorial text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              <h2 className="font-editorial text-2xl font-bold text-[#0F2A52] dark:text-[#F1F5F9] tracking-tight">
                 Đăng Nhập Tài Khoản
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
                 Nhập email và mật khẩu của bạn để tiếp tục.
               </p>
             </div>
@@ -140,7 +139,7 @@ export default function LoginPage() {
                     <div className="pt-1">
                       <Link
                         href="/verify-email"
-                        className="text-emerald-700 dark:text-emerald-400 underline font-semibold hover:text-emerald-900 dark:hover:text-emerald-300"
+                        className="text-[#2563EB] dark:text-[#3B82F6] underline font-semibold hover:text-[#1D4ED8]"
                       >
                         Đến trang xác thực email
                       </Link>
@@ -152,8 +151,8 @@ export default function LoginPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
-                  <Mail className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                <label className="block text-xs font-semibold text-[#1E3A5F] dark:text-[#D6E4E1] mb-1 flex items-center gap-1">
+                  <Mail className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
                   <span>Email đăng nhập</span>
                 </label>
                 <input
@@ -161,14 +160,14 @@ export default function LoginPage() {
                   placeholder="name@example.com"
                   value={email || ''}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 focus:ring-1 focus:ring-[#0C2B24] dark:focus:ring-emerald-500 placeholder-slate-400 dark:placeholder-slate-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#071A17] border border-[#CBD5E1] dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] placeholder-[#94A3B8]"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
-                  <Lock className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                <label className="block text-xs font-semibold text-[#1E3A5F] dark:text-[#D6E4E1] mb-1 flex items-center gap-1">
+                  <Lock className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
                   <span>Mật khẩu</span>
                 </label>
                 <input
@@ -176,7 +175,7 @@ export default function LoginPage() {
                   placeholder="Nhập mật khẩu..."
                   value={password || ''}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 focus:ring-1 focus:ring-[#0C2B24] dark:focus:ring-emerald-500 placeholder-slate-400 dark:placeholder-slate-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#071A17] border border-[#CBD5E1] dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] placeholder-[#94A3B8]"
                   required
                 />
               </div>
@@ -184,7 +183,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0C2B24] dark:bg-emerald-600 hover:bg-[#133E34] dark:hover:bg-emerald-700 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <LogIn className="w-4 h-4" />
                 <span>{isLoading ? 'Đang đăng nhập...' : 'Đăng nhập ngay'}</span>
@@ -192,11 +191,11 @@ export default function LoginPage() {
             </form>
           </div>
 
-          <div className="mt-8 pt-4 border-t border-slate-200 dark:border-[#1B3D34] text-xs text-slate-600 dark:text-slate-400 flex items-center justify-between">
-            <span>Chưa có tài khoản MidCV?</span>
+          <div className="mt-8 pt-4 border-t border-[#E2E8F0] dark:border-[#1F4A40] text-xs text-[#64748B] dark:text-[#94A3B8] flex items-center justify-between">
+            <span>Chưa có tài khoản midCV®?</span>
             <Link
               href="/register"
-              className="font-semibold text-[#0C2B24] dark:text-emerald-400 hover:text-[#10B981] flex items-center gap-1 transition"
+              className="font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:text-[#1D4ED8] flex items-center gap-1 transition"
             >
               <span>Đăng ký tài khoản</span>
               <ArrowRight className="w-3.5 h-3.5" />

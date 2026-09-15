@@ -13,6 +13,7 @@ import {
 import { getImageSlot } from '@/config/imageConfig';
 import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter';
 import { useLanguage } from '@/context/LanguageContext';
+import { BrandLogo } from '@/components/common/BrandLogo';
 import {
   X,
   LogIn,
@@ -265,48 +266,43 @@ export const AuthModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-4xl bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-2xl shadow-2xl text-slate-900 dark:text-slate-100 relative overflow-hidden max-h-[92vh] flex flex-col md:flex-row">
+      <div className="w-full max-w-4xl bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl shadow-2xl text-[#0F2A52] dark:text-[#F1F5F9] relative overflow-hidden max-h-[92vh] flex flex-col md:flex-row">
         
         {/* Close Button */}
         <button
           onClick={closeAuthModal}
-          className="absolute top-4 right-4 z-20 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#133E34] transition"
+          className="absolute top-4 right-4 z-20 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1F4A40] transition"
           aria-label="Close"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* LEFT COLUMN: MidCV Editorial Brand Visual & Hero Placeholder */}
-        <div className="hidden md:flex md:w-5/12 bg-[#0C2B24] p-8 text-white flex-col justify-between relative overflow-hidden select-none">
+        {/* LEFT COLUMN: midCV® Editorial Brand Visual & Hero Placeholder */}
+        <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0B211D] dark:to-[#102A25] p-8 text-white flex-col justify-between relative overflow-hidden select-none">
           {/* Subtle background radial accent */}
-          <div className="absolute -top-24 -left-24 w-72 h-72 bg-[#10B981]/15 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-[#D97706]/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -top-24 -left-24 w-72 h-72 bg-[#2563EB]/25 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-[#00B14F]/15 rounded-full blur-3xl pointer-events-none" />
 
           {/* Top Brand Identity */}
           <div className="relative z-10 space-y-6">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#133E34] border border-[#10B981]/30 flex items-center justify-center text-[#10B981] shadow-xs">
-                <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
-              </div>
-              <span className="font-editorial text-2xl tracking-normal text-white">MidCV</span>
-            </div>
+            <BrandLogo size="md" />
 
             <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
-                <Sparkles className="w-3 h-3" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#2563EB]/25 text-[#D7F9FA] border border-[#2563EB]/40">
+                <Sparkles className="w-3 h-3 text-[#D7F9FA]" />
                 Evidence-Based Recruitment
               </span>
               <h2 className="font-editorial text-2xl lg:text-3xl text-white leading-tight">
-                Verifiable Credentials. Zero-Biased Hiring.
+                Hồ Sơ Xác Thực. Tuyển Dụng Không Thiên Vị.
               </h2>
-              <p className="text-xs text-slate-300/90 leading-relaxed">
-                Connect candidate verified competencies with recruiter criteria through multi-dimensional vector embeddings and cryptographic evidence.
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Đối sánh chuẩn xác năng lực thực của ứng viên với tiêu chí tuyển dụng thông qua vector embeddings đa chiều và minh chứng số.
               </p>
             </div>
           </div>
 
           {/* Center Graphic: IMAGE_PLACEHOLDER_AUTH_HERO */}
-          <div className="relative z-10 my-6 py-4 px-3 rounded-xl bg-[#081C15]/70 border border-[#133E34]/80">
+          <div className="relative z-10 my-6 py-4 px-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-xs">
             {authHeroSlot.placeholderUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -317,23 +313,23 @@ export const AuthModal: React.FC = () => {
             ) : (
               /* Vector Geometric Match Graph Illustration */
               <div className="h-32 w-full flex flex-col justify-center items-center relative">
-                <svg className="w-full h-full text-[#10B981]" viewBox="0 0 300 120" fill="none">
+                <svg className="w-full h-full text-[#00B14F]" viewBox="0 0 300 120" fill="none">
                   {/* Background Grid Pattern */}
-                  <line x1="20" y1="60" x2="280" y2="60" stroke="#133E34" strokeDasharray="3 3" />
-                  <line x1="150" y1="10" x2="150" y2="110" stroke="#133E34" strokeDasharray="3 3" />
+                  <line x1="20" y1="60" x2="280" y2="60" stroke="#2563EB" strokeOpacity="0.25" strokeDasharray="3 3" />
+                  <line x1="150" y1="10" x2="150" y2="110" stroke="#2563EB" strokeOpacity="0.25" strokeDasharray="3 3" />
                   {/* Semantic Connection Arcs */}
-                  <path d="M 50 60 Q 150 15 250 60" stroke="#10B981" strokeWidth="2" strokeOpacity="0.8" />
-                  <path d="M 50 60 Q 150 105 250 60" stroke="#D97706" strokeWidth="1.5" strokeOpacity="0.7" strokeDasharray="4 2" />
+                  <path d="M 50 60 Q 150 15 250 60" stroke="#00B14F" strokeWidth="2" strokeOpacity="0.9" />
+                  <path d="M 50 60 Q 150 105 250 60" stroke="#2563EB" strokeWidth="1.5" strokeOpacity="0.8" strokeDasharray="4 2" />
                   {/* Nodes */}
-                  <circle cx="50" cy="60" r="14" fill="#0C2B24" stroke="#10B981" strokeWidth="2" />
-                  <circle cx="250" cy="60" r="14" fill="#0C2B24" stroke="#D97706" strokeWidth="2" />
-                  <circle cx="150" cy="60" r="18" fill="#133E34" stroke="#10B981" strokeWidth="2.5" />
+                  <circle cx="50" cy="60" r="14" fill="#0F2A52" stroke="#00B14F" strokeWidth="2" />
+                  <circle cx="250" cy="60" r="14" fill="#0F2A52" stroke="#2563EB" strokeWidth="2" />
+                  <circle cx="150" cy="60" r="18" fill="#1E3A5F" stroke="#00B14F" strokeWidth="2.5" />
                   {/* Inner node symbols */}
-                  <text x="50" y="64" fontSize="9" fill="#10B981" textAnchor="middle" fontWeight="bold">CV</text>
-                  <text x="250" y="64" fontSize="9" fill="#D97706" textAnchor="middle" fontWeight="bold">JD</text>
+                  <text x="50" y="64" fontSize="9" fill="#00B14F" textAnchor="middle" fontWeight="bold">CV</text>
+                  <text x="250" y="64" fontSize="9" fill="#93C5FD" textAnchor="middle" fontWeight="bold">JD</text>
                   <text x="150" y="64" fontSize="10" fill="#FFFFFF" textAnchor="middle" fontWeight="bold">94%</text>
                 </svg>
-                <div className="absolute bottom-1 text-[10px] font-mono text-emerald-400/80">
+                <div className="absolute bottom-1 text-[10px] font-mono text-[#D7F9FA]">
                   Semantic Vector Cosine Similarity
                 </div>
               </div>
@@ -341,33 +337,33 @@ export const AuthModal: React.FC = () => {
           </div>
 
           {/* Bottom Trust Indicators */}
-          <div className="relative z-10 space-y-2 pt-2 border-t border-[#133E34]">
+          <div className="relative z-10 space-y-2 pt-2 border-t border-white/10">
             <div className="flex items-center gap-2 text-[11px] text-slate-300">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981] flex-shrink-0" />
-              <span>Immutable snapshot on application submission</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#00B14F] flex-shrink-0" />
+              <span>Bản lưu CV bất biến (Immutable Snapshot)</span>
             </div>
             <div className="flex items-center gap-2 text-[11px] text-slate-300">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981] flex-shrink-0" />
-              <span>Supplementary objective GitHub telemetry</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#00B14F] flex-shrink-0" />
+              <span>Đối soát khách quan, bảo vệ quyền riêng tư</span>
             </div>
           </div>
         </div>
 
         {/* RIGHT COLUMN: Form Controls & Interactive States */}
-        <div className="w-full md:w-7/12 p-6 sm:p-8 bg-[#FBF9F5] dark:bg-[#0A1A15] flex flex-col justify-between overflow-y-auto max-h-[92vh]">
+        <div className="w-full md:w-7/12 p-6 sm:p-8 bg-white dark:bg-[#102A25] flex flex-col justify-between overflow-y-auto max-h-[92vh]">
           <div>
             {/* Header Title based on Active View */}
             <div className="mb-5 space-y-1">
-              <h3 className="font-editorial text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              <h3 className="font-editorial text-2xl font-bold text-[#0F2A52] dark:text-[#F1F5F9] tracking-tight">
                 {activeTab === 'LOGIN'
                   ? 'Đăng Nhập Tài Khoản'
                   : activeTab === 'REGISTER'
                   ? 'Đăng Ký Tài Khoản Mới'
                   : 'Xác Thực Tài Khoản Email'}
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
                 {activeTab === 'LOGIN'
-                  ? 'Nhập email và mật khẩu của bạn để truy cập MidCV.'
+                  ? 'Nhập email và mật khẩu của bạn để truy cập midCV®.'
                   : activeTab === 'REGISTER'
                   ? 'Tạo tài khoản để đối sánh năng lực thực và ứng tuyển.'
                   : `Mã xác thực đã được gửi đến ${pendingVerificationEmail}`}
@@ -376,7 +372,7 @@ export const AuthModal: React.FC = () => {
 
             {/* Tab Switcher (Visible on Login & Register) */}
             {activeTab !== 'VERIFICATION_PENDING' && (
-              <div className="flex bg-[#EFECE6] dark:bg-[#0E241E] p-1 rounded-xl mb-5 border border-slate-200 dark:border-[#1B3D34]">
+              <div className="flex bg-slate-100 dark:bg-[#071A17] p-1 rounded-xl mb-5 border border-slate-200 dark:border-[#1F4A40]">
                 <button
                   type="button"
                   onClick={() => {
@@ -385,8 +381,8 @@ export const AuthModal: React.FC = () => {
                   }}
                   className={`flex-1 py-2 text-xs font-semibold rounded-lg transition ${
                     activeTab === 'LOGIN'
-                      ? 'bg-[#0C2B24] dark:bg-emerald-600 text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      ? 'bg-[#2563EB] text-white shadow-xs'
+                      : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white'
                   }`}
                 >
                   Đăng nhập
@@ -399,8 +395,8 @@ export const AuthModal: React.FC = () => {
                   }}
                   className={`flex-1 py-2 text-xs font-semibold rounded-lg transition ${
                     activeTab === 'REGISTER'
-                      ? 'bg-[#0C2B24] dark:bg-emerald-600 text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      ? 'bg-[#2563EB] text-white shadow-xs'
+                      : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white'
                   }`}
                 >
                   Đăng ký tài khoản
@@ -410,8 +406,8 @@ export const AuthModal: React.FC = () => {
 
             {/* Intended Action Notice */}
             {intendedAction && activeTab !== 'VERIFICATION_PENDING' && (
-              <div className="mb-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <div className="mb-4 p-3 rounded-xl bg-[#EFF6FF] dark:bg-[#2563EB]/15 border border-[#2563EB]/30 text-xs text-[#1E40AF] dark:text-[#93C5FD] flex items-center gap-2">
+                <Sparkles className="w-4 h-4 flex-shrink-0 text-[#2563EB]" />
                 <span>Đăng nhập để tiếp tục thao tác nộp đơn ứng tuyển của bạn.</span>
               </div>
             )}
@@ -430,7 +426,7 @@ export const AuthModal: React.FC = () => {
                             type="button"
                             onClick={handleResend}
                             disabled={resendCooldown > 0}
-                            className="text-emerald-700 dark:text-emerald-400 underline font-semibold hover:text-emerald-900 dark:hover:text-emerald-300"
+                            className="text-[#2563EB] dark:text-[#60A5FA] underline font-semibold hover:text-[#1D4ED8]"
                           >
                             {resendCooldown > 0
                               ? `Gửi lại sau ${resendCooldown}s`
@@ -443,8 +439,8 @@ export const AuthModal: React.FC = () => {
                 )}
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
-                    <Mail className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                  <label className="block text-xs font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 flex items-center gap-1">
+                    <Mail className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
                     <span>Email đăng nhập</span>
                   </label>
                   <input
@@ -452,14 +448,14 @@ export const AuthModal: React.FC = () => {
                     placeholder="name@example.com"
                     value={loginEmail ?? ''}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 focus:ring-1 focus:ring-[#0C2B24] dark:focus:ring-emerald-500 placeholder-slate-400 dark:placeholder-slate-500 transition"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500 transition"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
-                    <Lock className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                  <label className="block text-xs font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 flex items-center gap-1">
+                    <Lock className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
                     <span>Mật khẩu</span>
                   </label>
                   <input
@@ -467,7 +463,7 @@ export const AuthModal: React.FC = () => {
                     placeholder="Nhập mật khẩu..."
                     value={loginPassword ?? ''}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 focus:ring-1 focus:ring-[#0C2B24] dark:focus:ring-emerald-500 placeholder-slate-400 dark:placeholder-slate-500 transition"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500 transition"
                     required
                   />
                 </div>
@@ -475,7 +471,7 @@ export const AuthModal: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoginLoading}
-                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0C2B24] dark:bg-emerald-600 hover:bg-[#133E34] dark:hover:bg-emerald-700 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <LogIn className="w-4 h-4" />
                   <span>{isLoginLoading ? 'Đang đăng nhập...' : 'Đăng nhập ngay'}</span>
@@ -500,8 +496,8 @@ export const AuthModal: React.FC = () => {
                     onClick={() => setRegisterRole('CANDIDATE')}
                     className={`p-2 rounded-xl border text-center font-semibold transition ${
                       registerRole === 'CANDIDATE'
-                        ? 'border-[#0C2B24] dark:border-emerald-500 bg-[#0C2B24] dark:bg-emerald-600 text-white shadow-xs'
-                        : 'border-slate-200 dark:border-[#1B3D34] bg-white dark:bg-[#071410] text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                        ? 'border-[#2563EB] bg-[#2563EB] text-white shadow-xs'
+                        : 'border-slate-200 dark:border-[#1F4A40] bg-white dark:bg-[#071A17] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white'
                     }`}
                   >
                     Ứng viên tìm việc
@@ -511,8 +507,8 @@ export const AuthModal: React.FC = () => {
                     onClick={() => setRegisterRole('RECRUITER')}
                     className={`p-2 rounded-xl border text-center font-semibold transition ${
                       registerRole === 'RECRUITER'
-                        ? 'border-[#D97706] bg-[#D97706] text-white shadow-xs'
-                        : 'border-slate-200 dark:border-[#1B3D34] bg-white dark:bg-[#071410] text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                        ? 'border-[#2563EB] bg-[#2563EB] text-white shadow-xs'
+                        : 'border-slate-200 dark:border-[#1F4A40] bg-white dark:bg-[#071A17] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white'
                     }`}
                   >
                     Nhà tuyển dụng (HR)
@@ -521,8 +517,8 @@ export const AuthModal: React.FC = () => {
 
                 {/* Full Name */}
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
-                    <User className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                  <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 flex items-center gap-1">
+                    <User className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
                     <span>{registerRole === 'CANDIDATE' ? 'Họ và tên ứng viên' : 'Họ và tên người tuyển dụng'}</span>
                   </label>
                   <input
@@ -530,15 +526,15 @@ export const AuthModal: React.FC = () => {
                     placeholder="Nguyễn Văn A"
                     value={regFullName ?? ''}
                     onChange={(e) => setRegFullName(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 placeholder-slate-400 dark:placeholder-slate-500"
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500"
                     required
                   />
                 </div>
 
                 {/* Email with Debounced Existence Check */}
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
-                    <Mail className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                  <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 flex items-center gap-1">
+                    <Mail className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
                     <span>Email tài khoản</span>
                   </label>
                   <input
@@ -546,12 +542,12 @@ export const AuthModal: React.FC = () => {
                     placeholder="name@example.com"
                     value={regEmail ?? ''}
                     onChange={(e) => handleEmailChange(e.target.value)}
-                    className={`w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#071410] border text-slate-900 dark:text-slate-100 text-sm focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 ${
+                    className={`w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 ${
                       emailCheckStatus === 'ALREADY_EXISTS'
                         ? 'border-rose-500'
                         : emailCheckStatus === 'AVAILABLE'
-                        ? 'border-emerald-500'
-                        : 'border-slate-300 dark:border-[#1B3D34] focus:border-[#0C2B24] dark:focus:border-emerald-500'
+                        ? 'border-[#00B14F]'
+                        : 'border-slate-200 dark:border-[#1F4A40] focus:border-[#2563EB]'
                     }`}
                     required
                   />
@@ -559,19 +555,19 @@ export const AuthModal: React.FC = () => {
                   <div className="pt-1 text-[11px]">
                     {emailCheckStatus === 'CHECKING' && (
                       <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                        <RefreshCw className="w-3 h-3 animate-spin text-emerald-600 dark:text-emerald-400" />
+                        <RefreshCw className="w-3 h-3 animate-spin text-[#2563EB]" />
                         <span>Đang kiểm tra email...</span>
                       </span>
                     )}
                     {emailCheckStatus === 'AVAILABLE' && (
-                      <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-[#00B14F] dark:text-[#10B981] flex items-center gap-1 font-medium">
+                        <CheckCircle2 className="w-3 h-3 text-[#00B14F]" />
                         <span>Email có thể sử dụng.</span>
                       </span>
                     )}
                     {emailCheckStatus === 'ALREADY_EXISTS' && (
-                      <span className="text-rose-700 dark:text-rose-400 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                      <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1 font-medium">
+                        <AlertCircle className="w-3 h-3 text-rose-600" />
                         <span>Email đã tồn tại trong hệ thống.</span>
                       </span>
                     )}
@@ -582,7 +578,7 @@ export const AuthModal: React.FC = () => {
                 {registerRole === 'CANDIDATE' ? (
                   <div className="space-y-3">
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">
+                      <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 text-xs">
                         {t('auth.ageLabel', 'Độ tuổi')}
                       </label>
                       <input
@@ -591,15 +587,15 @@ export const AuthModal: React.FC = () => {
                         max={70}
                         value={regAge || ''}
                         onChange={(e) => setRegAge(parseInt(e.target.value) || 22)}
-                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5 text-xs">
+                      <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1.5 text-xs">
                         {t('auth.targetIndustriesLabel', 'Ngành mục tiêu (Có thể chọn nhiều ngành)')}
                       </label>
-                      <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-50 dark:bg-[#0A1E19] border border-slate-200 dark:border-[#1B3D34] rounded-xl">
+                      <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] rounded-xl">
                         {TARGET_INDUSTRIES_LIST.map((ind) => {
                           const isChecked = regTargetIndustries.includes(ind);
                           return (
@@ -607,15 +603,15 @@ export const AuthModal: React.FC = () => {
                               key={ind}
                               className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition select-none ${
                                 isChecked
-                                  ? 'bg-[#0C2B24] dark:bg-emerald-900/60 text-white font-medium shadow-2xs'
-                                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-[#14332B]'
+                                  ? 'bg-[#2563EB] text-white font-medium shadow-xs'
+                                  : 'text-[#64748B] dark:text-[#94A3B8] hover:bg-slate-200/60 dark:hover:bg-[#1F4A40]/60'
                               }`}
                             >
                               <input
                                 type="checkbox"
                                 checked={isChecked}
                                 onChange={() => toggleRegIndustry(ind)}
-                                className="accent-emerald-600 rounded cursor-pointer"
+                                className="accent-[#2563EB] rounded cursor-pointer"
                               />
                               <span className="truncate">{ind}</span>
                             </label>
@@ -627,8 +623,8 @@ export const AuthModal: React.FC = () => {
                 ) : (
                   <div className="space-y-2">
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1 text-xs">
-                        <Building2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                      <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 flex items-center gap-1 text-xs">
+                        <Building2 className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
                         <span>{t('auth.companyNameLabel', 'Tên công ty / Doanh nghiệp')}</span>
                       </label>
                       <input
@@ -636,18 +632,18 @@ export const AuthModal: React.FC = () => {
                         placeholder="CloudScale Systems Corp"
                         value={regCompanyName ?? ''}
                         onChange={(e) => setRegCompanyName(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 placeholder-slate-400 dark:placeholder-slate-500"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">
+                      <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 text-xs">
                         {t('auth.companyIndustryLabel', 'Lĩnh vực hoạt động')}
                       </label>
                       <select
                         value={regCompanyIndustry ?? 'Technology'}
                         onChange={(e) => setRegCompanyIndustry(e.target.value as Industry)}
-                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB]"
                       >
                         <option value="Technology">Công nghệ (IT)</option>
                         <option value="Finance">Tài chính - Fintech</option>
@@ -662,8 +658,8 @@ export const AuthModal: React.FC = () => {
                 {/* Password Fields */}
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1 text-xs">
-                      <Lock className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                    <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 flex items-center gap-1 text-xs">
+                      <Lock className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
                       <span>{t('auth.passwordLabel', 'Mật khẩu')}</span>
                     </label>
                     <input
@@ -671,12 +667,12 @@ export const AuthModal: React.FC = () => {
                       placeholder="Ít nhất 8 ký tự"
                       value={regPassword ?? ''}
                       onChange={(e) => setRegPassword(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 placeholder-slate-400 dark:placeholder-slate-500"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">
+                    <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 text-xs">
                       {t('auth.confirmPasswordLabel', 'Nhập lại mật khẩu')}
                     </label>
                     <input
@@ -684,7 +680,7 @@ export const AuthModal: React.FC = () => {
                       placeholder="Xác nhận mật khẩu"
                       value={regConfirmPassword ?? ''}
                       onChange={(e) => setRegConfirmPassword(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-[#071410] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 placeholder-slate-400 dark:placeholder-slate-500"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500"
                       required
                     />
                   </div>
@@ -692,7 +688,7 @@ export const AuthModal: React.FC = () => {
 
                 {/* Password Strength Meter */}
                 {regPassword && (
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0A1E19] border border-slate-200 dark:border-[#1B3D34]">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40]">
                     <PasswordStrengthMeter password={regPassword} />
                   </div>
                 )}
@@ -700,7 +696,7 @@ export const AuthModal: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isRegisterLoading || emailCheckStatus === 'ALREADY_EXISTS'}
-                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0C2B24] dark:bg-emerald-600 hover:bg-[#133E34] dark:hover:bg-emerald-700 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2"
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>{isRegisterLoading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản & nhận link xác thực'}</span>
@@ -711,39 +707,39 @@ export const AuthModal: React.FC = () => {
             {/* 3. EMAIL VERIFICATION PENDING SCREEN */}
             {activeTab === 'VERIFICATION_PENDING' && (
               <div className="space-y-4 py-2">
-                <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-200 space-y-3">
+                <div className="p-4 rounded-xl bg-[#E8F8EE] dark:bg-[#00B14F]/15 border border-[#00B14F]/30 text-[#00873D] dark:text-[#10B981] space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-[#00B14F] flex items-center justify-center text-white flex-shrink-0">
                       <Mail className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-sm text-slate-900 dark:text-white">Kiểm tra hộp thư email của bạn</h4>
-                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                      <h4 className="font-semibold text-sm text-[#0F2A52] dark:text-white">Kiểm tra hộp thư email của bạn</h4>
+                      <p className="text-xs text-[#64748B] dark:text-slate-300">
                         Một email xác thực tài khoản kèm liên kết bảo mật đã được gửi tới:
                       </p>
-                      <strong className="text-xs text-emerald-800 dark:text-emerald-400 break-all">{pendingVerificationEmail}</strong>
+                      <strong className="text-xs text-[#00B14F] dark:text-[#10B981] break-all">{pendingVerificationEmail}</strong>
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-600 dark:text-slate-300 border-t border-emerald-200/60 dark:border-emerald-800/40 pt-2">
+                  <p className="text-xs text-[#64748B] dark:text-slate-300 border-t border-[#00B14F]/20 dark:border-[#00B14F]/30 pt-2">
                     Vui lòng bấm vào liên kết trong email để kích hoạt tài khoản của bạn. Sau khi xác thực, bạn có thể đăng nhập bình thường.
                   </p>
                 </div>
 
                 {/* Dev Environment Direct Verification Link Helper */}
                 {devVerificationToken && (
-                  <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/40 text-amber-900 dark:text-amber-200 text-xs space-y-2">
-                    <div className="flex items-center gap-1.5 font-bold text-[11px] text-amber-800 dark:text-amber-300 uppercase tracking-wide">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <div className="p-3.5 rounded-xl bg-[#FEF9C3] dark:bg-[#FACC15]/15 border border-[#FACC15]/40 text-[#92400E] dark:text-[#FACC15] text-xs space-y-2">
+                    <div className="flex items-center gap-1.5 font-bold text-[11px] text-[#92400E] dark:text-[#FACC15] uppercase tracking-wide">
+                      <Sparkles className="w-3.5 h-3.5 text-[#FACC15]" />
                       <span>[Môi trường phát triển & Test] Mã Token Xác Thực</span>
                     </div>
-                    <div className="font-mono text-[11px] bg-white dark:bg-[#071410] p-2 rounded border border-amber-200 dark:border-amber-800/40 break-all text-slate-800 dark:text-slate-100">
+                    <div className="font-mono text-[11px] bg-white dark:bg-[#071A17] p-2 rounded border border-[#FACC15]/40 break-all text-[#0F2A52] dark:text-slate-100">
                       {devVerificationToken}
                     </div>
                     <Link
                       href={`/verify-email?token=${devVerificationToken}`}
                       onClick={closeAuthModal}
-                      className="inline-flex items-center gap-1.5 font-semibold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 underline pt-1"
+                      className="inline-flex items-center gap-1.5 font-semibold text-[#2563EB] hover:text-[#1D4ED8] dark:text-[#60A5FA] underline pt-1"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       <span>Xác thực ngay (mở liên kết)</span>
@@ -753,7 +749,7 @@ export const AuthModal: React.FC = () => {
 
                 {/* Resend Status Message */}
                 {resendMessage && (
-                  <div className="p-2.5 rounded-lg bg-slate-100 dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] text-xs text-slate-700 dark:text-slate-300">
+                  <div className="p-2.5 rounded-lg bg-slate-100 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-xs text-[#64748B] dark:text-[#94A3B8]">
                     {resendMessage}
                   </div>
                 )}
@@ -764,7 +760,7 @@ export const AuthModal: React.FC = () => {
                     type="button"
                     onClick={handleResend}
                     disabled={resendCooldown > 0}
-                    className="w-full sm:w-auto px-4 py-2 rounded-lg border border-slate-300 dark:border-[#1B3D34] bg-white dark:bg-[#071410] hover:bg-slate-50 dark:hover:bg-[#133E34] font-semibold text-slate-700 dark:text-slate-200 disabled:opacity-50 transition cursor-pointer flex items-center justify-center gap-1.5"
+                    className="w-full sm:w-auto px-4 py-2 rounded-lg border border-slate-300 dark:border-[#1F4A40] bg-white dark:bg-[#071A17] hover:bg-slate-50 dark:hover:bg-[#1F4A40]/50 font-semibold text-[#0F2A52] dark:text-slate-200 disabled:opacity-50 transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${resendCooldown > 0 ? 'animate-spin' : ''}`} />
                     <span>
@@ -780,7 +776,7 @@ export const AuthModal: React.FC = () => {
                       setActiveTab('LOGIN');
                       setLoginError(null);
                     }}
-                    className="text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 font-semibold underline"
+                    className="text-[#2563EB] dark:text-[#60A5FA] hover:text-[#1D4ED8] font-semibold underline"
                   >
                     Quay lại màn hình đăng nhập
                   </button>
@@ -790,9 +786,9 @@ export const AuthModal: React.FC = () => {
           </div>
 
           {/* Footer Note */}
-          <div className="mt-6 pt-3 border-t border-slate-200 dark:border-[#1B3D34] text-[11px] text-slate-500 dark:text-slate-400 text-center flex items-center justify-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>MidCV bảo vệ quyền riêng tư & chuẩn hóa đối sánh năng lực thực.</span>
+          <div className="mt-6 pt-3 border-t border-slate-200 dark:border-[#1F4A40] text-[11px] text-[#64748B] dark:text-[#94A3B8] text-center flex items-center justify-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#00B14F]" />
+            <span>midCV® bảo vệ quyền riêng tư & chuẩn hóa đối sánh năng lực thực.</span>
           </div>
         </div>
 

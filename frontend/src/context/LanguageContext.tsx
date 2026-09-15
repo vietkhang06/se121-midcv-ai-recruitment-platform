@@ -33,7 +33,11 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const toggleLocale = () => {
-    setLocale(locale === 'vi' ? 'en' : 'vi');
+    setLocaleState((prev) => {
+      const next = prev === 'vi' ? 'en' : 'vi';
+      localStorage.setItem('midcv_lang', next);
+      return next;
+    });
   };
 
   const t = (path: string, fallback?: string): string => {
