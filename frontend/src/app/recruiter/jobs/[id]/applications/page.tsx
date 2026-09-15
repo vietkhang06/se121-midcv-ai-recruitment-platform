@@ -113,9 +113,9 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
             <div className="flex items-center gap-3">
               <Link
                 href={`/recruiter/jobs/${job.id}/ranking`}
-                className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-[#0C2B24] hover:bg-[#133E34] transition shadow-xs flex items-center gap-1.5"
+                className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-[#00B14F] hover:bg-[#009643] shadow-sm shadow-emerald-500/20 transition flex items-center gap-1.5"
               >
-                <Award className="w-4 h-4 text-emerald-400" />
+                <Award className="w-4 h-4 text-white" />
                 <span>Mở Bảng Xếp Hạng AI (NDCG@K)</span>
               </Link>
             </div>
@@ -123,12 +123,12 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
         </div>
 
         {/* Active Job Bar */}
-        <div className="bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
               Vị trí tuyển: <strong className="text-slate-900 dark:text-white">{job.title}</strong>
             </span>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-blue-50 dark:bg-blue-950/60 text-[#2563EB] dark:text-blue-400 border border-blue-200 dark:border-blue-800">
               {jobApplications.length} Ứng viên đã nộp đơn
             </span>
           </div>
@@ -136,7 +136,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
           <div className="flex items-center gap-2">
             <Link
               href={`/jobs/${job.id}`}
-              className="px-3 py-1.5 rounded-md text-xs font-medium border border-slate-200 dark:border-[#1B3D34] bg-[#F8FAF9] dark:bg-[#071410] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#14332B]"
+              className="px-3 py-1.5 rounded-md text-xs font-medium border border-slate-200 dark:border-[#1F4A40] bg-slate-50 dark:bg-[#081C18] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#14352E] transition"
             >
               Xem trang bài đăng JD
             </Link>
@@ -155,10 +155,10 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start pb-4">
             {columns.map((col, idx) => (
-              <div key={idx} className="bg-slate-100/70 dark:bg-[#0E241E]/80 border border-slate-200 dark:border-[#1B3D34] rounded-xl p-3.5 space-y-3 min-w-[220px]">
+              <div key={idx} className="bg-slate-100/70 dark:bg-[#0B211D] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-3.5 space-y-3 min-w-[220px]">
                 <div className="flex items-center justify-between font-semibold text-xs text-slate-800 dark:text-slate-200 px-1">
                   <span>{col.title}</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34]">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40]">
                     {col.count}
                   </span>
                 </div>
@@ -166,7 +166,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                 <div className="space-y-3">
                   {col.items.length > 0 ? (
                     col.items.map((app) => (
-                      <div key={app.id} className="bg-white dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] rounded-lg p-3.5 space-y-2 shadow-xs">
+                      <div key={app.id} className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-lg p-3.5 space-y-2 shadow-xs">
                         <div className="flex items-center justify-between">
                           <div>
                             <span className="font-semibold text-xs text-slate-900 dark:text-white block">
@@ -176,7 +176,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                               {app.appliedCvTitle || 'Ứng viên'}
                             </span>
                           </div>
-                          <span className="text-[10px] font-bold font-mono text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                          <span className="text-[10px] font-bold font-mono text-[#00B14F] bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
                             v{app.appliedCvVersion}.0
                           </span>
                         </div>
@@ -190,7 +190,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                         )}
                         <Link
                           href={`/recruiter/applications/${app.id}`}
-                          className="block text-center py-1 rounded text-[10px] font-semibold border border-slate-200 dark:border-[#1B3D34] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#14332B]"
+                          className="block text-center py-1.5 rounded text-[10px] font-semibold border border-slate-200 dark:border-[#1F4A40] text-[#2563EB] dark:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-[#14352E] transition"
                         >
                           Kiểm tra hồ sơ đối sánh
                         </Link>

@@ -129,9 +129,9 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
           {selectedCompareCandidates.length > 0 && (
             <button
               onClick={() => setIsCompareModalOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-[#0C2B24] hover:bg-[#133E34] dark:bg-[#10B981] dark:hover:bg-[#059669] dark:text-[#040D0A] shadow-xs transition active:scale-95 flex-shrink-0"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-md shadow-blue-500/20 transition active:scale-95 flex-shrink-0 cursor-pointer"
             >
-              <Layers className="w-4 h-4 text-emerald-400 dark:text-[#040D0A]" />
+              <Layers className="w-4 h-4 text-white" />
               <span>So Sánh ({selectedCompareCandidates.length} Ứng viên)</span>
             </button>
           )}
@@ -154,37 +154,37 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
               <section className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-serif font-bold text-[#0C2B24] dark:text-emerald-400">Match Report Evaluation</h2>
-                    <p className="text-xs text-[#64748B] dark:text-slate-400">Đánh giá đa chiều dựa trên mô hình đối sánh ngữ nghĩa và năng lực kỹ thuật</p>
+                    <h2 className="text-xl font-serif font-bold text-slate-900 dark:text-white">Match Report Evaluation</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Đánh giá đa chiều dựa trên mô hình đối sánh ngữ nghĩa và năng lực kỹ thuật</p>
                   </div>
-                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-full">
+                  <span className="text-xs font-semibold text-[#00B14F] dark:text-[#00B14F] bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-full">
                     Ứng viên dẫn đầu (Spotlight)
                   </span>
                 </div>
 
                 {/* Candidate Dark Forest Banner */}
-                <div className="bg-[#0C2B24] border border-[#164E41] rounded-2xl p-6 sm:p-7 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                <div className="bg-gradient-to-r from-[#0F2A52] via-[#1E3A5F] to-[#0F2A52] border border-blue-900/30 rounded-2xl p-6 sm:p-7 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-5">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-[#164E41] border-2 border-emerald-400 flex items-center justify-center font-serif text-xl font-bold text-white shadow-inner">
+                    <div className="w-14 h-14 rounded-full bg-white/10 border-2 border-[#00B14F] flex items-center justify-center font-serif text-xl font-bold text-white shadow-inner">
                       {topCandidate.candidateName.charAt(0)}
                     </div>
                     <div>
                       <h3 className="text-2xl font-serif font-bold text-white tracking-wide">
                         {topCandidate.candidateName}
                       </h3>
-                      <p className="text-xs text-emerald-200/80 font-medium">
+                      <p className="text-xs text-blue-200/90 font-medium">
                         {topCandidate.headline || topInspection?.candidateName || 'Ứng viên tiềm năng'}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="px-3.5 py-1.5 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-300 font-bold text-xs tracking-wider uppercase">
+                    <span className="px-3.5 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-[#00B14F] font-bold text-xs tracking-wider uppercase">
                       {topCandidate.overallMatchScore.toFixed(1)}% MATCH
                     </span>
                     <Link
                       href={`/recruiter/applications/${topCandidate.applicationId}`}
-                      className="px-4 py-2 rounded-xl bg-white text-[#0C2B24] hover:bg-emerald-50 font-bold text-xs shadow-md transition active:scale-95"
+                      className="px-4 py-2 rounded-xl bg-[#00B14F] text-white hover:bg-[#009643] font-bold text-xs shadow-md shadow-emerald-500/20 transition active:scale-95"
                     >
                       Xem Hồ Sơ & Đánh Giá Chi Tiết
                     </Link>
@@ -196,14 +196,14 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                   {/* Left Column: Match Factors & GitHub Activity */}
                   <div className="space-y-6">
                     {/* Professional Experience & Match Factors Card */}
-                    <div className="bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-6 shadow-xs space-y-4 transition-colors">
-                      <h4 className="text-sm font-bold font-editorial text-slate-900 dark:text-white border-b border-slate-100 dark:border-[#1B3D34] pb-3">
+                    <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl p-6 shadow-xs space-y-4 transition-colors">
+                      <h4 className="text-sm font-bold font-editorial text-slate-900 dark:text-white border-b border-slate-100 dark:border-[#1F4A40] pb-3">
                         Đánh Giá Yếu Tố Hồ Sơ & Kinh Nghiệm
                       </h4>
                       <div className="space-y-4 text-xs">
                         {topInspection?.matchFactors && topInspection.matchFactors.length > 0 ? (
                           topInspection.matchFactors.map((factor, idx) => (
-                            <div key={idx} className={idx > 0 ? "pt-2 border-t border-slate-100 dark:border-[#1B3D34]" : ""}>
+                            <div key={idx} className={idx > 0 ? "pt-2 border-t border-slate-100 dark:border-[#1F4A40]" : ""}>
                               <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white">
                                 <span>{factor.factorName}</span>
                                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${
@@ -228,7 +228,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                           <div className="space-y-2 text-slate-600 dark:text-slate-300">
                             <p>Số năm kinh nghiệm liên quan: <strong className="text-slate-900 dark:text-white">{topCandidate.relevantExperienceYears} năm</strong></p>
                             <p>Điểm tương quan hồ sơ gốc (Core Match): <strong className="text-slate-900 dark:text-white">{topCandidate.coreJdCvScore.toFixed(1)}%</strong></p>
-                            <p>Trạng thái nộp đơn: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{topCandidate.status}</span></p>
+                            <p>Trạng thái nộp đơn: <span className="font-semibold text-[#00B14F]">{topCandidate.status}</span></p>
                             <p className="text-slate-400">Thời gian ứng tuyển: {new Date(topCandidate.appliedDate).toLocaleDateString('vi-VN')}</p>
                           </div>
                         )}
@@ -236,13 +236,13 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                     </div>
 
                     {/* Dark Forest GitHub Activity Analytics Card */}
-                    <div className="bg-[#081E19] border border-[#12382F] rounded-2xl p-6 text-white shadow-md space-y-4">
-                      <div className="flex items-center justify-between border-b border-[#12382F] pb-3">
-                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
-                          <GitBranch className="w-4 h-4 text-emerald-400" />
+                    <div className="bg-gradient-to-br from-[#0A221E] to-[#102A25] border border-[#1F4A40] rounded-2xl p-6 text-white shadow-md space-y-4">
+                      <div className="flex items-center justify-between border-b border-[#1F4A40] pb-3">
+                        <span className="text-xs font-bold uppercase tracking-wider text-[#00B14F] flex items-center gap-1.5">
+                          <GitBranch className="w-4 h-4 text-[#00B14F]" />
                           <span>GitHub Activity Analytics</span>
                         </span>
-                        <span className="text-[11px] font-mono text-emerald-400/80">
+                        <span className="text-[11px] font-mono text-emerald-300/80">
                           {topCandidate.gitHubConnected ? 'Đã liên kết GitHub' : 'Chưa liên kết'}
                         </span>
                       </div>
@@ -250,16 +250,16 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                       {topCandidate.gitHubConnected && topInspection?.githubAssessment?.connected ? (
                         <>
                           <div className="grid grid-cols-2 gap-4">
-                            <div className="p-3 rounded-xl bg-[#0C2B24]/90 border border-[#164E41]">
+                            <div className="p-3 rounded-xl bg-[#081C18]/90 border border-[#1F4A40]">
                               <span className="text-[10px] text-emerald-200/70 block uppercase font-bold">Public Repositories</span>
-                              <span className="text-lg font-extrabold text-amber-400 font-mono">
+                              <span className="text-lg font-extrabold text-[#FACC15] font-mono">
                                 {topInspection.githubAssessment.publicRepoCount ?? 0} repos
                               </span>
                             </div>
 
-                            <div className="p-3 rounded-xl bg-[#0C2B24]/90 border border-[#164E41]">
+                            <div className="p-3 rounded-xl bg-[#081C18]/90 border border-[#1F4A40]">
                               <span className="text-[10px] text-emerald-200/70 block uppercase font-bold">Tín hiệu hoạt động</span>
-                              <span className="text-lg font-extrabold text-amber-400 font-mono">
+                              <span className="text-lg font-extrabold text-[#FACC15] font-mono">
                                 {topInspection.githubAssessment.activitySignal || 'ACTIVE'}
                               </span>
                             </div>
@@ -288,8 +288,8 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                   {/* Right Column: Verified Skill Comparison & Rank Alignment Audit */}
                   <div className="space-y-6">
                     {/* Verified Skill Comparison Card */}
-                    <div className="bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-6 shadow-xs space-y-4 transition-colors">
-                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1B3D34] pb-3">
+                    <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl p-6 shadow-xs space-y-4 transition-colors">
+                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1F4A40] pb-3">
                         <h4 className="text-sm font-bold font-editorial text-slate-900 dark:text-white">
                           Kỹ Năng Đối Sánh Với Yêu Cầu JD
                         </h4>
@@ -306,10 +306,10 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                                 <span className="font-bold text-slate-900 dark:text-white">{skill.skillName}</span>
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
                                   skill.status === 'MATCH'
-                                    ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800'
+                                    ? 'text-[#00B14F] bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800'
                                     : skill.status === 'PARTIAL'
-                                    ? 'text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800'
-                                    : 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950 border-rose-200 dark:border-rose-800'
+                                    ? 'text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800'
+                                    : 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800'
                                 }`}>
                                   {skill.status === 'MATCH' ? 'Khớp 100%' : skill.status === 'PARTIAL' ? 'Khớp một phần' : 'Còn thiếu'}
                                 </span>
@@ -317,7 +317,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                               <div className="w-full h-2 bg-slate-100 dark:bg-[#071410] rounded-full overflow-hidden">
                                 <div
                                   className={`h-full rounded-full ${
-                                    skill.status === 'MATCH' ? 'bg-[#10B981]' : skill.status === 'PARTIAL' ? 'bg-amber-500' : 'bg-rose-400'
+                                    skill.status === 'MATCH' ? 'bg-[#00B14F]' : skill.status === 'PARTIAL' ? 'bg-amber-500' : 'bg-rose-400'
                                   }`}
                                   style={{ width: skill.status === 'MATCH' ? '100%' : skill.status === 'PARTIAL' ? '50%' : '15%' }}
                                 />
@@ -343,7 +343,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                                 </div>
                               </div>
                             ) : (
-                              <p className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                              <p className="text-[#00B14F] font-semibold">
                                 Đã đáp ứng đầy đủ tất cả kỹ năng yêu cầu của bài đăng tuyển!
                               </p>
                             )}
@@ -353,11 +353,11 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                     </div>
 
                     {/* Rank Alignment Audit Card */}
-                    <div className="bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-6 shadow-xs space-y-3 transition-colors">
-                      <h4 className="text-sm font-bold font-editorial text-slate-900 dark:text-white border-b border-slate-100 dark:border-[#1B3D34] pb-3">
+                    <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl p-6 shadow-xs space-y-3 transition-colors">
+                      <h4 className="text-sm font-bold font-editorial text-slate-900 dark:text-white border-b border-slate-100 dark:border-[#1F4A40] pb-3">
                         Rank Alignment Audit
                       </h4>
-                      <span className="text-sm font-bold text-amber-700 dark:text-amber-400 block font-mono">
+                      <span className="text-sm font-bold text-[#2563EB] dark:text-blue-400 block font-mono">
                         Xếp hạng #{topCandidate.rank || 1} trên tổng số {rankings.length} ứng viên
                       </span>
                       <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -372,14 +372,14 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
 
             {/* Filter Bar & Ranking Overview */}
             <section className="space-y-4">
-              <div className="bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs transition-colors">
+              <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs transition-colors">
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="flex items-center gap-2">
                     <span className="text-slate-500 dark:text-slate-400 font-semibold">Điểm Overall tối thiểu:</span>
                     <select
                       value={minScoreFilter}
                       onChange={(e) => setMinScoreFilter(parseFloat(e.target.value) || 0)}
-                      className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 font-semibold"
+                      className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[#2563EB] font-semibold"
                     >
                       <option value={0}>Tất cả điểm số</option>
                       <option value={70}>≥ 70.0% (Tốt)</option>
@@ -394,7 +394,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                       type="checkbox"
                       checked={onlyFullRequired}
                       onChange={(e) => setOnlyFullRequired(e.target.checked)}
-                      className="rounded text-[#0C2B24] focus:ring-[#10B981] border-slate-300 dark:border-[#1B3D34]"
+                      className="rounded text-[#2563EB] focus:ring-[#2563EB] border-slate-300 dark:border-[#1F4A40]"
                     />
                     <span>Chỉ hiển thị ứng viên đáp ứng 100% Kỹ năng Bắt buộc (0 missing)</span>
                   </label>

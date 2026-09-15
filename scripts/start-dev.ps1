@@ -272,8 +272,14 @@ $frontendUrl = "http://127.0.0.1:3000"
 $frontendRunning = Test-PortOccupied 3000
 
 if (-not $frontendRunning) {
+    $nodeModulesPath = Join-Path $ProjectRoot "frontend\node_modules"
+    if (-not (Test-Path $nodeModulesPath)) {
+        Write-Host "  -> node_modules not found. Installing frontend dependencies (npm install)..." -ForegroundColor Yellow
+        cmd.exe /c "cd /d `"$ProjectRoot\frontend`" && npm install"
+    }
+
     Write-Host "  -> Launching Frontend terminal (npm run dev)..." -ForegroundColor Gray
-    $frontendCmd = "Set-Location '$ProjectRoot\frontend'; [System.Console]::Title = 'AI Recruitment - Frontend'; npm run dev"
+    $frontendCmd = "Set-Location '$ProjectRoot\frontend'; [System.Console]::Title = 'AI Recruitment - Frontend'; cmd.exe /c npm run dev"
     Start-Process powershell.exe -ArgumentList "-NoExit", "-Command", $frontendCmd
 
     Write-Host "  -> Waiting for Frontend readiness on port 3000..." -ForegroundColor Gray

@@ -1,36 +1,54 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #F8FAF9;
-  --foreground: #0F172A;
+  /* midCV® Core Color System - Light Mode */
+  --primary: #2563EB;
+  --primary-hover: #1D4ED8;
+  --primary-light: #EFF6FF;
+  --primary-soft: #D7F9FA;
+  --primary-foreground: #FFFFFF;
+
+  --brand-green: #00B14F;
+  --brand-green-hover: #009643;
+  --brand-green-soft: #E8F8EE;
+
+  --accent-yellow: #FACC15;
+  --accent-yellow-light: #FEF9C3;
+  --accent-yellow-soft: #FEF3C7;
+
+  /* Neutrals */
+  --background: #F8FAFC;
+  --foreground: #1E3A5F;
   --surface: #FFFFFF;
-  --surface-secondary: #F1F5F3;
+  --surface-secondary: #F8FBFF;
   --surface-card: #FFFFFF;
-  --text-primary: #0F172A;
-  --text-muted: #64748B;
+  --surface-elevated: #FFFFFF;
+
   --border: #E2E8F0;
+  --border-soft: #DBEAFE;
   --border-subtle: #F1F5F9;
+
+  --heading: #0F2A52;
+  --text-primary: #1E3A5F;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+
   --input-bg: #FFFFFF;
   --input-border: #CBD5E1;
-  --primary: #0C2B24;
-  --primary-hover: #133E34;
-  --primary-foreground: #FFFFFF;
-  --success: #10B981;
-  --success-bg: #ECFDF5;
-  --warning: #D97706;
+  --input-focus-border: #2563EB;
+
+  --success: #00B14F;
+  --success-bg: #E8F8EE;
+  --warning: #F59E0B;
   --warning-bg: #FEF3C7;
   --danger: #EF4444;
   --danger-bg: #FEF2F2;
-  --overlay: rgba(8, 28, 21, 0.75);
+  --overlay: rgba(15, 42, 82, 0.6);
 
-  --forest-950: #081C15;
-  --forest-900: #0C2B24;
-  --forest-800: #133E34;
-  --forest-700: #1B4D41;
-  --accent-amber: #D97706;
-  --accent-amber-light: #FEF3C7;
-  --accent-emerald: #10B981;
-  --canvas-bg: #F8FAF9;
+  /* Aliases for legacy component compatibility */
+  --canvas-bg: #F8FAFC;
   --card-bg: #FFFFFF;
   --card-border: #E2E8F0;
   --muted-text: #64748B;
@@ -38,59 +56,94 @@
 }
 
 .dark {
-  --background: #071410;
-  --foreground: #F1F5F9;
-  --surface: #0E241E;
-  --surface-secondary: #14332B;
-  --surface-card: #0E241E;
-  --text-primary: #F1F5F9;
-  --text-muted: #94A3B8;
-  --border: #1B3D34;
-  --border-subtle: #14332B;
-  --input-bg: #0A1E19;
-  --input-border: #1B3D34;
-  --primary: #10B981;
-  --primary-hover: #059669;
-  --primary-foreground: #040D0A;
-  --success: #34D399;
-  --success-bg: rgba(6, 78, 59, 0.5);
-  --warning: #F59E0B;
-  --warning-bg: rgba(120, 53, 15, 0.5);
-  --danger: #F87171;
-  --danger-bg: rgba(127, 29, 29, 0.5);
-  --overlay: rgba(4, 13, 10, 0.85);
+  /* midCV® Core Color System - Dark Mode */
+  --primary: #2563EB;
+  --primary-hover: #3B82F6;
+  --primary-light: rgba(37, 99, 235, 0.15);
+  --primary-soft: rgba(215, 249, 250, 0.12);
+  --primary-foreground: #FFFFFF;
 
-  --forest-950: #040D0A;
-  --forest-900: #0A1E19;
-  --forest-800: #112F28;
-  --forest-700: #194339;
-  --accent-amber: #F59E0B;
-  --accent-amber-light: #78350F;
-  --accent-emerald: #34D399;
-  --canvas-bg: #071410;
-  --card-bg: #0E241E;
-  --card-border: #1B3D34;
+  --brand-green: #00B14F;
+  --brand-green-hover: #10B981;
+  --brand-green-soft: rgba(0, 177, 79, 0.15);
+
+  --accent-yellow: #FACC15;
+  --accent-yellow-light: rgba(254, 249, 195, 0.15);
+  --accent-yellow-soft: rgba(254, 243, 199, 0.12);
+
+  /* Dark Neutrals */
+  --background: #071A17;
+  --foreground: #D6E4E1;
+  --surface: #102A25;
+  --surface-secondary: #0B211D;
+  --surface-card: #102A25;
+  --surface-elevated: #14332D;
+
+  --border: #1F4A40;
+  --border-soft: #24574C;
+  --border-subtle: #14332D;
+
+  --heading: #F1F5F9;
+  --text-primary: #D6E4E1;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+
+  --input-bg: #102A25;
+  --input-border: #1F4A40;
+  --input-focus-border: #2563EB;
+
+  --success: #00B14F;
+  --success-bg: rgba(0, 177, 79, 0.18);
+  --warning: #FACC15;
+  --warning-bg: rgba(250, 204, 21, 0.15);
+  --danger: #F87171;
+  --danger-bg: rgba(239, 68, 68, 0.18);
+  --overlay: rgba(7, 26, 23, 0.85);
+
+  /* Aliases for legacy component compatibility */
+  --canvas-bg: #071A17;
+  --card-bg: #102A25;
+  --card-border: #1F4A40;
   --muted-text: #94A3B8;
-  --hover-bg: #14332B;
+  --hover-bg: #14332D;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-serif: var(--font-serif), Newsreader, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-serif: var(--font-serif), Georgia, Cambria, serif;
 }
 
+/* Global Typography & Defaults */
 body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
-/* Custom Editorial Serif Classes matching Figma Typography */
-.font-editorial {
+/* Headings Editorial Serif */
+h1, h2, h3, .font-editorial {
   font-family: var(--font-serif), Georgia, serif;
+}
+
+/* Global Subtle Card and Transitions */
+.midcv-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease-in-out;
+}
+
+.midcv-card:hover {
+  border-color: var(--border-soft);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
 }
 
 /* Print styling for CV exports */
