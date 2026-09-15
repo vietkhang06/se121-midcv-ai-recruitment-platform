@@ -2,25 +2,20 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ShieldCheck } from 'lucide-react';
+import { BrandLogo } from '@/components/common/BrandLogo';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-[#081C15] border-t border-[#133E34] text-slate-400 text-sm py-14">
+    <footer className="bg-[#070D1B] border-t border-[#1E293B] text-slate-400 text-sm py-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-5 gap-10">
         {/* Brand Column */}
         <div className="space-y-4 md:col-span-2 pr-6">
-          <Link href="/" className="flex items-center gap-2.5 font-bold text-xl text-white tracking-tight">
-            <div className="w-8 h-8 rounded-lg bg-[#10B981] flex items-center justify-center shadow-md">
-              <ShieldCheck className="w-5 h-5 text-[#081C15] stroke-[2.5]" />
-            </div>
-            <span className="font-editorial text-2xl tracking-normal text-white">MidCV</span>
-          </Link>
-          <p className="text-xs text-slate-300/80 leading-relaxed max-w-sm">
-            MidCV is an objective evaluation layer for modern technical recruitment. Built to empower developers and infrastructure experts with transparent matching vectors.
+          <BrandLogo size="md" />
+          <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
+            midCV® is an objective evaluation layer for modern recruitment. Built to empower candidates and hiring teams with transparent, explainable matching vectors.
           </p>
-          <div className="pt-2 flex items-center gap-3 text-xs text-emerald-400 font-mono">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <div className="pt-2 flex items-center gap-3 text-xs text-[#3B82F6] font-mono">
+            <span className="inline-block w-2 h-2 rounded-full bg-[#3B82F6] animate-pulse"></span>
             <span>Vector Ingestion Engine 1536D • Active</span>
           </div>
         </div>
@@ -60,8 +55,8 @@ export const Footer: React.FC = () => {
       </div>
 
       {/* Bottom Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-6 border-t border-[#133E34]/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-        <div>© 2026 MidCV Inc. All rights reserved. Recruiter & Candidate Platform.</div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-6 border-t border-[#1E293B] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+        <div>© 2026 midCV® Inc. All rights reserved. Recruiter & Candidate Platform.</div>
         <div className="flex items-center gap-6 text-xs text-slate-400">
           <a href="#" className="hover:text-white transition">Privacy Policy</a>
           <a href="#" className="hover:text-white transition">Terms of Service</a>
