@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <defs>
+    <linearGradient id="bgCard1" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A5F3FC" />
+      <stop offset="100%" stop-color="#38BDF8" />
+    </linearGradient>
+    <linearGradient id="bgCard2" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#60A5FA" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+    <linearGradient id="frontCard" x1="10" y1="12" x2="52" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="60%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+    <linearGradient id="starGrad" x1="42" y1="4" x2="58" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FEF08A" />
+      <stop offset="40%" stop-color="#FACC15" />
+      <stop offset="100%" stop-color="#EAB308" />
+    </linearGradient>
+    <filter id="starGlow" x="36" y="0" width="28" height="28" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="1.5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Back Card (Cyan - tilted left) -->
+  <rect
+    x="6"
+    y="18"
+    width="36"
+    height="38"
+    rx="9"
+    transform="rotate(-14 6 18)"
+    fill="url(#bgCard1)"
+    opacity="0.85"
+  />
+
+  <!-- Middle Card (Sky Blue - tilted slight right) -->
+  <rect
+    x="12"
+    y="12"
+    width="36"
+    height="38"
+    rx="9"
+    transform="rotate(6 12 12)"
+    fill="url(#bgCard2)"
+    opacity="0.9"
+  />
+
+  <!-- Front Main Card (Deep Royal Blue) -->
+  <rect
+    x="14"
+    y="14"
+    width="36"
+    height="38"
+    rx="9"
+    fill="url(#frontCard)"
+  />
+
+  <!-- Subtle card highlight border -->
+  <rect
+    x="14.5"
+    y="14.5"
+    width="35"
+    height="37"
+    rx="8.5"
+    stroke="rgba(255,255,255,0.4)"
+    stroke-width="1"
+  />
+
+  <!-- User Avatar Silhouette -->
+  <circle cx="32" cy="27" r="4.5" fill="#FFFFFF" />
+  <path
+    d="M24 43C24 38.5 27.5 35 32 35C36.5 35 40 38.5 40 43"
+    stroke="#FFFFFF"
+    stroke-width="4"
+    stroke-linecap="round"
+  />
+
+  <!-- Golden 4-Pointed Sparkle Star at Top Right -->
+  <g filter="url(#starGlow)">
+    <path
+      d="M50 4C50.5 10 51.5 11.5 56 12C51.5 12.5 50.5 14 50 20C49.5 14 48.5 12.5 44 12C48.5 11.5 49.5 10 50 4Z"
+      fill="url(#starGrad)"
+    />
+    <circle cx="50" cy="12" r="1.5" fill="#FFFFFF" opacity="0.9" />
+  </g>
+</svg>

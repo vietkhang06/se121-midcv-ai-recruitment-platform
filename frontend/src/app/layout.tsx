@@ -23,6 +23,16 @@ const newsreader = Newsreader({
 export const metadata: Metadata = {
   title: "midCV® — AI-Powered Intelligent Recruitment Platform",
   description: "Objective evaluation layer for modern technical recruitment. Built to empower candidates and recruiters with transparent matching vectors.",
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico' },
+      { url: '/icon.png', sizes: '256x256', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 };
 
 export default function RootLayout({
