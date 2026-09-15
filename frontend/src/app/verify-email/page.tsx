@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { verifyEmailToken, resendVerificationToken } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { BrandLogo } from '@/components/common/BrandLogo';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -29,7 +30,7 @@ function VerifyEmailContent() {
   const { t } = useLanguage();
 
   const [status, setStatus] = useState<VerifyState>('VERIFYING');
-  const [statusMessage, setStatusMessage] = useState<string>('Validating cryptographic verification token...');
+  const [statusMessage, setStatusMessage] = useState<string>('Đang thẩm định mã xác thực số hóa...');
   const [resendEmail, setResendEmail] = useState<string>('');
   const [resendStatus, setResendStatus] = useState<string | null>(null);
   const [resendLoading, setResendLoading] = useState<boolean>(false);
@@ -38,7 +39,7 @@ function VerifyEmailContent() {
   useEffect(() => {
     if (!token) {
       setStatus('INVALID');
-      setStatusMessage('No verification token found in URL parameters. Please check your verification email.');
+      setStatusMessage('Không tìm thấy token xác thực trong đường dẫn. Vui lòng kiểm tra email của bạn.');
       return;
     }
 
@@ -84,7 +85,7 @@ function VerifyEmailContent() {
       const res = await resendVerificationToken(resendEmail.trim());
       setResendStatus(res.message);
     } catch (err: any) {
-      setResendStatus(err.message || 'Unable to resend verification email.');
+      setResendStatus(err.message || 'Không thể gửi lại email xác thực.');
     } finally {
       setResendLoading(false);
     }
@@ -92,20 +93,15 @@ function VerifyEmailContent() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-xl bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-3xl shadow-2xl p-8 sm:p-10 space-y-8 relative overflow-hidden transition-colors">
-        {/* Subtle MidCV Forest Gradient Glow */}
-        <div className="absolute -top-32 -right-32 w-64 h-64 bg-[#0C2B24]/10 dark:bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-[#D97706]/10 dark:bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="w-full max-w-xl bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-3xl shadow-2xl p-8 sm:p-10 space-y-8 relative overflow-hidden transition-colors">
+        {/* Subtle Brand Gradient Glow */}
+        <div className="absolute -top-32 -right-32 w-64 h-64 bg-[#2563EB]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-[#00B14F]/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Brand Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1B3D34] pb-5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#0C2B24] dark:bg-emerald-950 flex items-center justify-center text-[#10B981] border border-emerald-500/30">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <span className="font-editorial text-xl font-bold text-slate-900 dark:text-white">MidCV</span>
-          </div>
-          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-[#14332B] px-2.5 py-1 rounded-full">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1F4A40] pb-5">
+          <BrandLogo size="md" />
+          <span className="text-[10px] font-mono uppercase tracking-widest text-[#64748B] dark:text-[#94A3B8] bg-slate-100 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] px-2.5 py-1 rounded-full">
             Auth Layer v2
           </span>
         </div>
@@ -114,22 +110,22 @@ function VerifyEmailContent() {
         <div className="text-center space-y-4">
           <div className="mx-auto w-20 h-20 rounded-3xl flex items-center justify-center shadow-lg transition-transform animate-scale-in">
             {status === 'VERIFYING' && (
-              <div className="w-20 h-20 rounded-3xl bg-[#0C2B24]/10 dark:bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <div className="w-20 h-20 rounded-3xl bg-[#EFF6FF] dark:bg-[#2563EB]/20 border border-[#2563EB]/30 flex items-center justify-center text-[#2563EB]">
                 <RefreshCw className="w-10 h-10 animate-spin" />
               </div>
             )}
             {status === 'SUCCESS' && (
-              <div className="w-20 h-20 rounded-3xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <div className="w-20 h-20 rounded-3xl bg-[#E8F8EE] dark:bg-[#00B14F]/20 border border-[#00B14F]/40 flex items-center justify-center text-[#00B14F]">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
             )}
             {status === 'ALREADY_USED' && (
-              <div className="w-20 h-20 rounded-3xl bg-teal-50 dark:bg-teal-950/60 border border-teal-500/40 flex items-center justify-center text-teal-600 dark:text-teal-400">
+              <div className="w-20 h-20 rounded-3xl bg-[#D7F9FA] dark:bg-[#06B6D4]/20 border border-[#06B6D4]/40 flex items-center justify-center text-[#06B6D4]">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
             )}
             {status === 'EXPIRED' && (
-              <div className="w-20 h-20 rounded-3xl bg-amber-50 dark:bg-amber-950/60 border border-amber-500/40 flex items-center justify-center text-amber-600 dark:text-amber-400">
+              <div className="w-20 h-20 rounded-3xl bg-[#FEF9C3] dark:bg-[#FACC15]/20 border border-[#FACC15]/40 flex items-center justify-center text-[#92400E] dark:text-[#FACC15]">
                 <Clock className="w-10 h-10" />
               </div>
             )}
@@ -142,7 +138,7 @@ function VerifyEmailContent() {
 
           {/* Heading and Description */}
           <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-editorial font-bold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9] tracking-tight">
               {status === 'VERIFYING' && t('verifyEmail.verifyingTitle', 'Đang Xác Thực Tài Khoản')}
               {status === 'SUCCESS' && (t('verifyEmail.successTitle', 'Xác thực email thành công!'))}
               {status === 'ALREADY_USED' && 'Tài khoản đã được xác thực'}
@@ -150,7 +146,7 @@ function VerifyEmailContent() {
               {(status === 'INVALID' || status === 'ERROR') && (t('verifyEmail.errorTitle', 'Xác thực không thành công'))}
             </h1>
 
-            <p className="text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto leading-relaxed">
+            <p className="text-sm text-[#64748B] dark:text-[#94A3B8] max-w-md mx-auto leading-relaxed">
               {statusMessage}
             </p>
           </div>
@@ -164,18 +160,18 @@ function VerifyEmailContent() {
                 openAuthModal('LOGIN');
                 router.push('/jobs');
               }}
-              className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#0C2B24] hover:bg-[#133E34] dark:bg-emerald-700 dark:hover:bg-emerald-600 shadow-md transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-md transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>{t('verifyEmail.continueCta', 'Continue to MidCV')}</span>
+              <span>{t('verifyEmail.continueCta', 'Tiếp tục vào midCV®')}</span>
               <span className="text-xs font-normal opacity-90">— Đăng nhập ngay</span>
               <ArrowRight className="w-4 h-4" />
             </button>
             <div className="text-center">
               <Link
                 href="/"
-                className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition"
+                className="text-xs text-[#64748B] hover:text-[#0F2A52] dark:hover:text-[#F1F5F9] transition"
               >
-                {t('verifyEmail.backHome', 'Back to Home')}
+                {t('verifyEmail.backHome', 'Quay lại Trang chủ')}
               </Link>
             </div>
           </div>
@@ -183,41 +179,41 @@ function VerifyEmailContent() {
 
         {(status === 'EXPIRED' || status === 'INVALID' || status === 'ERROR') && (
           <div className="space-y-5 pt-2">
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0A1E19] border border-slate-200 dark:border-[#1B3D34] space-y-3 text-left">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
-                {t('verifyEmail.resendPrompt', 'Request a new verification token:')}
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] space-y-3 text-left">
+              <span className="text-xs font-semibold text-[#0F2A52] dark:text-[#E2E8F0] block">
+                {t('verifyEmail.resendPrompt', 'Yêu cầu mã xác thực mới:')}
               </span>
               <form onSubmit={handleResendSubmit} className="space-y-2.5">
                 <input
                   type="email"
-                  placeholder="Enter your registered email..."
+                  placeholder="Nhập email tài khoản đã đăng ký..."
                   value={resendEmail}
                   onChange={(e) => setResendEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#0E241E] border border-slate-300 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-xs focus:outline-none focus:border-[#2563EB]"
                   required
                 />
                 <button
                   type="submit"
                   disabled={resendLoading}
-                  className="w-full py-2.5 rounded-xl text-xs font-semibold text-white bg-[#0C2B24] dark:bg-emerald-700 hover:bg-[#133E34] transition disabled:opacity-50 cursor-pointer"
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition disabled:opacity-50 cursor-pointer"
                 >
-                  {resendLoading ? 'Sending...' : t('verifyEmail.resendButton', 'Resend Verification Email')}
+                  {resendLoading ? 'Đang gửi...' : t('verifyEmail.resendButton', 'Gửi lại email xác thực')}
                 </button>
               </form>
               {resendStatus && (
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 pt-1 font-medium">{resendStatus}</p>
+                <p className="text-xs text-[#00B14F] dark:text-[#10B981] pt-1 font-medium">{resendStatus}</p>
               )}
             </div>
 
             <div className="flex items-center justify-center gap-6 text-xs">
               <button
                 onClick={() => openAuthModal('LOGIN')}
-                className="font-semibold text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
+                className="font-semibold text-[#2563EB] dark:text-[#60A5FA] hover:underline cursor-pointer"
               >
-                {t('verifyEmail.tryLoginAgain', 'Try Sign In Again')}
+                {t('verifyEmail.tryLoginAgain', 'Thử đăng nhập lại')}
               </button>
-              <Link href="/" className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
-                {t('verifyEmail.backHome', 'Back to Home')}
+              <Link href="/" className="text-[#64748B] hover:text-[#0F2A52] dark:hover:text-[#F1F5F9]">
+                {t('verifyEmail.backHome', 'Quay lại Trang chủ')}
               </Link>
             </div>
           </div>

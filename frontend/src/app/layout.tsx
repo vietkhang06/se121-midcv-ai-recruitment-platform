@@ -21,8 +21,8 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: "MidCV - AI Recruitment Platform | Verified Evidence Matching",
-  description: "Objective evaluation layer for modern technical recruitment. Built to empower developers and infrastructure experts with transparent matching vectors.",
+  title: "midCV® — AI-Powered Intelligent Recruitment Platform",
+  description: "Objective evaluation layer for modern technical recruitment. Built to empower candidates and recruiters with transparent matching vectors.",
 };
 
 export default function RootLayout({
@@ -39,7 +39,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="bg-[var(--background)] text-[var(--foreground)] min-h-screen flex flex-col antialiased selection:bg-[#0C2B24] selection:text-white transition-colors duration-200">
+      <body className="bg-[var(--background)] text-[var(--foreground)] min-h-screen flex flex-col antialiased selection:bg-[#2563EB] selection:text-white transition-colors duration-200">
         <ThemeProvider>
           <LanguageProvider>
             <AuthProvider>
