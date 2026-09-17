@@ -62,11 +62,11 @@ export default function CVLibraryPage() {
   };
 
   return (
-    <div className="bg-slate-50/60 dark:bg-[#071A17] min-h-screen py-8 text-[#0F2A52] dark:text-[#F1F5F9] space-y-8 transition-colors">
+    <div className="bg-slate-50/60 dark:bg-[#0B1329] min-h-screen py-8 text-[#0F2A52] dark:text-[#F1F5F9] space-y-8 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         {/* 06 — Header Section (Figma Screen 06) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1F4A40] pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1E293B] pb-4">
           <div className="space-y-1">
             <span className="text-[11px] font-mono font-semibold text-[#2563EB] dark:text-[#60A5FA] uppercase tracking-widest">
               CANDIDATE ASSETS
@@ -81,7 +81,7 @@ export default function CVLibraryPage() {
             <button
               id="upload-cv-btn"
               onClick={() => setIsUploadModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#102A25] transition cursor-pointer"
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition cursor-pointer"
             >
               {t('candidatePages.uploadCv', 'Tải CV Lên / Ingest Repo')}
             </button>
@@ -115,7 +115,7 @@ export default function CVLibraryPage() {
             {cvList.map((cv) => (
               <div
                 key={cv.id}
-                className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] hover:border-[#2563EB] dark:hover:border-[#2563EB] rounded-2xl p-6 shadow-xs flex flex-col justify-between transition-all"
+                className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#2563EB] rounded-2xl p-6 shadow-xs flex flex-col justify-between transition-all"
               >
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-2">
@@ -151,31 +151,31 @@ export default function CVLibraryPage() {
                     <span className="px-2 py-0.5 rounded-md bg-[#FEF9C3] dark:bg-[#FACC15]/15 text-[#92400E] dark:text-[#FACC15] border border-[#FACC15]/40">
                       {cv.targetRole || 'Chuyên viên kỹ thuật'}
                     </span>
-                    <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-[#071A17] text-[#64748B] dark:text-[#94A3B8] border border-slate-200 dark:border-[#1F4A40]">
+                    <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-[#0B1329] text-[#64748B] dark:text-[#94A3B8] border border-slate-200 dark:border-[#1E293B]">
                       {cv.creationPath === 'BUILDER' ? 'Hồ sơ có cấu trúc' : 'CV tải lên'}
                     </span>
                   </div>
                 </div>
 
                 {/* Card Actions Footer */}
-                <div className="pt-5 mt-4 border-t border-slate-100 dark:border-[#1F4A40] flex items-center justify-between gap-2">
+                <div className="pt-5 mt-4 border-t border-slate-100 dark:border-[#1E293B] flex items-center justify-between gap-2">
                   <Link
                     href={`/candidate/cvs/builder?edit=${cv.id}`}
-                    className="flex-1 py-2 px-3 rounded-xl text-center text-xs font-semibold border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1F4A40]/50 transition"
+                    className="flex-1 py-2 px-3 rounded-xl text-center text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition"
                   >
                     {t('common.edit', 'Chỉnh Sửa')}
                   </Link>
                   <button
                     onClick={() => handleExport(cv)}
                     title="Export / Download PDF"
-                    className="p-2 rounded-xl border border-slate-200 dark:border-[#1F4A40] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#1F4A40]/50 transition cursor-pointer"
+                    className="p-2 rounded-xl border border-slate-200 dark:border-[#1E293B] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#18294E] transition cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleDelete(cv)}
                     title="Delete Profile"
-                    className="p-2 rounded-xl border border-slate-200 dark:border-[#1F4A40] text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer"
+                    className="p-2 rounded-xl border border-slate-200 dark:border-[#1E293B] text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -186,9 +186,9 @@ export default function CVLibraryPage() {
             {/* Upload New / Ingest Repo Card (Dashed) */}
             <div
               onClick={() => setIsUploadModalOpen(true)}
-              className="border-2 border-dashed border-slate-200 dark:border-[#1F4A40] hover:border-[#2563EB] rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50/50 dark:hover:bg-[#102A25]/50 transition min-h-[220px] space-y-3"
+              className="border-2 border-dashed border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50/50 dark:hover:bg-[#18294E]/50 transition min-h-[220px] space-y-3"
             >
-              <div className="w-12 h-12 rounded-2xl bg-[#EFF6FF] dark:bg-[#071A17] text-[#2563EB] flex items-center justify-center border border-[#BFDBFE] dark:border-[#1F4A40]">
+              <div className="w-12 h-12 rounded-2xl bg-[#EFF6FF] dark:bg-[#0B1329] text-[#2563EB] flex items-center justify-center border border-[#BFDBFE] dark:border-[#1E293B]">
                 <Upload className="w-5 h-5" />
               </div>
               <div>
@@ -227,8 +227,8 @@ export default function CVLibraryPage() {
       {/* Version History Modal */}
       {selectedCvForHistory && (
         <div id="version-history-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4 animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-5 text-[#0F2A52] dark:text-[#F1F5F9] max-h-[85vh] flex flex-col">
-            <div className="flex items-start justify-between border-b border-slate-100 dark:border-[#1F4A40] pb-4">
+          <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-5 text-[#0F2A52] dark:text-[#F1F5F9] max-h-[85vh] flex flex-col">
+            <div className="flex items-start justify-between border-b border-slate-100 dark:border-[#1E293B] pb-4">
               <div>
                 <span className="text-[10px] font-mono font-semibold uppercase text-[#2563EB] dark:text-[#60A5FA] tracking-wider">
                   IMMUTABLE AUDIT TRAIL
@@ -243,7 +243,7 @@ export default function CVLibraryPage() {
               <button
                 id="close-version-history-modal-btn"
                 onClick={() => setSelectedCvForHistory(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-[#0F2A52] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#1F4A40] transition"
+                className="p-1 rounded-lg text-slate-400 hover:text-[#0F2A52] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#18294E] transition"
               >
                 ✕
               </button>
@@ -259,7 +259,7 @@ export default function CVLibraryPage() {
                     className={`p-4 rounded-xl border transition-all ${
                       isActive
                         ? 'bg-[#E8F8EE]/60 dark:bg-[#00B14F]/10 border-[#00B14F]/40'
-                        : 'bg-slate-50 dark:bg-[#071A17] border-slate-200 dark:border-[#1F4A40]'
+                        : 'bg-slate-50 dark:bg-[#0B1329] border-slate-200 dark:border-[#1E293B]'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -284,7 +284,7 @@ export default function CVLibraryPage() {
                       </p>
                     )}
 
-                    <div className="mt-3 pt-3 border-t border-slate-200/60 dark:border-[#1F4A40] flex items-center justify-between">
+                    <div className="mt-3 pt-3 border-t border-slate-200/60 dark:border-[#1E293B] flex items-center justify-between">
                       <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-mono">
                         {ver.sections?.length || 0} mục nội dung
                       </span>
@@ -301,10 +301,10 @@ export default function CVLibraryPage() {
               })}
             </div>
 
-            <div className="pt-3 border-t border-slate-100 dark:border-[#1F4A40] flex justify-end">
+            <div className="pt-3 border-t border-slate-100 dark:border-[#1E293B] flex justify-end">
               <button
                 onClick={() => setSelectedCvForHistory(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-[#071A17] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-[#1F4A40] transition"
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-[#0B1329] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-[#18294E] transition"
               >
                 Đóng
               </button>

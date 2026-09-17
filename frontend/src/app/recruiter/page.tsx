@@ -69,11 +69,11 @@ export default function HRDashboardPage() {
   const recruiterName = user?.fullName || 'Tuyển Dụng';
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] text-slate-800 dark:text-slate-100 flex flex-col py-8 transition-colors">
+    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col py-8 transition-colors">
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 w-full">
         
         {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1B3D34] pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1E293B] pb-4">
           <div className="space-y-1">
             <span className="text-[11px] font-mono font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
               RECRUITER PORTAL COMMAND CENTER
@@ -87,7 +87,7 @@ export default function HRDashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-lg p-1 text-xs font-medium shadow-xs">
+            <div className="flex items-center gap-2 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-lg p-1 text-xs font-medium shadow-xs">
               <button
                 onClick={() => setActiveTab('console')}
                 className={`px-3 py-1.5 rounded-md transition cursor-pointer ${
@@ -176,31 +176,31 @@ export default function HRDashboardPage() {
           <>
             {/* 4 KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-              <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-5 shadow-xs space-y-1">
+              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
                 <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
                   ACTIVE JOB POSTINGS
                 </span>
                 <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
                   {publishedJobs.length}
                 </div>
-                <div className="text-[11px] text-[#00B14F] dark:text-[#00B14F] font-medium pt-1">
+                <div className="text-[11px] text-[#00B14F] dark:text-[#3B82F6] font-medium pt-1">
                   {jobs.length} tổng số vị trí đã tạo
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-5 shadow-xs space-y-1">
+              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
                 <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
                   APPLICANTS RECEIVED
                 </span>
                 <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
                   {applications.length}
                 </div>
-                <div className="text-[11px] text-[#00B14F] dark:text-[#00B14F] font-medium pt-1">
+                <div className="text-[11px] text-[#00B14F] dark:text-[#3B82F6] font-medium pt-1">
                   Xác thực danh tính thực tế
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-5 shadow-xs space-y-1">
+              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
                 <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
                   DRAFT JOBS
                 </span>
@@ -212,21 +212,21 @@ export default function HRDashboardPage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-5 shadow-xs space-y-1">
+              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
                 <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
                   AI MATCH ENGINE
                 </span>
-                <div className="text-3xl font-editorial font-bold text-[#00B14F] dark:text-[#00B14F]">
+                <div className="text-3xl font-editorial font-bold text-[#00B14F] dark:text-[#3B82F6]">
                   Active
                 </div>
-                <div className="text-[11px] text-[#00B14F] dark:text-[#00B14F] font-medium pt-1">
+                <div className="text-[11px] text-[#00B14F] dark:text-[#3B82F6] font-medium pt-1">
                   NDCG@K chuẩn hóa
                 </div>
               </div>
             </div>
 
             {/* Active Sourcing Funnel Stage */}
-            <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-6 shadow-xs space-y-4">
+            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
               <div className="text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wide">
                 Active Sourcing Funnel
               </div>
@@ -238,7 +238,7 @@ export default function HRDashboardPage() {
                   { count: applications.filter(a => a.status === 'SHORTLISTED').length, label: 'Shortlisted (Chọn tiếp)' },
                   { count: applications.filter(a => a.status === 'REJECTED').length, label: 'Rejected (Từ chối)' },
                 ].map((st, idx) => (
-                  <div key={idx} className="bg-slate-50 dark:bg-[#071A17] border border-slate-200/80 dark:border-[#1F4A40] rounded-lg p-3">
+                  <div key={idx} className="bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] rounded-lg p-3">
                     <div className="text-xl font-bold font-editorial text-slate-900 dark:text-white">{st.count}</div>
                     <div className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 mt-0.5">{st.label}</div>
                   </div>
@@ -250,8 +250,8 @@ export default function HRDashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               
               {/* Left Column: Top Performing Postings */}
-              <div className="lg:col-span-8 bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-6 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1F4A40] pb-3">
+              <div className="lg:col-span-8 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
                   <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Vị Trí Đang Tuyển Dụng</h3>
                   <Link href="/recruiter/jobs" className="text-xs font-semibold text-[#2563EB] hover:underline">
                     Xem tất cả ({jobs.length})
@@ -261,7 +261,7 @@ export default function HRDashboardPage() {
                 {jobs.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 dark:bg-[#071A17] text-slate-500 dark:text-slate-400 font-mono text-[10px] uppercase border-b border-slate-200 dark:border-[#1F4A40]">
+                      <thead className="bg-slate-50 dark:bg-[#13233F] text-slate-500 dark:text-slate-400 font-mono text-[10px] uppercase border-b border-slate-200 dark:border-[#1E293B]">
                         <tr>
                           <th className="py-2.5 px-3 font-semibold">Tiêu đề vị trí</th>
                           <th className="py-2.5 px-3 font-semibold">Ngành nghề</th>
@@ -308,13 +308,13 @@ export default function HRDashboardPage() {
               </div>
 
               {/* Right Column: Recent Candidate Activity */}
-              <div className="lg:col-span-4 bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-6 shadow-xs space-y-4">
+              <div className="lg:col-span-4 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Đơn Ứng Tuyển Mới Nhất</h3>
 
                 {applications.length > 0 ? (
                   <div className="space-y-3 text-xs">
                     {applications.slice(0, 4).map((app) => (
-                      <div key={app.id} className="p-3 bg-slate-50 dark:bg-[#071A17] border border-slate-200/80 dark:border-[#1F4A40] rounded-lg flex items-center justify-between">
+                      <div key={app.id} className="p-3 bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] rounded-lg flex items-center justify-between">
                         <div className="space-y-0.5">
                           <div className="font-semibold text-slate-900 dark:text-white">{app.appliedCvTitle}</div>
                           <div className="text-[10px] text-slate-500 dark:text-slate-400">{app.job.title}</div>
@@ -341,8 +341,8 @@ export default function HRDashboardPage() {
         ) : (
           /* Assessment & Analytics View */
           <div className="space-y-6">
-            <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-6 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-[#1F4A40] pb-4">
+            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-[#1E293B] pb-4">
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                     Recruitment Telemetry & Funnel Analytics
@@ -354,19 +354,19 @@ export default function HRDashboardPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#071A17] border border-slate-200/80 dark:border-[#1F4A40] space-y-1">
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] space-y-1">
                   <span className="text-[10px] font-mono uppercase text-slate-400">ĐỘ CHÍNH XÁC XẾP HẠNG (NDCG@3)</span>
                   <div className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">1.00</div>
-                  <span className="text-[10px] text-[#00B14F] dark:text-[#00B14F] font-medium">100% Top-tier candidate alignment</span>
+                  <span className="text-[10px] text-[#00B14F] dark:text-[#3B82F6] font-medium">100% Top-tier candidate alignment</span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#071A17] border border-slate-200/80 dark:border-[#1F4A40] space-y-1">
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] space-y-1">
                   <span className="text-[10px] font-mono uppercase text-slate-400">F1 EXTRACTION EVALUATION</span>
                   <div className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">83.6%</div>
-                  <span className="text-[10px] text-[#00B14F] dark:text-[#00B14F] font-medium">Recall 100% on technical benchmark</span>
+                  <span className="text-[10px] text-[#00B14F] dark:text-[#3B82F6] font-medium">Recall 100% on technical benchmark</span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#071A17] border border-slate-200/80 dark:border-[#1F4A40] space-y-1">
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] space-y-1">
                   <span className="text-[10px] font-mono uppercase text-slate-400">CHÍNH SÁCH BẢO VỆ GITHUB</span>
                   <div className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">Zero Penalty</div>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400">Tín hiệu bổ trợ (Supplementary Only)</span>

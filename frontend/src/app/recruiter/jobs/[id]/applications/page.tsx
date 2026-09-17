@@ -49,7 +49,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] p-12 text-center text-slate-500 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] p-12 text-center text-slate-500 flex items-center justify-center">
         <EmptyState
           type="LOADING"
           title="Đang tải pipeline ứng viên..."
@@ -61,7 +61,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
 
   if (fetchError || !job) {
     return (
-      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] p-12 text-center text-slate-500 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] p-12 text-center text-slate-500 flex items-center justify-center">
         <EmptyState
           type="ERROR"
           title="Không thể tải pipeline ứng viên"
@@ -87,11 +87,11 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] text-slate-800 dark:text-slate-100 flex flex-col py-8 transition-colors">
+    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col py-8 transition-colors">
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 w-full">
         
         {/* Header Section */}
-        <div className="border-b border-slate-200 dark:border-[#1B3D34] pb-4 space-y-2">
+        <div className="border-b border-slate-200 dark:border-[#1E293B] pb-4 space-y-2">
           <Link
             href="/recruiter"
             className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition mb-1"
@@ -123,7 +123,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
         </div>
 
         {/* Active Job Bar */}
-        <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
               Vị trí tuyển: <strong className="text-slate-900 dark:text-white">{job.title}</strong>
@@ -136,7 +136,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
           <div className="flex items-center gap-2">
             <Link
               href={`/jobs/${job.id}`}
-              className="px-3 py-1.5 rounded-md text-xs font-medium border border-slate-200 dark:border-[#1F4A40] bg-slate-50 dark:bg-[#081C18] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#14352E] transition"
+              className="px-3 py-1.5 rounded-md text-xs font-medium border border-slate-200 dark:border-[#1E293B] bg-slate-50 dark:bg-[#13233F] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#18294E] transition"
             >
               Xem trang bài đăng JD
             </Link>
@@ -155,10 +155,10 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start pb-4">
             {columns.map((col, idx) => (
-              <div key={idx} className="bg-slate-100/70 dark:bg-[#0B211D] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-3.5 space-y-3 min-w-[220px]">
+              <div key={idx} className="bg-slate-100/70 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-xl p-3.5 space-y-3 min-w-[220px]">
                 <div className="flex items-center justify-between font-semibold text-xs text-slate-800 dark:text-slate-200 px-1">
                   <span>{col.title}</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40]">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B]">
                     {col.count}
                   </span>
                 </div>
@@ -166,7 +166,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                 <div className="space-y-3">
                   {col.items.length > 0 ? (
                     col.items.map((app) => (
-                      <div key={app.id} className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-lg p-3.5 space-y-2 shadow-xs">
+                      <div key={app.id} className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-lg p-3.5 space-y-2 shadow-xs">
                         <div className="flex items-center justify-between">
                           <div>
                             <span className="font-semibold text-xs text-slate-900 dark:text-white block">
@@ -190,7 +190,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                         )}
                         <Link
                           href={`/recruiter/applications/${app.id}`}
-                          className="block text-center py-1.5 rounded text-[10px] font-semibold border border-slate-200 dark:border-[#1F4A40] text-[#2563EB] dark:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-[#14352E] transition"
+                          className="block text-center py-1.5 rounded text-[10px] font-semibold border border-slate-200 dark:border-[#1E293B] text-[#2563EB] dark:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-[#18294E] transition"
                         >
                           Kiểm tra hồ sơ đối sánh
                         </Link>

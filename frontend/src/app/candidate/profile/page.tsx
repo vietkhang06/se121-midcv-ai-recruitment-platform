@@ -70,7 +70,7 @@ export default function CandidateProfilePage() {
   };
 
   return (
-    <div className="bg-[#F8FAF9] dark:bg-[#071410] min-h-screen py-8 text-slate-800 dark:text-slate-100 space-y-8 transition-colors">
+    <div className="bg-[#F8FAF9] dark:bg-[#0B1329] min-h-screen py-8 text-slate-800 dark:text-slate-100 space-y-8 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         {/* Recruiter / Candidate Mode Alert Banner (Figma Screen 09) */}
@@ -81,24 +81,24 @@ export default function CandidateProfilePage() {
             </span>
             <span>You are viewing {profile.fullName}&apos;s validated profile. All skill scores trace directly to production commits and verified submissions.</span>
           </div>
-          <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-emerald-800 dark:text-emerald-400 font-medium">
+          <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-emerald-800 dark:text-[#3B82F6] font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span>Visible Mode: Open to offers</span>
           </div>
         </div>
 
         {/* Tab Switcher: Dashboard Telemetry vs. Profile Editing */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1B3D34] pb-2">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1E293B] pb-2">
           <div className="flex items-center gap-6 text-sm font-medium">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`pb-2 transition ${activeTab === 'dashboard' ? 'border-b-2 border-[#0C2B24] dark:border-emerald-400 text-[#0C2B24] dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+              className={`pb-2 transition ${activeTab === 'dashboard' ? 'border-b-2 border-[#0C2B24] dark:border-[#3B82F6] text-[#2563EB] dark:text-[#3B82F6] font-semibold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
             >
               Candidate Dashboard (04)
             </button>
             <button
               onClick={() => setActiveTab('profile')}
-              className={`pb-2 transition ${activeTab === 'profile' ? 'border-b-2 border-[#0C2B24] dark:border-emerald-400 text-[#0C2B24] dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+              className={`pb-2 transition ${activeTab === 'profile' ? 'border-b-2 border-[#0C2B24] dark:border-[#3B82F6] text-[#2563EB] dark:text-[#3B82F6] font-semibold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
             >
               Hồ Sơ Cá Nhân Ứng Viên (09)
             </button>
@@ -112,7 +112,7 @@ export default function CandidateProfilePage() {
         </div>
 
         {/* 04 — Dark Forest Green Welcome Banner (Figma Screen 04) */}
-        <div className="bg-[#0C2B24] text-white rounded-2xl p-8 sm:p-10 border border-[#133E34] shadow-md relative overflow-hidden">
+        <div className="bg-[#111C38] text-white rounded-2xl p-8 sm:p-10 border border-[#1E293B] shadow-md relative overflow-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div className="space-y-3 max-w-2xl">
               <h2 className="text-3xl sm:text-4xl font-editorial font-normal tracking-tight text-white">
@@ -138,7 +138,7 @@ export default function CandidateProfilePage() {
             </div>
 
             {/* Profile Strength Gauge */}
-            <div className="flex items-center gap-4 bg-[#081E17] border border-[#1B4D41] rounded-xl p-4 shrink-0">
+            <div className="flex items-center gap-4 bg-[#13233F] border border-[#1E3A5F] rounded-xl p-4 shrink-0">
               <div className="relative w-16 h-16 flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                   <path
@@ -170,25 +170,25 @@ export default function CandidateProfilePage() {
 
         {/* 04 — 4 KPI Stat Cards (Figma Screen 04) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-          <div className="bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-5 shadow-xs space-y-1">
+          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
             <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">APPLICATIONS SENT</span>
             <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">12</div>
             <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">2 new reviews today</div>
           </div>
 
-          <div className="bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-5 shadow-xs space-y-1">
+          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
             <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">INTERVIEWS SCHEDULED</span>
             <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">3</div>
             <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">Next: cloud scale tomorrow</div>
           </div>
 
-          <div className="bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-5 shadow-xs space-y-1">
+          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
             <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">PROFILE VIEWS</span>
             <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">184</div>
-            <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium pt-1">+24% compared to last week</div>
+            <div className="text-[11px] text-emerald-600 dark:text-[#3B82F6] font-medium pt-1">+24% compared to last week</div>
           </div>
 
-          <div className="bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-5 shadow-xs space-y-1">
+          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
             <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">AVERAGE MATCH SCORE</span>
             <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">86%</div>
             <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">Highly qualified candidate index</div>
@@ -196,7 +196,7 @@ export default function CandidateProfilePage() {
         </div>
 
         {/* 04 — Active Application Pipeline Stepper (Figma Screen 04) */}
-        <div className="bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-6 shadow-xs space-y-4">
+        <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
           <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
             Active Application Pipeline: Senior Infrastructure Engineer (CloudScale Systems)
           </div>
@@ -204,7 +204,7 @@ export default function CandidateProfilePage() {
           <div className="pt-3 pb-2">
             <div className="flex items-center justify-between relative">
               <div className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-slate-200 dark:bg-[#1B3D34] w-full z-0"></div>
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-[#0C2B24] dark:bg-emerald-500 w-3/4 z-0"></div>
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-[#111C38] dark:bg-emerald-500 w-3/4 z-0"></div>
 
               {[
                 { label: 'Applied', done: true },
@@ -213,11 +213,11 @@ export default function CandidateProfilePage() {
                 { label: 'Interview Mode', active: true },
                 { label: 'Offer Generation', pending: true },
               ].map((step, idx) => (
-                <div key={idx} className="flex flex-col items-center gap-1.5 relative z-10 bg-white dark:bg-[#0E241E] px-2">
+                <div key={idx} className="flex flex-col items-center gap-1.5 relative z-10 bg-white dark:bg-[#111C38] px-2">
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                       step.done
-                        ? 'bg-[#0C2B24] dark:bg-emerald-600 text-white'
+                        ? 'bg-[#111C38] dark:bg-[#2563EB] text-white'
                         : step.active
                         ? 'bg-amber-400 text-slate-900 ring-4 ring-amber-100 dark:ring-amber-950/40'
                         : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
@@ -253,7 +253,7 @@ export default function CandidateProfilePage() {
                 { title: 'Kubernetes Systems Lead', company: 'AeroStorage', salary: '£110,000 - £130,000', score: 91 },
                 { title: 'Go Software Architect', company: 'NeoCore', salary: '£90,000 - £115,000', score: 87 },
               ].map((job, idx) => (
-                <div key={idx} className="bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-5 shadow-xs flex items-center justify-between gap-4">
+                <div key={idx} className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs flex items-center justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-slate-900 dark:text-white text-sm">{job.title}</span>
@@ -266,7 +266,7 @@ export default function CandidateProfilePage() {
                   </div>
                   <Link
                     href="/jobs"
-                    className="px-3.5 py-1.5 rounded-md text-xs font-medium border border-[#E2E8F0] dark:border-[#1B3D34] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#133E34] transition shrink-0"
+                    className="px-3.5 py-1.5 rounded-md text-xs font-medium border border-[#E2E8F0] dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#133E34] transition shrink-0"
                   >
                     Match Analytics
                   </Link>
@@ -275,14 +275,14 @@ export default function CandidateProfilePage() {
             </div>
 
             {/* Right: Recent Activity Feed */}
-            <div className="lg:col-span-4 bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-6 shadow-xs space-y-4">
+            <div className="lg:col-span-4 bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
               <h3 className="font-semibold text-sm text-slate-900 dark:text-white">Recent Activity Feed</h3>
               <div className="space-y-4 text-xs">
-                <div className="border-b border-slate-100 dark:border-[#1B3D34] pb-3 space-y-1">
+                <div className="border-b border-slate-100 dark:border-[#1E293B] pb-3 space-y-1">
                   <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">2 hours ago</span>
                   <p className="text-slate-700 dark:text-slate-300">Match Audit report downloaded by CloudScale systems manager.</p>
                 </div>
-                <div className="border-b border-slate-100 dark:border-[#1B3D34] pb-3 space-y-1">
+                <div className="border-b border-slate-100 dark:border-[#1E293B] pb-3 space-y-1">
                   <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">Yesterday</span>
                   <p className="text-slate-700 dark:text-slate-300">AI pipeline updated matching score for &apos;Senior Systems Architect&apos; position from 84% to 88% based on updated repository commits.</p>
                 </div>
@@ -302,10 +302,10 @@ export default function CandidateProfilePage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               
               {/* Candidate Info */}
-              <div className="lg:col-span-8 bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-6 sm:p-8 shadow-xs space-y-4">
+              <div className="lg:col-span-8 bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 sm:p-8 shadow-xs space-y-4">
                 <div className="flex items-center gap-3 flex-wrap">
                   <h3 className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">{profile.fullName}</h3>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/40">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-[#93C5FD] border border-emerald-300 dark:border-emerald-800/40">
                     VERIFIED SOURCE
                   </span>
                 </div>
@@ -319,14 +319,14 @@ export default function CandidateProfilePage() {
                 </p>
 
                 {/* Verified Work Experience Timeline */}
-                <div className="pt-4 border-t border-slate-100 dark:border-[#1B3D34] space-y-4">
+                <div className="pt-4 border-t border-slate-100 dark:border-[#1E293B] space-y-4">
                   <div className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                     Verified Work Experience Timeline
                   </div>
 
                   <div className="space-y-3 pl-4 border-l-2 border-[#0C2B24] dark:border-emerald-500 text-xs">
                     <div className="space-y-1 relative">
-                      <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-[#0C2B24] dark:bg-emerald-400"></span>
+                      <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-[#111C38] dark:bg-emerald-400"></span>
                       <div className="flex items-center justify-between font-semibold text-slate-900 dark:text-white">
                         <span>CloudScale Systems — Lead Systems Architect</span>
                         <span className="text-[10px] font-mono text-slate-400">2022 - PRESENT</span>
@@ -350,21 +350,21 @@ export default function CandidateProfilePage() {
               <div className="lg:col-span-4 space-y-4">
                 
                 {/* Actions Box */}
-                <div className="bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-6 shadow-xs space-y-3">
+                <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-3">
                   <div className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400">EVALUATION ACTIONS</div>
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">Secure Recruitment Channel</div>
                   <div className="space-y-2 pt-2">
-                    <button className="w-full py-2.5 px-4 rounded-lg text-xs font-semibold text-white bg-[#0C2B24] dark:bg-emerald-600 hover:bg-[#133E34] dark:hover:bg-emerald-700 transition">
+                    <button className="w-full py-2.5 px-4 rounded-lg text-xs font-semibold text-white bg-[#111C38] dark:bg-[#2563EB] hover:bg-[#133E34] dark:hover:bg-[#1D4ED8] transition">
                       Unlock Evidence Map
                     </button>
-                    <button className="w-full py-2.5 px-4 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 border border-[#E2E8F0] dark:border-[#1B3D34] hover:bg-slate-50 dark:hover:bg-[#133E34] transition">
+                    <button className="w-full py-2.5 px-4 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 border border-[#E2E8F0] dark:border-[#1E293B] hover:bg-slate-50 dark:hover:bg-[#133E34] transition">
                       Contact Andrew Directly
                     </button>
                   </div>
                 </div>
 
                 {/* Ingested Repos Telemetry Card */}
-                <div className="bg-[#081E17] text-white border border-[#1B4D41] rounded-xl p-6 shadow-xs space-y-3">
+                <div className="bg-[#13233F] text-white border border-[#1E3A5F] rounded-xl p-6 shadow-xs space-y-3">
                   <div className="flex items-center gap-2 text-[10px] font-mono uppercase text-emerald-400">
                     <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
                     <span>Ingested Repos Telemetry</span>
@@ -390,14 +390,14 @@ export default function CandidateProfilePage() {
             </div>
 
             {/* Profile Editing Form (Preserved for E2E Test Compatibility) */}
-            <form onSubmit={handleSaveProfile} className="bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-6 sm:p-8 shadow-xs space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1B3D34] pb-4">
+            <form onSubmit={handleSaveProfile} className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 sm:p-8 shadow-xs space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-4">
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Cập nhật Chi tiết Hồ sơ & Định hướng</h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Chỉnh sửa thông tin liên hệ, đa ngành nghề và bộ kỹ năng đối sánh.</p>
                 </div>
                 {savedSuccess && (
-                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/40 flex items-center gap-1">
+                  <span className="text-xs font-semibold text-emerald-700 dark:text-[#93C5FD] bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/40 flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>Đã lưu thành công!</span>
                   </span>
@@ -417,8 +417,8 @@ export default function CandidateProfilePage() {
                       onClick={() => handleIndustryToggle(ind)}
                       className={`p-3 rounded-lg border text-xs font-medium text-left transition ${
                         (profile.additionalIndustries || []).includes(ind) || profile.targetIndustry === ind
-                          ? 'bg-[#0C2B24] dark:bg-emerald-600 text-white border-[#0C2B24] dark:border-emerald-600'
-                          : 'bg-white dark:bg-[#071410] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-[#1B3D34] hover:border-slate-300 dark:hover:border-slate-600'
+                          ? 'bg-[#111C38] dark:bg-[#2563EB] text-white border-[#0C2B24] dark:border-emerald-600'
+                          : 'bg-white dark:bg-[#0B1329] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-[#1E293B] hover:border-slate-300 dark:hover:border-slate-600'
                       }`}
                     >
                       {ind}
@@ -428,7 +428,7 @@ export default function CandidateProfilePage() {
               </div>
 
               {/* Skills Tag Cloud & Adder */}
-              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1B3D34]">
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
                   Kỹ năng Chuyên môn
                 </label>
@@ -436,7 +436,7 @@ export default function CandidateProfilePage() {
                   {profile.skills.map((skill) => (
                     <span
                       key={skill}
-                      className="px-3 py-1 rounded-full text-xs font-mono font-medium bg-[#F1F5F3] dark:bg-[#133E34] text-[#0C2B24] dark:text-emerald-300 border border-[#133E34]/20 dark:border-emerald-500/20 flex items-center gap-1.5"
+                      className="px-3 py-1 rounded-full text-xs font-mono font-medium bg-[#F1F5F3] dark:bg-[#13233F] text-[#0C2B24] dark:text-[#93C5FD] border border-[#1E293B]/20 dark:border-emerald-500/20 flex items-center gap-1.5"
                     >
                       <span>{skill}</span>
                       <button
@@ -456,12 +456,12 @@ export default function CandidateProfilePage() {
                     placeholder="Thêm kỹ năng mới (e.g. Terraform, Rust)..."
                     value={newSkill}
                     onChange={(e) => setNewSkill(e.target.value)}
-                    className="flex-1 px-3 py-2 text-xs bg-[#F8FAF9] dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
+                    className="flex-1 px-3 py-2 text-xs bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]"
                   />
                   <button
                     type="button"
                     onClick={handleAddSkill}
-                    className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-800 dark:bg-emerald-600 text-white hover:bg-slate-900 dark:hover:bg-emerald-700 transition"
+                    className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-800 dark:bg-[#2563EB] text-white hover:bg-slate-900 dark:hover:bg-[#1D4ED8] transition"
                   >
                     Thêm
                   </button>
@@ -469,10 +469,10 @@ export default function CandidateProfilePage() {
               </div>
 
               {/* Save Button */}
-              <div className="pt-4 border-t border-slate-100 dark:border-[#1B3D34] flex justify-end">
+              <div className="pt-4 border-t border-slate-100 dark:border-[#1E293B] flex justify-end">
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-lg text-xs font-semibold text-white bg-[#0C2B24] dark:bg-emerald-600 hover:bg-[#133E34] dark:hover:bg-emerald-700 transition flex items-center gap-2 shadow-xs"
+                  className="px-6 py-2.5 rounded-lg text-xs font-semibold text-white bg-[#111C38] dark:bg-[#2563EB] hover:bg-[#133E34] dark:hover:bg-[#1D4ED8] transition flex items-center gap-2 shadow-xs"
                 >
                   <Save className="w-3.5 h-3.5" />
                   <span>Lưu Hồ Sơ Cá Nhân</span>
