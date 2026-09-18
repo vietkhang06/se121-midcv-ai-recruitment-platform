@@ -1,0 +1,4 @@
+com\platform\recruitment\AuthServiceTest.class
+com\platform\recruitment\CVOwnershipTest.class
+com\platform\recruitment\CompanyVerificationRuleTest.class
+com\platform\recruitment\ApplicationSnapshotImmutableTest.class
