@@ -28,7 +28,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const preferredSkills = job.requirements.filter((r) => r.requirementType === 'PREFERRED');
 
   return (
-    <div className="bg-slate-50/60 dark:bg-[#0B1329] min-h-screen py-8 text-[#0F2A52] dark:text-[#F1F5F9] space-y-8 transition-colors">
+    <div className="bg-slate-50/60 dark:bg-[#071A17] min-h-screen py-8 text-[#0F2A52] dark:text-[#F1F5F9] space-y-8 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         {/* Breadcrumb Trail (Figma Screen 03) */}
@@ -41,7 +41,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         </div>
 
         {/* 03 — Editorial Hero Header Banner */}
-        <div className="bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0F172A] dark:to-[#1E293B] text-white rounded-3xl p-8 sm:p-10 border border-white/10 shadow-lg relative overflow-hidden">
+        <div className="bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0B211D] dark:to-[#102A25] text-white rounded-3xl p-8 sm:p-10 border border-white/10 shadow-lg relative overflow-hidden">
           <div className="absolute -right-20 -top-20 w-80 h-80 bg-[#2563EB]/20 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-[#00B14F]/15 rounded-full blur-3xl pointer-events-none" />
 
@@ -87,7 +87,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           <div className="lg:col-span-8 space-y-6">
             
             {/* Role Summary */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-3 transition-colors">
+            <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl p-6 sm:p-8 shadow-xs space-y-3 transition-colors">
               <h2 className="font-editorial text-xl font-bold text-[#0F2A52] dark:text-[#F1F5F9]">Mô Tả Công Việc</h2>
               <p className="text-xs sm:text-sm text-[#64748B] dark:text-[#94A3B8] leading-relaxed">
                 {job.description}
@@ -95,7 +95,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             </div>
 
             {/* Key Responsibilities */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-3 transition-colors">
+            <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl p-6 sm:p-8 shadow-xs space-y-3 transition-colors">
               <h2 className="font-editorial text-xl font-bold text-[#0F2A52] dark:text-[#F1F5F9]">Trách Nhiệm Chính</h2>
               <ul className="space-y-2 text-xs sm:text-sm text-[#64748B] dark:text-[#94A3B8] list-disc pl-5">
                 {(job.responsibilities || [
@@ -110,7 +110,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             </div>
 
             {/* Technical Requirements & Evidence Rubrics */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-4 transition-colors">
+            <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl p-6 sm:p-8 shadow-xs space-y-4 transition-colors">
               <h2 className="font-editorial text-xl font-bold text-[#0F2A52] dark:text-[#F1F5F9]">Yêu Cầu Kỹ Thuật</h2>
               
               {/* Required Skills Section (Preserved for E2E Test Compatibility) */}
@@ -122,7 +122,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   {requiredSkills.map((req) => (
                     <span
                       key={req.id}
-                      className="px-3 py-1.5 rounded-xl text-xs font-mono font-semibold bg-[#EFF6FF] dark:bg-[#13233F] text-[#2563EB] dark:text-[#93C5FD] border border-[#BFDBFE] dark:border-[#1E3A5F]"
+                      className="px-3 py-1.5 rounded-xl text-xs font-mono font-semibold bg-[#EFF6FF] dark:bg-[#071A17] text-[#2563EB] dark:text-[#93C5FD] border border-[#BFDBFE] dark:border-[#1F4A40]"
                     >
                       {req.skillName} • {req.minYearsExperience}y exp
                     </span>
@@ -132,7 +132,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
               {/* Preferred Skills */}
               {preferredSkills.length > 0 && (
-                <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-[#1E293B]">
+                <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-[#1F4A40]">
                   <div className="text-xs font-semibold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] font-mono">
                     Kỹ năng Ưu tiên (Preferred Skills)
                   </div>
@@ -140,7 +140,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     {preferredSkills.map((req) => (
                       <span
                         key={req.id}
-                        className="px-2.5 py-1 rounded-xl text-xs font-mono text-[#64748B] dark:text-[#94A3B8] bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F]"
+                        className="px-2.5 py-1 rounded-xl text-xs font-mono text-[#64748B] dark:text-[#94A3B8] bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40]"
                       >
                         {req.skillName} • {req.minYearsExperience}y exp
                       </span>
@@ -156,7 +156,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           <div className="lg:col-span-4 space-y-6">
             
             {/* Compensation & Apply Card */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-7 shadow-xs space-y-4 transition-colors">
+            <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl p-6 sm:p-7 shadow-xs space-y-4 transition-colors">
               <div className="space-y-1">
                 <span className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">MỨC LƯƠNG ĐỀ XUẤT</span>
                 <div className="text-2xl font-bold font-editorial text-[#00B14F]">
@@ -173,7 +173,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 </button>
                 <button
                   onClick={() => setIsApplyModalOpen(true)}
-                  className="w-full py-2.5 px-4 rounded-xl font-medium text-xs text-[#0F2A52] dark:text-slate-200 border border-slate-200 dark:border-[#1E293B] hover:bg-slate-50 dark:hover:bg-[#18294E] transition text-center cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-xl font-medium text-xs text-[#0F2A52] dark:text-slate-200 border border-slate-200 dark:border-[#1F4A40] hover:bg-slate-50 dark:hover:bg-[#1F4A40]/50 transition text-center cursor-pointer"
                 >
                   Ứng tuyển tiêu chuẩn
                 </button>
@@ -181,7 +181,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             </div>
 
             {/* Semantic Fit Evaluation Widget (Radial Score Gauge) */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 shadow-xs space-y-4 text-center transition-colors">
+            <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl p-6 shadow-xs space-y-4 text-center transition-colors">
               <div className="text-xs font-semibold uppercase tracking-wider text-[#0F2A52] dark:text-[#E2E8F0] font-mono">
                 Đối Sánh Vector Tự Động
               </div>
@@ -190,7 +190,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               <div className="relative w-32 h-32 mx-auto flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                   <path
-                    className="text-slate-100 dark:text-[#13233F]"
+                    className="text-slate-100 dark:text-[#071A17]"
                     strokeWidth="3.5"
                     stroke="currentColor"
                     fill="none"
@@ -213,11 +213,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               </div>
 
               {/* Verified Skills Distribution Bar */}
-              <div className="space-y-1.5 text-left pt-2 border-t border-slate-100 dark:border-[#1E293B]">
+              <div className="space-y-1.5 text-left pt-2 border-t border-slate-100 dark:border-[#1F4A40]">
                 <div className="text-[10px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
                   CƠ CẤU YÊU CẦU CÔNG VIỆC
                 </div>
-                <div className="w-full h-2 rounded-full overflow-hidden flex bg-slate-100 dark:bg-[#13233F]">
+                <div className="w-full h-2 rounded-full overflow-hidden flex bg-slate-100 dark:bg-[#071A17]">
                   <div
                     className="bg-[#2563EB] h-full"
                     style={{ width: `${job.requirements.length > 0 ? ((requiredSkills.length / job.requirements.length) * 100) : 100}%` }}
@@ -242,7 +242,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         </div>
 
         {/* 03 — Verifiable Skill Evidence Comparison Table (Figma Screen 03) */}
-        <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-6 transition-colors">
+        <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl p-6 sm:p-8 shadow-xs space-y-6 transition-colors">
           <div>
             <span className="text-[11px] font-mono font-semibold text-[#2563EB] dark:text-[#60A5FA] uppercase tracking-widest">
               EXPLAINABLE MATCHING AUDIT
@@ -252,7 +252,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-[#13233F] text-[#64748B] dark:text-[#94A3B8] uppercase font-mono text-[10px] border-b border-slate-200 dark:border-[#1E293B]">
+              <thead className="bg-slate-50 dark:bg-[#071A17] text-[#64748B] dark:text-[#94A3B8] uppercase font-mono text-[10px] border-b border-slate-200 dark:border-[#1F4A40]">
                 <tr>
                   <th className="py-3 px-4 font-semibold">Yêu Cầu Kỹ Thuật (JD)</th>
                   <th className="py-3 px-4 font-semibold">Minh Chứng Đã Xác Thực Từ CV</th>
@@ -260,7 +260,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   <th className="py-3 px-4 font-semibold text-right">Độ Khớp</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-[#1E293B] text-[#0F2A52] dark:text-slate-200">
+              <tbody className="divide-y divide-slate-100 dark:divide-[#1F4A40] text-[#0F2A52] dark:text-slate-200">
                 <tr>
                   <td className="py-3.5 px-4 font-medium text-[#0F2A52] dark:text-white">
                     <div className="font-semibold">Go (Golang)</div>

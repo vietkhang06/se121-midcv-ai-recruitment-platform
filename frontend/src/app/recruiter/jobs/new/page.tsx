@@ -75,11 +75,11 @@ export default function CreateJobPage() {
   };
 
   return (
-    <div className="bg-[#F8FAF9] dark:bg-[#0B1329] min-h-screen py-8 text-slate-800 dark:text-slate-100 space-y-6 transition-colors">
+    <div className="bg-[#F8FAF9] dark:bg-[#071410] min-h-screen py-8 text-slate-800 dark:text-slate-100 space-y-6 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         {/* Header & Back Link */}
-        <div className="border-b border-slate-200 dark:border-[#1E293B] pb-4">
+        <div className="border-b border-slate-200 dark:border-[#1F4A40] pb-4">
           <Link href="/recruiter/jobs" className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition mb-3">
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Postings</span>
@@ -123,7 +123,7 @@ export default function CreateJobPage() {
           <div className="lg:col-span-8 space-y-6">
             
             {/* Card 1: Role Fundamentals */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
+            <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-6 shadow-xs space-y-4">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-900 dark:text-white">Role Fundamentals</h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -133,7 +133,7 @@ export default function CreateJobPage() {
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#2563EB]"
+                    className="w-full bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#2563EB]"
                   />
                 </div>
 
@@ -143,7 +143,7 @@ export default function CreateJobPage() {
                     type="text"
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#2563EB]"
+                    className="w-full bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#2563EB]"
                   />
                 </div>
               </div>
@@ -155,7 +155,7 @@ export default function CreateJobPage() {
                     type="text"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#2563EB]"
+                    className="w-full bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#2563EB]"
                   />
                 </div>
 
@@ -164,7 +164,7 @@ export default function CreateJobPage() {
                   <select
                     value={employmentType}
                     onChange={(e) => setEmploymentType(e.target.value as EmploymentType)}
-                    className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#2563EB]"
+                    className="w-full bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#2563EB]"
                   >
                     <option value="FULL_TIME">Full-Time Permanent</option>
                     <option value="PART_TIME">Part-Time</option>
@@ -180,7 +180,7 @@ export default function CreateJobPage() {
                     type="text"
                     value={salaryRange}
                     onChange={(e) => setSalaryRange(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#2563EB]"
+                    className="w-full bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#2563EB]"
                   />
                 </div>
 
@@ -190,14 +190,14 @@ export default function CreateJobPage() {
                     type="text"
                     value={seniority}
                     onChange={(e) => setSeniority(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#2563EB]"
+                    className="w-full bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#2563EB]"
                   />
                 </div>
               </div>
             </div>
 
             {/* Card 2: AI Assisted Job Description (Figma Screen 11) */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
+            <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-6 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-900 dark:text-white">
                   AI Assisted Job Description
@@ -216,7 +216,7 @@ export default function CreateJobPage() {
                   rows={5}
                   value={responsibilities}
                   onChange={(e) => setResponsibilities(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-lg p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#2563EB] leading-relaxed"
+                  className="w-full bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] rounded-lg p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#2563EB] leading-relaxed"
                 />
               </div>
 
@@ -228,7 +228,7 @@ export default function CreateJobPage() {
                       '• Architect resilient event streams with Kafka and Go. • Configure zero-trust Kubernetes networking. • Conduct strict automated chaos engineering and canary evaluations.'
                     )
                   }
-                  className="px-3.5 py-1.5 rounded-md text-xs font-semibold border border-slate-300 dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#18294E] transition cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-md text-xs font-semibold border border-slate-300 dark:border-[#1F4A40] text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#15362F] transition cursor-pointer"
                 >
                   Regenerate Section
                 </button>
@@ -247,12 +247,12 @@ export default function CreateJobPage() {
           <div className="lg:col-span-4 space-y-6">
             
             {/* Card 1: JD Quality Analysis */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
+            <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-6 shadow-xs space-y-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 JD Quality Analysis
               </h3>
 
-              <div className="bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-xl p-4 text-center space-y-1">
+              <div className="bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-4 text-center space-y-1">
                 <div className="text-4xl font-editorial font-bold text-[#00B14F]">84%</div>
                 <div className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400">Match Optimization Index</div>
               </div>
@@ -274,7 +274,7 @@ export default function CreateJobPage() {
             </div>
 
             {/* Card 2: Optimization Copilot */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
+            <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-xl p-6 shadow-xs space-y-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 Optimization Copilot
               </h3>
@@ -301,7 +301,7 @@ export default function CreateJobPage() {
                   id="save-draft-btn"
                   type="button"
                   onClick={() => handleSaveJob('DRAFT')}
-                  className="w-full py-2.5 px-4 rounded-lg text-xs font-semibold border border-slate-300 dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#18294E] transition text-center cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-lg text-xs font-semibold border border-slate-300 dark:border-[#1F4A40] text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#15362F] transition text-center cursor-pointer"
                 >
                   Save Draft
                 </button>

@@ -72,11 +72,11 @@ export default function ApplicationHistoryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/60 dark:bg-[#0B1329] text-[#0F2A52] dark:text-[#F1F5F9] py-10 transition-colors">
+    <div className="min-h-screen bg-slate-50/60 dark:bg-[#071A17] text-[#0F2A52] dark:text-[#F1F5F9] py-10 transition-colors">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1E293B] pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1F4A40] pb-6">
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-[11px] font-mono font-bold text-[#2563EB] dark:text-[#60A5FA] uppercase tracking-wider">
               <ShieldCheck className="w-4 h-4 text-[#00B14F]" />
@@ -122,7 +122,7 @@ export default function ApplicationHistoryPage() {
               return (
                 <div
                   key={app.id}
-                  className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 shadow-xs hover:shadow-md transition-all space-y-4"
+                  className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl p-6 shadow-xs hover:shadow-md transition-all space-y-4"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-2">
@@ -167,7 +167,7 @@ export default function ApplicationHistoryPage() {
                     <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                       <button
                         onClick={() => toggleExpand(app.id)}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium text-[#0F2A52] dark:text-slate-200 bg-slate-100 dark:bg-[#13233F] hover:bg-slate-200 dark:hover:bg-[#18294E] border border-slate-200 dark:border-[#1E293B] transition cursor-pointer"
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium text-[#0F2A52] dark:text-slate-200 bg-slate-100 dark:bg-[#071A17] hover:bg-slate-200 dark:hover:bg-[#1F4A40] border border-slate-200 dark:border-[#1F4A40] transition cursor-pointer"
                       >
                         <BarChart2 className="w-3.5 h-3.5 text-[#2563EB]" />
                         <span>Báo cáo đối sánh</span>
@@ -185,7 +185,7 @@ export default function ApplicationHistoryPage() {
                   </div>
 
                   {/* CV Snapshot Metadata Banner */}
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-xs text-[#64748B] dark:text-[#94A3B8] space-y-1">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-xs text-[#64748B] dark:text-[#94A3B8] space-y-1">
                     <div className="flex items-center gap-2">
                       <FileText className="w-3.5 h-3.5 text-[#2563EB] flex-shrink-0" />
                       <span>
@@ -201,7 +201,7 @@ export default function ApplicationHistoryPage() {
 
                   {/* Expandable Match Report Detail */}
                   {isExpanded && (
-                    <div className="pt-3 border-t border-slate-200 dark:border-[#1E293B] space-y-4 animate-fade-in">
+                    <div className="pt-3 border-t border-slate-200 dark:border-[#1F4A40] space-y-4 animate-fade-in">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#0F2A52] dark:text-[#E2E8F0]">
                           BÁO CÁO PHÂN TÍCH ĐỐI SÁNH midCV® AI
@@ -220,7 +220,7 @@ export default function ApplicationHistoryPage() {
 
                         return (
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] space-y-1">
+                            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] space-y-1">
                               <span className="text-[10px] font-mono uppercase text-[#64748B] dark:text-[#94A3B8]">ĐIỂM ĐỐI SÁNH TỔNG THỂ</span>
                               <div className="text-2xl font-editorial font-bold text-[#0F2A52] dark:text-white">
                                 {overall}
@@ -230,7 +230,7 @@ export default function ApplicationHistoryPage() {
                               </span>
                             </div>
 
-                            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] space-y-1">
+                            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] space-y-1">
                               <span className="text-[10px] font-mono uppercase text-[#64748B] dark:text-[#94A3B8]">TRỌNG SỐ CORE JD-CV</span>
                               <div className="text-2xl font-editorial font-bold text-[#0F2A52] dark:text-white">
                                 {core}
@@ -240,7 +240,7 @@ export default function ApplicationHistoryPage() {
                               </span>
                             </div>
 
-                            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] space-y-1">
+                            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] space-y-1">
                               <span className="text-[10px] font-mono uppercase text-[#64748B] dark:text-[#94A3B8]">TÍN HIỆU GITHUB (PHỤ TRỢ)</span>
                               <div className="text-2xl font-editorial font-bold text-[#0F2A52] dark:text-white">
                                 {gh}
@@ -253,7 +253,7 @@ export default function ApplicationHistoryPage() {
                         );
                       })()}
 
-                      <div className="text-xs text-[#64748B] dark:text-[#94A3B8] bg-slate-50 dark:bg-[#13233F] p-3.5 rounded-xl border border-slate-200 dark:border-[#1E293B] leading-relaxed">
+                      <div className="text-xs text-[#64748B] dark:text-[#94A3B8] bg-slate-50 dark:bg-[#071A17] p-3.5 rounded-xl border border-slate-200 dark:border-[#1F4A40] leading-relaxed">
                         <strong>Lưu ý bảo mật & minh bạch:</strong> Snapshot CV phiên bản v{app.appliedCvVersion}.0 đã được cố định tại thời điểm nộp đơn. Bất kỳ chỉnh sửa nào trong tương lai đối với hồ sơ gốc của bạn sẽ không làm thay đổi bản lưu hồ sơ này mà Nhà tuyển dụng đang xem xét.
                       </div>
                     </div>
@@ -265,7 +265,7 @@ export default function ApplicationHistoryPage() {
         ) : (
           <EmptyState
             type="EMPTY"
-            icon={<FileText className="w-8 h-8 text-[#2563EB] dark:text-[#3B82F6]" />}
+            icon={<FileText className="w-8 h-8 text-emerald-700 dark:text-emerald-400" />}
             title={t('emptyStates.applications.candidateEmptyTitle', 'Bạn chưa có đơn ứng tuyển nào')}
             description={t('emptyStates.applications.candidateEmptyDesc', 'Khám phá các vị trí tuyển dụng phù hợp và nộp đơn để theo dõi tiến trình đối sánh tại đây.')}
             primaryCtaText={t('emptyStates.applications.exploreJobsCta', 'Khám Phá Việc Làm Ngay')}
