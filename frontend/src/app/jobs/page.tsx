@@ -193,11 +193,11 @@ export default function JobsPage() {
     (onlyTargetIndustries ? 1 : 0);
 
   return (
-    <div className="bg-slate-50/60 dark:bg-[#071A17] min-h-screen py-8 text-[#0F2A52] dark:text-[#F1F5F9] transition-colors">
+    <div className="bg-slate-50/60 dark:bg-[#0B1329] min-h-screen py-8 text-[#0F2A52] dark:text-[#F1F5F9] transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         {/* Page Header */}
-        <div className="border-b border-slate-200 dark:border-[#1F4A40] pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="border-b border-slate-200 dark:border-[#1E293B] pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] font-mono">
               Vector Validation Directory
@@ -217,7 +217,7 @@ export default function JobsPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-[#1F4A40] bg-white dark:bg-[#102A25] text-xs font-medium text-[#0F2A52] dark:text-slate-200 focus:outline-none focus:border-[#2563EB]"
+              className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#111C38] text-xs font-medium text-[#0F2A52] dark:text-slate-200 focus:outline-none focus:border-[#2563EB]"
             >
               <option value="newest">Mới nhất trước</option>
               <option value="salary_high">Lương cao đến thấp</option>
@@ -229,8 +229,8 @@ export default function JobsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* Left Column: Refine Matches Filters Sidebar */}
-          <aside className="lg:col-span-4 bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl p-6 space-y-5 shadow-xs transition-colors">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1F4A40] pb-3">
+          <aside className="lg:col-span-4 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 space-y-5 shadow-xs transition-colors">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4 text-[#2563EB]" />
                 <h2 className="font-semibold text-sm text-[#0F2A52] dark:text-white uppercase tracking-wide">
@@ -285,7 +285,7 @@ export default function JobsPage() {
                   placeholder="Ví dụ: Frontend, Java, Senior..."
                   value={searchKeyword}
                   onChange={(e) => setSearchKeyword(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
+                  className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
                 />
                 {searchKeyword && (
                   <button
@@ -309,7 +309,7 @@ export default function JobsPage() {
                   placeholder="Ví dụ: TP. Hồ Chí Minh, Hà Nội, Remote..."
                   value={locationKeyword}
                   onChange={(e) => setLocationKeyword(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
+                  className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
                 />
                 {locationKeyword && (
                   <button
@@ -332,12 +332,12 @@ export default function JobsPage() {
                 placeholder="Ví dụ: React, TypeScript, Docker..."
                 value={skillFilter}
                 onChange={(e) => setSkillFilter(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
+                className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
               />
             </div>
 
             {/* Industry Sector Filter */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1F4A40]">
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
               <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
                 {t('jobs.industrySector', 'LĨNH VỰC HOẠT ĐỘNG')}
               </label>
@@ -357,7 +357,7 @@ export default function JobsPage() {
             </div>
 
             {/* Employment Mode */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1F4A40]">
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
               <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
                 {t('jobs.employmentMode', 'HÌNH THỨC LÀM VIỆC')}
               </label>
@@ -377,7 +377,7 @@ export default function JobsPage() {
             </div>
 
             {/* Experience Level */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1F4A40]">
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
               <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
                 {t('jobs.experienceLevel', 'CẤP BẬC KINH NGHIỆM')}
               </label>
@@ -397,7 +397,7 @@ export default function JobsPage() {
             </div>
 
             {/* Salary Range Slider */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1F4A40]">
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
               <div className="flex items-center justify-between text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
                 <span>MỨC LƯƠNG TỐI THIỂU</span>
                 <span className="text-[#00B14F] font-bold">

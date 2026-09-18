@@ -93,15 +93,15 @@ function VerifyEmailContent() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-xl bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-3xl shadow-2xl p-8 sm:p-10 space-y-8 relative overflow-hidden transition-colors">
+      <div className="w-full max-w-xl bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-3xl shadow-2xl p-8 sm:p-10 space-y-8 relative overflow-hidden transition-colors">
         {/* Subtle Brand Gradient Glow */}
         <div className="absolute -top-32 -right-32 w-64 h-64 bg-[#2563EB]/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-[#00B14F]/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Brand Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1F4A40] pb-5">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-5">
           <BrandLogo size="md" />
-          <span className="text-[10px] font-mono uppercase tracking-widest text-[#64748B] dark:text-[#94A3B8] bg-slate-100 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] px-2.5 py-1 rounded-full">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-[#64748B] dark:text-[#94A3B8] bg-slate-100 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] px-2.5 py-1 rounded-full">
             Auth Layer v2
           </span>
         </div>
@@ -179,7 +179,7 @@ function VerifyEmailContent() {
 
         {(status === 'EXPIRED' || status === 'INVALID' || status === 'ERROR') && (
           <div className="space-y-5 pt-2">
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] space-y-3 text-left">
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] space-y-3 text-left">
               <span className="text-xs font-semibold text-[#0F2A52] dark:text-[#E2E8F0] block">
                 {t('verifyEmail.resendPrompt', 'Yêu cầu mã xác thực mới:')}
               </span>
@@ -189,7 +189,7 @@ function VerifyEmailContent() {
                   placeholder="Nhập email tài khoản đã đăng ký..."
                   value={resendEmail}
                   onChange={(e) => setResendEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-xs focus:outline-none focus:border-[#2563EB]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-xs focus:outline-none focus:border-[#2563EB]"
                   required
                 />
                 <button

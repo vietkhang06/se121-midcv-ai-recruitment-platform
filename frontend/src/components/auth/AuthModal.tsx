@@ -266,19 +266,19 @@ export const AuthModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-4xl bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl shadow-2xl text-[#0F2A52] dark:text-[#F1F5F9] relative overflow-hidden max-h-[92vh] flex flex-col md:flex-row">
+      <div className="w-full max-w-4xl bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl shadow-2xl text-[#0F2A52] dark:text-[#F1F5F9] relative overflow-hidden max-h-[92vh] flex flex-col md:flex-row">
         
         {/* Close Button */}
         <button
           onClick={closeAuthModal}
-          className="absolute top-4 right-4 z-20 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1F4A40] transition"
+          className="absolute top-4 right-4 z-20 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#18294E] transition"
           aria-label="Close"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* LEFT COLUMN: midCV® Editorial Brand Visual & Hero Placeholder */}
-        <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0B211D] dark:to-[#102A25] p-8 text-white flex-col justify-between relative overflow-hidden select-none">
+        <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0F172A] dark:to-[#1E293B] p-8 text-white flex-col justify-between relative overflow-hidden select-none">
           {/* Subtle background radial accent */}
           <div className="absolute -top-24 -left-24 w-72 h-72 bg-[#2563EB]/25 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-[#00B14F]/15 rounded-full blur-3xl pointer-events-none" />
@@ -350,7 +350,7 @@ export const AuthModal: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN: Form Controls & Interactive States */}
-        <div className="w-full md:w-7/12 p-6 sm:p-8 bg-white dark:bg-[#102A25] flex flex-col justify-between overflow-y-auto max-h-[92vh]">
+        <div className="w-full md:w-7/12 p-6 sm:p-8 bg-white dark:bg-[#111C38] flex flex-col justify-between overflow-y-auto max-h-[92vh]">
           <div>
             {/* Header Title based on Active View */}
             <div className="mb-5 space-y-1">
@@ -372,7 +372,7 @@ export const AuthModal: React.FC = () => {
 
             {/* Tab Switcher (Visible on Login & Register) */}
             {activeTab !== 'VERIFICATION_PENDING' && (
-              <div className="flex bg-slate-100 dark:bg-[#071A17] p-1 rounded-xl mb-5 border border-slate-200 dark:border-[#1F4A40]">
+              <div className="flex bg-slate-100 dark:bg-[#13233F] p-1 rounded-xl mb-5 border border-slate-200 dark:border-[#1E3A5F]">
                 <button
                   type="button"
                   onClick={() => {
@@ -448,7 +448,7 @@ export const AuthModal: React.FC = () => {
                     placeholder="name@example.com"
                     value={loginEmail ?? ''}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500 transition"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500 transition"
                     required
                   />
                 </div>
@@ -463,7 +463,7 @@ export const AuthModal: React.FC = () => {
                     placeholder="Nhập mật khẩu..."
                     value={loginPassword ?? ''}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500 transition"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500 transition"
                     required
                   />
                 </div>
@@ -497,7 +497,7 @@ export const AuthModal: React.FC = () => {
                     className={`p-2 rounded-xl border text-center font-semibold transition ${
                       registerRole === 'CANDIDATE'
                         ? 'border-[#2563EB] bg-[#2563EB] text-white shadow-xs'
-                        : 'border-slate-200 dark:border-[#1F4A40] bg-white dark:bg-[#071A17] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white'
+                        : 'border-slate-200 dark:border-[#1E3A5F] bg-white dark:bg-[#13233F] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white'
                     }`}
                   >
                     Ứng viên tìm việc
@@ -508,7 +508,7 @@ export const AuthModal: React.FC = () => {
                     className={`p-2 rounded-xl border text-center font-semibold transition ${
                       registerRole === 'RECRUITER'
                         ? 'border-[#2563EB] bg-[#2563EB] text-white shadow-xs'
-                        : 'border-slate-200 dark:border-[#1F4A40] bg-white dark:bg-[#071A17] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white'
+                        : 'border-slate-200 dark:border-[#1E3A5F] bg-white dark:bg-[#13233F] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white'
                     }`}
                   >
                     Nhà tuyển dụng (HR)
@@ -526,7 +526,7 @@ export const AuthModal: React.FC = () => {
                     placeholder="Nguyễn Văn A"
                     value={regFullName ?? ''}
                     onChange={(e) => setRegFullName(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500"
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500"
                     required
                   />
                 </div>
@@ -542,12 +542,12 @@ export const AuthModal: React.FC = () => {
                     placeholder="name@example.com"
                     value={regEmail ?? ''}
                     onChange={(e) => handleEmailChange(e.target.value)}
-                    className={`w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 ${
+                    className={`w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 ${
                       emailCheckStatus === 'ALREADY_EXISTS'
                         ? 'border-rose-500'
                         : emailCheckStatus === 'AVAILABLE'
                         ? 'border-[#00B14F]'
-                        : 'border-slate-200 dark:border-[#1F4A40] focus:border-[#2563EB]'
+                        : 'border-slate-200 dark:border-[#1E3A5F] focus:border-[#2563EB]'
                     }`}
                     required
                   />
@@ -587,7 +587,7 @@ export const AuthModal: React.FC = () => {
                         max={70}
                         value={regAge || ''}
                         onChange={(e) => setRegAge(parseInt(e.target.value) || 22)}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
                         required
                       />
                     </div>
@@ -595,7 +595,7 @@ export const AuthModal: React.FC = () => {
                       <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1.5 text-xs">
                         {t('auth.targetIndustriesLabel', 'Ngành mục tiêu (Có thể chọn nhiều ngành)')}
                       </label>
-                      <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] rounded-xl">
+                      <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl">
                         {TARGET_INDUSTRIES_LIST.map((ind) => {
                           const isChecked = regTargetIndustries.includes(ind);
                           return (
@@ -604,7 +604,7 @@ export const AuthModal: React.FC = () => {
                               className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition select-none ${
                                 isChecked
                                   ? 'bg-[#2563EB] text-white font-medium shadow-xs'
-                                  : 'text-[#64748B] dark:text-[#94A3B8] hover:bg-slate-200/60 dark:hover:bg-[#1F4A40]/60'
+                                  : 'text-[#64748B] dark:text-[#94A3B8] hover:bg-slate-200/60 dark:hover:bg-[#18294E]'
                               }`}
                             >
                               <input
@@ -632,7 +632,7 @@ export const AuthModal: React.FC = () => {
                         placeholder="CloudScale Systems Corp"
                         value={regCompanyName ?? ''}
                         onChange={(e) => setRegCompanyName(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500"
                         required
                       />
                     </div>
@@ -643,7 +643,7 @@ export const AuthModal: React.FC = () => {
                       <select
                         value={regCompanyIndustry ?? 'Technology'}
                         onChange={(e) => setRegCompanyIndustry(e.target.value as Industry)}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB]"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB]"
                       >
                         <option value="Technology">Công nghệ (IT)</option>
                         <option value="Finance">Tài chính - Fintech</option>
@@ -667,7 +667,7 @@ export const AuthModal: React.FC = () => {
                       placeholder="Ít nhất 8 ký tự"
                       value={regPassword ?? ''}
                       onChange={(e) => setRegPassword(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500"
                       required
                     />
                   </div>
@@ -680,7 +680,7 @@ export const AuthModal: React.FC = () => {
                       placeholder="Xác nhận mật khẩu"
                       value={regConfirmPassword ?? ''}
                       onChange={(e) => setRegConfirmPassword(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500"
                       required
                     />
                   </div>
@@ -688,7 +688,7 @@ export const AuthModal: React.FC = () => {
 
                 {/* Password Strength Meter */}
                 {regPassword && (
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40]">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F]">
                     <PasswordStrengthMeter password={regPassword} />
                   </div>
                 )}
@@ -733,7 +733,7 @@ export const AuthModal: React.FC = () => {
                       <Sparkles className="w-3.5 h-3.5 text-[#FACC15]" />
                       <span>[Môi trường phát triển & Test] Mã Token Xác Thực</span>
                     </div>
-                    <div className="font-mono text-[11px] bg-white dark:bg-[#071A17] p-2 rounded border border-[#FACC15]/40 break-all text-[#0F2A52] dark:text-slate-100">
+                    <div className="font-mono text-[11px] bg-white dark:bg-[#13233F] p-2 rounded border border-[#FACC15]/40 break-all text-[#0F2A52] dark:text-slate-100">
                       {devVerificationToken}
                     </div>
                     <Link
@@ -749,7 +749,7 @@ export const AuthModal: React.FC = () => {
 
                 {/* Resend Status Message */}
                 {resendMessage && (
-                  <div className="p-2.5 rounded-lg bg-slate-100 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-xs text-[#64748B] dark:text-[#94A3B8]">
+                  <div className="p-2.5 rounded-lg bg-slate-100 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-xs text-[#64748B] dark:text-[#94A3B8]">
                     {resendMessage}
                   </div>
                 )}
@@ -760,7 +760,7 @@ export const AuthModal: React.FC = () => {
                     type="button"
                     onClick={handleResend}
                     disabled={resendCooldown > 0}
-                    className="w-full sm:w-auto px-4 py-2 rounded-lg border border-slate-300 dark:border-[#1F4A40] bg-white dark:bg-[#071A17] hover:bg-slate-50 dark:hover:bg-[#1F4A40]/50 font-semibold text-[#0F2A52] dark:text-slate-200 disabled:opacity-50 transition cursor-pointer flex items-center justify-center gap-1.5"
+                    className="w-full sm:w-auto px-4 py-2 rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#13233F] hover:bg-slate-50 dark:hover:bg-[#18294E] font-semibold text-[#0F2A52] dark:text-slate-200 disabled:opacity-50 transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${resendCooldown > 0 ? 'animate-spin' : ''}`} />
                     <span>
@@ -786,7 +786,7 @@ export const AuthModal: React.FC = () => {
           </div>
 
           {/* Footer Note */}
-          <div className="mt-6 pt-3 border-t border-slate-200 dark:border-[#1F4A40] text-[11px] text-[#64748B] dark:text-[#94A3B8] text-center flex items-center justify-center gap-1.5">
+          <div className="mt-6 pt-3 border-t border-slate-200 dark:border-[#1E293B] text-[11px] text-[#64748B] dark:text-[#94A3B8] text-center flex items-center justify-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-[#00B14F]" />
             <span>midCV® bảo vệ quyền riêng tư & chuẩn hóa đối sánh năng lực thực.</span>
           </div>
