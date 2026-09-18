@@ -145,11 +145,11 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#F8FAF9] dark:bg-[#071410] flex items-center justify-center p-4 sm:p-6 lg:p-8 transition-colors">
-      <div className="w-full max-w-4xl bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
+    <div className="min-h-[calc(100vh-4rem)] bg-[#F8FAF9] dark:bg-[#0B1329] flex items-center justify-center p-4 sm:p-6 lg:p-8 transition-colors">
+      <div className="w-full max-w-4xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
         
         {/* Left Column: midCV® Editorial Branding */}
-        <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0B211D] dark:to-[#102A25] p-8 text-white flex-col justify-between relative overflow-hidden">
+        <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0F172A] dark:to-[#1E293B] p-8 text-white flex-col justify-between relative overflow-hidden">
           <div className="relative z-10 space-y-6">
             <BrandLogo size="md" />
 
@@ -180,7 +180,7 @@ export default function RegisterPage() {
         </div>
 
         {/* Right Column: Register Form or Success Screen */}
-        <div className="w-full md:w-7/12 p-6 sm:p-10 bg-white dark:bg-[#102A25] flex flex-col justify-between">
+        <div className="w-full md:w-7/12 p-6 sm:p-10 bg-white dark:bg-[#111C38] flex flex-col justify-between">
           <div>
             {registeredEmail ? (
               <div className="space-y-4 py-4">
@@ -232,7 +232,7 @@ export default function RegisterPage() {
                     className={`p-2.5 rounded-xl border text-center text-xs font-semibold transition ${
                       role === 'CANDIDATE'
                         ? 'border-[#2563EB] bg-[#2563EB] text-white shadow-xs'
-                        : 'border-[#E2E8F0] dark:border-[#1F4A40] bg-white dark:bg-[#071A17] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white'
+                        : 'border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#111C38] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white'
                     }`}
                   >
                     Ứng viên tìm việc
@@ -243,7 +243,7 @@ export default function RegisterPage() {
                     className={`p-2.5 rounded-xl border text-center text-xs font-semibold transition ${
                       role === 'RECRUITER'
                         ? 'border-[#2563EB] bg-[#2563EB] text-white shadow-xs'
-                        : 'border-[#E2E8F0] dark:border-[#1F4A40] bg-white dark:bg-[#071A17] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white'
+                        : 'border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#111C38] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white'
                     }`}
                   >
                     Nhà tuyển dụng (HR)
@@ -260,7 +260,7 @@ export default function RegisterPage() {
                       placeholder="Nguyễn Văn A"
                       value={fullName || ''}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition"
                       required
                     />
                   </div>
@@ -272,7 +272,7 @@ export default function RegisterPage() {
                       placeholder="name@example.com"
                       value={email || ''}
                       onChange={(e) => handleEmailChange(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition"
                       required
                     />
                     {emailStatus === 'AVAILABLE' && (
@@ -293,7 +293,7 @@ export default function RegisterPage() {
                           max={70}
                           value={age || ''}
                           onChange={(e) => setAge(parseInt(e.target.value) || 22)}
-                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition"
                           required
                         />
                       </div>
@@ -301,7 +301,7 @@ export default function RegisterPage() {
                         <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1.5 text-xs">
                           Ngành mục tiêu (Có thể chọn nhiều ngành)
                         </label>
-                        <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] rounded-xl">
+                        <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl">
                           {TARGET_INDUSTRIES_LIST.map((ind) => {
                             const isChecked = targetIndustries.includes(ind);
                             return (
@@ -310,7 +310,7 @@ export default function RegisterPage() {
                                 className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition select-none ${
                                   isChecked
                                     ? 'bg-[#2563EB] text-white font-medium shadow-xs'
-                                    : 'text-[#64748B] dark:text-[#94A3B8] hover:bg-slate-200/60 dark:hover:bg-[#1F4A40]/60'
+                                    : 'text-[#64748B] dark:text-[#94A3B8] hover:bg-slate-200/60 dark:hover:bg-[#18294E]'
                                 }`}
                               >
                                 <input
@@ -334,7 +334,7 @@ export default function RegisterPage() {
                         placeholder="CloudScale Systems Corp"
                         value={companyName || ''}
                         onChange={(e) => setCompanyName(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition"
                         required
                       />
                     </div>
@@ -348,7 +348,7 @@ export default function RegisterPage() {
                         placeholder="Ít nhất 8 ký tự"
                         value={password || ''}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition"
                         required
                       />
                     </div>
@@ -359,14 +359,14 @@ export default function RegisterPage() {
                         placeholder="Xác nhận"
                         value={confirmPassword || ''}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition"
                         required
                       />
                     </div>
                   </div>
 
                   {password && (
-                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40]">
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F]">
                       <PasswordStrengthMeter password={password} />
                     </div>
                   )}
@@ -384,7 +384,7 @@ export default function RegisterPage() {
             )}
           </div>
 
-          <div className="mt-6 pt-4 border-t border-slate-200 dark:border-[#1F4A40] text-xs text-[#64748B] dark:text-[#94A3B8] flex items-center justify-between">
+          <div className="mt-6 pt-4 border-t border-slate-200 dark:border-[#1E293B] text-xs text-[#64748B] dark:text-[#94A3B8] flex items-center justify-between">
             <span>Đã có tài khoản?</span>
             <Link
               href="/login"

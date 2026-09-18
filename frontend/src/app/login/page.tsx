@@ -64,11 +64,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#F8FAFC] dark:bg-[#071A17] flex items-center justify-center p-4 sm:p-6 lg:p-8 transition-colors">
-      <div className="w-full max-w-4xl bg-white dark:bg-[#102A25] border border-[#E2E8F0] dark:border-[#1F4A40] rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
+    <div className="min-h-[calc(100vh-4rem)] bg-[#F8FAFC] dark:bg-[#0B1329] flex items-center justify-center p-4 sm:p-6 lg:p-8 transition-colors">
+      <div className="w-full max-w-4xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
         
         {/* Left Column: midCV® Editorial Branding */}
-        <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0B211D] dark:to-[#102A25] p-8 text-white flex-col justify-between relative overflow-hidden">
+        <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0F172A] dark:to-[#1E293B] p-8 text-white flex-col justify-between relative overflow-hidden">
           <div className="relative z-10 space-y-6">
             <BrandLogo size="md" />
 
@@ -119,7 +119,7 @@ export default function LoginPage() {
         </div>
 
         {/* Right Column: Login Form */}
-        <div className="w-full md:w-7/12 p-6 sm:p-10 bg-white dark:bg-[#102A25] flex flex-col justify-between">
+        <div className="w-full md:w-7/12 p-6 sm:p-10 bg-white dark:bg-[#111C38] flex flex-col justify-between">
           <div>
             <div className="mb-6 space-y-1">
               <h2 className="font-editorial text-2xl font-bold text-[#0F2A52] dark:text-[#F1F5F9] tracking-tight">
@@ -160,7 +160,7 @@ export default function LoginPage() {
                   placeholder="name@example.com"
                   value={email || ''}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#071A17] border border-[#CBD5E1] dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] placeholder-[#94A3B8]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] placeholder-[#94A3B8]"
                   required
                 />
               </div>
@@ -175,7 +175,7 @@ export default function LoginPage() {
                   placeholder="Nhập mật khẩu..."
                   value={password || ''}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#071A17] border border-[#CBD5E1] dark:border-[#1F4A40] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] placeholder-[#94A3B8]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] placeholder-[#94A3B8]"
                   required
                 />
               </div>
@@ -191,7 +191,7 @@ export default function LoginPage() {
             </form>
           </div>
 
-          <div className="mt-8 pt-4 border-t border-[#E2E8F0] dark:border-[#1F4A40] text-xs text-[#64748B] dark:text-[#94A3B8] flex items-center justify-between">
+          <div className="mt-8 pt-4 border-t border-[#E2E8F0] dark:border-[#1E293B] text-xs text-[#64748B] dark:text-[#94A3B8] flex items-center justify-between">
             <span>Chưa có tài khoản midCV®?</span>
             <Link
               href="/register"

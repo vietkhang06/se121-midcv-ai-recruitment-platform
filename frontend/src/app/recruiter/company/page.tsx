@@ -17,7 +17,7 @@ export default function CompanyProfilePage() {
 
   if (!company) {
     return (
-      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] text-slate-800 dark:text-slate-100 transition-colors">
+      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#13233F] text-slate-800 dark:text-slate-100 transition-colors">
         <div className="p-10 text-center text-slate-500 dark:text-slate-400">Đang tải thông tin doanh nghiệp...</div>
       </div>
     );
@@ -31,7 +31,7 @@ export default function CompanyProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] text-slate-800 dark:text-slate-100 flex flex-col transition-colors">
+    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors">
       <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 w-full">
         {/* Page Header */}
         <div className="space-y-2">
@@ -59,8 +59,8 @@ export default function CompanyProfilePage() {
           </div>
         )}
 
-        <form onSubmit={handleSaveCompany} className="bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-6 sm:p-8 shadow-xs space-y-6 transition-colors">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-[#1B3D34] pb-3">Thông tin Doanh nghiệp</h3>
+        <form onSubmit={handleSaveCompany} className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-6 transition-colors">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-[#1E293B] pb-3">Thông tin Doanh nghiệp</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -69,7 +69,7 @@ export default function CompanyProfilePage() {
                 type="text"
                 value={company.name ?? ''}
                 onChange={(e) => setCompany({ ...company, name: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]"
                 required
               />
             </div>
@@ -80,7 +80,7 @@ export default function CompanyProfilePage() {
                 type="text"
                 value={company.industry ?? ''}
                 disabled
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-[#071410]/50 border border-slate-200 dark:border-[#1B3D34] text-slate-400 dark:text-slate-500 text-sm cursor-not-allowed"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-[#13233F]/50 border border-slate-200 dark:border-[#1E293B] text-slate-400 dark:text-slate-500 text-sm cursor-not-allowed"
               />
             </div>
 
@@ -90,7 +90,7 @@ export default function CompanyProfilePage() {
                 type="url"
                 value={company.website ?? ''}
                 onChange={(e) => setCompany({ ...company, website: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB] font-mono"
               />
             </div>
 
@@ -100,7 +100,7 @@ export default function CompanyProfilePage() {
                 type="text"
                 value={company.companySize ?? ''}
                 onChange={(e) => setCompany({ ...company, companySize: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]"
               />
             </div>
 
@@ -110,7 +110,7 @@ export default function CompanyProfilePage() {
                 type="email"
                 value={company.contactEmail ?? ''}
                 onChange={(e) => setCompany({ ...company, contactEmail: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB] font-mono"
               />
             </div>
 
@@ -120,12 +120,12 @@ export default function CompanyProfilePage() {
                 type="text"
                 value={company.contactPhone ?? ''}
                 onChange={(e) => setCompany({ ...company, contactPhone: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB] font-mono"
               />
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-[#1B3D34]">
+          <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-[#1E293B]">
             <button
               type="submit"
               className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-xs text-white bg-[#0C2B24] hover:bg-[#133E34] dark:bg-[#10B981] dark:hover:bg-[#059669] dark:text-[#040D0A] shadow-xs transition active:scale-95 cursor-pointer"
