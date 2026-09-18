@@ -311,13 +311,13 @@ export const Navbar: React.FC = () => {
       {/* Mobile Drawer Panel */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed top-16 left-0 right-0 max-h-[calc(100vh-4rem)] overflow-y-auto bg-white dark:bg-[#0B1329] border-b border-slate-200 dark:border-[#1E293B] p-5 shadow-2xl space-y-4 z-50 lg:hidden animate-fade-in"
+          className="fixed top-16 left-0 right-0 max-h-[calc(100vh-4rem)] overflow-y-auto bg-white dark:bg-[#071410] border-b border-slate-200 dark:border-[#1B3D34] p-5 shadow-2xl space-y-4 z-50 lg:hidden animate-fade-in"
         >
           {/* User Info Row in Mobile */}
           {isAuthenticated ? (
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#1E293B]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#1B3D34]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] text-xs font-bold flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-[#0C2B24] dark:bg-emerald-900 text-[#10B981] dark:text-emerald-200 text-xs font-bold flex items-center justify-center">
                   {user?.fullName ? user.fullName.trim().charAt(0).toUpperCase() : 'U'}
                 </div>
                 <div>
@@ -325,18 +325,18 @@ export const Navbar: React.FC = () => {
                   <span className="text-[10px] text-slate-500 dark:text-slate-400">{user?.email}</span>
                 </div>
               </div>
-              <span className="text-[10px] font-mono font-bold text-[#2563EB] dark:text-[#3B82F6] bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800 uppercase">
+              <span className="text-[10px] font-mono font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 uppercase">
                 {user?.role}
               </span>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2 pb-3 border-b border-slate-100 dark:border-[#1E293B]">
+            <div className="grid grid-cols-2 gap-2 pb-3 border-b border-slate-100 dark:border-[#1B3D34]">
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   openAuthModal('LOGIN');
                 }}
-                className="w-full py-2 text-center text-xs font-semibold rounded-lg border border-slate-200 dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition cursor-pointer"
+                className="w-full py-2 text-center text-xs font-semibold rounded-lg border border-slate-200 dark:border-[#1B3D34] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#14332B] transition cursor-pointer"
               >
                 {t('nav.signIn', 'Sign In')}
               </button>
@@ -345,7 +345,7 @@ export const Navbar: React.FC = () => {
                   setIsMobileMenuOpen(false);
                   openAuthModal('REGISTER');
                 }}
-                className="w-full py-2 text-center text-xs font-semibold rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white transition cursor-pointer shadow-xs"
+                className="w-full py-2 text-center text-xs font-semibold rounded-lg bg-[#0C2B24] dark:bg-emerald-700 text-white hover:bg-[#164E41] transition cursor-pointer shadow-xs"
               >
                 {t('nav.register', 'Register')}
               </button>
@@ -359,25 +359,25 @@ export const Navbar: React.FC = () => {
                 <Link
                   href="/recruiter"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/recruiter') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/recruiter') ? 'bg-[#EFF6FF] dark:bg-[#14332D] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#102A25]'}`}
                 >
-                  <Briefcase className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                  <Briefcase className="w-4 h-4 text-[#2563EB] dark:text-[#00B14F]" />
                   <span>{t('recruiterNav.dashboard', 'HR Dashboard')}</span>
                 </Link>
                 <Link
                   href="/recruiter/jobs"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/recruiter/jobs') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/recruiter/jobs') ? 'bg-[#EFF6FF] dark:bg-[#14332D] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#102A25]'}`}
                 >
-                  <FileText className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                  <FileText className="w-4 h-4 text-[#2563EB] dark:text-[#00B14F]" />
                   <span>{t('recruiterNav.jobs', 'Quản lý Bài đăng')}</span>
                 </Link>
                 <Link
                   href="/recruiter/company"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/recruiter/company') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/recruiter/company') ? 'bg-[#EFF6FF] dark:bg-[#14332D] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#102A25]'}`}
                 >
-                  <ShieldCheck className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                  <ShieldCheck className="w-4 h-4 text-[#2563EB] dark:text-[#00B14F]" />
                   <span>{t('recruiterNav.company', 'Doanh nghiệp')}</span>
                 </Link>
               </>
@@ -387,9 +387,9 @@ export const Navbar: React.FC = () => {
                 <Link
                   href="/jobs"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/jobs') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/jobs') ? 'bg-[#EFF6FF] dark:bg-[#14332D] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#102A25]'}`}
                 >
-                  <Search className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                  <Search className="w-4 h-4 text-[#2563EB] dark:text-[#00B14F]" />
                   <span>{t('nav.searchJobs', 'Tìm Việc Làm')}</span>
                 </Link>
 
@@ -397,9 +397,9 @@ export const Navbar: React.FC = () => {
                 <Link
                   href="/candidate/applications"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/candidate/applications') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/candidate/applications') ? 'bg-[#EFF6FF] dark:bg-[#14332D] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#102A25]'}`}
                 >
-                  <GitCompare className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                  <GitCompare className="w-4 h-4 text-[#2563EB] dark:text-[#00B14F]" />
                   <span>{t('nav.matchReports', 'Báo Cáo Phù Hợp')}</span>
                 </Link>
 
@@ -407,9 +407,9 @@ export const Navbar: React.FC = () => {
                 <Link
                   href="/candidate/cvs"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/candidate/cvs') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/candidate/cvs') ? 'bg-[#EFF6FF] dark:bg-[#14332D] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#102A25]'}`}
                 >
-                  <FileText className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                  <FileText className="w-4 h-4 text-[#2563EB] dark:text-[#00B14F]" />
                   <span>{t('nav.cvManagement', 'Quản Lý CV')}</span>
                 </Link>
 
@@ -417,9 +417,9 @@ export const Navbar: React.FC = () => {
                 <Link
                   href="/candidate/profile"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/candidate/profile') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/candidate/profile') ? 'bg-[#EFF6FF] dark:bg-[#14332D] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#102A25]'}`}
                 >
-                  <UserIcon className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                  <UserIcon className="w-4 h-4 text-[#2563EB] dark:text-[#00B14F]" />
                   <span>{t('nav.dashboard', 'Tổng Quan')}</span>
                 </Link>
 
@@ -428,17 +428,17 @@ export const Navbar: React.FC = () => {
                     <a
                       href="#pipeline"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E] transition"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#102A25] transition"
                     >
-                      <Sparkles className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                      <Sparkles className="w-4 h-4 text-[#2563EB] dark:text-[#00B14F]" />
                       <span>{t('nav.features', 'Tính Năng')}</span>
                     </a>
                     <Link
                       href="/recruiter"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E] transition"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#102A25] transition"
                     >
-                      <Briefcase className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                      <Briefcase className="w-4 h-4 text-[#2563EB] dark:text-[#00B14F]" />
                       <span>{t('nav.forEmployers', 'Dành Cho Doanh Nghiệp')}</span>
                     </Link>
                   </>
@@ -450,16 +450,16 @@ export const Navbar: React.FC = () => {
             <Link
               href="/help"
               onClick={() => setIsMobileMenuOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/help') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/help') ? 'bg-[#EFF6FF] dark:bg-[#14332D] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#102A25]'}`}
             >
-              <HelpCircle className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+              <HelpCircle className="w-4 h-4 text-[#2563EB] dark:text-[#00B14F]" />
               <span>{t('nav.help', 'Hướng Dẫn Sử Dụng')}</span>
             </Link>
           </nav>
 
           {/* Mobile Logout Action */}
           {isAuthenticated && (
-            <div className="pt-3 border-t border-slate-100 dark:border-[#1E293B]">
+            <div className="pt-3 border-t border-slate-100 dark:border-[#1B3D34]">
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);

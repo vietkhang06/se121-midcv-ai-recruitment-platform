@@ -56,7 +56,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center">
+      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center">
         <EmptyState
           type="LOADING"
           title={t('common.loading', 'Đang tải dữ liệu...')}
@@ -68,7 +68,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
 
   if (fetchError) {
     return (
-      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 transition-colors py-12 px-4 sm:px-6 max-w-4xl mx-auto">
+      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] text-slate-800 dark:text-slate-100 transition-colors py-12 px-4 sm:px-6 max-w-4xl mx-auto">
         <div className="mb-6">
           <Link href="/recruiter/jobs" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -88,7 +88,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 transition-colors py-12 px-4 sm:px-6 max-w-4xl mx-auto">
+      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] text-slate-800 dark:text-slate-100 transition-colors py-12 px-4 sm:px-6 max-w-4xl mx-auto">
         <div className="mb-6">
           <Link href="/recruiter/jobs" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -117,7 +117,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
   const totalSkillsCount = data.requiredSkillsStatus.length;
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors">
+    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors">
       <main className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 w-full">
         {/* Top Back Navigation */}
         <div className="flex items-center justify-between">
@@ -129,7 +129,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
         </div>
 
         {/* SCREEN 08: Evidence Verification Index Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 dark:border-[#1E293B] pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 dark:border-[#1B3D34] pb-6">
           <div className="space-y-1.5">
             <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 tracking-wider uppercase font-mono block">
               EVIDENCE VERIFICATION INDEX
@@ -145,7 +145,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
           <div className="flex items-center gap-3 flex-shrink-0">
             <button
               onClick={() => alert('Đã sao chép liên kết báo cáo đối sánh')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#111C38] text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#14332B] font-semibold text-xs transition shadow-xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 dark:border-[#1B3D34] bg-white dark:bg-[#0E241E] text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#14332B] font-semibold text-xs transition shadow-xs cursor-pointer"
             >
               <Share2 className="w-3.5 h-3.5" />
               <span>Share Report</span>
@@ -163,7 +163,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
         {/* Top 2-Card Row: Overall Fit Index & Match Explanation Narrative */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* Card 1: Overall Fit Index (Radial progress) */}
-          <div className="md:col-span-4 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-7 shadow-xs flex flex-col items-center justify-center text-center space-y-4 transition-colors">
+          <div className="md:col-span-4 bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-6 sm:p-7 shadow-xs flex flex-col items-center justify-center text-center space-y-4 transition-colors">
             <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider block font-mono">
               Overall Fit Index
             </span>
@@ -176,7 +176,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                   cy="50"
                   r="40"
                   stroke="#E2E8F0"
-                  className="stroke-slate-200 dark:stroke-[#1E293B]"
+                  className="stroke-slate-200 dark:stroke-[#1B3D34]"
                   strokeWidth="8"
                   fill="transparent"
                 />
@@ -207,7 +207,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
           </div>
 
           {/* Card 2: Match Explanation Narrative */}
-          <div className="md:col-span-8 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-7 shadow-xs flex flex-col justify-between space-y-4 transition-colors">
+          <div className="md:col-span-8 bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-6 sm:p-7 shadow-xs flex flex-col justify-between space-y-4 transition-colors">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold font-mono text-slate-900 dark:text-white uppercase tracking-wider">
@@ -219,7 +219,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
               </div>
 
               {/* Required by tests: 'Giải thích Trí tuệ Nhân tạo' */}
-              <div className="text-xs font-bold text-emerald-700 dark:text-[#3B82F6] flex items-center gap-1.5">
+              <div className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-amber-500" />
                 <span>Giải thích Trí tuệ Nhân tạo (Grounded Evidence Explanation):</span>
               </div>
@@ -230,7 +230,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
             </div>
 
             {/* Bottom KPI metrics */}
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-[#1E293B]">
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-[#1B3D34]">
               <div>
                 <span className="text-2xl sm:text-3xl font-editorial font-bold text-amber-600 dark:text-amber-400 block font-mono">
                   {Math.round(data.overallScore)}th
@@ -252,10 +252,10 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
         </div>
 
         {/* Privacy Protection Contact Bar */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs transition-colors">
+        <div className="p-5 rounded-2xl bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs transition-colors">
           <div className="space-y-1">
             <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-[#3B82F6]" />
+              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>Bảo Mật Thông Tin Liên Hệ Ứng Viên (Enterprise Privacy Guard):</span>
             </span>
             <div className="flex items-center gap-5 text-slate-500 dark:text-slate-400 pt-1">
@@ -279,8 +279,8 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
               <span>Mở khóa Liên hệ / Phỏng vấn</span>
             </button>
           ) : (
-            <span className="px-3.5 py-2 rounded-xl bg-emerald-50 dark:bg-[#2563EB]/20 border border-emerald-200 dark:border-[#2563EB]/40 text-emerald-800 dark:text-[#93C5FD] text-xs font-semibold flex items-center gap-1.5 flex-shrink-0 font-mono">
-              <Unlock className="w-3.5 h-3.5 text-emerald-600 dark:text-[#3B82F6]" />
+            <span className="px-3.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-1.5 flex-shrink-0 font-mono">
+              <Unlock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               <span>Đã mở khóa liên hệ</span>
             </span>
           )}
@@ -293,18 +293,18 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
         <GitHubAssessmentCard assessment={data.githubAssessment} />
 
         {/* Snapshot CV Inspection Section */}
-        <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-7 shadow-xs space-y-4 transition-colors">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-4">
+        <div className="bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-2xl p-6 sm:p-7 shadow-xs space-y-4 transition-colors">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1B3D34] pb-4">
             <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-emerald-700 dark:text-[#3B82F6]" />
+              <FileText className="w-5 h-5 text-emerald-700 dark:text-emerald-400" />
               <h3 className="text-base font-bold font-editorial text-slate-900 dark:text-white">Bản Ghi Snapshot CV Tại Thời Điểm Nộp Đơn</h3>
             </div>
-            <span className="text-xs font-mono text-emerald-700 dark:text-[#93C5FD] bg-emerald-50 dark:bg-[#2563EB]/20 border border-emerald-200 dark:border-[#2563EB]/40 px-3 py-1 rounded-full font-semibold">
+            <span className="text-xs font-mono text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-full font-semibold">
               ✓ Immutable Snapshot Preserved
             </span>
           </div>
 
-          <div className="p-5 rounded-xl bg-slate-50 dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] space-y-4 text-xs transition-colors">
+          <div className="p-5 rounded-xl bg-slate-50 dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] space-y-4 text-xs transition-colors">
             <div className="space-y-1">
               <h4 className="font-bold font-mono text-slate-900 dark:text-white uppercase text-[11px]">Hồ sơ ứng viên</h4>
               <p className="text-slate-600 dark:text-slate-300">
@@ -312,7 +312,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
               </p>
             </div>
 
-            <div className="space-y-1 border-t border-slate-200 dark:border-[#1E293B] pt-3">
+            <div className="space-y-1 border-t border-slate-200 dark:border-[#1B3D34] pt-3">
               <h4 className="font-bold font-mono text-slate-900 dark:text-white uppercase text-[11px]">Kỹ năng Trích xuất từ Hồ sơ</h4>
               <p className="text-slate-600 dark:text-slate-300">
                 {data.requiredSkillsStatus && data.requiredSkillsStatus.length > 0
@@ -322,7 +322,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
             </div>
 
             {data.humanReadableExplanation && (
-              <div className="space-y-1 border-t border-slate-200 dark:border-[#1E293B] pt-3">
+              <div className="space-y-1 border-t border-slate-200 dark:border-[#1B3D34] pt-3">
                 <h4 className="font-bold font-mono text-slate-900 dark:text-white uppercase text-[11px]">Giải thích Đánh giá Đối sánh AI</h4>
                 <p className="text-slate-600 dark:text-slate-300">
                   {data.humanReadableExplanation}

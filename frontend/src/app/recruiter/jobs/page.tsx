@@ -47,8 +47,8 @@ export default function RecruiterJobsListPage() {
   }, [searchKeyword, selectedStatus, jobs]);
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors">
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 w-full">
+    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#071410] text-slate-800 dark:text-slate-100 flex flex-col transition-colors">
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 w-full">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
@@ -70,7 +70,7 @@ export default function RecruiterJobsListPage() {
         </div>
 
         {/* Filter Bar */}
-        <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-5 shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-4 transition-colors">
+        <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl p-5 shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-4 transition-colors">
           <div className="relative sm:col-span-2">
             <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
             <input
@@ -78,7 +78,7 @@ export default function RecruiterJobsListPage() {
               placeholder="Tìm kiếm vị trí tuyển dụng..."
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-xl text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[#2563EB]"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] rounded-xl text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[#2563EB]"
             />
           </div>
 
@@ -86,7 +86,7 @@ export default function RecruiterJobsListPage() {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-xl text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[#2563EB]"
+              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] rounded-xl text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[#2563EB]"
             >
               <option value="">Tất cả trạng thái</option>
               <option value="PUBLISHED">PUBLISHED (Đã xuất bản)</option>
@@ -124,12 +124,12 @@ export default function RecruiterJobsListPage() {
             {filteredJobs.map((job) => (
               <div
                 key={job.id}
-                className="p-6 rounded-2xl bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#2563EB] transition shadow-xs space-y-4"
+                className="p-6 rounded-2xl bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] hover:border-[#2563EB] dark:hover:border-[#00B14F] transition shadow-xs space-y-4"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-[#1E293B] pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-[#1F4A40] pb-4">
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-slate-700 dark:text-[#93C5FD]">
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-[#14352E] border border-slate-200 dark:border-[#1F4A40] text-slate-700 dark:text-emerald-300">
                         {job.industry}
                       </span>
                       <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
@@ -138,7 +138,7 @@ export default function RecruiterJobsListPage() {
                         {job.status}
                       </span>
                     </div>
-                    <h3 className="text-xl font-bold font-editorial text-slate-900 dark:text-white hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition-colors">
+                    <h3 className="text-xl font-bold font-editorial text-slate-900 dark:text-white hover:text-[#2563EB] dark:hover:text-[#00B14F] transition-colors">
                       <Link href={`/recruiter/jobs/${job.id}`}>{job.title}</Link>
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -149,7 +149,7 @@ export default function RecruiterJobsListPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <Link
                       href={`/recruiter/jobs/${job.id}`}
-                      className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-[#13233F] hover:bg-slate-200 dark:hover:bg-[#18294E] text-slate-800 dark:text-slate-200 border border-transparent dark:border-[#1E293B] transition flex items-center gap-1"
+                      className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-[#14352E] hover:bg-slate-200 dark:hover:bg-[#1B433B] text-slate-800 dark:text-slate-200 border border-transparent dark:border-[#1F4A40] transition flex items-center gap-1"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       <span>Xem Chi tiết JD</span>
@@ -157,7 +157,7 @@ export default function RecruiterJobsListPage() {
 
                     <Link
                       href={`/recruiter/jobs/${job.id}/applications`}
-                      className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-[#13233F] hover:bg-slate-200 dark:hover:bg-[#18294E] text-slate-800 dark:text-slate-200 border border-transparent dark:border-[#1E293B] transition flex items-center gap-1"
+                      className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-[#14352E] hover:bg-slate-200 dark:hover:bg-[#1B433B] text-slate-800 dark:text-slate-200 border border-transparent dark:border-[#1F4A40] transition flex items-center gap-1"
                     >
                       <Users className="w-3.5 h-3.5 text-[#2563EB]" />
                       <span>Đơn Ứng Tuyển</span>
@@ -180,7 +180,7 @@ export default function RecruiterJobsListPage() {
                     <span
                       key={req.id || idx}
                       className={`px-2 py-0.5 rounded font-mono ${
-                        req.requirementType === 'REQUIRED' ? 'bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-[#00B14F] font-medium' : 'bg-slate-100 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-slate-600 dark:text-slate-400'
+                        req.requirementType === 'REQUIRED' ? 'bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-[#00B14F] font-medium' : 'bg-slate-100 dark:bg-[#071A17] border border-slate-200 dark:border-[#1F4A40] text-slate-600 dark:text-slate-400'
                       }`}
                     >
                       {req.skillName} {req.requirementType === 'REQUIRED' ? '(Req)' : ''}

@@ -15,11 +15,11 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
   onSelectCandidateForCompare
 }) => {
   return (
-    <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl shadow-xs overflow-hidden transition-colors">
+    <div className="bg-white dark:bg-[#102A25] border border-slate-200 dark:border-[#1F4A40] rounded-2xl shadow-xs overflow-hidden transition-colors">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-50 dark:bg-[#0B1528] border-b border-slate-200 dark:border-[#1E293B] text-slate-800 dark:text-slate-200 font-bold uppercase tracking-wider text-[11px] font-mono">
+            <tr className="bg-slate-50 dark:bg-[#081C18] border-b border-slate-200 dark:border-[#1F4A40] text-slate-800 dark:text-slate-200 font-bold uppercase tracking-wider text-[11px] font-mono">
               <th className="py-4 px-4 text-center w-16">Hạng</th>
               <th className="py-4 px-4">Ứng viên & Chức danh</th>
               <th className="py-4 px-4 text-center w-48">Overall Match (S_overall)</th>
@@ -30,14 +30,14 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
               <th className="py-4 px-4 text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-[#1E293B] text-slate-700 dark:text-slate-200">
+          <tbody className="divide-y divide-slate-100 dark:divide-[#1F4A40] text-slate-700 dark:text-slate-200">
             {rankings.map((item) => {
               const hasMissingRequired = item.requiredSkillsMissingNames.length > 0;
               const isHighMatch = item.overallMatchScore >= 85;
               const isGoodMatch = item.overallMatchScore >= 70 && item.overallMatchScore < 85;
 
               return (
-                <tr key={item.applicationId} className="hover:bg-slate-50/80 dark:hover:bg-[#18294E] transition">
+                <tr key={item.applicationId} className="hover:bg-slate-50/80 dark:hover:bg-[#15362F] transition">
                   {/* Rank Badge */}
                   <td className="py-4 px-4 text-center font-bold">
                     <span
@@ -48,7 +48,7 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                           ? 'bg-blue-50 dark:bg-blue-950/80 text-[#2563EB] dark:text-blue-300 border border-blue-200 dark:border-blue-500/40'
                           : item.rank === 3
                           ? 'bg-emerald-50 dark:bg-emerald-950/80 text-[#00B14F] dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40'
-                          : 'bg-slate-100 dark:bg-[#13233F] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-[#1E293B]'
+                          : 'bg-slate-100 dark:bg-[#081C18] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-[#1F4A40]'
                       }`}
                     >
                       #{item.rank}
@@ -61,7 +61,7 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                       <div className="flex items-center gap-1.5">
                         <Link
                           href={`/recruiter/applications/${item.applicationId}`}
-                          className="font-bold text-sm text-slate-900 dark:text-white hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition"
+                          className="font-bold text-sm text-slate-900 dark:text-white hover:text-[#2563EB] dark:hover:text-[#00B14F] transition"
                         >
                           {item.candidateName}
                         </Link>
@@ -86,12 +86,12 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                             ? 'bg-emerald-50 dark:bg-emerald-950/60 text-[#00B14F] border border-emerald-200 dark:border-emerald-800'
                             : isGoodMatch
                             ? 'bg-blue-50 dark:bg-blue-950/60 text-[#2563EB] border border-blue-200 dark:border-blue-800'
-                            : 'bg-slate-100 dark:bg-[#13233F] text-slate-600 dark:text-slate-400'
+                            : 'bg-slate-100 dark:bg-[#081C18] text-slate-600 dark:text-slate-400'
                         }`}>
                           {isHighMatch ? 'High' : isGoodMatch ? 'Good' : 'Moderate'}
                         </span>
                       </div>
-                      <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-[#13233F] overflow-hidden border border-slate-200 dark:border-[#1E293B]">
+                      <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-[#081C18] overflow-hidden border border-slate-200 dark:border-[#1F4A40]">
                         <div
                           className={`h-full rounded-full transition-all ${
                             isHighMatch
@@ -158,7 +158,7 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                       {onSelectCandidateForCompare && (
                         <button
                           onClick={() => onSelectCandidateForCompare(item)}
-                          className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#1E293B] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#18294E] font-semibold text-[11px] transition cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#1F4A40] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#15362F] font-semibold text-[11px] transition cursor-pointer"
                         >
                           So Sánh
                         </button>

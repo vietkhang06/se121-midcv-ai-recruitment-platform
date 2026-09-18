@@ -71,25 +71,25 @@
   --accent-yellow-light: rgba(254, 249, 195, 0.15);
   --accent-yellow-soft: rgba(254, 243, 199, 0.12);
 
-  /* Dark Neutrals - Synchronized with Home Page */
-  --background: #0B1329;
+  /* Dark Neutrals */
+  --background: #071A17;
   --foreground: #D6E4E1;
-  --surface: #111C38;
-  --surface-secondary: #0B1528;
-  --surface-card: #111C38;
-  --surface-elevated: #13233F;
+  --surface: #102A25;
+  --surface-secondary: #0B211D;
+  --surface-card: #102A25;
+  --surface-elevated: #14332D;
 
-  --border: #1E293B;
-  --border-soft: #1E3A5F;
-  --border-subtle: #1E2E4A;
+  --border: #1F4A40;
+  --border-soft: #24574C;
+  --border-subtle: #14332D;
 
   --heading: #F1F5F9;
   --text-primary: #D6E4E1;
   --text-secondary: #94A3B8;
   --text-muted: #64748B;
 
-  --input-bg: #13233F;
-  --input-border: #1E3A5F;
+  --input-bg: #102A25;
+  --input-border: #1F4A40;
   --input-focus-border: #2563EB;
 
   --success: #00B14F;
@@ -98,14 +98,14 @@
   --warning-bg: rgba(250, 204, 21, 0.15);
   --danger: #F87171;
   --danger-bg: rgba(239, 68, 68, 0.18);
-  --overlay: rgba(11, 19, 41, 0.85);
+  --overlay: rgba(7, 26, 23, 0.85);
 
   /* Aliases for legacy component compatibility */
-  --canvas-bg: #0B1329;
-  --card-bg: #111C38;
-  --card-border: #1E293B;
+  --canvas-bg: #071A17;
+  --card-bg: #102A25;
+  --card-border: #1F4A40;
   --muted-text: #94A3B8;
-  --hover-bg: #18294E;
+  --hover-bg: #14332D;
 }
 
 @theme inline {

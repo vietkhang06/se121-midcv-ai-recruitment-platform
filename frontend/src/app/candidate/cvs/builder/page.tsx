@@ -149,7 +149,7 @@ export default function CVBuilderPage() {
   };
 
   return (
-    <div className="bg-[#F8FAF9] dark:bg-[#0B1329] min-h-screen text-slate-800 dark:text-slate-100 transition-colors">
+    <div className="bg-[#F8FAF9] dark:bg-[#071410] min-h-screen text-slate-800 dark:text-slate-100 transition-colors">
       
       {/* Hidden SEO/Test Strings for 100% E2E Compatibility */}
       <div className="sr-only">
@@ -159,7 +159,7 @@ export default function CVBuilderPage() {
       </div>
 
       {/* 05 — Top Navigation Header (Figma Screen 05) */}
-      <div className="bg-white dark:bg-[#111C38] border-b border-[#E2E8F0] dark:border-[#1E293B] px-4 sm:px-8 py-3 flex items-center justify-between shadow-xs">
+      <div className="bg-white dark:bg-[#0E241E] border-b border-[#E2E8F0] dark:border-[#1B3D34] px-4 sm:px-8 py-3 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-4">
           <Link href="/candidate/cvs" className="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition">
             <ArrowLeft className="w-4 h-4" />
@@ -167,7 +167,7 @@ export default function CVBuilderPage() {
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono uppercase text-slate-400 dark:text-slate-500">Template:</span>
             <div className="relative">
-              <select className="bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-md px-3 py-1 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]">
+              <select className="bg-[#F8FAF9] dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] rounded-md px-3 py-1 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500">
                 <option>Standard Technical (Default)</option>
                 <option>Systems & Distributed Architecture</option>
                 <option>Modern Executive Engineering</option>
@@ -176,10 +176,10 @@ export default function CVBuilderPage() {
           </div>
 
           {/* Immutable Version Badge */}
-          <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-[#1E293B]">
+          <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-[#1B3D34]">
             <span
               id="cv-version-badge"
-              className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-50 dark:bg-[#2563EB]/20 text-emerald-800 dark:text-[#93C5FD] border border-emerald-300 dark:border-[#2563EB]"
+              className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
             >
               v{currentVersionNumber}.0
             </span>
@@ -197,7 +197,7 @@ export default function CVBuilderPage() {
             <button
               type="button"
               onClick={() => setAiSuggestions(!aiSuggestions)}
-              className={`w-9 h-5 rounded-full p-0.5 transition ${aiSuggestions ? 'bg-[#0C2B24] dark:bg-[#2563EB]' : 'bg-slate-300 dark:bg-slate-700'}`}
+              className={`w-9 h-5 rounded-full p-0.5 transition ${aiSuggestions ? 'bg-[#0C2B24] dark:bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'}`}
             >
               <div className={`w-4 h-4 rounded-full bg-white transition transform ${aiSuggestions ? 'translate-x-4' : 'translate-x-0'}`} />
             </button>
@@ -206,7 +206,7 @@ export default function CVBuilderPage() {
           <button
             id="save-cv-btn"
             onClick={handleSaveCV}
-            className="px-3.5 py-1.5 rounded-md text-xs font-semibold border border-slate-300 dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition flex items-center gap-1.5"
+            className="px-3.5 py-1.5 rounded-md text-xs font-semibold border border-slate-300 dark:border-[#1B3D34] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#133E34] transition flex items-center gap-1.5"
           >
             <Save className="w-3.5 h-3.5" />
             <span>{saveSuccess ? 'Saved!' : 'Save Profile'}</span>
@@ -214,7 +214,7 @@ export default function CVBuilderPage() {
 
           <button
             onClick={handlePrint}
-            className="px-4 py-1.5 rounded-md text-xs font-semibold text-white bg-[#0C2B24] dark:bg-[#2563EB] hover:bg-[#133E34] dark:hover:bg-[#1D4ED8] transition flex items-center gap-1.5 shadow-xs"
+            className="px-4 py-1.5 rounded-md text-xs font-semibold text-white bg-[#0C2B24] dark:bg-emerald-600 hover:bg-[#133E34] dark:hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-xs"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export PDF</span>
@@ -224,9 +224,9 @@ export default function CVBuilderPage() {
 
       {/* Save Success Banner */}
       {saveSuccess && (
-        <div id="save-success-banner" className="bg-emerald-50 dark:bg-[#2563EB]/20 border-b border-emerald-200 dark:border-[#2563EB]/30 px-4 sm:px-8 py-2.5 flex items-center justify-between text-xs text-emerald-900 dark:text-emerald-200 transition-all">
+        <div id="save-success-banner" className="bg-emerald-50 dark:bg-emerald-950 border-b border-emerald-200 dark:border-emerald-800 px-4 sm:px-8 py-2.5 flex items-center justify-between text-xs text-emerald-900 dark:text-emerald-200 transition-all">
           <div className="flex items-center gap-2 max-w-7xl mx-auto w-full">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-[#3B82F6] shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span className="font-semibold">{successMessage || `Đã lưu phiên bản mới v${currentVersionNumber}.0 thành công!`}</span>
             <span className="text-[11px] opacity-75 font-mono ml-auto">Bản lưu bất biến (Immutable Snapshot)</span>
           </div>
@@ -240,7 +240,7 @@ export default function CVBuilderPage() {
         <div className="lg:col-span-7 space-y-6">
           
           {/* Card 1: Resume Evidence Editor Progress */}
-          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-3">
+          <div className="bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-6 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-sm text-slate-900 dark:text-white">Resume Evidence Editor</h2>
               <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 font-mono">Completeness: 78%</span>
@@ -248,13 +248,13 @@ export default function CVBuilderPage() {
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Complete profiles achieve up to 3x matching accuracy against automated engineering rubrics.
             </p>
-            <div className="w-full bg-slate-100 dark:bg-[#0B1329] rounded-full h-1.5 overflow-hidden">
+            <div className="w-full bg-slate-100 dark:bg-[#071410] rounded-full h-1.5 overflow-hidden">
               <div className="bg-amber-600 dark:bg-amber-500 h-1.5 rounded-full" style={{ width: '78%' }} />
             </div>
           </div>
 
           {/* Card 2: Section Work History & Project Commit Evidence */}
-          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
+          <div className="bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-6 shadow-xs space-y-4">
             <div className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               Section: Work History & Project Commit Evidence
             </div>
@@ -266,7 +266,7 @@ export default function CVBuilderPage() {
                   type="text"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  className="w-full bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]"
+                  className="w-full bg-[#F8FAF9] dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
                 />
               </div>
 
@@ -276,7 +276,7 @@ export default function CVBuilderPage() {
                   type="text"
                   value={roleTitle}
                   onChange={(e) => setRoleTitle(e.target.value)}
-                  className="w-full bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]"
+                  className="w-full bg-[#F8FAF9] dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -287,7 +287,7 @@ export default function CVBuilderPage() {
                 type="text"
                 value={timelineDates}
                 onChange={(e) => setTimelineDates(e.target.value)}
-                className="w-full bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]"
+                className="w-full bg-[#F8FAF9] dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500"
               />
             </div>
 
@@ -297,7 +297,7 @@ export default function CVBuilderPage() {
                 rows={4}
                 value={bulletPoints}
                 onChange={(e) => setBulletPoints(e.target.value)}
-                className="w-full bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-lg p-3 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB] leading-relaxed"
+                className="w-full bg-[#F8FAF9] dark:bg-[#071410] border border-slate-200 dark:border-[#1B3D34] rounded-lg p-3 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#0C2B24] dark:focus:border-emerald-500 leading-relaxed"
               />
             </div>
 
@@ -324,12 +324,12 @@ export default function CVBuilderPage() {
           </div>
 
           {/* Card 3: Section Technical Skills Index */}
-          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-3">
+          <div className="bg-white dark:bg-[#0E241E] border border-[#E2E8F0] dark:border-[#1B3D34] rounded-xl p-6 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 Section: Technical Skills Index
               </div>
-              <span className="text-[11px] font-mono text-emerald-600 dark:text-[#3B82F6]">
+              <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
                 Autocomplete & Aliases Active
               </span>
             </div>
@@ -347,10 +347,10 @@ export default function CVBuilderPage() {
         <div className="lg:col-span-5 sticky top-24">
           <div
             id="printable-cv"
-            className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-8 sm:p-10 shadow-lg space-y-6 text-slate-900 dark:text-slate-100 min-h-[680px]"
+            className="bg-white dark:bg-[#0E241E] border border-slate-200 dark:border-[#1B3D34] rounded-xl p-8 sm:p-10 shadow-lg space-y-6 text-slate-900 dark:text-slate-100 min-h-[680px]"
           >
             {/* CV Header */}
-            <div className="border-b border-slate-200 dark:border-[#1E293B] pb-5 space-y-1">
+            <div className="border-b border-slate-200 dark:border-[#1B3D34] pb-5 space-y-1">
               <h1 className="text-2xl font-editorial font-bold text-slate-900 dark:text-white tracking-tight">
                 {fullName}
               </h1>
@@ -379,20 +379,20 @@ export default function CVBuilderPage() {
                   <span>{companyName} — {roleTitle}</span>
                   <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{timelineDates}</span>
                 </div>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pl-3 border-l-2 border-slate-200 dark:border-[#1E293B]">
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pl-3 border-l-2 border-slate-200 dark:border-[#1B3D34]">
                   {bulletPoints}
                 </p>
               </div>
             </div>
 
             {/* Technical Skills Map */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1B3D34]">
               <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 TECHNICAL SKILLS MAP
               </div>
               <div className="flex flex-wrap gap-1.5 text-[10px] font-mono">
                 {skills.map((s) => (
-                  <span key={s} className="px-2 py-0.5 rounded bg-slate-100 dark:bg-[#13233F] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#1E3A5F]">
+                  <span key={s} className="px-2 py-0.5 rounded bg-slate-100 dark:bg-[#133E34] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-emerald-500/20">
                     {s}
                   </span>
                 ))}
