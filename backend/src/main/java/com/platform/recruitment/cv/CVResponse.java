@@ -26,5 +26,7 @@ public class CVResponse {
     private String status;
     private String rawText;
     private Boolean isDefault;
+    private UUID jobId;
+    private UUID documentVersionId;
     private ZonedDateTime createdAt;
 }

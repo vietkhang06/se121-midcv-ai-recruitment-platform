@@ -97,9 +97,10 @@ public class Documents {
   @Transactional(rollbackFor = Exception.class)
   public Saved upload(UUID owner, String kind, String title, MultipartFile file, UUID existing)
       throws IOException {
-    if (file == null || file.isEmpty()) throw new CustomException(ErrorCode.VALIDATION_ERROR, "Chưa chọn tệp.");
-    if (file.getSize() > 15L * 1024 * 1024)
-      throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED, "Tệp vượt quá 15 MB.");
+    if (file == null || file.isEmpty() || file.getSize() == 0)
+      throw new CustomException(ErrorCode.INVALID_FILE, "FILE_EMPTY: Chưa chọn tệp hoặc tệp rỗng (0 bytes).");
+    if (file.getSize() > 10L * 1024 * 1024)
+      throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED, "FILE_TOO_LARGE: Tệp vượt quá giới hạn 10 MB.");
     String filename =
         Optional.ofNullable(file.getOriginalFilename())
             .orElse("document")
@@ -124,19 +125,21 @@ public class Documents {
     String key = id + "." + ext;
     Path target = path(key);
     Files.write(target, bytes, StandardOpenOption.CREATE_NEW);
-    org.springframework.transaction.support.TransactionSynchronizationManager
-        .registerSynchronization(
-            new org.springframework.transaction.support.TransactionSynchronization() {
-              @Override
-              public void afterCompletion(int status) {
-                if (status != STATUS_COMMITTED)
-                  try {
-                    Files.deleteIfExists(target);
-                  } catch (IOException e) {
-                    events.failure(e, "ORPHAN_FILE_CLEANUP_FAILED");
-                  }
-              }
-            });
+    if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+      org.springframework.transaction.support.TransactionSynchronizationManager
+          .registerSynchronization(
+              new org.springframework.transaction.support.TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                  if (status != STATUS_COMMITTED)
+                    try {
+                      Files.deleteIfExists(target);
+                    } catch (IOException e) {
+                      events.failure(e, "ORPHAN_FILE_CLEANUP_FAILED");
+                    }
+                }
+              });
+    }
     try {
       jdbc.update(
           "INSERT INTO"
@@ -200,7 +203,7 @@ public class Documents {
 
   private void validateMagic(byte[] b, String ext) {
     if (!Set.of("pdf", "docx", "txt", "md", "png", "jpg", "jpeg", "webp").contains(ext))
-      throw new CustomException(ErrorCode.VALIDATION_ERROR, "Chỉ hỗ trợ PDF, DOCX, TXT, MD, PNG, JPG và WEBP.");
+      throw new CustomException(ErrorCode.INVALID_FILE, "UNSUPPORTED_FILE_TYPE: Chỉ hỗ trợ PDF, DOCX, TXT, MD, PNG, JPG và WEBP.");
     boolean valid =
         switch (ext) {
           case "pdf" -> starts(b, "%PDF-");
@@ -215,7 +218,7 @@ public class Documents {
           default -> true;
         };
     if (!valid)
-      throw new CustomException(ErrorCode.VALIDATION_ERROR, "Nội dung tệp không khớp phần mở rộng.");
+      throw new CustomException(ErrorCode.INVALID_FILE, "UNSUPPORTED_FILE_TYPE: Nội dung tệp không khớp phần mở rộng.");
   }
 
   private boolean starts(byte[] b, String v) {

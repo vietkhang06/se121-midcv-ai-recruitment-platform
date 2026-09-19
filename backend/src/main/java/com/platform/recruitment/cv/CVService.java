@@ -4,20 +4,21 @@ import com.platform.recruitment.candidate.CandidateProfile;
 import com.platform.recruitment.candidate.CandidateProfileRepository;
 import com.platform.recruitment.common.ResourceNotFoundException;
 import com.platform.recruitment.common.UnauthorizedAccessException;
-import com.platform.recruitment.ai.AiWorkerClient;
 import com.platform.recruitment.common.CustomException;
 import com.platform.recruitment.common.ErrorCode;
-import com.platform.recruitment.file.FileMetadata;
-import com.platform.recruitment.file.FileStorageService;
+import com.platform.recruitment.document.Documents;
 import com.platform.recruitment.user.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -28,8 +29,9 @@ public class CVService {
     private final CVVersionRepository cvVersionRepository;
     private final CVSectionRepository cvSectionRepository;
     private final CandidateProfileRepository candidateProfileRepository;
-    private final FileStorageService fileStorageService;
-    private final AiWorkerClient aiWorkerClient;
+    private final Documents documents;
+    private final TextReader textReader;
+    private final JdbcTemplate jdbcTemplate;
 
     @Transactional
     public CVResponse createCV(User candidateUser, CreateCVRequest request) {
@@ -114,53 +116,65 @@ public class CVService {
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
 
-        FileMetadata meta = fileStorageService.storeFile(file, candidate.getId());
-        String cvTitle = (title != null && !title.isBlank()) ? title : meta.getOriginalFileName();
+        String originalFileName = Optional.ofNullable(file != null ? file.getOriginalFilename() : null).orElse("document");
+        String cvTitle = (title != null && !title.isBlank()) ? title : originalFileName;
 
-        byte[] fileBytes;
+        // 1. Native document ingestion (validates file size, formats, magic bytes, writes to storage, creates documents & document_versions records, enqueues EXTRACT job)
+        Documents.Saved savedDoc;
         try {
-            fileBytes = file.getBytes();
+            savedDoc = documents.upload(candidateUser.getId(), "CV", cvTitle, file, null);
         } catch (IOException e) {
-            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to read uploaded file: " + e.getMessage());
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to store uploaded file: " + e.getMessage());
         }
 
-        String declaredType = meta.getOriginalFileName().toLowerCase().endsWith(".docx") ? "DOCX" : "PDF";
-        Map<String, Object> extractResult = aiWorkerClient.extractDocument(fileBytes, meta.getOriginalFileName(), declaredType);
+        // 2. Extract text using native TextReader (supports PDF via PDFBox + OCR fallback, DOCX via POI, TXT, images)
+        String ext = originalFileName.contains(".")
+                ? originalFileName.substring(originalFileName.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT)
+                : "pdf";
+        String storageKey = savedDoc.versionId() + "." + ext;
+        TextReader.Extracted extracted = textReader.read(documents.path(storageKey));
 
-        String status = (String) extractResult.getOrDefault("status", "FAILED");
-        if (!"SUCCESS".equalsIgnoreCase(status) && !"PARTIAL".equalsIgnoreCase(status)) {
-            String errorCode = (String) extractResult.getOrDefault("error_code", "EXTRACTION_FAILED");
-            String errorMessage = (String) extractResult.getOrDefault("error_message", "Document text extraction failed");
-            throw new CustomException(ErrorCode.INVALID_FILE, errorCode + ": " + errorMessage);
-        }
-
-        String extractedText = (String) extractResult.get("text");
+        String extractedText = extracted.text();
         if (extractedText == null || extractedText.isBlank()) {
             throw new CustomException(ErrorCode.INVALID_FILE, "DOCUMENT_TEXT_EMPTY: Document text extraction yielded no readable text");
         }
+
+        // Update raw_text & extraction_method on the native document_version so PipelineWorker can immediately proceed to LLM extraction & embedding
+        jdbcTemplate.update(
+                "UPDATE document_versions SET raw_text=?, extraction_method=? WHERE id=?",
+                extractedText, extracted.method(), savedDoc.versionId()
+        );
+
+        // 3. Persist legacy CV entity with synchronized IDs for 100% backward compatibility
+        String filePath = documents.path(storageKey).toString();
+        String contentType = (file != null && file.getContentType() != null && !file.getContentType().isBlank())
+                ? file.getContentType()
+                : (ext.equals("docx") ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : "application/pdf");
 
         CV cv = CV.builder()
                 .candidate(candidate)
                 .title(cvTitle)
                 .creationPath(CVCreationPath.UPLOAD)
                 .targetIndustry(targetIndustry)
-                .fileName(meta.getOriginalFileName())
-                .filePath(meta.getFilePath())
-                .fileType(meta.getFileType())
-                .fileSize(meta.getFileSize())
+                .fileName(originalFileName)
+                .filePath(filePath)
+                .fileType(contentType)
+                .fileSize(file != null ? (int) file.getSize() : 0)
                 .status("PARSED")
                 .rawText(extractedText)
                 .isDefault(isDefault != null ? isDefault : false)
                 .build();
+        cv.setId(savedDoc.documentId());
 
         CV savedCv = cvRepository.save(cv);
 
         CVVersion version = CVVersion.builder()
                 .cv(savedCv)
-                .versionNumber(1)
-                .title(savedCv.getTitle() + " v1.0")
+                .versionNumber(savedDoc.versionNo())
+                .title(savedCv.getTitle() + " v" + savedDoc.versionNo() + ".0")
                 .rawTextContent(extractedText)
                 .build();
+        version.setId(savedDoc.versionId());
         version = cvVersionRepository.save(version);
 
         CVSection section = CVSection.builder()
@@ -170,7 +184,10 @@ public class CVService {
                 .build();
         cvSectionRepository.save(section);
 
-        return mapToResponse(savedCv);
+        CVResponse response = mapToResponse(savedCv);
+        response.setJobId(savedDoc.jobId());
+        response.setDocumentVersionId(savedDoc.versionId());
+        return response;
     }
 
     @Transactional
@@ -186,6 +203,7 @@ public class CVService {
         }
 
         cvRepository.delete(cv);
+        jdbcTemplate.update("UPDATE documents SET archived=true WHERE id=? AND owner_id=?", cvId, candidateUser.getId());
     }
 
     public CVResponse mapToResponse(CV cv) {
