@@ -1,19 +1,29 @@
-package com.platform.recruitment.midcv;
+package com.platform.recruitment.worker;
 
+import com.platform.recruitment.ai.AiClient;
+import com.platform.recruitment.common.CustomException;
+import com.platform.recruitment.common.ErrorCode;
+import com.platform.recruitment.cv.TextReader;
+import com.platform.recruitment.document.Documents;
+import com.platform.recruitment.event.Events;
+import com.platform.recruitment.github.GithubClient;
+import com.platform.recruitment.matching.Scoring;
+import com.platform.recruitment.taxonomy.TaxonomyService;
 import com.fasterxml.jackson.databind.*;
 import java.util.*;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Component
-@ConditionalOnProperty(name = "midcv.worker-enabled", havingValue = "true")
+@ConditionalOnProperty(name = {"app.worker-enabled", "midcv.worker-enabled"}, havingValue = "true", matchIfMissing = true)
 public class PipelineWorker {
   private final UUID worker = UUID.randomUUID();
-  private final Db db;
+  private final JdbcTemplate jdbc;
+  private final ObjectMapper mapper;
   private final JobQueue queue;
   private final Events events;
   private final Documents docs;
@@ -24,7 +34,8 @@ public class PipelineWorker {
   private final TransactionTemplate tx;
 
   public PipelineWorker(
-      @Qualifier("midcvDb") Db db,
+      JdbcTemplate jdbc,
+      ObjectMapper mapper,
       JobQueue queue,
       Events events,
       Documents docs,
@@ -33,7 +44,8 @@ public class PipelineWorker {
       GithubClient github,
       Scoring scoring,
       org.springframework.transaction.PlatformTransactionManager manager) {
-    this.db = db;
+    this.jdbc = jdbc;
+    this.mapper = mapper != null ? mapper : new ObjectMapper();
     this.queue = queue;
     this.events = events;
     this.docs = docs;
@@ -55,11 +67,11 @@ public class PipelineWorker {
     }
     if (claimed.isEmpty()) return;
     var job = claimed.get();
-    UUID id = db.id(job.get("id")),
-        owner = db.id(job.get("owner_id")),
-        entity = db.id(job.get("entity_id"));
-    String kind = db.text(job, "kind");
-    MDC.put("request_id", db.text(job, "request_id"));
+    UUID id = (UUID) job.get("id"),
+        owner = (UUID) job.get("owner_id"),
+        entity = (UUID) job.get("entity_id");
+    String kind = Objects.toString(job.get("kind"), "");
+    MDC.put("request_id", Objects.toString(job.get("request_id"), ""));
     MDC.put("job_id", id.toString());
     long start = System.nanoTime();
     try {
@@ -74,21 +86,24 @@ public class PipelineWorker {
           "Tác vụ đã hoàn tất.",
           (System.nanoTime() - start) / 1_000_000);
     } catch (Exception e) {
-      ApiFailure f =
-          e instanceof ApiFailure a
-              ? a
-              : new ApiFailure(
-                  500, "PIPELINE_FAILED", "Pipeline lỗi; xem log theo mã job/request để kiểm tra.");
-      events.failure(e, f.code);
-      if (!f.code.equals("JOB_LEASE_LOST")) {
+      String code = "PIPELINE_FAILED";
+      String msg = "Pipeline lỗi; xem log theo mã job/request để kiểm tra.";
+      if (e instanceof CustomException ce) {
+        code = ce.getErrorCode().name();
+        msg = ce.getMessage();
+      }
+      events.failure(e, code);
+      if (!"JOB_LEASE_LOST".equals(code)) {
+        final String fCode = code;
+        final String fMsg = msg;
         try {
           tx.executeWithoutResult(status -> {
             queue.assertLease(id, worker);
             if (kind.equals("EXTRACT"))
-              db.update(
+              jdbc.update(
                   "UPDATE document_versions SET state='FAILED',error_code=?,error_message=? WHERE id=?",
-                  f.code, f.getMessage(), entity);
-            queue.fail(id, worker, f);
+                  fCode, fMsg, entity);
+            queue.fail(id, worker, fCode, fMsg);
           });
         } catch (Exception finalizationError) {
           events.failure(finalizationError, "JOB_FINALIZATION_FAILED");
@@ -99,20 +114,34 @@ public class PipelineWorker {
           owner,
           "ERROR",
           "FAILED",
-          f.code,
-          f.getMessage(),
+          code,
+          msg,
           (System.nanoTime() - start) / 1_000_000);
     } finally {
       MDC.clear();
     }
   }
 
+  private JsonNode toTree(Object o) {
+    if (o == null) return mapper.createObjectNode();
+    if (o instanceof JsonNode j) return j;
+    try {
+      return mapper.readTree(o.toString());
+    } catch (Exception e) {
+      return mapper.valueToTree(o);
+    }
+  }
+
   private void extract(UUID job, UUID owner, UUID version) {
-    var v =
-        db.one(
+    List<Map<String, Object>> vRows =
+        jdbc.queryForList(
             "SELECT v.*,d.kind,d.owner_id FROM document_versions v JOIN documents d ON"
                 + " d.id=v.document_id WHERE v.id=?",
             version);
+    if (vRows.isEmpty()) {
+      throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Phiên bản tài liệu không tồn tại.");
+    }
+    var v = vRows.get(0);
     if ("READY".equals(v.get("state"))) {
       events.emit(
           job,
@@ -127,20 +156,20 @@ public class PipelineWorker {
     }
     tx.executeWithoutResult(status -> {
       queue.assertLease(job, worker);
-      db.update(
+      jdbc.update(
           "UPDATE document_versions SET state='PROCESSING',error_code=NULL,error_message=NULL WHERE id=?",
           version);
     });
     queue.progress(job, worker, owner, "READ_DOCUMENT", 10, "Đang đọc nội dung tài liệu.");
-    String raw = db.text(v, "raw_text"), method = db.text(v, "extraction_method");
+    String raw = Objects.toString(v.get("raw_text"), ""), method = Objects.toString(v.get("extraction_method"), "");
     if (raw.isBlank()) {
-      var extracted = reader.read(docs.path(db.text(v, "storage_key")));
+      var extracted = reader.read(docs.path(Objects.toString(v.get("storage_key"), "")));
       raw = extracted.text();
       method = extracted.method();
       final String extractedText = raw, extractedMethod = method;
       tx.executeWithoutResult(status -> {
         queue.assertLease(job, worker);
-        db.update(
+        jdbc.update(
             "UPDATE document_versions SET raw_text=?,extraction_method=? WHERE id=?",
             extractedText, extractedMethod, version);
       });
@@ -153,24 +182,24 @@ public class PipelineWorker {
     String cache =
         AiClient.buildCacheKey(
             owner,
-            db.text(v, "kind"),
+            Objects.toString(v.get("kind"), ""),
             raw,
             activeLlm,
             activeEmbed,
             AiClient.PIPELINE_VERSION,
             TaxonomyService.TAXONOMY_VERSION,
             AiClient.EMBEDDING_TEXT_VERSION);
-    var cached =
-        db.optional(
-            "SELECT normalized,embedding::text AS embedding_text FROM extraction_cache WHERE"
+    List<Map<String, Object>> cached =
+        jdbc.queryForList(
+            "SELECT normalized::text, embedding::text AS embedding_text FROM extraction_cache WHERE"
                 + " cache_key=? AND owner_id=?",
             cache,
             owner);
     JsonNode normalized;
     String vector;
-    if (cached.isPresent()) {
-      normalized = db.tree(cached.get().get("normalized"));
-      vector = db.text(cached.get(), "embedding_text");
+    if (!cached.isEmpty()) {
+      normalized = toTree(cached.get(0).get("normalized"));
+      vector = Objects.toString(cached.get(0).get("embedding_text"), "");
       events.emit(
           job,
           owner,
@@ -181,7 +210,7 @@ public class PipelineWorker {
           null);
     } else {
       queue.progress(job, worker, owner, "LLM_EXTRACTION", 30, "LLM đang bóc tách và chuẩn hóa nội dung.");
-      normalized = ai.extract(db.text(v, "kind"), raw);
+      normalized = ai.extract(Objects.toString(v.get("kind"), ""), raw);
       queue.progress(job, worker, owner,
           "EVIDENCE_VALIDATED",
           60,
@@ -196,7 +225,7 @@ public class PipelineWorker {
     tx.executeWithoutResult(
         status -> {
           queue.assertLease(job, worker);
-          db.update(
+          jdbc.update(
               "UPDATE document_versions SET"
                   + " normalized=?::jsonb,embedding=?::vector,llm_model=?,embedding_model=?,pipeline_version=?,state='READY',error_code=NULL,error_message=NULL"
                   + " WHERE id=?",
@@ -206,7 +235,7 @@ public class PipelineWorker {
               finalEmbed,
               AiClient.PIPELINE,
               version);
-          db.update(
+          jdbc.update(
               "INSERT INTO extraction_cache(cache_key,owner_id,normalized,embedding) VALUES"
                   + " (?,?,?::jsonb,?::vector) ON CONFLICT(cache_key) DO NOTHING",
               cache,
@@ -218,14 +247,19 @@ public class PipelineWorker {
   }
 
   private boolean match(UUID job, UUID owner, UUID appId, boolean screening) {
-    var ap =
-        db.one(
+    List<Map<String, Object>> apRows =
+        jdbc.queryForList(
             screening
                 ? "SELECT a.*,a.industry_snapshot AS industry,a.github_enabled_snapshot AS"
                       + " github_enabled,NULL AS github_username FROM screening_runs a WHERE a.id=?"
                 : "SELECT a.*,j.industry AS industry,true AS github_enabled,NULL AS github_username"
                       + " FROM applications a JOIN jobs j ON j.id=a.job_id WHERE a.id=?",
             appId);
+    if (apRows.isEmpty()) {
+      throw new CustomException(
+          ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy hồ sơ hoặc phiên screening.");
+    }
+    var ap = apRows.get(0);
     if ("WITHDRAWN".equals(ap.get("status"))) {
       events.emit(
           job,
@@ -238,16 +272,20 @@ public class PipelineWorker {
       queue.complete(job, worker);
       return true;
     }
-    UUID cvId = db.id(ap.get("cv_version_id")), jdId = db.id(ap.get("jd_version_id"));
-    var cv = db.one("SELECT * FROM document_versions WHERE id=?", cvId);
-    var jd = db.one("SELECT * FROM document_versions WHERE id=?", jdId);
+    UUID cvId = (UUID) ap.get("cv_version_id"), jdId = (UUID) ap.get("jd_version_id");
+    List<Map<String, Object>> cvRows = jdbc.queryForList("SELECT * FROM document_versions WHERE id=?", cvId);
+    List<Map<String, Object>> jdRows = jdbc.queryForList("SELECT * FROM document_versions WHERE id=?", jdId);
+    if (cvRows.isEmpty() || jdRows.isEmpty()) {
+      throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy phiên bản CV hoặc JD.");
+    }
+    var cv = cvRows.get(0);
+    var jd = jdRows.get(0);
     for (var doc : List.of(cv, jd)) {
       if ("FAILED".equals(doc.get("state")))
-        throw new ApiFailure(
-            424,
-            "DOCUMENT_PROCESSING_FAILED",
+        throw new CustomException(
+            ErrorCode.INTERNAL_SERVER_ERROR,
             "CV hoặc JD xử lý thất bại ("
-                + db.text(doc, "error_code")
+                + Objects.toString(doc.get("error_code"), "")
                 + "). Thử lại tác vụ trích xuất trước, sau đó chạy lại đối sánh.");
       if (!"READY".equals(doc.get("state"))) {
         queue.defer(job, worker);
@@ -259,42 +297,39 @@ public class PipelineWorker {
           (cv.get("embedding") == null && jd.get("embedding") == null)
               ? "CV và JD"
               : cv.get("embedding") == null ? "CV" : "JD";
-      throw new ApiFailure(
-          422,
-          "EMBEDDING_MISSING",
+      throw new CustomException(
+          ErrorCode.VALIDATION_ERROR,
           missing + " chưa có vector embedding. Vui lòng trích xuất lại tài liệu.");
     }
     if (!Objects.equals(cv.get("embedding_model"), jd.get("embedding_model")))
-      throw new ApiFailure(
-          409,
-          "EMBEDDING_MODEL_MISMATCH",
+      throw new CustomException(
+          ErrorCode.VALIDATION_ERROR,
           "CV/JD sử dụng hai model embedding khác nhau. Tạo phiên bản mới với cùng model.");
     queue.progress(job, worker, owner, "PGVECTOR_MATCH", 35, "Đang đối sánh ngữ nghĩa bằng PostgreSQL/Pgvector.");
-    var scoreRow =
-        db.one(
+    List<Map<String, Object>> scoreRows =
+        jdbc.queryForList(
             "SELECT greatest(0,least(100,(1-(cv.embedding <=> jd.embedding))*100)) AS score"
                 + " FROM document_versions cv CROSS JOIN document_versions jd"
                 + " WHERE cv.id=? AND jd.id=?",
             cvId,
             jdId);
-    Object scoreVal = scoreRow.get("score");
-    if (scoreVal == null) {
-      throw new ApiFailure(
-          500,
-          "EMBEDDING_SIMILARITY_FAILED",
+    if (scoreRows.isEmpty() || scoreRows.get(0).get("score") == null) {
+      throw new CustomException(
+          ErrorCode.INTERNAL_SERVER_ERROR,
           "Không thể tính toán khoảng cách vector ngữ nghĩa (kết quả NULL).");
     }
-    double semantic = ((Number) scoreVal).doubleValue();
-    JsonNode cvData = db.tree(cv.get("normalized")), jdData = db.tree(jd.get("normalized"));
-    JsonNode git = db.tree(Map.of("status", "NOT_APPLICABLE"));
-    if (Boolean.TRUE.equals(ap.get("github_enabled")) && ("IT".equalsIgnoreCase(db.text(ap, "industry")) || db.text(ap, "industry").toUpperCase().contains("TECH") || db.text(ap, "industry").toUpperCase().contains("SOFTWARE"))) {
+    double semantic = ((Number) scoreRows.get(0).get("score")).doubleValue();
+    JsonNode cvData = toTree(cv.get("normalized")), jdData = toTree(jd.get("normalized"));
+    JsonNode git = mapper.valueToTree(Map.of("status", "NOT_APPLICABLE"));
+    String industry = Objects.toString(ap.get("industry"), "");
+    if (Boolean.TRUE.equals(ap.get("github_enabled")) && ("IT".equalsIgnoreCase(industry) || industry.toUpperCase().contains("TECH") || industry.toUpperCase().contains("SOFTWARE"))) {
       String handle = cvData.path("githubUsername").asText("");
       String handleSource = "CV";
       if (handle.isBlank()) {
-        handle = db.text(ap, "github_username");
+        handle = Objects.toString(ap.get("github_username"), "");
         handleSource = "PROFILE";
       }
-      if (handle.isBlank()) git = db.tree(Map.of("status", "NOT_PROVIDED"));
+      if (handle.isBlank()) git = mapper.valueToTree(Map.of("status", "NOT_PROVIDED"));
       else {
         queue.progress(job, worker, owner, "GITHUB", 55, "Đang lấy dữ liệu GitHub công khai bổ trợ.");
         try {
@@ -311,19 +346,14 @@ public class PipelineWorker {
                 "Một phần hoạt động/ngôn ngữ repo chưa lấy được; nguồn thiếu được đánh dấu trong"
                     + " kết quả.",
                 null);
-        } catch (ApiFailure e) {
-          git =
-              db.tree(
-                  Db.map(
-                      "status",
-                      "UNAVAILABLE",
-                      "code",
-                      e.code,
-                      "message",
-                      e.getMessage(),
-                      "username",
-                      handle));
-          events.emit(job, owner, "WARN", "GITHUB", e.code, e.getMessage(), null);
+        } catch (CustomException e) {
+          Map<String, Object> unavail = new LinkedHashMap<>();
+          unavail.put("status", "UNAVAILABLE");
+          unavail.put("code", e.getErrorCode().name());
+          unavail.put("message", e.getMessage());
+          unavail.put("username", handle);
+          git = mapper.valueToTree(unavail);
+          events.emit(job, owner, "WARN", "GITHUB", e.getErrorCode().name(), e.getMessage(), null);
         }
       }
     }
@@ -333,7 +363,13 @@ public class PipelineWorker {
     tx.executeWithoutResult(
         status -> {
           queue.assertLease(job, worker);
-          db.update(
+          String detailsJson;
+          try {
+            detailsJson = mapper.writeValueAsString(result.details());
+          } catch (Exception ex) {
+            detailsJson = "{}";
+          }
+          jdbc.update(
               "INSERT INTO midcv_match_results(id,"
                   + (screening ? "screening_id" : "application_id")
                   + ",processing_job_id,base_score,github_bonus,score,coverage,semantic_score,details,github,algorithm_version,cv_version_id,jd_version_id)"
@@ -347,7 +383,7 @@ public class PipelineWorker {
               result.score(),
               result.coverage(),
               Math.round(semantic * 100) / 100.0,
-              db.json(result.details()),
+              detailsJson,
               snapshot.toString(),
               Scoring.VERSION,
               cvId,

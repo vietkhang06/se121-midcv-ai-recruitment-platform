@@ -1,5 +1,7 @@
-package com.platform.recruitment.midcv;
+package com.platform.recruitment.cv;
 
+import com.platform.recruitment.common.CustomException;
+import com.platform.recruitment.common.ErrorCode;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -107,15 +109,13 @@ public class TextReader {
         );
       }
 
-      throw ApiFailure.bad("UNSUPPORTED_FILE", "Định dạng tệp không được hỗ trợ.");
-    } catch (ApiFailure e) {
+      throw new CustomException(ErrorCode.INVALID_FILE, "Định dạng tệp không được hỗ trợ.");
+    } catch (CustomException e) {
       throw e;
     } catch (Exception e) {
-      throw new ApiFailure(
-          422,
-          "DOCUMENT_READ_FAILED",
-          "Không đọc được tài liệu. Kiểm tra tệp có hỏng hoặc có mật khẩu hay không.",
-          e);
+      throw new CustomException(
+          ErrorCode.INVALID_FILE,
+          "Không đọc được tài liệu. Kiểm tra tệp có hỏng hoặc có mật khẩu hay không.");
     }
   }
 
@@ -123,7 +123,7 @@ public class TextReader {
     try (var pdf = Loader.loadPDF(file.toFile())) {
       int totalPages = pdf.getNumberOfPages();
       if (totalPages > MAX_PDF_PAGES) {
-        throw ApiFailure.bad("PDF_PAGE_LIMIT", "PDF vượt quá 30 trang.");
+        throw new CustomException(ErrorCode.VALIDATION_ERROR, "PDF vượt quá 30 trang.");
       }
 
       long deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(5);
@@ -137,8 +137,8 @@ public class TextReader {
 
       for (int i = 0; i < totalPages; i++) {
         if (System.nanoTime() > deadline) {
-          throw new ApiFailure(
-              504, "DOCUMENT_READ_TIMEOUT", "Đọc tài liệu vượt 5 phút; vui lòng chia nhỏ tệp.");
+          throw new CustomException(
+              ErrorCode.INTERNAL_SERVER_ERROR, "Đọc tài liệu vượt 5 phút; vui lòng chia nhỏ tệp.");
         }
 
         stripper.setStartPage(i + 1);
@@ -172,8 +172,8 @@ public class TextReader {
         out.append(pageText).append('\n');
 
         if (out.length() > MAX_DOCUMENT_CHARS) {
-          throw ApiFailure.bad(
-              "DOCUMENT_TEXT_LIMIT", "Tài liệu vượt quá 60.000 ký tự; vui lòng tách nhỏ.");
+          throw new CustomException(
+              ErrorCode.VALIDATION_ERROR, "Tài liệu vượt quá 60.000 ký tự; vui lòng tách nhỏ.");
         }
       }
 
@@ -191,26 +191,26 @@ public class TextReader {
 
   private void validateFile(Path file) {
     if (file == null || !Files.isRegularFile(file) || !Files.isReadable(file)) {
-      throw ApiFailure.bad("UNREADABLE_FILE", "Tệp không tồn tại hoặc không thể đọc.");
+      throw new CustomException(ErrorCode.INVALID_FILE, "Tệp không tồn tại hoặc không thể đọc.");
     }
 
     try {
       long size = Files.size(file);
       if (size == 0) {
-        throw ApiFailure.bad("FILE_EMPTY", "Tệp rỗng.");
+        throw new CustomException(ErrorCode.INVALID_FILE, "Tệp rỗng.");
       }
       if (size > MAX_FILE_SIZE) {
-        throw new ApiFailure(413, "FILE_TOO_LARGE", "Tệp vượt quá 15 MB.");
+        throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED, "Tệp vượt quá 15 MB.");
       }
-    } catch (ApiFailure af) {
-      throw af;
+    } catch (CustomException ce) {
+      throw ce;
     } catch (IOException e) {
-      throw ApiFailure.bad("UNREADABLE_FILE", "Không thể xác định kích thước tệp.");
+      throw new CustomException(ErrorCode.INVALID_FILE, "Không thể xác định kích thước tệp.");
     }
 
     String ext = getExtension(file);
     if (!Set.of("pdf", "docx", "txt", "md", "png", "jpg", "jpeg", "webp").contains(ext)) {
-      throw ApiFailure.bad("UNSUPPORTED_FILE", "Định dạng tệp không được hỗ trợ.");
+      throw new CustomException(ErrorCode.INVALID_FILE, "Định dạng tệp không được hỗ trợ.");
     }
 
     byte[] header = readHeader(file, 16);
@@ -246,7 +246,7 @@ public class TextReader {
           default -> true; // txt, md have no fixed binary signature
         };
     if (!valid) {
-      throw ApiFailure.bad("FILE_SIGNATURE_MISMATCH", "Nội dung tệp không khớp phần mở rộng.");
+      throw new CustomException(ErrorCode.INVALID_FILE, "Nội dung tệp không khớp phần mở rộng.");
     }
   }
 
@@ -270,11 +270,11 @@ public class TextReader {
 
   private Extracted checked(String text, String method) {
     if (text == null || text.strip().length() < 15) {
-      throw new ApiFailure(
-          422, "NO_READABLE_TEXT", "Chưa đọc được văn bản; cần ảnh rõ hơn hoặc nội dung văn bản.");
+      throw new CustomException(
+          ErrorCode.INVALID_FILE, "Chưa đọc được văn bản; cần ảnh rõ hơn hoặc nội dung văn bản.");
     }
     if (text.length() > MAX_DOCUMENT_CHARS) {
-      throw ApiFailure.bad("DOCUMENT_TEXT_LIMIT", "Tài liệu vượt quá 60.000 ký tự.");
+      throw new CustomException(ErrorCode.VALIDATION_ERROR, "Tài liệu vượt quá 60.000 ký tự.");
     }
     return new Extracted(text, method);
   }
@@ -292,38 +292,34 @@ public class TextReader {
                 .redirectError(err.toFile())
                 .start();
       } catch (java.io.IOException e) {
-        throw new ApiFailure(
-            503,
-            "OCR_ENGINE_UNAVAILABLE",
+        throw new CustomException(
+            ErrorCode.INTERNAL_SERVER_ERROR,
             "Worker chưa có Tesseract và bộ ngôn ngữ eng/vie. Không thể đọc ảnh hoặc PDF scan.");
       }
 
       if (!process.waitFor(90, TimeUnit.SECONDS)) {
         process.destroyForcibly();
-        throw new ApiFailure(504, "OCR_TIMEOUT", "Nhận dạng một trang vượt quá 90 giây.");
+        throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Nhận dạng một trang vượt quá 90 giây.");
       }
 
       String diagnostics = Files.readString(err);
       if (diagnostics.contains("Failed loading language")
           || diagnostics.contains("Error opening data file")) {
-        throw new ApiFailure(
-            503,
-            "OCR_LANGUAGE_MISSING",
+        throw new CustomException(
+            ErrorCode.INTERNAL_SERVER_ERROR,
             "Tesseract thiếu bộ ngôn ngữ eng hoặc vie; không chấp nhận kết quả OCR thiếu ngôn ngữ.");
       }
 
       if (process.exitValue() != 0) {
-        throw new ApiFailure(
-            422,
-            "OCR_FAILED",
+        throw new CustomException(
+            ErrorCode.INVALID_FILE,
             "Tesseract không nhận dạng được ảnh. Kiểm tra định dạng và bộ ngôn ngữ.");
       }
 
       String result = Files.readString(out);
       if (result == null || result.strip().isEmpty()) {
-        throw new ApiFailure(
-            422,
-            "EMPTY_OCR_RESULT",
+        throw new CustomException(
+            ErrorCode.INVALID_FILE,
             "Tesseract đã quét hình ảnh nhưng không phát hiện được ký tự nào.");
       }
 

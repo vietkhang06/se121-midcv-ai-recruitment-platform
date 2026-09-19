@@ -1,5 +1,7 @@
-package com.platform.recruitment.midcv;
+package com.platform.recruitment.taxonomy;
 
+import com.platform.recruitment.common.CustomException;
+import com.platform.recruitment.common.ErrorCode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -10,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -62,7 +64,7 @@ public class TaxonomyService {
     }
   }
 
-  private final Db db;
+  private final JdbcTemplate jdbc;
 
   private volatile TaxonomyStatus status = TaxonomyStatus.UNINITIALIZED;
   private volatile String lastError = null;
@@ -76,16 +78,16 @@ public class TaxonomyService {
   // Collision tracking: normalized keys that map to more than 1 distinct skill
   private final Set<String> collidedKeys = ConcurrentHashMap.newKeySet();
 
-  public TaxonomyService(@Autowired(required = false) @Qualifier("midcvDb") Db db) {
-    this.db = db;
-    if (db == null) {
+  public TaxonomyService(@Autowired(required = false) JdbcTemplate jdbc) {
+    this.jdbc = jdbc;
+    if (jdbc == null) {
       this.status = TaxonomyStatus.EMPTY;
     }
   }
 
   @PostConstruct
   public void init() {
-    if (db != null) {
+    if (jdbc != null) {
       try {
         refresh();
       } catch (Exception e) {
@@ -174,37 +176,42 @@ public class TaxonomyService {
   public void normalizeDocumentSkills(JsonNode document) {
     if (document == null) return;
     if (status == TaxonomyStatus.UNAVAILABLE) {
-      throw new ApiFailure(503, "TAXONOMY_UNAVAILABLE", "Hệ thống chuẩn hóa kỹ năng tạm thời không khả dụng: " + lastError);
+      throw new CustomException(
+          ErrorCode.INTERNAL_SERVER_ERROR,
+          "Hệ thống chuẩn hóa kỹ năng tạm thời không khả dụng: " + lastError);
     }
     normalizeSkillArray(document.path("skills"));
     normalizeSkillArray(document.path("otherRequirements"));
   }
 
   private void normalizeSkillArray(JsonNode arrayNode) {
-    if (!(arrayNode instanceof ArrayNode arr)) return;
-    for (JsonNode item : arr) {
-      if (!(item instanceof ObjectNode obj)) continue;
+    if (arrayNode == null || !arrayNode.isArray()) return;
+    for (JsonNode item : arrayNode) {
+      if (item instanceof ObjectNode obj) {
+        JsonNode canonicalNode = obj.get("canonical");
+        String currentCanonical = canonicalNode != null && canonicalNode.isTextual() ? canonicalNode.asText() : "";
+        JsonNode nameNode = obj.get("name");
+        String originalName = nameNode != null && nameNode.isTextual() ? nameNode.asText() : "";
 
-      String canonical = obj.path("canonical").asText("").trim();
-      String name = obj.path("name").asText("").trim();
-
-      Optional<TaxonomyMatch> match = Optional.empty();
-      if (!canonical.isEmpty()) {
-        match = lookup(canonical);
-      }
-      if (match.isEmpty() && !name.isEmpty()) {
-        match = lookup(name);
-      }
-
-      if (match.isPresent()) {
-        TaxonomyMatch m = match.get();
-        obj.put("canonical", m.canonicalName());
-        if (m.skill().category() != null && !m.skill().category().isBlank()) {
-          obj.put("category", m.skill().category());
+        // Attempt lookup by original name first, then current canonical
+        String lookupTerm = !originalName.isBlank() ? originalName : currentCanonical;
+        Optional<TaxonomyMatch> match = lookup(lookupTerm);
+        if (match.isEmpty() && !currentCanonical.isBlank() && !currentCanonical.equalsIgnoreCase(lookupTerm)) {
+          match = lookup(currentCanonical);
         }
-        obj.put("resolution", "TAXONOMY");
-      } else {
-        obj.put("resolution", "UNKNOWN");
+
+        if (match.isPresent()) {
+          TaxonomySkill skill = match.get().skill();
+          obj.put("canonical", skill.canonicalName());
+          obj.put("category", skill.category());
+          obj.put("taxonomyMatch", match.get().matchType().name());
+          obj.put("taxonomyVersion", TAXONOMY_VERSION);
+        } else {
+          // If no taxonomy match, retain existing canonical if valid, otherwise fallback to name
+          if (currentCanonical.isBlank() && !originalName.isBlank()) {
+            obj.put("canonical", originalName);
+          }
+        }
       }
     }
   }
@@ -241,35 +248,79 @@ public class TaxonomyService {
     this.status = TaxonomyStatus.READY;
   }
 
+  public synchronized void loadFromMemory(List<TaxonomySkill> skills, List<TaxonomyAlias> aliases) {
+    exactCanonicalMap.clear();
+    exactAliasMap.clear();
+    normCanonicalMap.clear();
+    normAliasMap.clear();
+    collidedKeys.clear();
+
+    if (skills == null || skills.isEmpty()) {
+      this.status = TaxonomyStatus.EMPTY;
+      return;
+    }
+
+    Map<UUID, TaxonomySkill> skillsById = new HashMap<>();
+    for (TaxonomySkill skill : skills) {
+      skillsById.put(skill.id(), skill);
+      exactCanonicalMap.put(skill.canonicalName(), skill);
+      if (!skill.normalizedName().isEmpty()) {
+        TaxonomySkill existing = normCanonicalMap.put(skill.normalizedName(), skill);
+        if (existing != null && !existing.id().equals(skill.id())) {
+          collidedKeys.add(skill.normalizedName());
+          normCanonicalMap.remove(skill.normalizedName());
+        }
+      }
+    }
+
+    if (aliases != null) {
+      for (TaxonomyAlias alias : aliases) {
+        TaxonomySkill skill = skillsById.get(alias.skillId());
+        if (skill != null) {
+          exactAliasMap.put(alias.alias(), skill);
+          if (!alias.normalizedAlias().isEmpty()) {
+            TaxonomySkill existing = normAliasMap.put(alias.normalizedAlias(), skill);
+            if (existing != null && !existing.id().equals(skill.id())) {
+              collidedKeys.add(alias.normalizedAlias());
+              normAliasMap.remove(alias.normalizedAlias());
+            }
+          }
+        }
+      }
+    }
+
+    this.status = TaxonomyStatus.READY;
+  }
+
   public synchronized void refresh() {
-    if (db == null) {
+    if (jdbc == null) {
       this.status = exactCanonicalMap.isEmpty() ? TaxonomyStatus.EMPTY : TaxonomyStatus.READY;
       return;
     }
 
     try {
-      List<Map<String, Object>> skillRows = db.rows(
-          "SELECT id, canonical_name, normalized_name, category, description, source, version, active " +
-          "FROM taxonomy_skills WHERE active = true"
-      );
+      List<TaxonomySkill> skillRows =
+          jdbc.query(
+              "SELECT id, canonical_name, normalized_name, category, description, source, version, active "
+                  + "FROM taxonomy_skills WHERE active = true",
+              (rs, rowNum) ->
+                  new TaxonomySkill(
+                      rs.getObject("id", UUID.class),
+                      rs.getString("canonical_name"),
+                      rs.getString("normalized_name"),
+                      rs.getString("category"),
+                      rs.getString("description"),
+                      rs.getString("source"),
+                      rs.getString("version"),
+                      rs.getBoolean("active")));
 
       Map<UUID, TaxonomySkill> skillsById = new HashMap<>();
       Map<String, TaxonomySkill> newExactCanonical = new HashMap<>();
       Map<String, TaxonomySkill> newNormCanonical = new HashMap<>();
       Set<String> newCollided = new HashSet<>();
 
-      for (Map<String, Object> r : skillRows) {
-        UUID id = db.id(r.get("id"));
-        TaxonomySkill skill = new TaxonomySkill(
-            id,
-            db.text(r, "canonical_name"),
-            db.text(r, "normalized_name"),
-            db.text(r, "category"),
-            db.text(r, "description"),
-            db.text(r, "source"),
-            db.text(r, "version"),
-            Boolean.TRUE.equals(r.get("active"))
-        );
+      for (TaxonomySkill skill : skillRows) {
+        UUID id = skill.id();
         skillsById.put(id, skill);
         newExactCanonical.put(skill.canonicalName(), skill);
         if (!skill.normalizedName().isEmpty()) {
@@ -281,22 +332,30 @@ public class TaxonomyService {
         }
       }
 
-      List<Map<String, Object>> aliasRows = db.rows(
-          "SELECT id, skill_id, alias, normalized_alias, source, active " +
-          "FROM taxonomy_aliases WHERE active = true"
-      );
+      List<TaxonomyAlias> aliasRows =
+          jdbc.query(
+              "SELECT id, skill_id, alias, normalized_alias, source, active "
+                  + "FROM taxonomy_aliases WHERE active = true",
+              (rs, rowNum) ->
+                  new TaxonomyAlias(
+                      rs.getObject("id", UUID.class),
+                      rs.getObject("skill_id", UUID.class),
+                      rs.getString("alias"),
+                      rs.getString("normalized_alias"),
+                      rs.getString("source"),
+                      rs.getBoolean("active")));
 
       Map<String, TaxonomySkill> newExactAlias = new HashMap<>();
       Map<String, TaxonomySkill> newNormAlias = new HashMap<>();
 
-      for (Map<String, Object> r : aliasRows) {
-        UUID skillId = db.id(r.get("skill_id"));
+      for (TaxonomyAlias r : aliasRows) {
+        UUID skillId = r.skillId();
         TaxonomySkill skill = skillsById.get(skillId);
         if (skill != null) {
-          String alias = db.text(r, "alias");
-          String normAlias = db.text(r, "normalized_alias");
+          String alias = r.alias();
+          String normAlias = r.normalizedAlias();
           newExactAlias.put(alias, skill);
-          if (!normAlias.isEmpty()) {
+          if (normAlias != null && !normAlias.isEmpty()) {
             TaxonomySkill existing = newNormAlias.put(normAlias, skill);
             if (existing != null && !existing.id().equals(skill.id())) {
               newCollided.add(normAlias);

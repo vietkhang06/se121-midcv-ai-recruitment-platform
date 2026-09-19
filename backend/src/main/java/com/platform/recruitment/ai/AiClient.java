@@ -1,5 +1,8 @@
-package com.platform.recruitment.midcv;
+package com.platform.recruitment.ai;
 
+import com.platform.recruitment.common.CustomException;
+import com.platform.recruitment.common.ErrorCode;
+import com.platform.recruitment.taxonomy.TaxonomyService;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.NullNode;
@@ -12,8 +15,8 @@ import java.time.*;
 import java.util.*;
 import java.util.regex.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -27,7 +30,8 @@ public class AiClient {
   private final String url;
   private final int timeout;
   private final int numCtx;
-  private final Db db;
+  private final JdbcTemplate jdbc;
+  private final ObjectMapper mapper;
   private final JsonNode schema;
   private final HttpClient client;
 
@@ -39,39 +43,43 @@ public class AiClient {
 
   @Autowired
   public AiClient(
-      @Qualifier("midcvDb") Db db,
-      @Value("${midcv.llm-url:http://localhost:11434}") String url,
-      @Value("${midcv.llm-model:dna5rm/granite4.2:3b-8k}") String llm,
-      @Value("${midcv.embedding-model:bge-m3}") String embed,
-      @Value("${midcv.ai-timeout-seconds:360}") int timeout,
+      JdbcTemplate jdbc,
+      ObjectMapper mapper,
+      @Value("${app.llm-url:${midcv.llm-url:http://localhost:11434}}") String url,
+      @Value("${app.llm-model:${midcv.llm-model:dna5rm/granite4.2:3b-8k}}") String llm,
+      @Value("${app.embedding-model:${midcv.embedding-model:bge-m3}}") String embed,
+      @Value("${app.ai-timeout-seconds:${midcv.ai-timeout-seconds:360}}") int timeout,
       @Autowired(required = false) TaxonomyService taxonomy)
       throws Exception {
-    this(db, url, llm, embed, timeout, 0, taxonomy);
+    this(jdbc, mapper, url, llm, embed, timeout, 0, taxonomy, null);
   }
 
   public AiClient(
-      Db db,
+      JdbcTemplate jdbc,
+      ObjectMapper mapper,
       String url,
       String llm,
       String embed,
       int timeout)
       throws Exception {
-    this(db, url, llm, embed, timeout, 0, null);
+    this(jdbc, mapper, url, llm, embed, timeout, 0, null, null);
   }
 
   public AiClient(
-      Db db,
+      JdbcTemplate jdbc,
+      ObjectMapper mapper,
       String url,
       String llm,
       String embed,
       int timeout,
       int numCtx)
       throws Exception {
-    this(db, url, llm, embed, timeout, numCtx, null);
+    this(jdbc, mapper, url, llm, embed, timeout, numCtx, null, null);
   }
 
   public AiClient(
-      Db db,
+      JdbcTemplate jdbc,
+      ObjectMapper mapper,
       String url,
       String llm,
       String embed,
@@ -79,11 +87,12 @@ public class AiClient {
       int numCtx,
       TaxonomyService taxonomy)
       throws Exception {
-    this(db, url, llm, embed, timeout, numCtx, taxonomy, null);
+    this(jdbc, mapper, url, llm, embed, timeout, numCtx, taxonomy, null);
   }
 
   public AiClient(
-      Db db,
+      JdbcTemplate jdbc,
+      ObjectMapper mapper,
       String url,
       String llm,
       String embed,
@@ -92,7 +101,8 @@ public class AiClient {
       TaxonomyService taxonomy,
       HttpClient client)
       throws Exception {
-    this.db = db;
+    this.jdbc = jdbc;
+    this.mapper = mapper != null ? mapper : new ObjectMapper();
     this.url = url.replaceAll("/+$", "");
     this.llmModel = llm;
     this.embeddingModel = embed;
@@ -115,7 +125,7 @@ public class AiClient {
       if (in == null) {
         throw new IllegalStateException("document.schema.json not found in classpath");
       }
-      schema = db.mapper.readTree(in);
+      schema = this.mapper.readTree(in);
     }
   }
 
@@ -135,20 +145,22 @@ public class AiClient {
       return cachedSettings;
     }
     try {
-      if (db != null && db.jdbc != null) {
-        var row = db.optional("SELECT * FROM system_ai_settings WHERE id='current'");
-        if (row.isPresent()) {
-          var m = row.get();
-          cachedSettings =
-              new SystemAiSettings(
-                  db.text(m, "provider"),
-                  db.text(m, "ollama_url"),
-                  db.text(m, "ollama_model"),
-                  db.text(m, "cloud_base_url"),
-                  db.text(m, "cloud_api_key"),
-                  db.text(m, "cloud_model"),
-                  db.text(m, "embedding_provider"),
-                  db.text(m, "embedding_model"));
+      if (jdbc != null) {
+        List<SystemAiSettings> list =
+            jdbc.query(
+                "SELECT * FROM system_ai_settings WHERE id='current'",
+                (rs, rowNum) ->
+                    new SystemAiSettings(
+                        rs.getString("provider"),
+                        rs.getString("ollama_url"),
+                        rs.getString("ollama_model"),
+                        rs.getString("cloud_base_url"),
+                        rs.getString("cloud_api_key"),
+                        rs.getString("cloud_model"),
+                        rs.getString("embedding_provider"),
+                        rs.getString("embedding_model")));
+        if (!list.isEmpty()) {
+          cachedSettings = list.get(0);
           lastSettingsFetch = now;
           return cachedSettings;
         }
@@ -164,6 +176,48 @@ public class AiClient {
         "gpt-4o-mini",
         "LOCAL_OLLAMA",
         embeddingModel);
+  }
+
+  public void updateSettings(
+      String provider,
+      String ollamaUrl,
+      String ollamaModel,
+      String cloudBaseUrl,
+      String newKey,
+      String cloudModel) {
+    if (jdbc == null) return;
+    if (newKey != null && !newKey.isEmpty()) {
+      jdbc.update(
+          "UPDATE system_ai_settings SET provider=?, ollama_url=?, ollama_model=?, cloud_base_url=?, cloud_api_key=?, cloud_model=?, updated_at=now() WHERE id='current'",
+          provider, ollamaUrl, ollamaModel, cloudBaseUrl, newKey, cloudModel);
+    } else {
+      jdbc.update(
+          "UPDATE system_ai_settings SET provider=?, ollama_url=?, ollama_model=?, cloud_base_url=?, cloud_model=?, updated_at=now() WHERE id='current'",
+          provider, ollamaUrl, ollamaModel, cloudBaseUrl, cloudModel);
+    }
+    invalidateSettingsCache();
+  }
+
+  private String json(Object v) {
+    try {
+      return mapper.writeValueAsString(v);
+    } catch (Exception e) {
+      throw new IllegalStateException("JSON_SERIALIZATION_FAILED", e);
+    }
+  }
+
+  private JsonNode parse(String s) {
+    try {
+      return mapper.readTree(s);
+    } catch (Exception e) {
+      throw new IllegalStateException("JSON_PARSE_FAILED", e);
+    }
+  }
+
+  private static Map<String, Object> map(Object... pairs) {
+    Map<String, Object> m = new LinkedHashMap<>();
+    for (int i = 0; i < pairs.length; i += 2) m.put((String) pairs[i], pairs[i + 1]);
+    return m;
   }
 
   public String activeLlmModel() {
@@ -302,10 +356,10 @@ public class AiClient {
 
     JsonNode output;
     try {
-      output = db.mapper.readTree(content);
+      output = mapper.readTree(content);
     } catch (Exception e) {
-      throw new ApiFailure(
-          502, "AI_INVALID_JSON", "LLM không trả về JSON hợp lệ. Không tạo dữ liệu thay thế.");
+      throw new CustomException(
+          ErrorCode.INTERNAL_SERVER_ERROR, "LLM không trả về JSON hợp lệ. Không tạo dữ liệu thay thế.");
     }
     normalize(output, text, kind);
     validate(output, text, kind);
@@ -321,7 +375,7 @@ public class AiClient {
     JsonNode r =
         post(
             "/api/chat",
-            Db.map(
+            map(
                 "model",
                 model,
                 "stream",
@@ -345,9 +399,8 @@ public class AiClient {
 
   public String callCloudOpenAi(SystemAiSettings cfg, String system, String userPrompt) {
     if (cfg.cloudApiKey() == null || cfg.cloudApiKey().trim().isEmpty()) {
-      throw new ApiFailure(
-          502,
-          "AI_API_KEY_MISSING",
+      throw new CustomException(
+          ErrorCode.INTERNAL_SERVER_ERROR,
           "Chưa cấu hình Cloud API Key. Admin vui lòng vào mục Cấu hình AI để nhập API Key.");
     }
     String baseUrl = cfg.cloudBaseUrl() != null ? cfg.cloudBaseUrl().replaceAll("/+$", "") : "https://api.openai.com/v1";
@@ -356,7 +409,7 @@ public class AiClient {
     String model = cfg.cloudModel() != null && !cfg.cloudModel().isBlank() ? cfg.cloudModel() : "gpt-4o-mini";
 
     Map<String, Object> body =
-        Db.map(
+        map(
             "model",
             model,
             "temperature",
@@ -383,41 +436,37 @@ public class AiClient {
               .timeout(Duration.ofSeconds(timeout))
               .header("Content-Type", "application/json")
               .header("Authorization", "Bearer " + cfg.cloudApiKey().trim())
-              .POST(HttpRequest.BodyPublishers.ofString(db.json(body)))
+              .POST(HttpRequest.BodyPublishers.ofString(json(body)))
               .build();
       HttpResponse<String> r = client.send(req, HttpResponse.BodyHandlers.ofString());
       if (r.statusCode() == 429) {
-        throw new ApiFailure(
-            429,
-            "AI_RATE_LIMIT",
+        throw new CustomException(
+            ErrorCode.RATE_LIMIT_EXCEEDED,
             "Cloud AI đã chạm giới hạn hạn ngạch (429 Rate Limit / Quota Exceeded). Admin vui lòng cập nhật API Key mới hoặc chuyển sang Local Ollama.");
       }
       if (r.statusCode() == 401 || r.statusCode() == 403) {
-        throw new ApiFailure(
-            502,
-            "AI_AUTH_FAILED",
+        throw new CustomException(
+            ErrorCode.AUTHENTICATION_FAILED,
             "API Key của Cloud AI không hợp lệ hoặc không có quyền truy cập (HTTP "
                 + r.statusCode()
                 + "). Vui lòng kiểm tra lại Key.");
       }
       if (r.statusCode() != 200) {
-        throw new ApiFailure(
-            502,
-            "AI_HTTP_" + r.statusCode(),
+        throw new CustomException(
+            ErrorCode.INTERNAL_SERVER_ERROR,
             "Dịch vụ Cloud AI trả lỗi HTTP " + r.statusCode() + ": " + r.body());
       }
-      JsonNode json = db.parse(r.body());
-      return json.path("choices").path(0).path("message").path("content").asText("");
-    } catch (ApiFailure e) {
+      JsonNode jsonNode = parse(r.body());
+      return jsonNode.path("choices").path(0).path("message").path("content").asText("");
+    } catch (CustomException e) {
       throw e;
     } catch (HttpTimeoutException e) {
-      throw new ApiFailure(
-          504,
-          "AI_TIMEOUT",
+      throw new CustomException(
+          ErrorCode.INTERNAL_SERVER_ERROR,
           "Dịch vụ Cloud AI vượt thời gian phản hồi. Kiểm tra kết nối mạng hoặc thử lại.");
     } catch (Exception e) {
-      throw new ApiFailure(
-          503, "AI_UNAVAILABLE", "Không kết nối được Cloud AI: " + e.getMessage(), e);
+      throw new CustomException(
+          ErrorCode.INTERNAL_SERVER_ERROR, "Không kết nối được Cloud AI: " + e.getMessage(), e);
     }
   }
 
@@ -425,14 +474,14 @@ public class AiClient {
     long start = System.currentTimeMillis();
     if ("CLOUD_OPENAI_COMPATIBLE".equalsIgnoreCase(settings.provider())) {
       if (settings.cloudApiKey() == null || settings.cloudApiKey().trim().isEmpty()) {
-        throw ApiFailure.bad("API_KEY_REQUIRED", "Vui lòng nhập API Key để kiểm tra kết nối.");
+        throw new CustomException(ErrorCode.VALIDATION_ERROR, "Vui lòng nhập API Key để kiểm tra kết nối.");
       }
       String baseUrl = settings.cloudBaseUrl() != null ? settings.cloudBaseUrl().replaceAll("/+$", "") : "https://api.openai.com/v1";
       String endpoint =
           baseUrl.endsWith("/chat/completions") ? baseUrl : baseUrl + "/chat/completions";
       String model = settings.cloudModel() != null && !settings.cloudModel().isBlank() ? settings.cloudModel() : "gpt-4o-mini";
       Map<String, Object> body =
-          Db.map(
+          map(
               "model",
               model,
               "temperature",
@@ -452,25 +501,24 @@ public class AiClient {
                 .timeout(Duration.ofSeconds(15))
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + settings.cloudApiKey().trim())
-                .POST(HttpRequest.BodyPublishers.ofString(db.json(body)))
+                .POST(HttpRequest.BodyPublishers.ofString(json(body)))
                 .build();
         HttpResponse<String> r = client.send(req, HttpResponse.BodyHandlers.ofString());
         long ms = System.currentTimeMillis() - start;
         if (r.statusCode() == 429) {
-          throw new ApiFailure(
-              429,
-              "AI_RATE_LIMIT",
+          throw new CustomException(
+              ErrorCode.RATE_LIMIT_EXCEEDED,
               "Key đã chạm giới hạn quota/rate-limit (HTTP 429). Cần thay Key khác.");
         }
         if (r.statusCode() == 401 || r.statusCode() == 403) {
-          throw new ApiFailure(
-              401, "AI_AUTH_FAILED", "API Key không hợp lệ hoặc bị từ chối (HTTP " + r.statusCode() + ").");
+          throw new CustomException(
+              ErrorCode.AUTHENTICATION_FAILED, "API Key không hợp lệ hoặc bị từ chối (HTTP " + r.statusCode() + ").");
         }
         if (r.statusCode() != 200) {
-          throw new ApiFailure(
-              502, "AI_ERROR", "Dịch vụ AI trả mã lỗi HTTP " + r.statusCode() + ": " + r.body());
+          throw new CustomException(
+              ErrorCode.INTERNAL_SERVER_ERROR, "Dịch vụ AI trả mã lỗi HTTP " + r.statusCode() + ": " + r.body());
         }
-        return Db.map(
+        return map(
             "ok",
             true,
             "provider",
@@ -481,11 +529,11 @@ public class AiClient {
             ms,
             "message",
             "Kết nối Cloud AI thành công! Thời gian phản hồi: " + ms + " ms.");
-      } catch (ApiFailure e) {
+      } catch (CustomException e) {
         throw e;
       } catch (Exception e) {
-        throw new ApiFailure(
-            503, "CONNECTION_FAILED", "Không thể kết nối đến endpoint Cloud: " + e.getMessage());
+        throw new CustomException(
+            ErrorCode.INTERNAL_SERVER_ERROR, "Không thể kết nối đến endpoint Cloud: " + e.getMessage());
       }
     } else {
       String oUrl = settings.ollamaUrl() != null && !settings.ollamaUrl().isBlank() ? settings.ollamaUrl() : url;
@@ -497,21 +545,20 @@ public class AiClient {
                 .header("Content-Type", "application/json")
                 .POST(
                     HttpRequest.BodyPublishers.ofString(
-                        db.json(
-                            Db.map("name", oModel))))
+                        json(
+                            map("name", oModel))))
                 .build();
         HttpResponse<String> r = client.send(req, HttpResponse.BodyHandlers.ofString());
         long ms = System.currentTimeMillis() - start;
         if (r.statusCode() == 404) {
-          throw new ApiFailure(
-              404,
-              "MODEL_NOT_FOUND",
+          throw new CustomException(
+              ErrorCode.RESOURCE_NOT_FOUND,
               "Model '" + oModel + "' chưa có trong Ollama. Hãy chạy: ollama pull " + oModel);
         }
         if (r.statusCode() != 200) {
-          throw new ApiFailure(502, "AI_ERROR", "Ollama trả mã lỗi HTTP " + r.statusCode());
+          throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Ollama trả mã lỗi HTTP " + r.statusCode());
         }
-        return Db.map(
+        return map(
             "ok",
             true,
             "provider",
@@ -522,12 +569,11 @@ public class AiClient {
             ms,
             "message",
             "Kết nối Ollama thành công! Model '" + oModel + "' sẵn sàng (" + ms + " ms).");
-      } catch (ApiFailure e) {
+      } catch (CustomException e) {
         throw e;
       } catch (Exception e) {
-        throw new ApiFailure(
-            503,
-            "CONNECTION_FAILED",
+        throw new CustomException(
+            ErrorCode.INTERNAL_SERVER_ERROR,
             "Không thể kết nối đến Ollama tại "
                 + oUrl
                 + (e.getMessage() != null ? ": " + e.getMessage() : ""));
@@ -653,15 +699,14 @@ public class AiClient {
         if (item.has("priority")
             && ((kind.equals("CV") && !item.path("priority").asText().equals("MENTIONED"))
                 || (kind.equals("JD") && item.path("priority").asText().equals("MENTIONED"))))
-          throw new ApiFailure(
-              502,
-              "AI_PRIORITY_INVALID",
+          throw new CustomException(
+              ErrorCode.VALIDATION_ERROR,
               "LLM phân loại ưu tiên CV/JD không đúng schema nghiệp vụ.");
       }
     for (JsonNode value : node.path("profile")) {
       if (!value.isNull() && (!kind.equals("CV") || !plain.contains(flat(value.asText()))))
-        throw new ApiFailure(
-            502, "AI_PROFILE_EVIDENCE_INVALID", "Thông tin liên hệ không có trong văn bản gốc.");
+        throw new CustomException(
+            ErrorCode.VALIDATION_ERROR, "Thông tin liên hệ không có trong văn bản gốc.");
     }
     for (JsonNode entry : node.path("experience").path("entries"))
       quote(entry.path("evidence"), plain);
@@ -676,16 +721,15 @@ public class AiClient {
         if (Math.abs(Double.parseDouble(m.group(1).replace(',', '.')) - years) < 0.001)
           found = true;
       if (!found)
-        throw new ApiFailure(
-            502,
-            "AI_EXPERIENCE_EVIDENCE_INVALID",
+        throw new CustomException(
+            ErrorCode.VALIDATION_ERROR,
             "Số năm kinh nghiệm không có trong trích dẫn; cần kiểm tra lại.");
     }
     JsonNode gh = node.get("githubUsername");
     if (!gh.isNull()) {
       String handle = gh.asText();
       if (!handle.matches("[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?"))
-        throw new ApiFailure(502, "AI_GITHUB_INVALID", "Tên GitHub trích xuất không hợp lệ.");
+        throw new CustomException(ErrorCode.VALIDATION_ERROR, "Tên GitHub trích xuất không hợp lệ.");
       Pattern p =
           Pattern.compile(
               "(?:github\\.com/|github\\s*[:：]\\s*@?)"
@@ -693,8 +737,8 @@ public class AiClient {
                   + "(?=[/\\s?#),.;]|$)",
               Pattern.CASE_INSENSITIVE);
       if (!p.matcher(source).find())
-        throw new ApiFailure(
-            502, "AI_GITHUB_EVIDENCE_MISSING", "LLM trả về GitHub không được ghi trong tài liệu.");
+        throw new CustomException(
+            ErrorCode.VALIDATION_ERROR, "LLM trả về GitHub không được ghi trong tài liệu.");
     }
   }
 
@@ -703,9 +747,8 @@ public class AiClient {
         || !q.isTextual()
         || q.asText().trim().length() < 2
         || !source.contains(flat(q.asText())))
-      throw new ApiFailure(
-          502,
-          "AI_EVIDENCE_NOT_FOUND",
+      throw new CustomException(
+          ErrorCode.VALIDATION_ERROR,
           "Không tìm thấy trích dẫn của LLM trong tài liệu gốc. Kết quả đã bị từ chối.");
   }
 
@@ -719,7 +762,7 @@ public class AiClient {
     if (value == null) throw invalid(field);
     JsonNode types = spec.path("type");
     boolean good = false;
-    for (JsonNode t : types.isArray() ? types : db.mapper.createArrayNode().add(types.asText())) {
+    for (JsonNode t : types.isArray() ? types : mapper.createArrayNode().add(types.asText())) {
       good |=
           switch (t.asText()) {
             case "object" -> value.isObject();
@@ -759,9 +802,9 @@ public class AiClient {
       throw invalid(field);
   }
 
-  private ApiFailure invalid(String field) {
-    return new ApiFailure(
-        502, "AI_SCHEMA_INVALID", "Dữ liệu LLM không đúng schema tại " + field + ".");
+  private CustomException invalid(String field) {
+    return new CustomException(
+        ErrorCode.VALIDATION_ERROR, "Dữ liệu LLM không đúng schema tại " + field + ".");
   }
 
   public String semanticText(JsonNode d) {
@@ -802,9 +845,8 @@ public class AiClient {
     }
     String text = b.toString().strip();
     if (text.isEmpty())
-      throw new ApiFailure(
-          422,
-          "NO_RECRUITMENT_EVIDENCE",
+      throw new CustomException(
+          ErrorCode.VALIDATION_ERROR,
           "Không có dữ liệu nghề nghiệp có nguồn để tạo embedding. Vui lòng bổ sung nội dung.");
     return text;
   }
@@ -815,15 +857,13 @@ public class AiClient {
 
   public String embed(String text, String requestedModel) {
     if (text == null || text.isBlank())
-      throw new ApiFailure(
-          422,
-          "NO_RECRUITMENT_EVIDENCE",
+      throw new CustomException(
+          ErrorCode.VALIDATION_ERROR,
           "Không có dữ liệu nghề nghiệp có nguồn để tạo embedding. Vui lòng bổ sung nội dung.");
 
     if (text.length() > MAX_EMBEDDING_TEXT_CHARS)
-      throw new ApiFailure(
-          422,
-          "EMBEDDING_INPUT_TOO_LARGE",
+      throw new CustomException(
+          ErrorCode.VALIDATION_ERROR,
           "Văn bản ngữ nghĩa vượt quá giới hạn an toàn ("
               + text.length()
               + " > "
@@ -836,10 +876,10 @@ public class AiClient {
             : activeEmbeddingModel();
 
     JsonNode r =
-        post("/api/embed", Db.map("model", model, "input", text, "truncate", false));
+        post("/api/embed", map("model", model, "input", text, "truncate", false));
 
     if (r.has("error") && !r.path("error").asText().isBlank()) {
-      throw new ApiFailure(502, "AI_ERROR", r.path("error").asText());
+      throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, r.path("error").asText());
     }
 
     String returnedModel = r.path("model").asText("");
@@ -847,9 +887,8 @@ public class AiClient {
         && !returnedModel.equalsIgnoreCase(model)
         && !returnedModel.startsWith(model)
         && !model.startsWith(returnedModel)) {
-      throw new ApiFailure(
-          502,
-          "EMBEDDING_MODEL_MISMATCH",
+      throw new CustomException(
+          ErrorCode.INTERNAL_SERVER_ERROR,
           "Dịch vụ embedding trả về model không khớp: yêu cầu "
               + model
               + ", nhận được "
@@ -858,19 +897,18 @@ public class AiClient {
 
     JsonNode vector = r.path("embeddings").path(0);
     if (!vector.isArray() || vector.size() != 1024)
-      throw new ApiFailure(
-          502,
-          "EMBEDDING_DIMENSION_MISMATCH",
+      throw new CustomException(
+          ErrorCode.INTERNAL_SERVER_ERROR,
           "Model embedding phải trả về vector 1024 chiều (" + model + ").");
     double norm = 0;
     for (JsonNode n : vector) {
       if (!n.isNumber() || !Double.isFinite(n.asDouble()))
-        throw new ApiFailure(
-            502, "EMBEDDING_INVALID", "Vector embedding chứa giá trị không hợp lệ.");
+        throw new CustomException(
+            ErrorCode.INTERNAL_SERVER_ERROR, "Vector embedding chứa giá trị không hợp lệ.");
       norm += n.asDouble() * n.asDouble();
     }
     if (norm < 1e-12)
-      throw new ApiFailure(502, "EMBEDDING_ZERO_VECTOR", "Dịch vụ embedding trả về vector rỗng.");
+      throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Dịch vụ embedding trả về vector rỗng.");
     return vector.toString();
   }
 
@@ -888,34 +926,31 @@ public class AiClient {
           HttpRequest.newBuilder(URI.create(baseUrl + path))
               .timeout(Duration.ofSeconds(timeout))
               .header("Content-Type", "application/json")
-              .POST(HttpRequest.BodyPublishers.ofString(db.json(body)))
+              .POST(HttpRequest.BodyPublishers.ofString(json(body)))
               .build();
       HttpResponse<String> r = client.send(req, HttpResponse.BodyHandlers.ofString());
       if (r.statusCode() != 200)
-        throw new ApiFailure(
-            502,
-            "AI_HTTP_" + r.statusCode(),
+        throw new CustomException(
+            ErrorCode.INTERNAL_SERVER_ERROR,
             "Dịch vụ AI trả HTTP "
                 + r.statusCode()
                 + ". Kiểm tra model đã tải và cấu hình Ollama.");
       if (r.body().length() > 2_000_000)
-        throw new ApiFailure(502, "AI_RESPONSE_TOO_LARGE", "Phản hồi AI vượt giới hạn.");
-      return db.parse(r.body());
-    } catch (ApiFailure e) {
+        throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Phản hồi AI vượt giới hạn.");
+      return parse(r.body());
+    } catch (CustomException e) {
       throw e;
     } catch (HttpTimeoutException e) {
-      throw new ApiFailure(
-          504,
-          "AI_TIMEOUT",
+      throw new CustomException(
+          ErrorCode.INTERNAL_SERVER_ERROR,
           "AI vượt thời gian xử lý. Có thể thử lại sau khi kiểm tra tài nguyên/model.",
           e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new ApiFailure(503, "WORKER_INTERRUPTED", "Worker đã bị ngắt.");
+      throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Worker đã bị ngắt.");
     } catch (Exception e) {
-      throw new ApiFailure(
-          503,
-          "AI_UNAVAILABLE",
+      throw new CustomException(
+          ErrorCode.INTERNAL_SERVER_ERROR,
           "Không kết nối được dịch vụ Ollama. Kiểm tra OLLAMA_URL và model; chưa có kết quả AI.",
           e);
     }

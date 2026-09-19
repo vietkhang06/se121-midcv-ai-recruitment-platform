@@ -1,17 +1,20 @@
-package com.platform.recruitment.midcv;
+package com.platform.recruitment.event;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import org.slf4j.*;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 public class Events {
-  private final Db db;
+  private final JdbcTemplate jdbc;
+  private final ObjectMapper mapper;
   private static final Logger log = LoggerFactory.getLogger(Events.class);
 
-  public Events(@Qualifier("midcvDb") Db db) {
-    this.db = db;
+  public Events(JdbcTemplate jdbc, ObjectMapper mapper) {
+    this.jdbc = jdbc;
+    this.mapper = mapper;
   }
 
   public static String requestId() {
@@ -22,27 +25,28 @@ public class Events {
   public void emit(
       UUID job, UUID owner, String level, String step, String code, String message, Long duration) {
     String req = requestId();
-    Map<String, Object> fields =
-        Db.map(
-            "request_id",
-            req,
-            "job_id",
-            job,
-            "owner_id",
-            owner,
-            "step",
-            step,
-            "code",
-            code,
-            "duration_ms",
-            duration,
-            "message",
-            message);
-    if ("ERROR".equals(level)) log.error(db.json(fields));
-    else if ("WARN".equals(level)) log.warn(db.json(fields));
-    else log.info(db.json(fields));
+    Map<String, Object> fields = new LinkedHashMap<>();
+    fields.put("request_id", req);
+    fields.put("job_id", job != null ? job.toString() : null);
+    fields.put("owner_id", owner != null ? owner.toString() : null);
+    fields.put("step", step);
+    fields.put("code", code);
+    fields.put("duration_ms", duration);
+    fields.put("message", message);
+
+    String json;
     try {
-      db.update(
+      json = mapper.writeValueAsString(fields);
+    } catch (Exception ignored) {
+      json = fields.toString();
+    }
+
+    if ("ERROR".equals(level)) log.error(json);
+    else if ("WARN".equals(level)) log.warn(json);
+    else log.info(json);
+
+    try {
+      jdbc.update(
           "INSERT INTO job_events(job_id,owner_id,request_id,level,step,code,message,duration_ms)"
               + " VALUES (?,?,?,?,?,?,?,?)",
           job,

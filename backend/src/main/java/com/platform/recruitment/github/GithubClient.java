@@ -1,36 +1,48 @@
-package com.platform.recruitment.midcv;
+package com.platform.recruitment.github;
 
+import com.platform.recruitment.common.CustomException;
+import com.platform.recruitment.common.ErrorCode;
 import com.fasterxml.jackson.databind.*;
 import java.net.*;
 import java.net.http.*;
 import java.time.*;
 import java.util.*;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
 public class GithubClient {
-  private final Db db;
+  private final JdbcTemplate jdbc;
+  private final ObjectMapper mapper;
   private final String token;
   private final HttpClient client =
       HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
   public GithubClient(
-      @Qualifier("midcvDb") Db db,
-      @Value("${midcv.github-token:}") String token) {
-    this.db = db;
+      JdbcTemplate jdbc,
+      ObjectMapper mapper,
+      @Value("${app.github-token:${midcv.github-token:}}") String token) {
+    this.jdbc = jdbc;
+    this.mapper = mapper != null ? mapper : new ObjectMapper();
     this.token = token == null ? "" : token.trim();
   }
 
   public JsonNode fetch(String username) {
     if (!username.matches("[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?"))
-      throw ApiFailure.bad("GITHUB_USERNAME_INVALID", "Tên GitHub không hợp lệ.");
+      throw new CustomException(ErrorCode.VALIDATION_ERROR, "Tên GitHub không hợp lệ.");
     String cacheKey = username.toLowerCase(Locale.ROOT);
-    var cached =
-        db.optional(
-            "SELECT payload FROM github_cache WHERE username=? AND expires_at>now()", cacheKey);
-    if (cached.isPresent()) return db.tree(cached.get().get("payload"));
+    List<String> cached =
+        jdbc.query(
+            "SELECT payload::text FROM github_cache WHERE username=? AND expires_at>now()",
+            (rs, rowNum) -> rs.getString("payload"),
+            cacheKey);
+    if (!cached.isEmpty()) {
+      try {
+        return mapper.readTree(cached.get(0));
+      } catch (Exception ignored) {
+      }
+    }
     JsonNode user = get("/users/" + encode(username));
     JsonNode repos =
         get("/users/" + encode(username) + "/repos?per_page=100&sort=updated&type=owner");
@@ -38,12 +50,12 @@ public class GithubClient {
     String activityError = null;
     try {
       activity = get("/users/" + encode(username) + "/events/public?per_page=100");
-    } catch (ApiFailure e) {
-      activity = db.mapper.createArrayNode();
-      activityError = e.code;
+    } catch (CustomException e) {
+      activity = mapper.createArrayNode();
+      activityError = e.getErrorCode().name();
     }
     if (!repos.isArray() || !activity.isArray())
-      throw new ApiFailure(502, "GITHUB_INVALID_RESPONSE", "GitHub trả về dữ liệu không hợp lệ.");
+      throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "GitHub trả về dữ liệu không hợp lệ.");
     List<Map<String, Object>> repositoryList = new ArrayList<>();
     int languageRequests = 0;
     boolean languagePartial = false;
@@ -61,13 +73,13 @@ public class GithubClient {
                       + "/"
                       + encode(r.path("name").asText())
                       + "/languages");
-        } catch (ApiFailure e) {
-          languageError = e.code;
+        } catch (CustomException e) {
+          languageError = e.getErrorCode().name();
           languagePartial = true;
         }
       }
       repositoryList.add(
-          Db.map(
+          map(
               "name",
               r.path("name").asText(),
               "url",
@@ -98,7 +110,7 @@ public class GithubClient {
     List<Map<String, Object>> activities = new ArrayList<>();
     for (JsonNode e : activity)
       activities.add(
-          Db.map(
+          map(
               "type",
               e.path("type").asText(),
               "repo",
@@ -106,8 +118,8 @@ public class GithubClient {
               "created_at",
               e.path("created_at").asText()));
     JsonNode payload =
-        db.tree(
-            Db.map(
+        mapper.valueToTree(
+            map(
                 "status",
                 "AVAILABLE",
                 "username",
@@ -135,7 +147,7 @@ public class GithubClient {
                 "scope",
                 "public only; latest 100 repositories/events; language breakdown for up to 10"
                     + " original repos"));
-    db.update(
+    jdbc.update(
         "INSERT INTO github_cache(username,payload,expires_at) VALUES (?,?::jsonb,now()+interval '6"
             + " hours') ON CONFLICT(username) DO UPDATE SET"
         + " payload=EXCLUDED.payload,expires_at=EXCLUDED.expires_at,fetched_at=now()",
@@ -159,29 +171,33 @@ public class GithubClient {
       if (token != null && !token.isBlank()) builder.header("Authorization", "Bearer " + token);
       var r = client.send(builder.GET().build(), HttpResponse.BodyHandlers.ofString());
       if (r.statusCode() == 404)
-        throw new ApiFailure(
-            404, "GITHUB_NOT_FOUND", "Không tìm thấy tài khoản hoặc repo công khai.");
+        throw new CustomException(
+            ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy tài khoản hoặc repo công khai.");
       if (r.statusCode() == 403 || r.statusCode() == 429)
-        throw new ApiFailure(
-            429,
-            "GITHUB_RATE_LIMIT",
+        throw new CustomException(
+            ErrorCode.RATE_LIMIT_EXCEEDED,
             "GitHub giới hạn lượt gọi hoặc từ chối truy cập. Điểm JD–CV vẫn được giữ.");
       if (r.statusCode() != 200)
-        throw new ApiFailure(
-            502, "GITHUB_HTTP_" + r.statusCode(), "GitHub trả HTTP " + r.statusCode() + ".");
+        throw new CustomException(
+            ErrorCode.INTERNAL_SERVER_ERROR, "GitHub trả HTTP " + r.statusCode() + ".");
       if (r.body().length() > 4_000_000)
-        throw new ApiFailure(502, "GITHUB_RESPONSE_TOO_LARGE", "Dữ liệu GitHub vượt giới hạn.");
-      return db.parse(r.body());
-    } catch (ApiFailure e) {
+        throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Dữ liệu GitHub vượt giới hạn.");
+      return mapper.readTree(r.body());
+    } catch (CustomException e) {
       throw e;
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new ApiFailure(503, "WORKER_INTERRUPTED", "Worker bị ngắt khi đọc GitHub.");
+      throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Worker bị ngắt khi đọc GitHub.");
     } catch (Exception e) {
-      throw new ApiFailure(
-          503,
-          "GITHUB_UNAVAILABLE",
+      throw new CustomException(
+          ErrorCode.INTERNAL_SERVER_ERROR,
           "Chưa kết nối được GitHub. Kết quả dùng dữ liệu JD–CV hiện có.");
     }
+  }
+
+  private static Map<String, Object> map(Object... pairs) {
+    Map<String, Object> m = new LinkedHashMap<>();
+    for (int i = 0; i < pairs.length; i += 2) m.put((String) pairs[i], pairs[i + 1]);
+    return m;
   }
 }
