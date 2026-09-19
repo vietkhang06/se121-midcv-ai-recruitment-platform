@@ -22,6 +22,11 @@ public class AiProcessingController {
         return ResponseEntity.ok(ApiResponse.success("Job Description parsing lifecycle completed", "COMPLETED"));
     }
 
+    /**
+     * @deprecated Candidate CV processing is automatically handled via /api/v1/candidate/cvs/upload
+     * and PipelineWorker in-process. This legacy endpoint is kept only for API compatibility.
+     */
+    @Deprecated
     @PostMapping("/cvs/{cvId}")
     public ResponseEntity<ApiResponse<String>> triggerCvProcessing(@PathVariable UUID cvId) {
         processingLifecycleService.processCvDocument(cvId);

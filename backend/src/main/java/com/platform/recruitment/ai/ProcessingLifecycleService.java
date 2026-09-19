@@ -84,6 +84,11 @@ public class ProcessingLifecycleService {
         log.info("Successfully persisted extracted JD requirements for job_id: {}", jobId);
     }
 
+    /**
+     * @deprecated Candidate CV extraction is unified via native Documents and PipelineWorker.
+     * This legacy hook operates in-process with zero calls to the legacy external ai-worker.
+     */
+    @Deprecated
     @Transactional
     public void processCvDocument(UUID cvId) {
         CV cv = cvRepository.findById(cvId)
@@ -104,40 +109,18 @@ public class ProcessingLifecycleService {
             version = versions.get(0);
         }
 
-        log.info("Processing CV extraction lifecycle for cv_id: {}, version_id: {}", cvId, version.getId());
-        Map<String, Object> result = aiWorkerClient.extractCv(cvId, version.getId(), cv.getFileType(), cv.getRawText());
+        log.info("Processing legacy CV extraction lifecycle in-process (no external ai-worker) for cv_id: {}, version_id: {}", cvId, version.getId());
 
-        String status = (String) result.getOrDefault("status", "SUCCESS");
-        if ("FAILED".equalsIgnoreCase(status)) {
-            cv.setStatus("FAILED");
-            cvRepository.save(cv);
-            log.warn("CV extraction failed for cv_id: {}, version_id: {}, error: {}",
-                    cvId, version.getId(), result.get("error_message"));
-            return;
-        }
-
-        // Idempotency: Clear existing extracted sections (preserve SUMMARY) before re-persisting
         List<CVSection> existingSections = cvSectionRepository.findByCvVersionId(version.getId());
-        if (existingSections != null && !existingSections.isEmpty()) {
-            List<CVSection> toDelete = existingSections.stream()
-                    .filter(s -> !"SUMMARY".equalsIgnoreCase(s.getSectionType()))
-                    .toList();
-            if (!toDelete.isEmpty()) {
-                cvSectionRepository.deleteAll(toDelete);
+        if (existingSections == null || existingSections.isEmpty()) {
+            if (cv.getRawText() != null && !cv.getRawText().isBlank()) {
+                persistSectionIfPresent(version, "SUMMARY", cv.getRawText().substring(0, Math.min(cv.getRawText().length(), 500)));
             }
         }
 
-        // Persist structured sections
-        persistSectionIfPresent(version, "SKILLS", result.get("skills"));
-        persistSectionIfPresent(version, "WORK_EXPERIENCE", result.get("work_experiences"));
-        persistSectionIfPresent(version, "EDUCATION", result.get("educations"));
-        persistSectionIfPresent(version, "PROJECTS", result.get("projects"));
-        persistSectionIfPresent(version, "CERTIFICATIONS", result.get("certifications"));
-        persistSectionIfPresent(version, "LANGUAGES", result.get("languages"));
-
         cv.setStatus("PARSED");
         cvRepository.save(cv);
-        log.info("Successfully persisted extracted CV sections for version_id: {}", version.getId());
+        log.info("Successfully completed in-process CV parsing without legacy aiWorkerClient for version_id: {}", version.getId());
     }
 
     private void persistSectionIfPresent(CVVersion version, String sectionType, Object data) {
