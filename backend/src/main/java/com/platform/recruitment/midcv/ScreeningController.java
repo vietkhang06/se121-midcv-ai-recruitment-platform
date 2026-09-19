@@ -1,5 +1,8 @@
 package com.platform.recruitment.midcv;
 
+import com.platform.recruitment.document.Documents;
+import com.platform.recruitment.event.Events;
+import com.platform.recruitment.worker.JobQueue;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.transaction.annotation.Transactional;

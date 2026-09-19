@@ -1,5 +1,6 @@
-package com.platform.recruitment.midcv;
+package com.platform.recruitment.event;
 
+import com.platform.recruitment.midcv.Db;
 import java.util.*;
 import org.slf4j.*;
 import org.springframework.beans.factory.annotation.Qualifier;

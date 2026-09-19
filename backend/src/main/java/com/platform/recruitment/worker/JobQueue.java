@@ -1,5 +1,8 @@
-package com.platform.recruitment.midcv;
+package com.platform.recruitment.worker;
 
+import com.platform.recruitment.event.Events;
+import com.platform.recruitment.midcv.ApiFailure;
+import com.platform.recruitment.midcv.Db;
 import java.util.*;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
