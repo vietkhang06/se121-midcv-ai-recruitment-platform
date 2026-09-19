@@ -1,9 +1,16 @@
-package com.platform.recruitment.midcv;
+package com.platform.recruitment.admin;
 
 import com.platform.recruitment.ai.AiClient;
+import com.platform.recruitment.common.CustomException;
+import com.platform.recruitment.common.ErrorCode;
 import com.platform.recruitment.event.Events;
+import com.platform.recruitment.midcv.Db;
+import com.platform.recruitment.user.Role;
+import com.platform.recruitment.user.User;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,12 +29,15 @@ public class AdminController {
     this.events = events;
   }
 
-  private AuthService.Actor requireAdmin() {
-    AuthService.Actor a = AuthService.require();
-    if (!"ADMIN".equalsIgnoreCase(a.role()) && !"HR".equalsIgnoreCase(a.role())) {
-      throw new ApiFailure(403, "FORBIDDEN", "Chỉ quản trị viên mới có quyền cấu hình AI hệ thống.");
+  private User requireAdmin() {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof User user)) {
+      throw new CustomException(ErrorCode.AUTHENTICATION_FAILED, "Vui lòng đăng nhập để tiếp tục.");
     }
-    return a;
+    if (user.getRole() != Role.ADMIN && user.getRole() != Role.HR) {
+      throw new CustomException(ErrorCode.ACCESS_DENIED, "Chỉ quản trị viên mới có quyền cấu hình AI hệ thống.");
+    }
+    return user;
   }
 
   @GetMapping
@@ -52,10 +62,10 @@ public class AdminController {
 
   @PutMapping
   public Map<String, Object> updateSettings(@RequestBody Map<String, Object> body) {
-    AuthService.Actor actor = requireAdmin();
+    User actor = requireAdmin();
     String provider = Objects.toString(body.get("provider"), "LOCAL_OLLAMA").trim().toUpperCase(Locale.ROOT);
     if (!Set.of("LOCAL_OLLAMA", "CLOUD_OPENAI_COMPATIBLE").contains(provider)) {
-      throw ApiFailure.bad("INVALID_PROVIDER", "Nhà cung cấp AI chỉ nhận LOCAL_OLLAMA hoặc CLOUD_OPENAI_COMPATIBLE.");
+      throw new CustomException(ErrorCode.VALIDATION_ERROR, "Nhà cung cấp AI chỉ nhận LOCAL_OLLAMA hoặc CLOUD_OPENAI_COMPATIBLE.");
     }
 
     String ollamaUrl = Objects.toString(body.get("ollamaUrl"), "http://localhost:11434").trim();
@@ -71,7 +81,7 @@ public class AdminController {
     if ("CLOUD_OPENAI_COMPATIBLE".equals(provider)) {
       AiClient.SystemAiSettings curr = aiClient.getSettings();
       if (newKey.isEmpty() && (curr.cloudApiKey() == null || curr.cloudApiKey().trim().isEmpty())) {
-        throw ApiFailure.bad("KEY_REQUIRED", "Cần nhập API Key khi chuyển sang Cloud AI.");
+        throw new CustomException(ErrorCode.VALIDATION_ERROR, "Cần nhập API Key khi chuyển sang Cloud AI.");
       }
     }
 
@@ -88,7 +98,7 @@ public class AdminController {
     aiClient.invalidateSettingsCache();
     events.emit(
         null,
-        actor.id(),
+        actor.getId(),
         "INFO",
         "ADMIN",
         "AI_SETTINGS_UPDATED",

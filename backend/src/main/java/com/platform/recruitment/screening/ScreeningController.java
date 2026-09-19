@@ -1,10 +1,17 @@
-package com.platform.recruitment.midcv;
+package com.platform.recruitment.screening;
 
+import com.platform.recruitment.common.CustomException;
+import com.platform.recruitment.common.ErrorCode;
 import com.platform.recruitment.document.Documents;
 import com.platform.recruitment.event.Events;
+import com.platform.recruitment.midcv.Db;
+import com.platform.recruitment.user.Role;
+import com.platform.recruitment.user.User;
 import com.platform.recruitment.worker.JobQueue;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,6 +35,17 @@ public class ScreeningController {
     this.events = events;
   }
 
+  private User requireRole(Role expectedRole) {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof User user)) {
+      throw new CustomException(ErrorCode.AUTHENTICATION_FAILED, "Vui lòng đăng nhập để tiếp tục.");
+    }
+    if (user.getRole() != expectedRole && user.getRole() != Role.ADMIN) {
+      throw new CustomException(ErrorCode.ACCESS_DENIED, "Vai trò tài khoản không được phép thực hiện thao tác này.");
+    }
+    return user;
+  }
+
   @PostMapping("/jobs/{id}/screenings")
   @Transactional(rollbackFor = Exception.class)
   public Map<String, Object> upload(
@@ -35,18 +53,18 @@ public class ScreeningController {
       @RequestParam("file") MultipartFile file,
       @RequestParam(value = "githubEnabled", required = false, defaultValue = "true") boolean githubEnabled)
       throws Exception {
-    var a = AuthService.requireRole("HR");
+    User a = requireRole(Role.HR);
     var j =
         db.one(
             "SELECT j.* FROM jobs j LEFT JOIN recruiter_profiles rp ON rp.company_id = j.company_id"
                 + " WHERE j.id=? AND (rp.user_id=? OR EXISTS(SELECT 1 FROM users u WHERE u.id=? AND u.role='ADMIN')) FOR SHARE",
             id,
-            a.id(),
-            a.id());
+            a.getId(),
+            a.getId());
 
     String title = Optional.ofNullable(file.getOriginalFilename()).orElse("CV tải lên");
     if (title.length() > 200) title = title.substring(title.length() - 200);
-    var cv = docs.upload(a.id(), "CV", title, file, null);
+    var cv = docs.upload(a.getId(), "CV", title, file, null);
 
     UUID jdVersionId;
     var existingJd =
@@ -61,7 +79,7 @@ public class ScreeningController {
       if (jobDesc.isBlank()) {
         jobDesc = jobTitle;
       }
-      var jdDoc = docs.text(a.id(), "JD", "JD - " + jobTitle, jobDesc, null);
+      var jdDoc = docs.text(a.getId(), "JD", "JD - " + jobTitle, jobDesc, null);
       jdVersionId = jdDoc.versionId();
     }
 
@@ -72,17 +90,17 @@ public class ScreeningController {
             + " screening_runs(id,owner_id,job_id,cv_version_id,jd_version_id,industry_snapshot,github_enabled_snapshot)"
             + " VALUES (?,?,?,?,?,?,?)",
         run,
-        a.id(),
+        a.getId(),
         id,
         cv.versionId(),
         jdVersionId,
         industry,
         githubEnabled);
 
-    UUID task = queue.enqueue(a.id(), "SCREEN_MATCH", run);
+    UUID task = queue.enqueue(a.getId(), "SCREEN_MATCH", run);
     events.emit(
         task,
-        a.id(),
+        a.getId(),
         "INFO",
         "SCREENING",
         "SCREENING_CREATED",
@@ -97,14 +115,14 @@ public class ScreeningController {
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
     if (page < 0 || page > 1000 || size < 1 || size > 100)
-      throw ApiFailure.bad("INVALID_PAGE", "Tham số phân trang không hợp lệ.");
-    var a = AuthService.requireRole("HR");
+      throw new CustomException(ErrorCode.VALIDATION_ERROR, "Tham số phân trang không hợp lệ.");
+    User a = requireRole(Role.HR);
     db.one(
         "SELECT j.id FROM jobs j LEFT JOIN recruiter_profiles rp ON rp.company_id = j.company_id"
             + " WHERE j.id=? AND (rp.user_id=? OR EXISTS(SELECT 1 FROM users u WHERE u.id=? AND u.role='ADMIN'))",
         id,
-        a.id(),
-        a.id());
+        a.getId(),
+        a.getId());
     return db.rows(
         "SELECT s.*,d.title,v.filename,v.state AS cv_state,r.score,r.coverage,p.state AS"
             + " processing_state,p.error_code FROM screening_runs s JOIN document_versions v ON"
@@ -120,15 +138,15 @@ public class ScreeningController {
 
   @GetMapping("/screenings/{id}")
   public Map<String, Object> detail(@PathVariable UUID id) {
-    var a = AuthService.requireRole("HR");
-    var run = db.one("SELECT * FROM screening_runs WHERE id=? AND owner_id=?", id, a.id());
+    User a = requireRole(Role.HR);
+    var run = db.one("SELECT * FROM screening_runs WHERE id=? AND (owner_id=? OR EXISTS(SELECT 1 FROM users u WHERE u.id=? AND u.role='ADMIN'))", id, a.getId(), a.getId());
     return Db.map(
         "screening",
         run,
         "cv",
-        clean(docs.accessibleVersion(db.id(run.get("cv_version_id")), new JobQueue.Actor(a.id(), a.role()))),
+        clean(docs.accessibleVersion(db.id(run.get("cv_version_id")), new JobQueue.Actor(a.getId(), a.getRole().name()))),
         "jd",
-        clean(docs.accessibleVersion(db.id(run.get("jd_version_id")), new JobQueue.Actor(a.id(), a.role()))),
+        clean(docs.accessibleVersion(db.id(run.get("jd_version_id")), new JobQueue.Actor(a.getId(), a.getRole().name()))),
         "result",
         db.optional(
                 "SELECT * FROM midcv_match_results WHERE screening_id=? ORDER BY created_at DESC LIMIT 1",
@@ -143,9 +161,9 @@ public class ScreeningController {
 
   @PostMapping("/screenings/{id}/match")
   public Map<String, Object> rematch(@PathVariable UUID id) {
-    var a = AuthService.requireRole("HR");
-    db.one("SELECT id FROM screening_runs WHERE id=? AND owner_id=?", id, a.id());
-    return Db.map("jobId", queue.enqueue(a.id(), "SCREEN_MATCH", id));
+    User a = requireRole(Role.HR);
+    db.one("SELECT id FROM screening_runs WHERE id=? AND (owner_id=? OR EXISTS(SELECT 1 FROM users u WHERE u.id=? AND u.role='ADMIN'))", id, a.getId(), a.getId());
+    return Db.map("jobId", queue.enqueue(a.getId(), "SCREEN_MATCH", id));
   }
 
   private Map<String, Object> clean(Map<String, Object> m) {
