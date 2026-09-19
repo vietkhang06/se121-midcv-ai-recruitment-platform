@@ -39,7 +39,8 @@ public class PgvectorCosineSimilarity {
                 List<Map<String, Object>> scoreRows = jdbcTemplate.queryForList(
                         "SELECT greatest(0,least(100,(1-(cv.embedding <=> jd.embedding))*100)) AS score " +
                         "FROM document_versions cv CROSS JOIN document_versions jd " +
-                        "WHERE cv.id=? AND jd.id=? AND cv.embedding IS NOT NULL AND jd.embedding IS NOT NULL",
+                        "WHERE cv.id=? AND jd.id=? AND cv.embedding IS NOT NULL AND jd.embedding IS NOT NULL " +
+                        "AND cv.state='READY' AND jd.state='READY'",
                         cvVersionId, jdVersionId
                 );
                 if (!scoreRows.isEmpty() && scoreRows.get(0).get("score") != null) {
@@ -66,12 +67,16 @@ public class PgvectorCosineSimilarity {
             float[] vecA = parseVector(vectorAString);
             float[] vecB = parseVector(vectorBString);
 
+            if (vecA.length != vecB.length) {
+                log.warn("Vector dimension mismatch: {} != {}. Aborting similarity calculation.", vecA.length, vecB.length);
+                return BigDecimal.ZERO;
+            }
+
             float dotProduct = 0.0f;
             float normA = 0.0f;
             float normB = 0.0f;
 
-            int len = Math.min(vecA.length, vecB.length);
-            for (int i = 0; i < len; i++) {
+            for (int i = 0; i < vecA.length; i++) {
                 dotProduct += vecA[i] * vecB[i];
                 normA += vecA[i] * vecA[i];
                 normB += vecB[i] * vecB[i];

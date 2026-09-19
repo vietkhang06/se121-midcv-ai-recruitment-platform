@@ -351,7 +351,13 @@ public class UnifiedCandidateCvIngestionTest {
         mockJson.put("candidateName", "Dang Thi Unified");
         when(aiClient.extract(eq("CV"), anyString())).thenReturn(mockJson);
         when(aiClient.semanticText(any())).thenReturn("Experienced Senior Java Developer");
-        when(aiClient.embed(anyString(), anyString())).thenReturn("[0.123, 0.456, 0.789]");
+        StringBuilder validVec = new StringBuilder("[");
+        for (int i = 0; i < 1024; i++) {
+            if (i > 0) validVec.append(",");
+            validVec.append("0.03125");
+        }
+        validVec.append("]");
+        when(aiClient.embed(anyString(), anyString())).thenReturn(validVec.toString());
 
         // Mock lease asserting & updating
         when(jdbcTemplate.queryForList(contains("SELECT id FROM processing_jobs WHERE id=? AND locked_by=?"), eq(jobId), any()))

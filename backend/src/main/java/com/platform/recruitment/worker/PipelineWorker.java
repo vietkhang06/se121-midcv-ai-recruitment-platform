@@ -201,6 +201,7 @@ public class PipelineWorker {
       normalized = toTree(cached.get(0).get("normalized"));
       vector = Objects.toString(cached.get(0).get("embedding_text"), "");
       ai.validate(normalized, raw, Objects.toString(v.get("kind"), ""));
+      AiClient.validateVector(vector);
       events.emit(
           job,
           owner,
@@ -218,6 +219,8 @@ public class PipelineWorker {
           "Schema và trích dẫn đã được kiểm tra với văn bản gốc.");
       queue.progress(job, worker, owner, "EMBEDDING", 75, "Đang tạo embedding nội dung nghề nghiệp.");
       vector = ai.embed(ai.semanticText(normalized), activeEmbed);
+      AiClient.validateVector(vector);
+      queue.progress(job, worker, owner, "EMBEDDING_PERSISTED", 90, "Đã xác thực vector embedding 1024 chiều.");
     }
     final JsonNode n = normalized;
     final String vec = vector;

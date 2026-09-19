@@ -398,7 +398,7 @@ public class MatchingEngineService {
         try {
             List<UUID> ids = jdbcTemplate.query(
                     "SELECT v.id FROM document_versions v JOIN documents d ON d.id=v.document_id " +
-                    "WHERE d.owner_id=? AND d.kind='CV' AND v.embedding IS NOT NULL " +
+                    "WHERE d.owner_id=? AND d.kind='CV' AND v.embedding IS NOT NULL AND v.state='READY' " +
                     "ORDER BY v.version_no DESC LIMIT 1",
                     (rs, rowNum) -> (UUID) rs.getObject("id"),
                     candidate.getUser().getId()
@@ -415,7 +415,7 @@ public class MatchingEngineService {
             List<UUID> ids = jdbcTemplate.query(
                     "SELECT v.id FROM document_versions v JOIN documents d ON d.id=v.document_id " +
                     "WHERE (d.id=? OR v.id IN (SELECT jd_version_id FROM screening_runs WHERE job_id=?)) " +
-                    "AND v.embedding IS NOT NULL ORDER BY v.version_no DESC LIMIT 1",
+                    "AND v.embedding IS NOT NULL AND v.state='READY' ORDER BY v.version_no DESC LIMIT 1",
                     (rs, rowNum) -> (UUID) rs.getObject("id"),
                     jobId, jobId
             );
