@@ -1,0 +1,213 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "title",
+    "summary",
+    "skills",
+    "experience",
+    "education",
+    "projects",
+    "otherRequirements",
+    "githubUsername",
+    "profile"
+  ],
+  "properties": {
+    "title": {
+      "type": ["string", "null"]
+    },
+    "summary": {
+      "type": ["string", "null"]
+    },
+    "skills": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "canonical", "priority", "evidence"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "canonical": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["REQUIRED", "PREFERRED", "MENTIONED"]
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "category": {
+            "type": ["string", "null"]
+          },
+          "resolution": {
+            "type": "string",
+            "enum": ["TAXONOMY", "UNKNOWN", "LLM_INFERRED"]
+          }
+        }
+      }
+    },
+    "experience": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["years", "evidence", "entries"],
+      "properties": {
+        "years": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 80
+        },
+        "evidence": {
+          "type": ["string", "null"]
+        },
+        "entries": {
+          "type": "array",
+          "maxItems": 30,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "role",
+              "organization",
+              "period",
+              "description",
+              "evidence"
+            ],
+            "properties": {
+              "role": {
+                "type": ["string", "null"]
+              },
+              "organization": {
+                "type": ["string", "null"]
+              },
+              "period": {
+                "type": ["string", "null"]
+              },
+              "description": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "education": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["level", "field", "priority", "evidence"],
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": [
+              "HIGH_SCHOOL",
+              "ASSOCIATE",
+              "BACHELOR",
+              "MASTER",
+              "DOCTORATE",
+              "OTHER"
+            ]
+          },
+          "field": {
+            "type": ["string", "null"]
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["REQUIRED", "PREFERRED", "MENTIONED"]
+          },
+          "evidence": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "projects": {
+      "type": "array",
+      "maxItems": 30,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "description", "technologies", "evidence"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "technologies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 40
+          },
+          "evidence": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "otherRequirements": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "canonical", "priority", "evidence"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "canonical": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["REQUIRED", "PREFERRED", "MENTIONED"]
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "category": {
+            "type": ["string", "null"]
+          },
+          "resolution": {
+            "type": "string",
+            "enum": ["TAXONOMY", "UNKNOWN", "LLM_INFERRED"]
+          }
+        }
+      }
+    },
+    "githubUsername": {
+      "type": ["string", "null"]
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fullName", "email", "phone", "location"],
+      "properties": {
+        "fullName": {
+          "type": ["string", "null"]
+        },
+        "email": {
+          "type": ["string", "null"]
+        },
+        "phone": {
+          "type": ["string", "null"]
+        },
+        "location": {
+          "type": ["string", "null"]
+        }
+      }
+    }
+  }
+}

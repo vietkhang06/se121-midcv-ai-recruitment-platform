@@ -219,3 +219,54 @@ export interface MatchInspectionData {
   humanReadableExplanation: string;
   githubAssessment: GitHubAssessmentData;
 }
+
+export interface AiSettings {
+  provider: 'LOCAL_OLLAMA' | 'CLOUD_OPENAI_COMPATIBLE';
+  ollamaUrl: string;
+  ollamaModel: string;
+  cloudBaseUrl: string;
+  cloudApiKeyMasked?: string;
+  hasCloudApiKey?: boolean;
+  cloudModel: string;
+  embeddingModel: string;
+}
+
+export interface QuickScreeningRun {
+  id: string;
+  title: string;
+  filename: string;
+  score: number | null;
+  coverage: number | null;
+  processing_state: string;
+  jd_version_id: string;
+  created_at: string;
+  error_code: string | null;
+}
+
+export interface QuickScreeningDetail {
+  screening: {
+    id: string;
+    job_id: string;
+    cv_version_id: string;
+    jd_version_id: string;
+    industry_snapshot: string;
+    github_enabled_snapshot: boolean;
+    created_at: string;
+  };
+  cv: any;
+  jd: any;
+  result: {
+    id: string;
+    base_score: number;
+    github_bonus: number;
+    score: number;
+    coverage: number;
+    semantic_score: number;
+    details: any;
+    github: any;
+    algorithm_version: string;
+    created_at: string;
+  } | null;
+  jobs: any[];
+}
+
