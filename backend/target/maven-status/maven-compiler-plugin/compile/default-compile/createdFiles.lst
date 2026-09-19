@@ -1,5 +1,0 @@
-com\platform\recruitment\matching\MatchingEngineService.class
-com\platform\recruitment\application\ApplicationService.class
-com\platform\recruitment\cv\CVService.class
-com\platform\recruitment\config\SecurityConfig.class
-com\platform\recruitment\common\GlobalExceptionHandler$1.class
