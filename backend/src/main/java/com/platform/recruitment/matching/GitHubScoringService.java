@@ -94,6 +94,7 @@ public class GitHubScoringService {
             boolean matchesKeyLang = false;
             boolean hasAnyOverlap = false;
             for (GitHubRepository r : repos) {
+                if (Boolean.TRUE.equals(r.getIsArchived())) continue;
                 List<String> rLangs = new ArrayList<>();
                 if (r.getPrimaryLanguage() != null && !r.getPrimaryLanguage().isBlank()) {
                     rLangs.add(r.getPrimaryLanguage().toLowerCase());
@@ -144,6 +145,7 @@ public class GitHubScoringService {
         if (!repos.isEmpty()) {
             int relevantCount = 0;
             for (GitHubRepository r : repos) {
+                if (Boolean.TRUE.equals(r.getIsArchived())) continue;
                 String rName = r.getName() != null ? r.getName().toLowerCase() : "";
                 String rDesc = r.getDescription() != null ? r.getDescription().toLowerCase() : "";
                 String rLang = r.getPrimaryLanguage() != null ? r.getPrimaryLanguage().toLowerCase() : "";
@@ -189,6 +191,7 @@ public class GitHubScoringService {
         if (!repos.isEmpty()) {
             ZonedDateTime latest = null;
             for (GitHubRepository r : repos) {
+                if (Boolean.TRUE.equals(r.getIsArchived())) continue;
                 if (r.getUpdatedAtGithub() != null) {
                     if (latest == null || r.getUpdatedAtGithub().isAfter(latest)) {
                         latest = r.getUpdatedAtGithub();
@@ -221,6 +224,7 @@ public class GitHubScoringService {
 
         List<String> relevantNames = new ArrayList<>();
         for (GitHubRepository r : repos) {
+            if (Boolean.TRUE.equals(r.getIsArchived())) continue;
             String rName = r.getName() != null ? r.getName().toLowerCase() : "";
             String rDesc = r.getDescription() != null ? r.getDescription().toLowerCase() : "";
             String rLang = r.getPrimaryLanguage() != null ? r.getPrimaryLanguage().toLowerCase() : "";

@@ -98,6 +98,8 @@ public class MatchingEngineService {
             insufficientResult.setPreferredSkillsTotal(0);
             insufficientResult.setPreferredSkillsMatched(0);
             insufficientResult.setPreferredSkillsMissing(0);
+            insufficientResult.setIsGithubActive(false);
+            insufficientResult.setGithubFallbackApplied(true);
             insufficientResult.setMatchingAlgorithmVersion("v1.0");
 
             log.info("Candidate {} has insufficient CV data for job {}. Setting status INSUFFICIENT_DATA.", candidateId, jobId);
@@ -198,6 +200,9 @@ public class MatchingEngineService {
         result.setCoreWeight(weightCore);
         result.setGithubWeight(weightGithub);
         result.setOverallScore(scoreOverall);
+        boolean githubActive = (scoreGithub != null && weightGithub.compareTo(BigDecimal.ZERO) > 0);
+        result.setIsGithubActive(githubActive);
+        result.setGithubFallbackApplied(!githubActive);
         result.setRequiredSkillsTotal(reqTotal);
         result.setRequiredSkillsMatched(reqMatched);
         result.setRequiredSkillsMissing(reqMissing);
