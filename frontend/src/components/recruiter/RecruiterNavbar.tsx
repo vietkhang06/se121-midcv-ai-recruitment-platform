@@ -14,7 +14,8 @@ import {
   Globe,
   Menu,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Cpu
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -95,6 +96,18 @@ export const RecruiterNavbar: React.FC = () => {
           >
             <ShieldCheck className="w-4 h-4" />
             <span>{t('recruiterNav.company', 'Doanh nghiệp')}</span>
+          </Link>
+
+          <Link
+            href="/admin/ai-settings"
+            className={`px-3 py-2 rounded-xl transition flex items-center gap-1.5 ${
+              isActive('/admin/ai-settings') 
+                ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' 
+                : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'
+            }`}
+          >
+            <Cpu className="w-4 h-4" />
+            <span>Cấu hình AI</span>
           </Link>
         </nav>
 
@@ -200,6 +213,19 @@ export const RecruiterNavbar: React.FC = () => {
             >
               <ShieldCheck className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
               <span>{t('recruiterNav.company', 'Doanh nghiệp')}</span>
+            </Link>
+
+            <Link
+              href="/admin/ai-settings"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${
+                isActive('/admin/ai-settings') 
+                  ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' 
+                  : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'
+              }`}
+            >
+              <Cpu className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+              <span>Cấu hình AI</span>
             </Link>
 
             <Link

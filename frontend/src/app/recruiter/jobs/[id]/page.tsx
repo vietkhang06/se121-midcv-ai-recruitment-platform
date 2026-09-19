@@ -5,11 +5,13 @@ import Link from 'next/link';
 import { Job } from '@/types';
 import { fetchJobById } from '@/lib/api';
 import { RecruiterNavbar } from '@/components/recruiter/RecruiterNavbar';
-import { Building2, MapPin, DollarSign, Briefcase, Calendar, ArrowLeft, Award, Users, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Building2, MapPin, DollarSign, Briefcase, Calendar, ArrowLeft, Award, Users, ShieldCheck, CheckCircle2, Sparkles } from 'lucide-react';
+import { QuickScreeningModal } from '@/components/recruiter/QuickScreeningModal';
 
 export default function HRJobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const [job, setJob] = useState<Job | null>(null);
+  const [isScreeningOpen, setIsScreeningOpen] = useState(false);
 
   useEffect(() => {
     fetchJobById(resolvedParams.id).then(setJob);
@@ -50,7 +52,15 @@ export default function HRJobDetailPage({ params }: { params: Promise<{ id: stri
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">{job.companyName} • {job.location} • Lương: ${job.salaryMin} - ${job.salaryMax} /tháng</p>
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setIsScreeningOpen(true)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800/60 shadow-xs transition flex items-center gap-1.5"
+              >
+                <Sparkles className="w-4 h-4 text-blue-500" />
+                <span>Sàng lọc nhanh CV</span>
+              </button>
               <Link
                 href={`/recruiter/jobs/${job.id}/applications`}
                 className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition"
@@ -103,6 +113,13 @@ export default function HRJobDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
       </main>
+
+      {/* Quick Screening Modal */}
+      <QuickScreeningModal
+        job={job}
+        isOpen={isScreeningOpen}
+        onClose={() => setIsScreeningOpen(false)}
+      />
     </div>
   );
 }

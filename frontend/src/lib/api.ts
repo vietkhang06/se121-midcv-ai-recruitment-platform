@@ -10,7 +10,10 @@ import {
   MatchInspectionData,
   Industry,
   EmploymentType,
-  RequirementType
+  RequirementType,
+  AiSettings,
+  QuickScreeningRun,
+  QuickScreeningDetail
 } from '@/types';
 
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -59,9 +62,21 @@ export async function apiRequest<T>(
   const method = options.method || 'GET';
   const url = `${BASE_URL}${endpoint}`;
 
+  const headers = new Headers(options.headers || {});
+  const token = getAuthToken();
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
   let res: Response;
   try {
-    res = await fetch(url, options);
+    res = await fetch(url, {
+      ...options,
+      headers
+    });
   } catch (netErr: any) {
     const errMsg = netErr?.message || 'Lỗi kết nối mạng đến máy chủ backend.';
     console.error(`[API ERROR] Network failure: method=${method} url=${url}`, netErr);
@@ -909,3 +924,49 @@ export const registerRecruiterAccount = (payload: RegisterRecruiterPayload) => c
 export const verifyEmailToken = (token: string) => currentApiClient.verifyEmailToken(token);
 export const resendVerificationToken = (email: string) => currentApiClient.resendVerificationToken(email);
 export const loginAccount = (email: string, password: string) => currentApiClient.loginAccount(email, password);
+
+// ============================================================
+// 8. MIDCV AI ENGINE & QUICK SCREENING API CLIENTS
+// ============================================================
+
+export async function fetchAiSettings(): Promise<AiSettings> {
+  return apiRequest<AiSettings>('/api/admin/ai-settings');
+}
+
+export async function updateAiSettings(body: Partial<AiSettings> & { cloudApiKey?: string }): Promise<AiSettings> {
+  return apiRequest<AiSettings>('/api/admin/ai-settings', {
+    method: 'PUT',
+    body: JSON.stringify(body)
+  });
+}
+
+export async function testAiSettings(body: Partial<AiSettings> & { cloudApiKey?: string }): Promise<{ healthy: boolean; latencyMs?: number; message?: string; error?: string }> {
+  return apiRequest<{ healthy: boolean; latencyMs?: number; message?: string; error?: string }>('/api/admin/ai-settings/test', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+}
+
+export async function uploadQuickScreening(jobId: string, file: File, githubEnabled = true): Promise<{ id: string; jobId: string; document: any }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('githubEnabled', String(githubEnabled));
+  return apiRequest<{ id: string; jobId: string; document: any }>(`/api/hr/jobs/${jobId}/screenings`, {
+    method: 'POST',
+    body: formData
+  });
+}
+
+export async function fetchQuickScreenings(jobId: string, page = 0, size = 20): Promise<QuickScreeningRun[]> {
+  return apiRequest<QuickScreeningRun[]>(`/api/hr/jobs/${jobId}/screenings?page=${page}&size=${size}`);
+}
+
+export async function fetchScreeningDetail(screeningId: string): Promise<QuickScreeningDetail> {
+  return apiRequest<QuickScreeningDetail>(`/api/hr/screenings/${screeningId}`);
+}
+
+export async function rematchScreening(screeningId: string): Promise<{ jobId: string }> {
+  return apiRequest<{ jobId: string }>(`/api/hr/screenings/${screeningId}/match`, {
+    method: 'POST'
+  });
+}
