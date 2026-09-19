@@ -61,6 +61,11 @@ public class JobQueue {
                       + " lại.',locked_by=NULL,lease_until=NULL,updated_at=now() WHERE state='RUNNING' AND"
                       + " lease_until<now() RETURNING id,owner_id,kind,entity_id,request_id");
           for (var s : stale) {
+            if ("EXTRACT".equals(s.get("kind"))) {
+              jdbc.update(
+                  "UPDATE document_versions SET state='FAILED',error_code='WORKER_LEASE_EXPIRED',error_message='Tác vụ xử lý tài liệu quá hạn lease.' WHERE id=? AND state='PROCESSING'",
+                  s.get("entity_id"));
+            }
             String previous = MDC.get("request_id");
             try {
               MDC.put("request_id", Objects.toString(s.get("request_id"), ""));
@@ -90,7 +95,7 @@ public class JobQueue {
 
   public void progress(UUID job, UUID worker, UUID owner, String step, int progress, String message) {
     requireUpdated(jdbc.update(
-        "UPDATE processing_jobs SET step=?,progress=?,updated_at=now()"
+        "UPDATE processing_jobs SET step=?,progress=?,lease_until=now()+interval '15 minutes',updated_at=now()"
             + " WHERE id=? AND locked_by=? AND state='RUNNING' AND lease_until>now()",
         step, progress, job, worker));
     events.emit(job, owner, "INFO", step, "STEP_STARTED", message, null);
@@ -142,12 +147,20 @@ public class JobQueue {
         job, worker));
   }
 
+  public void retryWithBackoff(UUID job, UUID worker, String errorCode, String errorMessage, int backoffSeconds) {
+    requireUpdated(jdbc.update(
+        "UPDATE processing_jobs SET"
+            + " state='QUEUED',step='RETRY_BACKOFF',error_code=?,error_message=?,locked_by=NULL,lease_until=NULL,available_at=now() + (? || ' seconds')::interval,updated_at=now()"
+            + " WHERE id=? AND locked_by=? AND state='RUNNING' AND lease_until>now()",
+        errorCode, errorMessage, String.valueOf(backoffSeconds), job, worker));
+  }
+
   private void requireUpdated(int count) {
     if (count != 1) throw leaseLost();
   }
 
   private CustomException leaseLost() {
-    return new CustomException(ErrorCode.DUPLICATE_APPLICATION, "Tác vụ không còn giữ quyền xử lý.");
+    return new CustomException(ErrorCode.JOB_LEASE_LOST, "Tác vụ không còn giữ quyền xử lý.");
   }
 
   public List<Map<String, Object>> forUser(UUID user) {
