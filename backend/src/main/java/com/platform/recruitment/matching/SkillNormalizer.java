@@ -1,11 +1,24 @@
 package com.platform.recruitment.matching;
 
+import com.platform.recruitment.taxonomy.TaxonomyService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 
 @Component
 public class SkillNormalizer {
+
+    private final TaxonomyService taxonomyService;
+
+    public SkillNormalizer() {
+        this.taxonomyService = null;
+    }
+
+    @Autowired
+    public SkillNormalizer(@Autowired(required = false) TaxonomyService taxonomyService) {
+        this.taxonomyService = taxonomyService;
+    }
 
     private static final Map<String, String> ALIAS_MAP = new HashMap<>();
     private static final Map<String, Set<String>> SYNONYMS_MAP = new HashMap<>();
@@ -56,6 +69,12 @@ public class SkillNormalizer {
             return "";
         }
         String lower = rawSkill.toLowerCase().trim();
+        if (taxonomyService != null) {
+            Optional<TaxonomyService.TaxonomyMatch> match = taxonomyService.lookup(rawSkill);
+            if (match.isPresent()) {
+                return match.get().canonicalName().toLowerCase().trim();
+            }
+        }
         return ALIAS_MAP.getOrDefault(lower, lower);
     }
 

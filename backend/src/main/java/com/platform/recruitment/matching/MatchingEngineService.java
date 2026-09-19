@@ -56,6 +56,9 @@ public class MatchingEngineService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.platform.recruitment.embedding.PgvectorCosineSimilarity pgvectorCosineSimilarity = new com.platform.recruitment.embedding.PgvectorCosineSimilarity();
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     @Transactional
     public MatchResult calculateAndPersistMatchResult(UUID jobId, UUID candidateId) {
         Job job = jobRepository.findById(jobId)
@@ -139,7 +142,19 @@ public class MatchingEngineService {
         BigDecimal expScore = experienceMatcher.evaluateExperience(job.getDescription(), cvRawText);
         BigDecimal eduScore = educationMatcher.evaluateEducation(job.getDescription(), cvRawText);
         BigDecimal projScore = projectRelevanceMatcher.evaluateProjectRelevance(job.getDescription(), cvRawText);
-        BigDecimal semanticScore = pgvectorCosineSimilarity.evaluateSemanticSimilarity(job.getDescription(), cvRawText);
+
+        // Native PostgreSQL pgvector evaluation with seamless in-memory fallback
+        BigDecimal semanticScore = null;
+        if (jdbcTemplate != null) {
+            UUID cvDocVersionId = findCvDocumentVersionId(candidate);
+            UUID jdDocVersionId = findJdDocumentVersionId(job.getId());
+            if (cvDocVersionId != null && jdDocVersionId != null) {
+                semanticScore = pgvectorCosineSimilarity.evaluatePgvectorSemanticSimilarity(cvDocVersionId, jdDocVersionId);
+            }
+        }
+        if (semanticScore == null) {
+            semanticScore = pgvectorCosineSimilarity.evaluateSemanticSimilarity(job.getDescription(), cvRawText);
+        }
         if (semanticScore.compareTo(BigDecimal.ZERO) <= 0 && cvRawText != null && !cvRawText.isBlank()) {
             semanticScore = BigDecimal.valueOf(50.00); // Default baseline if no explicit semantic tokens match
         }
@@ -211,11 +226,13 @@ public class MatchingEngineService {
         if (evidenceRepository != null) {
             for (JobRequirement req : allReqs) {
                 if (skillNormalizer.matchesSkill(req.getSkillName(), cvRawText)) {
+                    String grounded = extractGroundedSnippet(cvRawText, req.getSkillName());
+                    String snippetText = grounded != null ? grounded : String.format("Kỹ năng '%s' (%s) được xác thực trong hồ sơ CV ứng viên.", req.getSkillName(), req.getRequirementType());
                     Evidence skillEvidence = Evidence.builder()
                             .matchResult(savedResult)
                             .sourceType("CV")
                             .section("SKILLS")
-                            .snippet(String.format("Kỹ năng '%s' (%s) được xác thực trong hồ sơ CV ứng viên.", req.getSkillName(), req.getRequirementType()))
+                            .snippet(snippetText)
                             .normalizedValue(BigDecimal.valueOf(100.00))
                             .validationStatus("VERIFIED")
                             .build();
@@ -284,11 +301,12 @@ public class MatchingEngineService {
 
         for (JobRequirement req : allReqs) {
             boolean matched = skillNormalizer.matchesSkill(req.getSkillName(), cvRawText);
+            String grounded = matched ? extractGroundedSnippet(cvRawText, req.getSkillName()) : null;
             MatchInspectionResponse.SkillItem item = MatchInspectionResponse.SkillItem.builder()
                     .skillName(req.getSkillName())
                     .requirementType(req.getRequirementType().name())
                     .status(matched ? "MATCH" : "MISSING")
-                    .evidenceText(matched ? "Kỹ năng được ghi nhận trong hồ sơ CV ứng viên." : "Không tìm thấy minh chứng trực tiếp trong CV.")
+                    .evidenceText(grounded != null ? grounded : (matched ? "Kỹ năng được ghi nhận trong hồ sơ CV ứng viên." : "Không tìm thấy minh chứng trực tiếp trong CV."))
                     .build();
             if (req.getRequirementType() == RequirementType.REQUIRED) {
                 reqSkillItems.add(item);
@@ -316,7 +334,9 @@ public class MatchingEngineService {
 
         // GitHub Assessment
         MatchInspectionResponse.GitHubAssessmentInfo ghInfo;
-        Optional<com.platform.recruitment.github.GitHubProfile> ghProfileOpt = gitHubProfileRepository.findByCandidateId(candidateId);
+        Optional<com.platform.recruitment.github.GitHubProfile> ghProfileOpt = gitHubProfileRepository != null
+                ? gitHubProfileRepository.findByCandidateId(candidateId)
+                : Optional.empty();
         if (ghProfileOpt.isPresent() && Boolean.TRUE.equals(result.getIsGithubActive()) && result.getGithubScore() != null) {
             com.platform.recruitment.github.GitHubProfile gh = ghProfileOpt.get();
             ghInfo = MatchInspectionResponse.GitHubAssessmentInfo.builder()
@@ -370,5 +390,60 @@ public class MatchingEngineService {
                 .weight(weight)
                 .build();
         matchFactorRepository.save(factor);
+    }
+
+    private UUID findCvDocumentVersionId(CandidateProfile candidate) {
+        if (jdbcTemplate == null || candidate == null || candidate.getUser() == null) return null;
+        try {
+            List<UUID> ids = jdbcTemplate.query(
+                    "SELECT v.id FROM document_versions v JOIN documents d ON d.id=v.document_id " +
+                    "WHERE d.owner_id=? AND d.kind='CV' AND v.embedding IS NOT NULL " +
+                    "ORDER BY v.version_no DESC LIMIT 1",
+                    (rs, rowNum) -> (UUID) rs.getObject("id"),
+                    candidate.getUser().getId()
+            );
+            return ids.isEmpty() ? null : ids.get(0);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private UUID findJdDocumentVersionId(UUID jobId) {
+        if (jdbcTemplate == null || jobId == null) return null;
+        try {
+            List<UUID> ids = jdbcTemplate.query(
+                    "SELECT v.id FROM document_versions v JOIN documents d ON d.id=v.document_id " +
+                    "WHERE (d.id=? OR v.id IN (SELECT jd_version_id FROM screening_runs WHERE job_id=?)) " +
+                    "AND v.embedding IS NOT NULL ORDER BY v.version_no DESC LIMIT 1",
+                    (rs, rowNum) -> (UUID) rs.getObject("id"),
+                    jobId, jobId
+            );
+            return ids.isEmpty() ? null : ids.get(0);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String extractGroundedSnippet(String text, String keyword) {
+        if (text == null || keyword == null || keyword.isBlank()) return null;
+        String lowerText = text.toLowerCase();
+        String lowerKeyword = keyword.toLowerCase().trim();
+        int idx = lowerText.indexOf(lowerKeyword);
+        if (idx < 0) return null;
+
+        int start = Math.max(0, idx - 30);
+        int end = Math.min(text.length(), idx + keyword.length() + 50);
+
+        if (start > 0 && Character.isLetterOrDigit(text.charAt(start))) {
+            while (start > 0 && Character.isLetterOrDigit(text.charAt(start - 1))) start--;
+        }
+        if (end < text.length() && Character.isLetterOrDigit(text.charAt(end - 1))) {
+            while (end < text.length() && Character.isLetterOrDigit(text.charAt(end))) end++;
+        }
+
+        String snippet = text.substring(start, end).trim().replaceAll("\\s+", " ");
+        if (start > 0) snippet = "..." + snippet;
+        if (end < text.length()) snippet = snippet + "...";
+        return snippet;
     }
 }
