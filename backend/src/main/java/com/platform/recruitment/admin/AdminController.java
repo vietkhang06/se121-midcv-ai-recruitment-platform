@@ -4,11 +4,9 @@ import com.platform.recruitment.ai.AiClient;
 import com.platform.recruitment.common.CustomException;
 import com.platform.recruitment.common.ErrorCode;
 import com.platform.recruitment.event.Events;
-import com.platform.recruitment.midcv.Db;
 import com.platform.recruitment.user.Role;
 import com.platform.recruitment.user.User;
 import java.util.*;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -16,15 +14,12 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/admin/ai-settings")
 public class AdminController {
-  private final Db db;
   private final AiClient aiClient;
   private final Events events;
 
   public AdminController(
-      @Qualifier("midcvDb") Db db,
       AiClient aiClient,
       Events events) {
-    this.db = db;
     this.aiClient = aiClient;
     this.events = events;
   }
@@ -49,15 +44,16 @@ public class AdminController {
     if (!key.isEmpty()) {
       masked = key.length() > 8 ? key.substring(0, 3) + "..." + key.substring(key.length() - 4) : "***";
     }
-    return Db.map(
-        "provider", s.provider(),
-        "ollamaUrl", s.ollamaUrl(),
-        "ollamaModel", s.ollamaModel(),
-        "cloudBaseUrl", s.cloudBaseUrl(),
-        "cloudApiKeyMasked", masked,
-        "hasCloudApiKey", !key.isEmpty(),
-        "cloudModel", s.cloudModel(),
-        "embeddingModel", s.embeddingModel());
+    Map<String, Object> res = new LinkedHashMap<>();
+    res.put("provider", s.provider());
+    res.put("ollamaUrl", s.ollamaUrl());
+    res.put("ollamaModel", s.ollamaModel());
+    res.put("cloudBaseUrl", s.cloudBaseUrl());
+    res.put("cloudApiKeyMasked", masked);
+    res.put("hasCloudApiKey", !key.isEmpty());
+    res.put("cloudModel", s.cloudModel());
+    res.put("embeddingModel", s.embeddingModel());
+    return res;
   }
 
   @PutMapping
@@ -85,17 +81,8 @@ public class AdminController {
       }
     }
 
-    if (!newKey.isEmpty()) {
-      db.update(
-          "UPDATE system_ai_settings SET provider=?, ollama_url=?, ollama_model=?, cloud_base_url=?, cloud_api_key=?, cloud_model=?, updated_at=now() WHERE id='current'",
-          provider, ollamaUrl, ollamaModel, cloudBaseUrl, newKey, cloudModel);
-    } else {
-      db.update(
-          "UPDATE system_ai_settings SET provider=?, ollama_url=?, ollama_model=?, cloud_base_url=?, cloud_model=?, updated_at=now() WHERE id='current'",
-          provider, ollamaUrl, ollamaModel, cloudBaseUrl, cloudModel);
-    }
+    aiClient.updateSettings(provider, ollamaUrl, ollamaModel, cloudBaseUrl, newKey, cloudModel);
 
-    aiClient.invalidateSettingsCache();
     events.emit(
         null,
         actor.getId(),

@@ -57,23 +57,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(com.platform.recruitment.midcv.ApiFailure.class)
-    public ResponseEntity<ApiResponse<Object>> handleApiFailure(com.platform.recruitment.midcv.ApiFailure ex) {
-        log.error("ApiFailure: status={}, code={}, message={}", ex.status, ex.code, ex.getMessage());
-        ErrorCode ec = switch (ex.status) {
-            case 400 -> ErrorCode.VALIDATION_ERROR;
-            case 401 -> ErrorCode.AUTHENTICATION_FAILED;
-            case 403 -> ErrorCode.ACCESS_DENIED;
-            case 404 -> ErrorCode.RESOURCE_NOT_FOUND;
-            case 409 -> ErrorCode.DUPLICATE_APPLICATION;
-            case 413 -> ErrorCode.FILE_SIZE_EXCEEDED;
-            case 422 -> ErrorCode.INVALID_FILE;
-            case 429 -> ErrorCode.RATE_LIMIT_EXCEEDED;
-            default -> ErrorCode.INTERNAL_SERVER_ERROR;
-        };
-        return new ResponseEntity<>(ApiResponse.error(ec, ex.getMessage(), ex.code), HttpStatus.valueOf(ex.status));
-    }
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex) {
         log.error("Unhandled exception: ", ex);

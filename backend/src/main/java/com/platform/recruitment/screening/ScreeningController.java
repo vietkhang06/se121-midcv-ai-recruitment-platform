@@ -1,15 +1,16 @@
 package com.platform.recruitment.screening;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.platform.recruitment.common.CustomException;
 import com.platform.recruitment.common.ErrorCode;
 import com.platform.recruitment.document.Documents;
 import com.platform.recruitment.event.Events;
-import com.platform.recruitment.midcv.Db;
 import com.platform.recruitment.user.Role;
 import com.platform.recruitment.user.User;
 import com.platform.recruitment.worker.JobQueue;
+import java.time.OffsetDateTime;
 import java.util.*;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,17 +20,20 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/hr")
 public class ScreeningController {
-  private final Db db;
+  private final JdbcTemplate jdbc;
+  private final ObjectMapper mapper;
   private final Documents docs;
   private final JobQueue queue;
   private final Events events;
 
   public ScreeningController(
-      @Qualifier("midcvDb") Db db,
+      JdbcTemplate jdbc,
+      ObjectMapper mapper,
       Documents docs,
       JobQueue queue,
       Events events) {
-    this.db = db;
+    this.jdbc = jdbc;
+    this.mapper = mapper;
     this.docs = docs;
     this.queue = queue;
     this.events = events;
@@ -55,7 +59,7 @@ public class ScreeningController {
       throws Exception {
     User a = requireRole(Role.HR);
     var j =
-        db.one(
+        queryOne(
             "SELECT j.* FROM jobs j LEFT JOIN recruiter_profiles rp ON rp.company_id = j.company_id"
                 + " WHERE j.id=? AND (rp.user_id=? OR EXISTS(SELECT 1 FROM users u WHERE u.id=? AND u.role='ADMIN')) FOR SHARE",
             id,
@@ -68,14 +72,14 @@ public class ScreeningController {
 
     UUID jdVersionId;
     var existingJd =
-        db.optional(
+        queryOptional(
             "SELECT jd_version_id FROM screening_runs WHERE job_id=? ORDER BY created_at DESC LIMIT 1",
             id);
     if (existingJd.isPresent()) {
-      jdVersionId = db.id(existingJd.get().get("jd_version_id"));
+      jdVersionId = parseUuid(existingJd.get().get("jd_version_id"));
     } else {
-      String jobTitle = db.text(j, "title");
-      String jobDesc = db.text(j, "description");
+      String jobTitle = text(j, "title");
+      String jobDesc = text(j, "description");
       if (jobDesc.isBlank()) {
         jobDesc = jobTitle;
       }
@@ -84,8 +88,8 @@ public class ScreeningController {
     }
 
     UUID run = UUID.randomUUID();
-    String industry = db.text(j, "industry");
-    db.update(
+    String industry = text(j, "industry");
+    jdbc.update(
         "INSERT INTO"
             + " screening_runs(id,owner_id,job_id,cv_version_id,jd_version_id,industry_snapshot,github_enabled_snapshot)"
             + " VALUES (?,?,?,?,?,?,?)",
@@ -106,7 +110,7 @@ public class ScreeningController {
         "SCREENING_CREATED",
         "Đã tạo lượt đối chiếu nhanh; không tạo tài khoản hoặc đơn ứng tuyển thay ứng viên.",
         null);
-    return Db.map("id", run, "jobId", task, "document", cv);
+    return map("id", run, "jobId", task, "document", cv);
   }
 
   @GetMapping("/jobs/{id}/screenings")
@@ -117,13 +121,13 @@ public class ScreeningController {
     if (page < 0 || page > 1000 || size < 1 || size > 100)
       throw new CustomException(ErrorCode.VALIDATION_ERROR, "Tham số phân trang không hợp lệ.");
     User a = requireRole(Role.HR);
-    db.one(
+    queryOne(
         "SELECT j.id FROM jobs j LEFT JOIN recruiter_profiles rp ON rp.company_id = j.company_id"
             + " WHERE j.id=? AND (rp.user_id=? OR EXISTS(SELECT 1 FROM users u WHERE u.id=? AND u.role='ADMIN'))",
         id,
         a.getId(),
         a.getId());
-    return db.rows(
+    return queryRows(
         "SELECT s.*,d.title,v.filename,v.state AS cv_state,r.score,r.coverage,p.state AS"
             + " processing_state,p.error_code FROM screening_runs s JOIN document_versions v ON"
             + " v.id=s.cv_version_id JOIN documents d ON d.id=v.document_id LEFT JOIN"
@@ -139,21 +143,21 @@ public class ScreeningController {
   @GetMapping("/screenings/{id}")
   public Map<String, Object> detail(@PathVariable UUID id) {
     User a = requireRole(Role.HR);
-    var run = db.one("SELECT * FROM screening_runs WHERE id=? AND (owner_id=? OR EXISTS(SELECT 1 FROM users u WHERE u.id=? AND u.role='ADMIN'))", id, a.getId(), a.getId());
-    return Db.map(
+    var run = queryOne("SELECT * FROM screening_runs WHERE id=? AND (owner_id=? OR EXISTS(SELECT 1 FROM users u WHERE u.id=? AND u.role='ADMIN'))", id, a.getId(), a.getId());
+    return map(
         "screening",
         run,
         "cv",
-        clean(docs.accessibleVersion(db.id(run.get("cv_version_id")), new JobQueue.Actor(a.getId(), a.getRole().name()))),
+        cleanDoc(docs.accessibleVersion(parseUuid(run.get("cv_version_id")), new JobQueue.Actor(a.getId(), a.getRole().name()))),
         "jd",
-        clean(docs.accessibleVersion(db.id(run.get("jd_version_id")), new JobQueue.Actor(a.getId(), a.getRole().name()))),
+        cleanDoc(docs.accessibleVersion(parseUuid(run.get("jd_version_id")), new JobQueue.Actor(a.getId(), a.getRole().name()))),
         "result",
-        db.optional(
+        queryOptional(
                 "SELECT * FROM midcv_match_results WHERE screening_id=? ORDER BY created_at DESC LIMIT 1",
                 id)
             .orElse(null),
         "jobs",
-        db.rows(
+        queryRows(
             "SELECT * FROM processing_jobs WHERE kind='SCREEN_MATCH' AND entity_id=? ORDER BY"
                 + " created_at DESC",
             id));
@@ -162,11 +166,65 @@ public class ScreeningController {
   @PostMapping("/screenings/{id}/match")
   public Map<String, Object> rematch(@PathVariable UUID id) {
     User a = requireRole(Role.HR);
-    db.one("SELECT id FROM screening_runs WHERE id=? AND (owner_id=? OR EXISTS(SELECT 1 FROM users u WHERE u.id=? AND u.role='ADMIN'))", id, a.getId(), a.getId());
-    return Db.map("jobId", queue.enqueue(a.getId(), "SCREEN_MATCH", id));
+    queryOne("SELECT id FROM screening_runs WHERE id=? AND (owner_id=? OR EXISTS(SELECT 1 FROM users u WHERE u.id=? AND u.role='ADMIN'))", id, a.getId(), a.getId());
+    return map("jobId", queue.enqueue(a.getId(), "SCREEN_MATCH", id));
   }
 
-  private Map<String, Object> clean(Map<String, Object> m) {
+  private List<Map<String, Object>> queryRows(String sql, Object... args) {
+    return jdbc.queryForList(sql, args).stream()
+        .map(
+            row -> {
+              Map<String, Object> m = new LinkedHashMap<>();
+              row.forEach((k, v) -> m.put(k, cleanValue(v)));
+              return m;
+            })
+        .toList();
+  }
+
+  private Object cleanValue(Object v) {
+    if (v == null) return null;
+    if (v instanceof UUID) return v.toString();
+    if (v instanceof java.sql.Timestamp t) return t.toInstant().toString();
+    if (v instanceof OffsetDateTime t) return t.toInstant().toString();
+    if (v.getClass().getName().equals("org.postgresql.util.PGobject")) {
+      try {
+        return mapper.readTree(v.toString());
+      } catch (Exception e) {
+        return v.toString();
+      }
+    }
+    return v;
+  }
+
+  private Map<String, Object> queryOne(String sql, Object... args) {
+    return queryRows(sql, args).stream()
+        .findFirst()
+        .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Bản ghi không tồn tại hoặc bạn không có quyền truy cập."));
+  }
+
+  private Optional<Map<String, Object>> queryOptional(String sql, Object... args) {
+    return queryRows(sql, args).stream().findFirst();
+  }
+
+  private UUID parseUuid(Object v) {
+    try {
+      return UUID.fromString(String.valueOf(v));
+    } catch (Exception e) {
+      throw new CustomException(ErrorCode.VALIDATION_ERROR, "Mã dữ liệu không hợp lệ.");
+    }
+  }
+
+  private String text(Map<String, Object> m, String k) {
+    return Objects.toString(m.get(k), "");
+  }
+
+  private static Map<String, Object> map(Object... pairs) {
+    Map<String, Object> m = new LinkedHashMap<>();
+    for (int i = 0; i < pairs.length; i += 2) m.put((String) pairs[i], pairs[i + 1]);
+    return m;
+  }
+
+  private Map<String, Object> cleanDoc(Map<String, Object> m) {
     Map<String, Object> copy = new HashMap<>(m);
     copy.remove("storage_key");
     return copy;

@@ -1,34 +1,34 @@
 package com.platform.recruitment.document;
 
+import com.platform.recruitment.common.CustomException;
+import com.platform.recruitment.common.ErrorCode;
 import com.platform.recruitment.event.Events;
-import com.platform.recruitment.midcv.ApiFailure;
-import com.platform.recruitment.midcv.Db;
 import com.platform.recruitment.worker.JobQueue;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.security.MessageDigest;
 import java.util.*;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class Documents {
-  private final Db db;
+  private final JdbcTemplate jdbc;
   private final JobQueue queue;
   private final Events events;
   private final Path directory;
 
   public Documents(
-      @Qualifier("midcvDb") Db db,
+      JdbcTemplate jdbc,
       JobQueue queue,
       Events events,
-      @Value("${midcv.upload-dir:./uploads}") String path)
+      @Value("${app.upload-dir:${midcv.upload-dir:./uploads}}") String path)
       throws IOException {
-    this.db = db;
+    this.jdbc = jdbc;
     this.queue = queue;
     this.events = events;
     directory = Path.of(path).toAbsolutePath().normalize();
@@ -43,7 +43,7 @@ public class Documents {
 
   public UUID createDocument(UUID owner, String kind, String title) {
     UUID id = UUID.randomUUID();
-    db.update(
+    jdbc.update(
         "INSERT INTO documents(id,owner_id,kind,title) VALUES (?,?,?,?)", id, owner, kind, title);
     return id;
   }
@@ -65,17 +65,21 @@ public class Documents {
   @Transactional
   public Saved text(UUID owner, String kind, String title, String text, UUID existing) {
     if (text == null || text.trim().length() < 15 || text.length() > 60000)
-      throw ApiFailure.bad("TEXT_LENGTH", "Nội dung cần từ 15 đến 60.000 ký tự.");
+      throw new CustomException(ErrorCode.VALIDATION_ERROR, "Nội dung cần từ 15 đến 60.000 ký tự.");
     UUID doc = existing == null ? createDocument(owner, kind, title) : existing;
-    db.one(
-        "SELECT id FROM documents WHERE id=? AND owner_id=? AND kind=? AND archived=false FOR"
-            + " UPDATE",
-        doc,
-        owner,
-        kind);
+    List<Map<String, Object>> rows =
+        jdbc.queryForList(
+            "SELECT id FROM documents WHERE id=? AND owner_id=? AND kind=? AND archived=false FOR"
+                + " UPDATE",
+            doc,
+            owner,
+            kind);
+    if (rows.isEmpty()) {
+      throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy tài liệu.");
+    }
     int version = next(doc);
     UUID id = UUID.randomUUID();
-    db.update(
+    jdbc.update(
         "INSERT INTO"
             + " document_versions(id,document_id,version_no,filename,source_sha,raw_text,extraction_method)"
             + " VALUES (?,?,?,?,?,?,?)",
@@ -93,9 +97,9 @@ public class Documents {
   @Transactional(rollbackFor = Exception.class)
   public Saved upload(UUID owner, String kind, String title, MultipartFile file, UUID existing)
       throws IOException {
-    if (file == null || file.isEmpty()) throw ApiFailure.bad("FILE_EMPTY", "Chưa chọn tệp.");
+    if (file == null || file.isEmpty()) throw new CustomException(ErrorCode.VALIDATION_ERROR, "Chưa chọn tệp.");
     if (file.getSize() > 15L * 1024 * 1024)
-      throw new ApiFailure(413, "FILE_TOO_LARGE", "Tệp vượt quá 15 MB.");
+      throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED, "Tệp vượt quá 15 MB.");
     String filename =
         Optional.ofNullable(file.getOriginalFilename())
             .orElse("document")
@@ -105,12 +109,16 @@ public class Documents {
     byte[] bytes = file.getBytes();
     validateMagic(bytes, ext);
     UUID doc = existing == null ? createDocument(owner, kind, title) : existing;
-    db.one(
-        "SELECT id FROM documents WHERE id=? AND owner_id=? AND kind=? AND archived=false FOR"
-            + " UPDATE",
-        doc,
-        owner,
-        kind);
+    List<Map<String, Object>> rows =
+        jdbc.queryForList(
+            "SELECT id FROM documents WHERE id=? AND owner_id=? AND kind=? AND archived=false FOR"
+                + " UPDATE",
+            doc,
+            owner,
+            kind);
+    if (rows.isEmpty()) {
+      throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy tài liệu.");
+    }
     int version = next(doc);
     UUID id = UUID.randomUUID();
     String key = id + "." + ext;
@@ -130,7 +138,7 @@ public class Documents {
               }
             });
     try {
-      db.update(
+      jdbc.update(
           "INSERT INTO"
               + " document_versions(id,document_id,version_no,filename,storage_key,media_type,size_bytes,source_sha)"
               + " VALUES (?,?,?,?,?,?,?,?)",
@@ -170,13 +178,13 @@ public class Documents {
   }
 
   private int next(UUID doc) {
-    return ((Number)
-            db.one(
-                    "SELECT coalesce(max(version_no),0)+1 AS n FROM document_versions WHERE"
-                        + " document_id=?",
-                    doc)
-                .get("n"))
-        .intValue();
+    Integer n =
+        jdbc.queryForObject(
+            "SELECT coalesce(max(version_no),0)+1 AS n FROM document_versions WHERE"
+                + " document_id=?",
+            Integer.class,
+            doc);
+    return n != null ? n : 1;
   }
 
   private String mime(String ext) {
@@ -192,7 +200,7 @@ public class Documents {
 
   private void validateMagic(byte[] b, String ext) {
     if (!Set.of("pdf", "docx", "txt", "md", "png", "jpg", "jpeg", "webp").contains(ext))
-      throw ApiFailure.bad("UNSUPPORTED_FILE", "Chỉ hỗ trợ PDF, DOCX, TXT, MD, PNG, JPG và WEBP.");
+      throw new CustomException(ErrorCode.VALIDATION_ERROR, "Chỉ hỗ trợ PDF, DOCX, TXT, MD, PNG, JPG và WEBP.");
     boolean valid =
         switch (ext) {
           case "pdf" -> starts(b, "%PDF-");
@@ -207,7 +215,7 @@ public class Documents {
           default -> true;
         };
     if (!valid)
-      throw ApiFailure.bad("FILE_SIGNATURE_MISMATCH", "Nội dung tệp không khớp phần mở rộng.");
+      throw new CustomException(ErrorCode.VALIDATION_ERROR, "Nội dung tệp không khớp phần mở rộng.");
   }
 
   private boolean starts(byte[] b, String v) {
@@ -216,18 +224,24 @@ public class Documents {
   }
 
   public Map<String, Object> accessibleVersion(UUID version, JobQueue.Actor a) {
-    return db.one(
-        "SELECT"
-            + " v.id,v.document_id,v.version_no,v.filename,v.storage_key,v.media_type,v.size_bytes,v.raw_text,v.normalized,v.state,v.error_code,v.error_message,v.created_at,v.extraction_method,v.llm_model,v.embedding_model,v.pipeline_version,d.owner_id,d.kind,d.title"
-            + " FROM document_versions v JOIN documents d ON d.id=v.document_id WHERE v.id=? AND"
-            + " (d.owner_id=? OR EXISTS(SELECT 1 FROM applications ap JOIN jobs j ON"
-            + " j.id=ap.job_id WHERE ap.applied_cv_version_id=v.id AND j.recruiter_id=?) OR (d.kind='JD'"
-            + " AND EXISTS(SELECT 1 FROM jobs j WHERE"
-            + " ((j.status='OPEN') OR EXISTS(SELECT 1 FROM applications ap"
-            + " WHERE ap.job_id=j.id AND ap.candidate_id=?)))))",
-        version,
-        a.id(),
-        a.id(),
-        a.id());
+    List<Map<String, Object>> rows =
+        jdbc.queryForList(
+            "SELECT"
+                + " v.id,v.document_id,v.version_no,v.filename,v.storage_key,v.media_type,v.size_bytes,v.raw_text,v.normalized,v.state,v.error_code,v.error_message,v.created_at,v.extraction_method,v.llm_model,v.embedding_model,v.pipeline_version,d.owner_id,d.kind,d.title"
+                + " FROM document_versions v JOIN documents d ON d.id=v.document_id WHERE v.id=? AND"
+                + " (d.owner_id=? OR EXISTS(SELECT 1 FROM applications ap JOIN jobs j ON"
+                + " j.id=ap.job_id WHERE ap.applied_cv_version_id=v.id AND j.recruiter_id=?) OR (d.kind='JD'"
+                + " AND EXISTS(SELECT 1 FROM jobs j WHERE"
+                + " ((j.status='OPEN') OR EXISTS(SELECT 1 FROM applications ap"
+                + " WHERE ap.job_id=j.id AND ap.candidate_id=?)))))",
+            version,
+            a.id(),
+            a.id(),
+            a.id());
+    if (rows.isEmpty()) {
+      throw new CustomException(
+          ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy tài liệu hoặc bạn không có quyền truy cập.");
+    }
+    return rows.get(0);
   }
 }

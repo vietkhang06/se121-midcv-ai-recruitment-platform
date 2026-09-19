@@ -1,7 +1,8 @@
 package com.platform.recruitment.matching;
 
-import com.platform.recruitment.midcv.ApiFailure;
 import com.fasterxml.jackson.databind.*;
+import com.platform.recruitment.common.CustomException;
+import com.platform.recruitment.common.ErrorCode;
 import java.text.Normalizer;
 import java.util.*;
 import org.springframework.stereotype.Service;
@@ -27,7 +28,7 @@ public class Scoring {
 
   public Result calculate(JsonNode cv, JsonNode jd, double semantic, JsonNode github) {
     if (!Double.isFinite(semantic))
-      throw new ApiFailure(422, "SEMANTIC_INVALID", "Không có điểm ngữ nghĩa hợp lệ.");
+      throw new CustomException(ErrorCode.VALIDATION_ERROR, "Không có điểm ngữ nghĩa hợp lệ.");
     semantic = Math.max(0, Math.min(100, semantic));
     List<Map<String, Object>> criteria = new ArrayList<>();
     addSkills(criteria, cv.path("skills"), jd.path("skills"), "required_skills", 30, false);

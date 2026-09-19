@@ -46,8 +46,6 @@ jwt:
 
 app:
   file-storage-path: ${FILE_STORAGE_PATH:./uploads/cvs/private}
-
-midcv:
   upload-dir: ${UPLOAD_DIR:./uploads}
   worker-enabled: ${WORKER_ENABLED:true}
   llm-url: ${OLLAMA_URL:http://localhost:11434}
