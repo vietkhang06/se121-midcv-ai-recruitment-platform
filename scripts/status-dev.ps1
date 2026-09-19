@@ -73,25 +73,25 @@ try {
     $pgStatus = "NOT RUNNING"
 }
 
-# 2. Check Backend (8080)
+# 2. Check Local Ollama Engine (11434)
+$ollamaStatus = "NOT RUNNING"
+if ((Test-HttpUrl "http://127.0.0.1:11434/api/tags") -eq "READY") {
+    $ollamaStatus = "READY (granite4.2 + bge-m3)"
+} elseif (Test-PortOccupied 11434) {
+    $ollamaStatus = "STARTING / NOT READY"
+}
+
+# 3. Check Backend (8080)
 $backendStatus = "NOT RUNNING"
-if ((Test-HttpUrl "http://localhost:8080/api/v1/jobs") -eq "READY") {
+if ((Test-HttpUrl "http://127.0.0.1:8080/api/v1/jobs") -eq "READY") {
     $backendStatus = "READY"
 } elseif (Test-PortOccupied 8080) {
     $backendStatus = "STARTING / NOT READY"
 }
 
-# 3. Check AI Worker (8000)
-$aiStatus = "NOT RUNNING"
-if ((Test-HttpUrl "http://localhost:8000/internal/ai/health") -eq "READY") {
-    $aiStatus = "READY"
-} elseif (Test-PortOccupied 8000) {
-    $aiStatus = "STARTING / NOT READY"
-}
-
 # 4. Check Frontend (3000)
 $frontendStatus = "NOT RUNNING"
-if ((Test-HttpUrl "http://localhost:3000") -eq "READY") {
+if ((Test-HttpUrl "http://127.0.0.1:3000") -eq "READY") {
     $frontendStatus = "READY"
 } elseif (Test-PortOccupied 3000) {
     $frontendStatus = "STARTING / NOT READY"
@@ -100,13 +100,14 @@ if ((Test-HttpUrl "http://localhost:3000") -eq "READY") {
 # Display Status Summary
 Write-Host " Docker Desktop : $dockerStatus" -ForegroundColor $(if ($dockerStatus -eq "READY") { "Green" } else { "Red" })
 Write-Host " PostgreSQL DB  : $pgStatus (Port 5432)" -ForegroundColor $(if ($pgStatus -eq "READY") { "Green" } else { "Yellow" })
+Write-Host " Local Ollama   : $ollamaStatus" -ForegroundColor $(if ($ollamaStatus.StartsWith("READY")) { "Green" } else { "Yellow" })
 Write-Host " Backend        : $backendStatus (Port 8080)" -ForegroundColor $(if ($backendStatus -eq "READY") { "Green" } else { "Yellow" })
-Write-Host " AI Worker      : $aiStatus (Port 8000)" -ForegroundColor $(if ($aiStatus -eq "READY") { "Green" } else { "Yellow" })
 Write-Host " Frontend       : $frontendStatus (Port 3000)" -ForegroundColor $(if ($frontendStatus -eq "READY") { "Green" } else { "Yellow" })
 
 Write-Host "------------------------------------------" -ForegroundColor Cyan
 Write-Host " URLs:" -ForegroundColor Yellow
-Write-Host "   Frontend  : http://localhost:3000" -ForegroundColor White
-Write-Host "   Backend   : http://localhost:8080" -ForegroundColor White
-Write-Host "   AI Worker : http://localhost:8000/internal/ai/health" -ForegroundColor White
+Write-Host "   Frontend    : http://localhost:3000" -ForegroundColor White
+Write-Host "   AI Settings : http://localhost:3000/admin/ai-settings" -ForegroundColor White
+Write-Host "   Backend API : http://localhost:8080" -ForegroundColor White
+Write-Host "   Ollama Tags : http://localhost:11434/api/tags" -ForegroundColor White
 Write-Host "==========================================`n" -ForegroundColor Cyan

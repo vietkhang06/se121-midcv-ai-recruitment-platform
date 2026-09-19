@@ -100,7 +100,27 @@ if (-not (Test-Path $EnvFile)) {
     }
 }
 
-Write-Host "  -> Docker, Java 21, Maven, Python, Node environment valid." -ForegroundColor Green
+Write-Host "  -> Docker, Java 21, Maven, Node environment valid." -ForegroundColor Green
+
+# Check Local Ollama Engine (Port 11434)
+Write-Host "  -> Checking Local Ollama Engine (127.0.0.1:11434)..." -ForegroundColor Gray
+$ollamaReady = $false
+try {
+    $req = [System.Net.HttpWebRequest]::Create("http://127.0.0.1:11434/api/tags")
+    $req.Timeout = 2000
+    $res = $req.GetResponse()
+    if ([int]$res.StatusCode -eq 200) {
+        $ollamaReady = $true
+    }
+    $res.Close()
+} catch {}
+
+if ($ollamaReady) {
+    Write-Host "  -> Local Ollama Service is READY with dna5rm/granite4.2:3b-8k & bge-m3." -ForegroundColor Green
+} else {
+    Write-Host "  -> NOTICE: Local Ollama is not responding on http://127.0.0.1:11434." -ForegroundColor Yellow
+    Write-Host "     If using Local AI mode, please launch Ollama ('ollama serve') before testing AI features." -ForegroundColor Yellow
+}
 
 # Helper function to test TCP Port using 127.0.0.1 IPv4
 function Test-PortOccupied([int]$port) {
@@ -317,12 +337,16 @@ Write-Host "`n==========================================" -ForegroundColor Cyan
 Write-Host " AI RECRUITMENT PLATFORM LOCAL STATUS" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host " PostgreSQL  : READY  (Port 5432)" -ForegroundColor Green
+if ($ollamaReady) {
+    Write-Host " Ollama AI   : READY  (Port 11434, granite4.2 + bge-m3)" -ForegroundColor Green
+} else {
+    Write-Host " Ollama AI   : STANDBY (Port 11434)" -ForegroundColor Yellow
+}
 Write-Host " Backend     : READY  (Port 8080)" -ForegroundColor Green
-Write-Host " AI Worker   : READY  (Port 8000)" -ForegroundColor Green
 Write-Host " Frontend    : READY  (Port 3000)" -ForegroundColor Green
 Write-Host "------------------------------------------" -ForegroundColor Cyan
 Write-Host " URLs:" -ForegroundColor Yellow
 Write-Host "   Frontend  : http://localhost:3000" -ForegroundColor White
 Write-Host "   Backend   : http://localhost:8080" -ForegroundColor White
-Write-Host "   AI Worker : http://localhost:8000/internal/ai/health" -ForegroundColor White
+Write-Host "   AI Settings: http://localhost:3000/admin/ai-settings" -ForegroundColor White
 Write-Host "==========================================`n" -ForegroundColor Cyan
