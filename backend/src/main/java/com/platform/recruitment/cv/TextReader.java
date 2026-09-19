@@ -1,5 +1,6 @@
-package com.platform.recruitment.midcv;
+package com.platform.recruitment.cv;
 
+import com.platform.recruitment.midcv.ApiFailure;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;

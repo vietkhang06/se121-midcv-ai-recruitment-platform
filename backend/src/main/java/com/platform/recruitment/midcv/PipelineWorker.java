@@ -1,5 +1,10 @@
 package com.platform.recruitment.midcv;
 
+import com.platform.recruitment.ai.AiClient;
+import com.platform.recruitment.cv.TextReader;
+import com.platform.recruitment.github.GithubClient;
+import com.platform.recruitment.matching.Scoring;
+import com.platform.recruitment.taxonomy.TaxonomyService;
 import com.fasterxml.jackson.databind.*;
 import java.util.*;
 import org.slf4j.MDC;

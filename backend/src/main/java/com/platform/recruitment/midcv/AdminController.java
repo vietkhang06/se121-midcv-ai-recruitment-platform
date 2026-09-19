@@ -1,5 +1,6 @@
 package com.platform.recruitment.midcv;
 
+import com.platform.recruitment.ai.AiClient;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;

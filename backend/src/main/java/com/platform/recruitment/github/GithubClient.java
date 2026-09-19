@@ -1,5 +1,7 @@
-package com.platform.recruitment.midcv;
+package com.platform.recruitment.github;
 
+import com.platform.recruitment.midcv.ApiFailure;
+import com.platform.recruitment.midcv.Db;
 import com.fasterxml.jackson.databind.*;
 import java.net.*;
 import java.net.http.*;

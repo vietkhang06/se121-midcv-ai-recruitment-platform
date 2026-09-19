@@ -1,5 +1,6 @@
-package com.platform.recruitment.midcv;
+package com.platform.recruitment.matching;
 
+import com.platform.recruitment.midcv.ApiFailure;
 import com.fasterxml.jackson.databind.*;
 import java.text.Normalizer;
 import java.util.*;
@@ -47,7 +48,7 @@ public class Scoring {
               score,
               score == null ? "UNKNOWN" : score >= 100 ? "MET" : "PARTIAL",
               List.of(
-                  Db.map(
+                  map(
                       "jd_evidence",
                       je.path("evidence"),
                       "cv_evidence",
@@ -80,7 +81,7 @@ public class Scoring {
         }
         sum += score;
         evidence.add(
-            Db.map(
+            map(
                 "jd_evidence",
                 required.path("evidence"),
                 "cv_evidence",
@@ -120,7 +121,7 @@ public class Scoring {
               score == null
                   ? "REVIEW_REQUIRED"
                   : score >= 100 ? "MET" : score > 0 ? "PARTIAL" : "NOT_FOUND",
-              Db.map(
+              map(
                   "jd_projects",
                   jd.path("projects"),
                   "cv_projects",
@@ -141,7 +142,7 @@ public class Scoring {
             20,
             semantic,
             "SIMILARITY",
-            Db.map(
+            map(
                 "method",
                 "pgvector cosine similarity",
                 "note",
@@ -169,7 +170,7 @@ public class Scoring {
         roundedBonus,
         roundedTotal,
         round(coverage),
-        Db.map(
+        map(
             "algorithm",
             VERSION,
             "criteria",
@@ -214,7 +215,7 @@ public class Scoring {
         }
       if (match != null) hits++;
       details.add(
-          Db.map(
+          map(
               "name",
               r.path("canonical").asText(),
               "priority",
@@ -238,7 +239,7 @@ public class Scoring {
 
   private Map<String, Object> criterion(
       String id, int weight, Double score, String state, Object evidence) {
-    return Db.map(
+    return map(
         "id",
         id,
         "weight",
@@ -265,7 +266,7 @@ public class Scoring {
   private Map<String, Object> githubEvidence(JsonNode jd, JsonNode github) {
     List<Map<String, Object>> evidence = new ArrayList<>();
     if (!github.path("status").asText().equals("AVAILABLE"))
-      return Db.map("fraction", 0, "evidence", evidence);
+      return map("fraction", 0, "evidence", evidence);
     Set<String> skills = new HashSet<>();
     for (JsonNode s : jd.path("skills")) skills.add(key(s.path("canonical").asText()));
     for (String skill : skills) {
@@ -277,7 +278,7 @@ public class Scoring {
         for (JsonNode t : r.path("topics")) signals.add(key(t.asText()));
         if (signals.contains(skill)) {
           evidence.add(
-              Db.map(
+              map(
                   "skill",
                   skill,
                   "repo",
@@ -292,7 +293,7 @@ public class Scoring {
         }
       }
     }
-    return Db.map(
+    return map(
         "fraction",
         skills.isEmpty() ? 0 : (double) evidence.size() / skills.size(),
         "evidence",
@@ -301,5 +302,11 @@ public class Scoring {
 
   private double round(double d) {
     return Math.round(d * 100) / 100.0;
+  }
+
+  private static Map<String, Object> map(Object... pairs) {
+    Map<String, Object> m = new LinkedHashMap<>();
+    for (int i = 0; i < pairs.length; i += 2) m.put((String) pairs[i], pairs[i + 1]);
+    return m;
   }
 }

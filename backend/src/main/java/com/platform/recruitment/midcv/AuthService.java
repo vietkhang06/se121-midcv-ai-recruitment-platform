@@ -4,9 +4,6 @@ import com.platform.recruitment.user.User;
 import java.util.UUID;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
-
-@Component
 public class AuthService {
   public record Actor(UUID id, String email, String role) {}
 
