@@ -50,3 +50,9 @@ app:
 midcv:
   upload-dir: ${UPLOAD_DIR:./uploads}
   worker-enabled: ${WORKER_ENABLED:true}
+  llm-url: ${OLLAMA_URL:http://localhost:11434}
+  llm-model: ${LLM_MODEL:dna5rm/granite4.2:3b-8k}
+  embedding-model: ${EMBEDDING_MODEL:bge-m3}
+  github-token: ${GITHUB_TOKEN:}
+  ai-timeout-seconds: ${AI_TIMEOUT_SECONDS:360}
+  ai-num-ctx: ${AI_NUM_CTX:8192}
