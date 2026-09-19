@@ -200,6 +200,7 @@ public class PipelineWorker {
     if (!cached.isEmpty()) {
       normalized = toTree(cached.get(0).get("normalized"));
       vector = Objects.toString(cached.get(0).get("embedding_text"), "");
+      ai.validate(normalized, raw, Objects.toString(v.get("kind"), ""));
       events.emit(
           job,
           owner,

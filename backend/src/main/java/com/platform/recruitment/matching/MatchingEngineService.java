@@ -144,13 +144,11 @@ public class MatchingEngineService {
         BigDecimal projScore = projectRelevanceMatcher.evaluateProjectRelevance(job.getDescription(), cvRawText);
 
         // Native PostgreSQL pgvector evaluation with seamless in-memory fallback
+        UUID cvDocVersionId = findCvDocumentVersionId(candidate);
+        UUID jdDocVersionId = findJdDocumentVersionId(job.getId());
         BigDecimal semanticScore = null;
-        if (jdbcTemplate != null) {
-            UUID cvDocVersionId = findCvDocumentVersionId(candidate);
-            UUID jdDocVersionId = findJdDocumentVersionId(job.getId());
-            if (cvDocVersionId != null && jdDocVersionId != null) {
-                semanticScore = pgvectorCosineSimilarity.evaluatePgvectorSemanticSimilarity(cvDocVersionId, jdDocVersionId);
-            }
+        if (jdbcTemplate != null && cvDocVersionId != null && jdDocVersionId != null) {
+            semanticScore = pgvectorCosineSimilarity.evaluatePgvectorSemanticSimilarity(cvDocVersionId, jdDocVersionId);
         }
         if (semanticScore == null) {
             semanticScore = pgvectorCosineSimilarity.evaluateSemanticSimilarity(job.getDescription(), cvRawText);
@@ -231,6 +229,7 @@ public class MatchingEngineService {
                     Evidence skillEvidence = Evidence.builder()
                             .matchResult(savedResult)
                             .sourceType("CV")
+                            .sourceId(cvDocVersionId != null ? cvDocVersionId.toString() : null)
                             .section("SKILLS")
                             .snippet(snippetText)
                             .normalizedValue(BigDecimal.valueOf(100.00))
@@ -243,6 +242,7 @@ public class MatchingEngineService {
                 Evidence expEvidence = Evidence.builder()
                         .matchResult(savedResult)
                         .sourceType("CV")
+                        .sourceId(cvDocVersionId != null ? cvDocVersionId.toString() : null)
                         .section("EXPERIENCE")
                         .snippet(String.format("Kinh nghiệm làm việc được ghi nhận trong CV với mức đánh giá %s%% phù hợp ngành %s.", expScore, job.getIndustry()))
                         .normalizedValue(expScore)
@@ -256,6 +256,7 @@ public class MatchingEngineService {
                     Evidence ghEvidence = Evidence.builder()
                             .matchResult(savedResult)
                             .sourceType("GITHUB")
+                            .sourceId(candidateId != null ? candidateId.toString() : null)
                             .section("REPOSITORIES")
                             .snippet(String.format("Kho lưu trữ mã nguồn '%s' được ghi nhận trong hồ sơ GitHub công khai của ứng viên, phù hợp yêu cầu kỹ thuật vị trí %s.", rName, job.getTitle()))
                             .normalizedValue(scoreGithub)

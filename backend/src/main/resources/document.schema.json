@@ -46,6 +46,12 @@
           "resolution": {
             "type": "string",
             "enum": ["TAXONOMY", "UNKNOWN", "LLM_INFERRED"]
+          },
+          "taxonomyMatch": {
+            "type": ["string", "null"]
+          },
+          "taxonomyVersion": {
+            "type": ["string", "null"]
           }
         }
       }
@@ -183,6 +189,12 @@
           "resolution": {
             "type": "string",
             "enum": ["TAXONOMY", "UNKNOWN", "LLM_INFERRED"]
+          },
+          "taxonomyMatch": {
+            "type": ["string", "null"]
+          },
+          "taxonomyVersion": {
+            "type": ["string", "null"]
           }
         }
       }

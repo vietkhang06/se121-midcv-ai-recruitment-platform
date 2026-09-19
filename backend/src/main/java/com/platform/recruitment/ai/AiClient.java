@@ -638,12 +638,7 @@ public class AiClient {
           if (entry instanceof ObjectNode eObj) {
             JsonNode entryEv = eObj.get("evidence");
             if (entryEv == null || !entryEv.isTextual() || !plain.contains(flat(entryEv.asText()))) {
-              JsonNode role = eObj.get("role");
-              if (role != null && role.isTextual() && plain.contains(flat(role.asText()))) {
-                eObj.put("evidence", role.asText());
-              } else {
-                it.remove();
-              }
+              it.remove();
             }
           }
         }
@@ -677,15 +672,7 @@ public class AiClient {
           || !ev.isTextual()
           || ev.asText().trim().length() < 2
           || !plain.contains(flat(ev.asText()))) {
-        JsonNode nameNode = obj.get("name");
-        JsonNode canNode = obj.get("canonical");
-        if (nameNode != null && nameNode.isTextual() && plain.contains(flat(nameNode.asText()))) {
-          obj.put("evidence", nameNode.asText());
-        } else if (canNode != null && canNode.isTextual() && plain.contains(flat(canNode.asText()))) {
-          obj.put("evidence", canNode.asText());
-        } else {
-          it.remove();
-        }
+        it.remove();
       }
     }
   }
