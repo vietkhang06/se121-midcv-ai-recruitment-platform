@@ -9,4 +9,5 @@ import java.util.UUID;
 @Repository
 public interface MatchFactorRepository extends JpaRepository<MatchFactor, UUID> {
     List<MatchFactor> findByMatchResultId(UUID matchResultId);
+    void deleteByMatchResultId(UUID matchResultId);
 }

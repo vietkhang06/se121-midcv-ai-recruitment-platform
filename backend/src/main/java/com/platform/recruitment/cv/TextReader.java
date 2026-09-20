@@ -40,8 +40,15 @@ public class TextReader {
       Integer pageNumber, // 1-indexed for PDF; null when format is unpaged (DOCX, TXT, images)
       String text,
       String method,      // "pdf-text", "pdf+ocr", "docx", "text", "ocr"
-      boolean ocrUsed
-  ) {}
+      boolean ocrUsed,
+      int startChar,
+      int endChar
+  ) {
+    // Backward-compatible constructor for existing callers and tests
+    public PageSegment(Integer pageNumber, String text, String method, boolean ocrUsed) {
+      this(pageNumber, text, method, ocrUsed, 0, text != null ? text.length() : 0);
+    }
+  }
 
   public record Extracted(
       String text,
@@ -54,6 +61,17 @@ public class TextReader {
     // Backward-compatible constructor for existing callers and tests
     public Extracted(String text, String method) {
       this(text, method, null, method != null && method.contains("ocr"), false, List.of());
+    }
+
+    public Optional<PageSegment> findPageForSnippet(String snippet) {
+      if (snippet == null || snippet.isBlank() || pages == null) return Optional.empty();
+      String clean = snippet.trim();
+      for (PageSegment page : pages) {
+        if (page.text() != null && page.text().contains(clean)) {
+          return Optional.of(page);
+        }
+      }
+      return Optional.empty();
     }
   }
 
@@ -71,7 +89,7 @@ public class TextReader {
             null, // Unpaged format: pageCount is null
             false,
             false,
-            List.of(new PageSegment(null, res.text(), "text", false))
+            List.of(new PageSegment(null, res.text(), "text", false, 0, res.text().length()))
         );
       }
 
@@ -87,7 +105,7 @@ public class TextReader {
               null, // DOCX is flow-based: pageCount is null
               false,
               false,
-              List.of(new PageSegment(null, res.text(), "docx", false))
+              List.of(new PageSegment(null, res.text(), "docx", false, 0, res.text().length()))
           );
         }
       }
@@ -105,7 +123,7 @@ public class TextReader {
             null, // Single standalone image: pageCount is null
             true,
             false,
-            List.of(new PageSegment(null, res.text(), "ocr", true))
+            List.of(new PageSegment(null, res.text(), "ocr", true, 0, res.text().length()))
         );
       }
 
@@ -168,8 +186,10 @@ public class TextReader {
           }
         }
 
-        segments.add(new PageSegment(i + 1, pageText, pageMethod, ocrOnPage));
+        int startChar = out.length();
         out.append(pageText).append('\n');
+        int endChar = out.length();
+        segments.add(new PageSegment(i + 1, pageText, pageMethod, ocrOnPage, startChar, endChar));
 
         if (out.length() > MAX_DOCUMENT_CHARS) {
           throw new CustomException(

@@ -74,6 +74,7 @@ public class PipelineWorker {
     MDC.put("request_id", Objects.toString(job.get("request_id"), ""));
     MDC.put("job_id", id.toString());
     long start = System.nanoTime();
+    int attempts = job.get("attempts") != null ? ((Number) job.get("attempts")).intValue() : 1;
     try {
       if (kind.equals("EXTRACT")) extract(id, owner, entity);
       else if (!match(id, owner, entity, kind.equals("SCREEN_MATCH"))) return;
@@ -86,6 +87,15 @@ public class PipelineWorker {
           "Tác vụ đã hoàn tất.",
           (System.nanoTime() - start) / 1_000_000);
     } catch (Exception e) {
+      boolean isInterrupted = Thread.currentThread().isInterrupted() || e instanceof InterruptedException;
+      if (isInterrupted) {
+        Thread.currentThread().interrupt();
+        try {
+          queue.defer(id, worker);
+          events.emit(id, owner, "WARN", "INTERRUPTED", "WORKER_SHUTDOWN", "Worker bị ngắt hoặc dừng; tác vụ được hoàn trả vào hàng đợi.", null);
+        } catch (Exception ignored) {}
+        return;
+      }
       String code = "PIPELINE_FAILED";
       String msg = "Pipeline lỗi; xem log theo mã job/request để kiểm tra.";
       if (e instanceof CustomException ce) {
@@ -96,12 +106,30 @@ public class PipelineWorker {
       if (!"JOB_LEASE_LOST".equals(code)) {
         final String fCode = code;
         final String fMsg = msg;
+        boolean retryable = isRetryable(e, code);
+        if (retryable && attempts < 3) {
+          int backoff = 5 * (1 << (attempts - 1));
+          try {
+            queue.retryWithBackoff(id, worker, fCode, fMsg, backoff);
+            events.emit(
+                id,
+                owner,
+                "WARN",
+                "RETRY_BACKOFF",
+                fCode,
+                "Tác vụ gặp sự cố tạm thời (" + fMsg + "); xếp lịch thử lại sau " + backoff + "s (lần " + attempts + ").",
+                null);
+            return;
+          } catch (Exception retryError) {
+            events.failure(retryError, "JOB_RETRY_SCHEDULE_FAILED");
+          }
+        }
         try {
           tx.executeWithoutResult(status -> {
             queue.assertLease(id, worker);
             if (kind.equals("EXTRACT"))
               jdbc.update(
-                  "UPDATE document_versions SET state='FAILED',error_code=?,error_message=? WHERE id=?",
+                  "UPDATE document_versions SET state='FAILED',error_code=?,error_message=? WHERE id=? AND state='PROCESSING'",
                   fCode, fMsg, entity);
             queue.fail(id, worker, fCode, fMsg);
           });
@@ -120,6 +148,29 @@ public class PipelineWorker {
     } finally {
       MDC.clear();
     }
+  }
+
+  private boolean isRetryable(Throwable t, String code) {
+    if (t instanceof CustomException) {
+      return false;
+    }
+    if ("JOB_LEASE_LOST".equals(code) || "VALIDATION_ERROR".equals(code)
+        || "INVALID_FILE".equals(code) || "FILE_SIZE_EXCEEDED".equals(code)
+        || "RESOURCE_NOT_FOUND".equals(code) || "ACCESS_DENIED".equals(code)) {
+      return false;
+    }
+    Throwable cause = t;
+    while (cause != null) {
+      String name = cause.getClass().getName().toLowerCase(Locale.ROOT);
+      String msg = Objects.toString(cause.getMessage(), "").toLowerCase(Locale.ROOT);
+      if (name.contains("timeout") || name.contains("connect") || name.contains("socket")
+          || name.contains("transient") || msg.contains("timeout") || msg.contains("connection refused")
+          || msg.contains("temporarily unavailable") || msg.contains("chưa kết nối được")) {
+        return true;
+      }
+      cause = cause.getCause();
+    }
+    return false;
   }
 
   private JsonNode toTree(Object o) {
@@ -200,6 +251,8 @@ public class PipelineWorker {
     if (!cached.isEmpty()) {
       normalized = toTree(cached.get(0).get("normalized"));
       vector = Objects.toString(cached.get(0).get("embedding_text"), "");
+      ai.validate(normalized, raw, Objects.toString(v.get("kind"), ""));
+      AiClient.validateVector(vector);
       events.emit(
           job,
           owner,
@@ -217,6 +270,8 @@ public class PipelineWorker {
           "Schema và trích dẫn đã được kiểm tra với văn bản gốc.");
       queue.progress(job, worker, owner, "EMBEDDING", 75, "Đang tạo embedding nội dung nghề nghiệp.");
       vector = ai.embed(ai.semanticText(normalized), activeEmbed);
+      AiClient.validateVector(vector);
+      queue.progress(job, worker, owner, "EMBEDDING_PERSISTED", 90, "Đã xác thực vector embedding 1024 chiều.");
     }
     final JsonNode n = normalized;
     final String vec = vector;
@@ -225,16 +280,19 @@ public class PipelineWorker {
     tx.executeWithoutResult(
         status -> {
           queue.assertLease(job, worker);
-          jdbc.update(
+          int rows = jdbc.update(
               "UPDATE document_versions SET"
                   + " normalized=?::jsonb,embedding=?::vector,llm_model=?,embedding_model=?,pipeline_version=?,state='READY',error_code=NULL,error_message=NULL"
-                  + " WHERE id=?",
+                  + " WHERE id=? AND state='PROCESSING'",
               n.toString(),
               vec,
               finalLlm,
               finalEmbed,
               AiClient.PIPELINE,
               version);
+          if (rows != 1) {
+            throw new CustomException(ErrorCode.JOB_LEASE_LOST, "Phiên bản tài liệu không còn ở trạng thái PROCESSING.");
+          }
           jdbc.update(
               "INSERT INTO extraction_cache(cache_key,owner_id,normalized,embedding) VALUES"
                   + " (?,?,?::jsonb,?::vector) ON CONFLICT(cache_key) DO NOTHING",

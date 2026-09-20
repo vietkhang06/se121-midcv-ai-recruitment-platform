@@ -3,10 +3,7 @@ package com.platform.recruitment;
 import com.platform.recruitment.candidate.CandidateProfile;
 import com.platform.recruitment.candidate.CandidateProfileRepository;
 import com.platform.recruitment.common.UnauthorizedAccessException;
-import com.platform.recruitment.cv.CV;
-import com.platform.recruitment.cv.CVCreationPath;
-import com.platform.recruitment.cv.CVRepository;
-import com.platform.recruitment.cv.CVService;
+import com.platform.recruitment.cv.*;
 import com.platform.recruitment.user.Role;
 import com.platform.recruitment.user.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +26,22 @@ class CVOwnershipTest {
     private CVRepository cvRepository;
 
     @Mock
+    private CVVersionRepository cvVersionRepository;
+
+    @Mock
+    private CVSectionRepository cvSectionRepository;
+
+    @Mock
     private CandidateProfileRepository candidateProfileRepository;
+
+    @Mock
+    private com.platform.recruitment.document.Documents documents;
+
+    @Mock
+    private com.platform.recruitment.cv.TextReader textReader;
+
+    @Mock
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @InjectMocks
     private CVService cvService;

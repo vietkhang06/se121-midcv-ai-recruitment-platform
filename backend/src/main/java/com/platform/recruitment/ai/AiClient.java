@@ -25,6 +25,7 @@ public class AiClient {
   public static final String PIPELINE_VERSION = "2.1";
   public static final String EMBEDDING_TEXT_VERSION = "1.1";
   public static final int MAX_EMBEDDING_TEXT_CHARS = 24_000;
+  public static final int EMBEDDING_DIMENSION = 1024;
 
   public final String llmModel, embeddingModel;
   private final String url;
@@ -638,12 +639,7 @@ public class AiClient {
           if (entry instanceof ObjectNode eObj) {
             JsonNode entryEv = eObj.get("evidence");
             if (entryEv == null || !entryEv.isTextual() || !plain.contains(flat(entryEv.asText()))) {
-              JsonNode role = eObj.get("role");
-              if (role != null && role.isTextual() && plain.contains(flat(role.asText()))) {
-                eObj.put("evidence", role.asText());
-              } else {
-                it.remove();
-              }
+              it.remove();
             }
           }
         }
@@ -677,15 +673,7 @@ public class AiClient {
           || !ev.isTextual()
           || ev.asText().trim().length() < 2
           || !plain.contains(flat(ev.asText()))) {
-        JsonNode nameNode = obj.get("name");
-        JsonNode canNode = obj.get("canonical");
-        if (nameNode != null && nameNode.isTextual() && plain.contains(flat(nameNode.asText()))) {
-          obj.put("evidence", nameNode.asText());
-        } else if (canNode != null && canNode.isTextual() && plain.contains(flat(canNode.asText()))) {
-          obj.put("evidence", canNode.asText());
-        } else {
-          it.remove();
-        }
+        it.remove();
       }
     }
   }
@@ -896,20 +884,58 @@ public class AiClient {
     }
 
     JsonNode vector = r.path("embeddings").path(0);
-    if (!vector.isArray() || vector.size() != 1024)
+    if (!vector.isArray() || vector.size() != EMBEDDING_DIMENSION)
       throw new CustomException(
           ErrorCode.INTERNAL_SERVER_ERROR,
-          "Model embedding phải trả về vector 1024 chiều (" + model + ").");
-    double norm = 0;
-    for (JsonNode n : vector) {
-      if (!n.isNumber() || !Double.isFinite(n.asDouble()))
-        throw new CustomException(
-            ErrorCode.INTERNAL_SERVER_ERROR, "Vector embedding chứa giá trị không hợp lệ.");
-      norm += n.asDouble() * n.asDouble();
+          "Model embedding phải trả về vector " + EMBEDDING_DIMENSION + " chiều (" + model + ").");
+    String vectorStr = vector.toString();
+    validateVector(vectorStr);
+    return vectorStr;
+  }
+
+  public static void validateVector(String vectorStr) {
+    if (vectorStr == null || vectorStr.isBlank()) {
+      throw new CustomException(
+          ErrorCode.INTERNAL_SERVER_ERROR, "Vector embedding rỗng hoặc không tồn tại.");
     }
-    if (norm < 1e-12)
-      throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Dịch vụ embedding trả về vector rỗng.");
-    return vector.toString();
+    String clean = vectorStr.trim();
+    if (!clean.startsWith("[") || !clean.endsWith("]")) {
+      throw new CustomException(
+          ErrorCode.INTERNAL_SERVER_ERROR, "Định dạng vector không hợp lệ.");
+    }
+    String inner = clean.substring(1, clean.length() - 1).trim();
+    if (inner.isEmpty()) {
+      throw new CustomException(
+          ErrorCode.INTERNAL_SERVER_ERROR, "Vector embedding rỗng.");
+    }
+    String[] elements = inner.split(",");
+    if (elements.length != EMBEDDING_DIMENSION) {
+      throw new CustomException(
+          ErrorCode.INTERNAL_SERVER_ERROR,
+          "Chiều của vector embedding không khớp: yêu cầu "
+              + EMBEDDING_DIMENSION
+              + ", nhận được "
+              + elements.length
+              + ".");
+    }
+    double norm = 0;
+    for (String el : elements) {
+      try {
+        double d = Double.parseDouble(el.trim());
+        if (!Double.isFinite(d)) {
+          throw new CustomException(
+              ErrorCode.INTERNAL_SERVER_ERROR, "Vector embedding chứa giá trị không hữu hạn.");
+        }
+        norm += d * d;
+      } catch (NumberFormatException nfe) {
+        throw new CustomException(
+            ErrorCode.INTERNAL_SERVER_ERROR, "Vector embedding chứa phần tử không phải số.");
+      }
+    }
+    if (norm < 1e-12) {
+      throw new CustomException(
+          ErrorCode.INTERNAL_SERVER_ERROR, "Dịch vụ embedding trả về vector rỗng (norm = 0).");
+    }
   }
 
   private JsonNode post(String path, Object body) {

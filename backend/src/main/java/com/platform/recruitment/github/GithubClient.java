@@ -28,8 +28,23 @@ public class GithubClient {
     this.token = token == null ? "" : token.trim();
   }
 
-  public JsonNode fetch(String username) {
-    if (!username.matches("[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?"))
+  public static String sanitizeUsername(String input) {
+    if (input == null || input.isBlank()) return null;
+    String trimmed = input.trim();
+    if (trimmed.startsWith("@")) {
+      trimmed = trimmed.substring(1).trim();
+    } else if (trimmed.matches("(?i)^https?://(?:www\\.)?github\\.com/[A-Za-z0-9_-]+/?$")) {
+      trimmed = trimmed.replaceFirst("(?i)^https?://(?:www\\.)?github\\.com/", "").replaceAll("/+$", "").trim();
+    }
+    if (trimmed.matches("[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?")) {
+      return trimmed;
+    }
+    return null;
+  }
+
+  public JsonNode fetch(String rawUsername) {
+    String username = sanitizeUsername(rawUsername);
+    if (username == null)
       throw new CustomException(ErrorCode.VALIDATION_ERROR, "Tên GitHub không hợp lệ.");
     String cacheKey = username.toLowerCase(Locale.ROOT);
     List<String> cached =

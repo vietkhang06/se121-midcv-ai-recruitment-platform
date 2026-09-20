@@ -1,12 +1,58 @@
 package com.platform.recruitment.embedding;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Component
 public class PgvectorCosineSimilarity {
+
+    private static final Logger log = LoggerFactory.getLogger(PgvectorCosineSimilarity.class);
+
+    private final JdbcTemplate jdbcTemplate;
+
+    public PgvectorCosineSimilarity() {
+        this.jdbcTemplate = null;
+    }
+
+    @Autowired
+    public PgvectorCosineSimilarity(@Autowired(required = false) JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    /**
+     * Executes real PostgreSQL pgvector cosine similarity calculation on document_versions embeddings.
+     * Query: SELECT greatest(0,least(100,(1-(cv.embedding <=> jd.embedding))*100)) AS score
+     * Returns null if database or embeddings are not available, allowing seamless fallback.
+     */
+    public BigDecimal evaluatePgvectorSemanticSimilarity(UUID cvVersionId, UUID jdVersionId) {
+        if (jdbcTemplate != null && cvVersionId != null && jdVersionId != null) {
+            try {
+                List<Map<String, Object>> scoreRows = jdbcTemplate.queryForList(
+                        "SELECT greatest(0,least(100,(1-(cv.embedding <=> jd.embedding))*100)) AS score " +
+                        "FROM document_versions cv CROSS JOIN document_versions jd " +
+                        "WHERE cv.id=? AND jd.id=? AND cv.embedding IS NOT NULL AND jd.embedding IS NOT NULL " +
+                        "AND cv.state='READY' AND jd.state='READY'",
+                        cvVersionId, jdVersionId
+                );
+                if (!scoreRows.isEmpty() && scoreRows.get(0).get("score") != null) {
+                    double score = ((Number) scoreRows.get(0).get("score")).doubleValue();
+                    return BigDecimal.valueOf(score).setScale(2, RoundingMode.HALF_UP);
+                }
+            } catch (Exception e) {
+                log.debug("Native PostgreSQL pgvector query skipped (using fallback): {}", e.getMessage());
+            }
+        }
+        return null;
+    }
 
     /**
      * Calculates normalized Cosine Similarity score in scale [0, 100].
@@ -21,12 +67,16 @@ public class PgvectorCosineSimilarity {
             float[] vecA = parseVector(vectorAString);
             float[] vecB = parseVector(vectorBString);
 
+            if (vecA.length != vecB.length) {
+                log.warn("Vector dimension mismatch: {} != {}. Aborting similarity calculation.", vecA.length, vecB.length);
+                return BigDecimal.ZERO;
+            }
+
             float dotProduct = 0.0f;
             float normA = 0.0f;
             float normB = 0.0f;
 
-            int len = Math.min(vecA.length, vecB.length);
-            for (int i = 0; i < len; i++) {
+            for (int i = 0; i < vecA.length; i++) {
                 dotProduct += vecA[i] * vecB[i];
                 normA += vecA[i] * vecA[i];
                 normB += vecB[i] * vecB[i];
