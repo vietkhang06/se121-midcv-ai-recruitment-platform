@@ -9,4 +9,5 @@ import java.util.UUID;
 @Repository
 public interface EvidenceRepository extends JpaRepository<Evidence, UUID> {
     List<Evidence> findByMatchResultId(UUID matchResultId);
+    void deleteByMatchResultId(UUID matchResultId);
 }

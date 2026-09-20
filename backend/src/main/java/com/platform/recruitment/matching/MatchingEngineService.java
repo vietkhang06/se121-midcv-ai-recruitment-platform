@@ -214,6 +214,12 @@ public class MatchingEngineService {
 
         MatchResult savedResult = matchResultRepository.save(result);
 
+        // 5b. Idempotency & Duplicate Prevention: purge previous factors and evidences for this match result
+        matchFactorRepository.deleteByMatchResultId(savedResult.getId());
+        if (evidenceRepository != null) {
+            evidenceRepository.deleteByMatchResultId(savedResult.getId());
+        }
+
         // 6. Save MatchFactors for Full Score Reconstruction
         saveMatchFactor(savedResult, "SKILL_REQUIRED", reqSkillScore, BigDecimal.valueOf(0.32)); // 0.40 * 0.80
         saveMatchFactor(savedResult, "SKILL_PREFERRED", prefSkillScore, BigDecimal.valueOf(0.08)); // 0.40 * 0.20
