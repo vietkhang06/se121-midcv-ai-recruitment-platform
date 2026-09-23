@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { LogoutConfirmModal } from '@/components/auth/LogoutConfirmModal';
 import { BrandLogo } from '@/components/common/BrandLogo';
@@ -17,9 +16,6 @@ import {
   User as UserIcon,
   GitCompare,
   Search,
-  CheckCircle2,
-  Sun,
-  Moon,
   Globe,
   HelpCircle,
   Menu,
@@ -30,19 +26,20 @@ import {
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, openAuthModal, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const { locale, toggleLocale, t } = useLanguage();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const [prevPathname, setPrevPathname] = useState(pathname);
+
+  // Automatically close mobile drawer upon navigation (React 19 render-time adjustment)
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
+    setIsMobileMenuOpen(false);
+  }
 
   const isRecruiter = isAuthenticated && user?.role === 'RECRUITER';
   const isCandidate = isAuthenticated && user?.role === 'CANDIDATE';
-
-  // Automatically close mobile drawer upon navigation
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
 
   // Handle escape key to close mobile menu
   useEffect(() => {
@@ -76,7 +73,8 @@ export const Navbar: React.FC = () => {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-md border-b border-blue-100/80 dark:border-[#1E293B] text-[#173B73] dark:text-[#D6E4E1] transition-colors">
+    <>
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-md border-b border-blue-100/80 dark:border-[#1E293B] text-[#173B73] dark:text-[#D6E4E1] transition-colors">
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-2 xl:gap-4">
         
         {/* Brand Logo (No tagline under logo as requested) */}
@@ -461,6 +459,7 @@ export const Navbar: React.FC = () => {
           {isAuthenticated && (
             <div className="pt-3 border-t border-slate-100 dark:border-[#1E293B]">
               <button
+                id="mobile-drawer-logout-btn"
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   setIsLogoutModalOpen(true);
@@ -475,12 +474,14 @@ export const Navbar: React.FC = () => {
         </div>
       )}
 
+      </header>
+
       {/* Logout Confirmation Modal */}
       <LogoutConfirmModal
         isOpen={isLogoutModalOpen}
         onClose={() => setIsLogoutModalOpen(false)}
         onConfirm={logout}
       />
-    </header>
+    </>
   );
 };
