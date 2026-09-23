@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useLanguage } from '@/context/LanguageContext';
 import { LogOut, AlertTriangle, X } from 'lucide-react';
 
@@ -10,12 +11,19 @@ interface LogoutConfirmModalProps {
   onConfirm: () => void;
 }
 
+const emptySubscribe = () => () => {};
+
 export const LogoutConfirmModal: React.FC<LogoutConfirmModalProps> = ({
   isOpen,
   onClose,
   onConfirm
 }) => {
   const { t } = useLanguage();
+  const isMounted = React.useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -29,17 +37,28 @@ export const LogoutConfirmModal: React.FC<LogoutConfirmModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  // Lock body scroll when modal is active
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
 
-  return (
+  if (!isOpen || !isMounted) return null;
+
+  return createPortal(
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-xs animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-black/60 dark:bg-black/80 backdrop-blur-xs animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="logout-modal-title"
+      onClick={onClose}
     >
       <div 
-        className="w-full max-w-md bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl shadow-2xl p-6 text-slate-800 dark:text-slate-100 relative transition-colors"
+        className="w-full max-w-md my-auto bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl shadow-2xl p-6 text-slate-800 dark:text-slate-100 relative transition-colors max-h-[calc(100vh-2rem)] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -89,6 +108,7 @@ export const LogoutConfirmModal: React.FC<LogoutConfirmModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
