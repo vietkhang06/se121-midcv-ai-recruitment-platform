@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { fetchCandidateProfile, saveCandidateProfile } from '@/lib/api';
 import { Industry, CandidateProfile } from '@/types';
 import {
@@ -24,6 +25,7 @@ import {
 
 export default function CandidateProfilePage() {
   const { user } = useAuth();
+  const { t, locale } = useLanguage();
   
   const [profile, setProfile] = useState<CandidateProfile | null>(null);
   const [newSkill, setNewSkill] = useState<string>('');
@@ -37,7 +39,7 @@ export default function CandidateProfilePage() {
   if (!profile) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center text-slate-500">
-        <p className="text-sm">Đang tải hồ sơ ứng viên MidCV...</p>
+        <p className="text-sm">{locale === 'vi' ? 'Đang tải hồ sơ ứng viên midCV...' : 'Loading midCV candidate profile...'}</p>
       </div>
     );
   }
@@ -79,11 +81,15 @@ export default function CandidateProfilePage() {
             <span className="font-bold uppercase tracking-wider text-[10px] bg-amber-200/80 dark:bg-amber-900/60 px-2 py-0.5 rounded">
               Recruiter Portal
             </span>
-            <span>You are viewing {profile.fullName}&apos;s validated profile. All skill scores trace directly to production commits and verified submissions.</span>
+            <span>
+              {locale === 'vi' 
+                ? `Bạn đang xem hồ sơ đã xác thực của ${profile.fullName}. Tất cả điểm số năng lực đều đối soát trực tiếp từ commits và bài nộp thực tế.` 
+                : `You are viewing ${profile.fullName}'s validated profile. All skill scores trace directly to production commits and verified submissions.`}
+            </span>
           </div>
           <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-emerald-800 dark:text-[#3B82F6] font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Visible Mode: Open to offers</span>
+            <span>{locale === 'vi' ? 'Trạng thái: Sẵn sàng nhận cơ hội mới' : 'Visible Mode: Open to offers'}</span>
           </div>
         </div>
 
@@ -94,13 +100,13 @@ export default function CandidateProfilePage() {
               onClick={() => setActiveTab('dashboard')}
               className={`pb-2 transition ${activeTab === 'dashboard' ? 'border-b-2 border-[#0C2B24] dark:border-[#3B82F6] text-[#2563EB] dark:text-[#3B82F6] font-semibold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
             >
-              Candidate Dashboard (04)
+              {locale === 'vi' ? 'Tổng Quan Ứng Viên (Dashboard)' : 'Candidate Dashboard (04)'}
             </button>
             <button
               onClick={() => setActiveTab('profile')}
               className={`pb-2 transition ${activeTab === 'profile' ? 'border-b-2 border-[#0C2B24] dark:border-[#3B82F6] text-[#2563EB] dark:text-[#3B82F6] font-semibold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
             >
-              Hồ Sơ Cá Nhân Ứng Viên (09)
+              {locale === 'vi' ? 'Hồ Sơ Cá Nhân Ứng Viên (09)' : 'Candidate Profile (09)'}
             </button>
           </div>
           <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">ID: {profile.id || 'usr-cand-01'}</span>
@@ -116,23 +122,25 @@ export default function CandidateProfilePage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div className="space-y-3 max-w-2xl">
               <h2 className="text-3xl sm:text-4xl font-editorial font-normal tracking-tight text-white">
-                Welcome back, {profile.fullName || user?.fullName || 'Andrew'}
+                {locale === 'vi' ? `Chào mừng trở lại, ${profile.fullName || user?.fullName || 'Ứng viên'}` : `Welcome back, ${profile.fullName || user?.fullName || 'Andrew'}`}
               </h2>
               <p className="text-xs sm:text-sm text-slate-300 font-light leading-relaxed">
-                Your structural skills profile is verified and active. Hiring systems matching distributed infrastructure roles can view your evidence vectors.
+                {locale === 'vi'
+                  ? 'Hồ sơ kỹ năng có cấu trúc của bạn đã được xác thực và sẵn sàng. Hệ thống tuyển dụng có thể xem xét trực tiếp minh chứng năng lực của bạn.'
+                  : 'Your structural skills profile is verified and active. Hiring systems matching distributed infrastructure roles can view your evidence vectors.'}
               </p>
               <div className="flex items-center gap-3 pt-2">
                 <Link
                   href="/candidate/cvs"
                   className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#10B981] hover:bg-[#059669] text-[#081C15] transition shadow-xs"
                 >
-                  Update CV / Ingest Repos
+                  {locale === 'vi' ? 'Cập nhật CV / Nạp Repos' : 'Update CV / Ingest Repos'}
                 </Link>
                 <button
                   onClick={() => setActiveTab('profile')}
                   className="px-4 py-2 rounded-lg text-xs font-medium border border-slate-400/40 text-white hover:bg-white/10 transition"
                 >
-                  View Match Metrics
+                  {locale === 'vi' ? 'Xem Chỉ Số Đối Sánh' : 'View Match Metrics'}
                 </button>
               </div>
             </div>
@@ -161,8 +169,12 @@ export default function CandidateProfilePage() {
                 <span className="absolute font-bold font-editorial text-lg text-white">85%</span>
               </div>
               <div className="text-left space-y-0.5">
-                <div className="text-xs font-semibold text-white">Profile Strength</div>
-                <div className="text-[11px] text-emerald-400 font-mono">Add Code samples (+15%)</div>
+                <div className="text-xs font-semibold text-white">
+                  {locale === 'vi' ? 'Độ hoàn thiện hồ sơ' : 'Profile Strength'}
+                </div>
+                <div className="text-[11px] text-emerald-400 font-mono">
+                  {locale === 'vi' ? 'Thêm mẫu mã nguồn (+15%)' : 'Add Code samples (+15%)'}
+                </div>
               </div>
             </div>
           </div>
@@ -171,34 +183,52 @@ export default function CandidateProfilePage() {
         {/* 04 — 4 KPI Stat Cards (Figma Screen 04) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
           <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-            <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">APPLICATIONS SENT</span>
+            <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+              {locale === 'vi' ? 'ĐƠN ĐÃ ỨNG TUYỂN' : 'APPLICATIONS SENT'}
+            </span>
             <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">12</div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">2 new reviews today</div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+              {locale === 'vi' ? '2 đánh giá mới hôm nay' : '2 new reviews today'}
+            </div>
           </div>
 
           <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-            <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">INTERVIEWS SCHEDULED</span>
+            <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+              {locale === 'vi' ? 'LỊCH PHỎNG VẤN' : 'INTERVIEWS SCHEDULED'}
+            </span>
             <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">3</div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">Next: cloud scale tomorrow</div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+              {locale === 'vi' ? 'Kế tiếp: CloudScale ngày mai' : 'Next: cloud scale tomorrow'}
+            </div>
           </div>
 
           <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-            <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">PROFILE VIEWS</span>
+            <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+              {locale === 'vi' ? 'LƯỢT XEM HỒ SƠ' : 'PROFILE VIEWS'}
+            </span>
             <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">184</div>
-            <div className="text-[11px] text-emerald-600 dark:text-[#3B82F6] font-medium pt-1">+24% compared to last week</div>
+            <div className="text-[11px] text-emerald-600 dark:text-[#3B82F6] font-medium pt-1">
+              {locale === 'vi' ? '+24% so với tuần trước' : '+24% compared to last week'}
+            </div>
           </div>
 
           <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-            <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">AVERAGE MATCH SCORE</span>
+            <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+              {locale === 'vi' ? 'ĐIỂM ĐỐI SÁNH TB' : 'AVERAGE MATCH SCORE'}
+            </span>
             <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">86%</div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">Highly qualified candidate index</div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+              {locale === 'vi' ? 'Chỉ số ứng viên năng lực cao' : 'Highly qualified candidate index'}
+            </div>
           </div>
         </div>
 
         {/* 04 — Active Application Pipeline Stepper (Figma Screen 04) */}
         <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
           <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-            Active Application Pipeline: Senior Infrastructure Engineer (CloudScale Systems)
+            {locale === 'vi' 
+              ? 'Tiến độ nộp đơn đang xử lý: Kỹ sư Hạ tầng Cao cấp (CloudScale Systems)' 
+              : 'Active Application Pipeline: Senior Infrastructure Engineer (CloudScale Systems)'}
           </div>
 
           <div className="pt-3 pb-2">
@@ -207,11 +237,11 @@ export default function CandidateProfilePage() {
               <div className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-[#111C38] dark:bg-emerald-500 w-3/4 z-0"></div>
 
               {[
-                { label: 'Applied', done: true },
-                { label: 'Reviewed', done: true },
-                { label: 'Shortlisted', done: true },
-                { label: 'Interview Mode', active: true },
-                { label: 'Offer Generation', pending: true },
+                { label: locale === 'vi' ? 'Đã nộp' : 'Applied', done: true },
+                { label: locale === 'vi' ? 'Đã xem' : 'Reviewed', done: true },
+                { label: locale === 'vi' ? 'Chọn lọc' : 'Shortlisted', done: true },
+                { label: locale === 'vi' ? 'Phỏng vấn' : 'Interview Mode', active: true },
+                { label: locale === 'vi' ? 'Nhận Offer' : 'Offer Generation', pending: true },
               ].map((step, idx) => (
                 <div key={idx} className="flex flex-col items-center gap-1.5 relative z-10 bg-white dark:bg-[#111C38] px-2">
                   <div
@@ -242,9 +272,11 @@ export default function CandidateProfilePage() {
             {/* Left: Recommended Jobs */}
             <div className="lg:col-span-8 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-sm text-slate-900 dark:text-white">Recommended Jobs</h3>
+                <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
+                  {locale === 'vi' ? 'Việc Làm Gợi Ý' : 'Recommended Jobs'}
+                </h3>
                 <Link href="/jobs" className="text-xs font-semibold text-amber-700 dark:text-amber-400 hover:underline">
-                  BROWSE ALL
+                  {locale === 'vi' ? 'XEM TẤT CẢ' : 'BROWSE ALL'}
                 </Link>
               </div>
 
@@ -268,7 +300,7 @@ export default function CandidateProfilePage() {
                     href="/jobs"
                     className="px-3.5 py-1.5 rounded-md text-xs font-medium border border-[#E2E8F0] dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#133E34] transition shrink-0"
                   >
-                    Match Analytics
+                    {locale === 'vi' ? 'Chi Tiết Đối Sánh' : 'Match Analytics'}
                   </Link>
                 </div>
               ))}
@@ -276,19 +308,39 @@ export default function CandidateProfilePage() {
 
             {/* Right: Recent Activity Feed */}
             <div className="lg:col-span-4 bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
-              <h3 className="font-semibold text-sm text-slate-900 dark:text-white">Recent Activity Feed</h3>
+              <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
+                {locale === 'vi' ? 'Hoạt Động Gần Đây' : 'Recent Activity Feed'}
+              </h3>
               <div className="space-y-4 text-xs">
                 <div className="border-b border-slate-100 dark:border-[#1E293B] pb-3 space-y-1">
-                  <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">2 hours ago</span>
-                  <p className="text-slate-700 dark:text-slate-300">Match Audit report downloaded by CloudScale systems manager.</p>
+                  <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                    {locale === 'vi' ? '2 giờ trước' : '2 hours ago'}
+                  </span>
+                  <p className="text-slate-700 dark:text-slate-300">
+                    {locale === 'vi' 
+                      ? 'Báo cáo Kiểm tra Đối sánh được tải xuống bởi quản lý CloudScale.' 
+                      : 'Match Audit report downloaded by CloudScale systems manager.'}
+                  </p>
                 </div>
                 <div className="border-b border-slate-100 dark:border-[#1E293B] pb-3 space-y-1">
-                  <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">Yesterday</span>
-                  <p className="text-slate-700 dark:text-slate-300">AI pipeline updated matching score for &apos;Senior Systems Architect&apos; position from 84% to 88% based on updated repository commits.</p>
+                  <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                    {locale === 'vi' ? 'Hôm qua' : 'Yesterday'}
+                  </span>
+                  <p className="text-slate-700 dark:text-slate-300">
+                    {locale === 'vi'
+                      ? "Hệ thống AI đã cập nhật điểm đối sánh cho vị trí 'Senior Systems Architect' từ 84% lên 88% dựa trên commit mới."
+                      : "AI pipeline updated matching score for 'Senior Systems Architect' position from 84% to 88% based on updated repository commits."}
+                  </p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">3 days ago</span>
-                  <p className="text-slate-700 dark:text-slate-300">Application submitted successfully to DevOpsCloud LLC.</p>
+                  <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                    {locale === 'vi' ? '3 ngày trước' : '3 days ago'}
+                  </span>
+                  <p className="text-slate-700 dark:text-slate-300">
+                    {locale === 'vi'
+                      ? 'Đơn ứng tuyển đã nộp thành công tới DevOpsCloud LLC.'
+                      : 'Application submitted successfully to DevOpsCloud LLC.'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -306,7 +358,7 @@ export default function CandidateProfilePage() {
                 <div className="flex items-center gap-3 flex-wrap">
                   <h3 className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">{profile.fullName}</h3>
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-[#93C5FD] border border-emerald-300 dark:border-emerald-800/40">
-                    VERIFIED SOURCE
+                    {locale === 'vi' ? 'NGUỒN ĐÃ XÁC THỰC' : 'VERIFIED SOURCE'}
                   </span>
                 </div>
 
@@ -321,7 +373,7 @@ export default function CandidateProfilePage() {
                 {/* Verified Work Experience Timeline */}
                 <div className="pt-4 border-t border-slate-100 dark:border-[#1E293B] space-y-4">
                   <div className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Verified Work Experience Timeline
+                    {locale === 'vi' ? 'Dòng Thời Gian Kinh Nghiệm Làm Việc Đã Xác Thực' : 'Verified Work Experience Timeline'}
                   </div>
 
                   <div className="space-y-3 pl-4 border-l-2 border-[#0C2B24] dark:border-emerald-500 text-xs">
@@ -351,14 +403,18 @@ export default function CandidateProfilePage() {
                 
                 {/* Actions Box */}
                 <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-3">
-                  <div className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400">EVALUATION ACTIONS</div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">Secure Recruitment Channel</div>
+                  <div className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400">
+                    {locale === 'vi' ? 'THAO TÁC ĐÁNH GIÁ' : 'EVALUATION ACTIONS'}
+                  </div>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {locale === 'vi' ? 'Kênh Tuyển Dụng Bảo Mật' : 'Secure Recruitment Channel'}
+                  </div>
                   <div className="space-y-2 pt-2">
                     <button className="w-full py-2.5 px-4 rounded-lg text-xs font-semibold text-white bg-[#111C38] dark:bg-[#2563EB] hover:bg-[#133E34] dark:hover:bg-[#1D4ED8] transition">
-                      Unlock Evidence Map
+                      {locale === 'vi' ? 'Mở Bản Đồ Minh Chứng' : 'Unlock Evidence Map'}
                     </button>
                     <button className="w-full py-2.5 px-4 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 border border-[#E2E8F0] dark:border-[#1E293B] hover:bg-slate-50 dark:hover:bg-[#133E34] transition">
-                      Contact Andrew Directly
+                      {locale === 'vi' ? `Liên Hệ ${profile.fullName || 'Ứng Viên'} Trực Tiếp` : `Contact ${profile.fullName || 'Candidate'} Directly`}
                     </button>
                   </div>
                 </div>
@@ -367,19 +423,19 @@ export default function CandidateProfilePage() {
                 <div className="bg-[#13233F] text-white border border-[#1E3A5F] rounded-xl p-6 shadow-xs space-y-3">
                   <div className="flex items-center gap-2 text-[10px] font-mono uppercase text-emerald-400">
                     <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                    <span>Ingested Repos Telemetry</span>
+                    <span>{locale === 'vi' ? 'Dữ Liệu Repos Đã Tích Hợp' : 'Ingested Repos Telemetry'}</span>
                   </div>
                   <div className="space-y-2 text-xs divide-y divide-[#133E34]/80">
                     <div className="flex items-center justify-between pt-1">
-                      <span className="text-slate-400">Top Repository:</span>
+                      <span className="text-slate-400">{locale === 'vi' ? 'Repository Hàng Đầu:' : 'Top Repository:'}</span>
                       <span className="font-mono text-amber-400">{profile.githubUsername ? `${profile.githubUsername}/k8s-mesh` : 'k8s-engine-mesh'}</span>
                     </div>
                     <div className="flex items-center justify-between pt-2">
-                      <span className="text-slate-400">Contribution Streak:</span>
-                      <span className="font-mono font-bold text-white">42 days</span>
+                      <span className="text-slate-400">{locale === 'vi' ? 'Chuỗi Đóng Góp Liên Tục:' : 'Contribution Streak:'}</span>
+                      <span className="font-mono font-bold text-white">42 {locale === 'vi' ? 'ngày' : 'days'}</span>
                     </div>
                     <div className="flex items-center justify-between pt-2">
-                      <span className="text-slate-400">Total Verifiable Commits:</span>
+                      <span className="text-slate-400">{locale === 'vi' ? 'Tổng Commits Đã Xác Thực:' : 'Total Verifiable Commits:'}</span>
                       <span className="font-mono font-bold text-emerald-400">1,248 commits</span>
                     </div>
                   </div>
@@ -393,13 +449,19 @@ export default function CandidateProfilePage() {
             <form onSubmit={handleSaveProfile} className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 sm:p-8 shadow-xs space-y-6">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Cập nhật Chi tiết Hồ sơ & Định hướng</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Chỉnh sửa thông tin liên hệ, đa ngành nghề và bộ kỹ năng đối sánh.</p>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                    {locale === 'vi' ? 'Cập nhật Chi tiết Hồ sơ & Định hướng' : 'Update Profile Details & Career Target'}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {locale === 'vi' 
+                      ? 'Chỉnh sửa thông tin liên hệ, đa ngành nghề và bộ kỹ năng đối sánh.' 
+                      : 'Edit contact info, multi-industry orientation, and matching skills.'}
+                  </p>
                 </div>
                 {savedSuccess && (
                   <span className="text-xs font-semibold text-emerald-700 dark:text-[#93C5FD] bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/40 flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Đã lưu thành công!</span>
+                    <span>{locale === 'vi' ? 'Đã lưu thành công!' : 'Successfully saved!'}</span>
                   </span>
                 )}
               </div>
@@ -407,7 +469,7 @@ export default function CandidateProfilePage() {
               {/* Multi-Industry Selector */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
-                  Định hướng Nghề nghiệp Đa ngành
+                  {locale === 'vi' ? 'Định hướng Nghề nghiệp Đa ngành' : 'Multi-Industry Career Target'}
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {(['Technology', 'Marketing', 'Design', 'Finance'] as Industry[]).map((ind) => (
@@ -430,7 +492,7 @@ export default function CandidateProfilePage() {
               {/* Skills Tag Cloud & Adder */}
               <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
-                  Kỹ năng Chuyên môn
+                  {locale === 'vi' ? 'Kỹ năng Chuyên môn' : 'Technical Skills'}
                 </label>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {profile.skills.map((skill) => (
@@ -453,7 +515,7 @@ export default function CandidateProfilePage() {
                 <div className="flex items-center gap-2 max-w-md">
                   <input
                     type="text"
-                    placeholder="Thêm kỹ năng mới (e.g. Terraform, Rust)..."
+                    placeholder={locale === 'vi' ? 'Thêm kỹ năng mới (e.g. Terraform, Rust)...' : 'Add new skill (e.g. Terraform, Rust)...'}
                     value={newSkill}
                     onChange={(e) => setNewSkill(e.target.value)}
                     className="flex-1 px-3 py-2 text-xs bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]"
@@ -463,7 +525,7 @@ export default function CandidateProfilePage() {
                     onClick={handleAddSkill}
                     className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-800 dark:bg-[#2563EB] text-white hover:bg-slate-900 dark:hover:bg-[#1D4ED8] transition"
                   >
-                    Thêm
+                    {locale === 'vi' ? 'Thêm' : 'Add'}
                   </button>
                 </div>
               </div>
@@ -475,7 +537,7 @@ export default function CandidateProfilePage() {
                   className="px-6 py-2.5 rounded-lg text-xs font-semibold text-white bg-[#111C38] dark:bg-[#2563EB] hover:bg-[#133E34] dark:hover:bg-[#1D4ED8] transition flex items-center gap-2 shadow-xs"
                 >
                   <Save className="w-3.5 h-3.5" />
-                  <span>Lưu Hồ Sơ Cá Nhân</span>
+                  <span>{locale === 'vi' ? 'Lưu Hồ Sơ Cá Nhân' : 'Save Personal Profile'}</span>
                 </button>
               </div>
 

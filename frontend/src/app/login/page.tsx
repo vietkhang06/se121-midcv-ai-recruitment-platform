@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { getImageSlot } from '@/config/imageConfig';
 import { BrandLogo } from '@/components/common/BrandLogo';
 import {
@@ -20,6 +21,7 @@ import {
 export default function LoginPage() {
   const router = useRouter();
   const { login, isAuthenticated, user } = useAuth();
+  const { t, locale } = useLanguage();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -54,9 +56,9 @@ export default function LoginPage() {
     } catch (err: any) {
       if (err.code === 'EMAIL_NOT_VERIFIED' || err.message?.includes('EMAIL_NOT_VERIFIED') || err.message?.toLowerCase().includes('not verified')) {
         setIsUnverified(true);
-        setError('Email của bạn chưa được xác thực. Vui lòng xác thực tài khoản để đăng nhập.');
+        setError(locale === 'vi' ? 'Email của bạn chưa được xác thực. Vui lòng xác thực tài khoản để đăng nhập.' : 'Your email is not verified yet. Please verify your email before signing in.');
       } else {
-        setError(err.message || 'Tài khoản hoặc mật khẩu không chính xác.');
+        setError(err.message || (locale === 'vi' ? 'Tài khoản hoặc mật khẩu không chính xác.' : 'Invalid email or password.'));
       }
     } finally {
       setIsLoading(false);
@@ -78,10 +80,12 @@ export default function LoginPage() {
                 Evidence-Based Portal
               </span>
               <h1 className="font-editorial text-3xl text-white leading-tight">
-                Đăng Nhập Tài Khoản midCV®
+                {locale === 'vi' ? 'Đăng Nhập Tài Khoản midCV®' : 'Sign In to midCV®'}
               </h1>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Trải nghiệm đối sánh năng lực chuẩn xác trên dữ liệu thực tế và bản lưu đánh giá bất biến.
+                {locale === 'vi' 
+                  ? 'Trải nghiệm đối sánh năng lực chuẩn xác trên dữ liệu thực tế và bản lưu đánh giá bất biến.'
+                  : 'Experience transparent technical alignment grounded in verified production signals and immutable records.'}
               </p>
             </div>
           </div>
@@ -113,7 +117,7 @@ export default function LoginPage() {
           <div className="relative z-10 space-y-2 pt-2 border-t border-white/10">
             <div className="flex items-center gap-2 text-[11px] text-slate-300">
               <CheckCircle2 className="w-3.5 h-3.5 text-[#00B14F]" />
-              <span>Đối sánh vector ngữ nghĩa đa chiều</span>
+              <span>{locale === 'vi' ? 'Đối sánh vector ngữ nghĩa đa chiều' : 'Multi-dimensional semantic vector alignment'}</span>
             </div>
           </div>
         </div>
@@ -123,10 +127,10 @@ export default function LoginPage() {
           <div>
             <div className="mb-6 space-y-1">
               <h2 className="font-editorial text-2xl font-bold text-[#0F2A52] dark:text-[#F1F5F9] tracking-tight">
-                Đăng Nhập Tài Khoản
+                {t('auth.signInTitle', 'Đăng Nhập Tài Khoản')}
               </h2>
               <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
-                Nhập email và mật khẩu của bạn để tiếp tục.
+                {t('auth.signInSubtitle', 'Nhập email và mật khẩu của bạn để tiếp tục.')}
               </p>
             </div>
 
@@ -141,7 +145,7 @@ export default function LoginPage() {
                         href="/verify-email"
                         className="text-[#2563EB] dark:text-[#3B82F6] underline font-semibold hover:text-[#1D4ED8]"
                       >
-                        Đến trang xác thực email
+                        {locale === 'vi' ? 'Đến trang xác thực email' : 'Go to Email Verification'}
                       </Link>
                     </div>
                   )}
@@ -153,7 +157,7 @@ export default function LoginPage() {
               <div>
                 <label className="block text-xs font-semibold text-[#1E3A5F] dark:text-[#D6E4E1] mb-1 flex items-center gap-1">
                   <Mail className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
-                  <span>Email đăng nhập</span>
+                  <span>{t('auth.emailLabel', 'Email đăng nhập')}</span>
                 </label>
                 <input
                   type="email"
@@ -168,11 +172,11 @@ export default function LoginPage() {
               <div>
                 <label className="block text-xs font-semibold text-[#1E3A5F] dark:text-[#D6E4E1] mb-1 flex items-center gap-1">
                   <Lock className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
-                  <span>Mật khẩu</span>
+                  <span>{t('auth.passwordLabel', 'Mật khẩu')}</span>
                 </label>
                 <input
                   type="password"
-                  placeholder="Nhập mật khẩu..."
+                  placeholder={t('auth.confirmPasswordPlaceholder', 'Nhập mật khẩu...')}
                   value={password || ''}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] placeholder-[#94A3B8]"
@@ -186,18 +190,18 @@ export default function LoginPage() {
                 className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <LogIn className="w-4 h-4" />
-                <span>{isLoading ? 'Đang đăng nhập...' : 'Đăng nhập ngay'}</span>
+                <span>{isLoading ? (locale === 'vi' ? 'Đang đăng nhập...' : 'Signing in...') : t('auth.loginCta', 'Đăng nhập ngay')}</span>
               </button>
             </form>
           </div>
 
           <div className="mt-8 pt-4 border-t border-[#E2E8F0] dark:border-[#1E293B] text-xs text-[#64748B] dark:text-[#94A3B8] flex items-center justify-between">
-            <span>Chưa có tài khoản midCV®?</span>
+            <span>{t('auth.dontHaveAccount', 'Chưa có tài khoản midCV®?')}</span>
             <Link
               href="/register"
               className="font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:text-[#1D4ED8] flex items-center gap-1 transition"
             >
-              <span>Đăng ký tài khoản</span>
+              <span>{t('nav.register', 'Đăng ký tài khoản')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>

@@ -3,11 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { Company } from '@/types';
 import { fetchRecruiterProfile, saveCompanyProfile } from '@/lib/api';
+import { useLanguage } from '@/context/LanguageContext';
 import { RecruiterNavbar } from '@/components/recruiter/RecruiterNavbar';
 import { CompanyVerificationBanner } from '@/components/recruiter/CompanyVerificationBanner';
 import { Building2, Globe, Mail, Phone, Users, ShieldCheck, Save, CheckCircle2 } from 'lucide-react';
 
 export default function CompanyProfilePage() {
+  const { t, locale } = useLanguage();
   const [company, setCompany] = useState<Company | null>(null);
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
 
@@ -18,7 +20,7 @@ export default function CompanyProfilePage() {
   if (!company) {
     return (
       <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#13233F] text-slate-800 dark:text-slate-100 transition-colors">
-        <div className="p-10 text-center text-slate-500 dark:text-slate-400">Đang tải thông tin doanh nghiệp...</div>
+        <div className="p-10 text-center text-slate-500 dark:text-slate-400">{t('common.loading', 'Đang tải thông tin doanh nghiệp...')}</div>
       </div>
     );
   }
@@ -39,9 +41,11 @@ export default function CompanyProfilePage() {
             <Building2 className="w-4 h-4" />
             <span>Company Profile & Verification</span>
           </div>
-          <h1 className="text-3xl font-editorial font-bold text-slate-900 dark:text-white tracking-tight">Hồ Sơ Doanh Nghiệp & Trạng Thái Xác Minh</h1>
+          <h1 className="text-3xl font-editorial font-bold text-slate-900 dark:text-white tracking-tight">
+            {t('companyPages.title', 'Hồ Sơ Doanh Nghiệp & Trạng Thái Xác Minh')}
+          </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Quản lý thông tin công ty và kiểm tra quyền hạn xuất bản tin tuyển dụng
+            {t('companyPages.subtitle', 'Quản lý thông tin công ty và kiểm tra quyền hạn xuất bản tin tuyển dụng')}
           </p>
         </div>
 
@@ -55,16 +59,20 @@ export default function CompanyProfilePage() {
         {savedSuccess && (
           <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-sm flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-            <span>Thông tin doanh nghiệp đã được cập nhật vĩnh viễn thành công!</span>
+            <span>{t('companyPages.saveSuccess', 'Thông tin doanh nghiệp đã được cập nhật vĩnh viễn thành công!')}</span>
           </div>
         )}
 
         <form onSubmit={handleSaveCompany} className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-6 transition-colors">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-[#1E293B] pb-3">Thông tin Doanh nghiệp</h3>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-[#1E293B] pb-3">
+            {t('companyPages.nameLabel', 'Thông tin Doanh nghiệp')}
+          </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Tên Doanh nghiệp chính thức</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                {t('companyPages.nameLabel', 'Tên Doanh nghiệp chính thức')}
+              </label>
               <input
                 type="text"
                 value={company.name ?? ''}
@@ -75,7 +83,9 @@ export default function CompanyProfilePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Lĩnh vực hoạt động (Industry)</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                {t('companyPages.industryLabel', 'Lĩnh vực hoạt động (Industry)')}
+              </label>
               <input
                 type="text"
                 value={company.industry ?? ''}
@@ -85,7 +95,9 @@ export default function CompanyProfilePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Website công ty</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                {t('companyPages.websiteLabel', 'Website công ty')}
+              </label>
               <input
                 type="url"
                 value={company.website ?? ''}
@@ -95,7 +107,9 @@ export default function CompanyProfilePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Quy mô nhân sự</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                {t('companyPages.sizeLabel', 'Quy mô nhân sự')}
+              </label>
               <input
                 type="text"
                 value={company.companySize ?? ''}
@@ -105,7 +119,9 @@ export default function CompanyProfilePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Email liên hệ tuyển dụng</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                {t('companyPages.emailLabel', 'Email liên hệ tuyển dụng')}
+              </label>
               <input
                 type="email"
                 value={company.contactEmail ?? ''}
@@ -115,7 +131,9 @@ export default function CompanyProfilePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Số điện thoại liên hệ</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                {t('companyPages.phoneLabel', 'Số điện thoại liên hệ')}
+              </label>
               <input
                 type="text"
                 value={company.contactPhone ?? ''}
@@ -131,7 +149,7 @@ export default function CompanyProfilePage() {
               className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-xs text-white bg-[#0C2B24] hover:bg-[#133E34] dark:bg-[#10B981] dark:hover:bg-[#059669] dark:text-[#040D0A] shadow-xs transition active:scale-95 cursor-pointer"
             >
               <Save className="w-4 h-4" />
-              <span>Lưu Thông Tin Doanh Nghiệp</span>
+              <span>{t('companyPages.saveButton', 'Lưu Thông Tin Doanh Nghiệp')}</span>
             </button>
           </div>
         </form>

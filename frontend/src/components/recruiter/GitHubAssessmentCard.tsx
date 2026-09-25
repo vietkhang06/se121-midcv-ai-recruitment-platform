@@ -3,28 +3,31 @@
 import React from 'react';
 import { GitHubAssessmentData } from '@/types';
 import { GitBranch, Star, GitFork, ExternalLink, Code, Activity, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface GitHubAssessmentCardProps {
   assessment: GitHubAssessmentData;
 }
 
 export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ assessment }) => {
+  const { locale } = useLanguage();
+
   if (!assessment.connected || assessment.status === 'NOT_CONNECTED' || assessment.status === 'NOT_APPLICABLE' || assessment.status === 'API_UNAVAILABLE' || assessment.status === 'PRIVATE_ONLY') {
-    let branchTitle = "Tín hiệu GitHub: Chưa liên kết (Not Connected)";
-    let branchDesc = "Ứng viên chưa liên kết tài khoản GitHub cá nhân.";
+    let branchTitle = locale === 'vi' ? "Tín hiệu GitHub: Chưa liên kết (Not Connected)" : "GitHub Signal: Not Connected";
+    let branchDesc = locale === 'vi' ? "Ứng viên chưa liên kết tài khoản GitHub cá nhân." : "Candidate has not connected a personal GitHub account.";
     let badgeColor = "bg-slate-100 text-slate-700 border-slate-200";
 
     if (assessment.status === 'NOT_APPLICABLE') {
-      branchTitle = "Tín hiệu GitHub: Không áp dụng (Not Applicable)";
-      branchDesc = "Vị trí tuyển dụng thuộc ngành phi kỹ thuật, tín hiệu GitHub không được áp dụng.";
+      branchTitle = locale === 'vi' ? "Tín hiệu GitHub: Không áp dụng (Not Applicable)" : "GitHub Signal: Not Applicable";
+      branchDesc = locale === 'vi' ? "Vị trí tuyển dụng thuộc ngành phi kỹ thuật, tín hiệu GitHub không được áp dụng." : "Job position is non-technical, GitHub signals do not apply.";
       badgeColor = "bg-blue-50 text-blue-700 border-blue-200";
     } else if (assessment.status === 'API_UNAVAILABLE') {
-      branchTitle = "Tín hiệu GitHub: Tạm thời không khả dụng (API Unavailable / Rate Limited)";
-      branchDesc = "Dịch vụ GitHub API tạm thời vượt giới hạn tần suất hoặc không phản hồi.";
+      branchTitle = locale === 'vi' ? "Tín hiệu GitHub: Tạm thời không khả dụng (API Unavailable / Rate Limited)" : "GitHub Signal: API Unavailable / Rate Limited";
+      branchDesc = locale === 'vi' ? "Dịch vụ GitHub API tạm thời vượt giới hạn tần suất hoặc không phản hồi." : "GitHub API rate limit reached or temporarily unavailable.";
       badgeColor = "bg-amber-50 text-amber-700 border-amber-200";
     } else if (assessment.status === 'PRIVATE_ONLY') {
-      branchTitle = "Tín hiệu GitHub: Kho lưu trữ riêng tư / Không thể truy cập (Private / Inaccessible)";
-      branchDesc = "Ứng viên có tài khoản GitHub nhưng kho lưu trữ liên quan ở chế độ riêng tư hoặc không có mã nguồn công khai.";
+      branchTitle = locale === 'vi' ? "Tín hiệu GitHub: Kho lưu trữ riêng tư / Không thể truy cập (Private / Inaccessible)" : "GitHub Signal: Private / Inaccessible";
+      branchDesc = locale === 'vi' ? "Ứng viên có tài khoản GitHub nhưng kho lưu trữ liên quan ở chế độ riêng tư hoặc không có mã nguồn công khai." : "Candidate has a GitHub account but repositories are private or without public code.";
       badgeColor = "bg-purple-50 text-purple-700 border-purple-200";
     }
 
@@ -33,7 +36,11 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-sm font-editorial">
             <GitBranch className="w-5 h-5 text-[#2563EB] dark:text-[#3B82F6]" />
-            <span>Đánh giá Tín hiệu GitHub Cá nhân (GitHub Evidence Assessment)</span>
+            <span>
+              {locale === 'vi'
+                ? 'Đánh giá Tín hiệu GitHub Cá nhân (GitHub Evidence Assessment)'
+                : 'Personal GitHub Signal Assessment (GitHub Evidence Assessment)'}
+            </span>
           </div>
           <span data-testid="github-status" className={`px-2.5 py-1 rounded-md text-[11px] font-bold border font-mono ${badgeColor}`}>
             {assessment.status || 'NOT_CONNECTED'}
@@ -42,7 +49,16 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
         <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] space-y-1.5 transition-colors">
           <span className="font-semibold text-slate-900 dark:text-white block">{branchTitle}</span>
           <p className="text-[11px] text-slate-600 dark:text-slate-300">
-            {branchDesc} Nền tảng tự động kích hoạt cơ chế <strong>Graceful Fallback: Overall Score = Core JD-CV Score</strong>, hoàn toàn <strong>không phạt trừ 0 điểm</strong> hay làm sai lệch thứ hạng của ứng viên.
+            {branchDesc}{' '}
+            {locale === 'vi' ? (
+              <>
+                Nền tảng tự động kích hoạt cơ chế <strong>Graceful Fallback: Overall Score = Core JD-CV Score</strong>, hoàn toàn <strong>không phạt trừ 0 điểm</strong> hay làm sai lệch thứ hạng của ứng viên.
+              </>
+            ) : (
+              <>
+                Platform activates <strong>Graceful Fallback: Overall Score = Core JD-CV Score</strong> with <strong>zero penalty</strong> and unbiased candidate ranking.
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -70,7 +86,7 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
             </h3>
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-300">
-            <span>Tài khoản GitHub Công khai:</span>
+            <span>{locale === 'vi' ? 'Tài khoản GitHub Công khai:' : 'Public GitHub Account:'}</span>
             <span data-testid="candidate-identifier" className="font-bold text-[#3B82F6] font-mono">@{assessment.username}</span>
           </div>
         </div>
@@ -119,14 +135,14 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
             ))}
           </div>
           <div className="flex items-center justify-between text-[10px] text-slate-300 pt-1">
-            <span>Low commit volume</span>
+            <span>{locale === 'vi' ? 'Tần suất commit thấp' : 'Low commit volume'}</span>
             <div className="flex items-center gap-1">
               <span className="w-2.5 h-2.5 rounded-xs bg-[#1E293B]" />
               <span className="w-2.5 h-2.5 rounded-xs bg-blue-900" />
               <span className="w-2.5 h-2.5 rounded-xs bg-[#2563EB]" />
               <span className="w-2.5 h-2.5 rounded-xs bg-amber-400" />
             </div>
-            <span>High commit volume</span>
+            <span>{locale === 'vi' ? 'Tần suất commit cao' : 'High commit volume'}</span>
           </div>
         </div>
 
@@ -154,7 +170,7 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
             </div>
           ) : (
             <div className="text-[11px] text-slate-300 py-2">
-              Không có dữ liệu ngôn ngữ công khai
+              {locale === 'vi' ? 'Không có dữ liệu ngôn ngữ công khai' : 'No public language data'}
             </div>
           )}
         </div>
@@ -163,12 +179,12 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
       {/* Top Languages & Activity Signal Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-3.5 rounded-xl bg-[#13233F] border border-[#1E3A5F] space-y-1">
-          <span className="text-slate-300 block text-[11px]">Tổng số Repositories Công khai</span>
+          <span className="text-slate-300 block text-[11px]">{locale === 'vi' ? 'Tổng số Repositories Công khai' : 'Total Public Repositories'}</span>
           <span className="text-xl font-bold text-white font-mono">{assessment.publicRepoCount || 0} Repos</span>
         </div>
 
         <div data-testid="github-activity-signal" className="p-3.5 rounded-xl bg-[#13233F] border border-[#1E3A5F] space-y-1">
-          <span className="text-slate-300 block text-[11px]">Tín hiệu Hoạt động Công khai (Activity Signal)</span>
+          <span className="text-slate-300 block text-[11px]">{locale === 'vi' ? 'Tín hiệu Hoạt động Công khai (Activity Signal)' : 'Public Activity Signal'}</span>
           <span className={`text-sm font-bold flex items-center gap-1.5 ${
             assessment.activitySignal === 'HIGH' ? 'text-[#3B82F6]' : 'text-amber-400'
           }`}>
@@ -178,11 +194,11 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
         </div>
 
         <div className="p-3.5 rounded-xl bg-[#13233F] border border-[#1E3A5F] space-y-1">
-          <span className="text-slate-300 block text-[11px]">Hoạt động Quan sát Gần nhất</span>
+          <span className="text-slate-300 block text-[11px]">{locale === 'vi' ? 'Hoạt động Quan sát Gần nhất' : 'Most Recent Observable Activity'}</span>
           <span className="text-sm font-semibold text-white">
             {assessment.latestActivityDaysAgo !== undefined
-              ? `${assessment.latestActivityDaysAgo} ngày trước`
-              : 'Không có dữ liệu hoạt động công khai'}
+              ? (locale === 'vi' ? `${assessment.latestActivityDaysAgo} ngày trước` : `${assessment.latestActivityDaysAgo} days ago`)
+              : (locale === 'vi' ? 'Không có dữ liệu hoạt động công khai' : 'No public activity data')}
           </span>
         </div>
       </div>
@@ -191,7 +207,9 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
       {assessment.repos && assessment.repos.length > 0 && (
         <div data-testid="github-relevant-repos" className="space-y-3 pt-2 border-t border-[#1E293B]">
           <span className="font-bold text-slate-200 block text-xs">
-            Bối cảnh Kho Lưu trữ &amp; Repositories Phù hợp với JD (Public repository context)
+            {locale === 'vi'
+              ? 'Bối cảnh Kho Lưu trữ & Repositories Phù hợp với JD (Public repository context)'
+              : 'JD-Relevant Repositories & Context (Public repository context)'}
           </span>
           <div className="space-y-3">
             {assessment.repos.map((repo, idx) => (
@@ -211,7 +229,7 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
                 </div>
                 <p className="text-slate-300 text-xs">{repo.description}</p>
                 <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                  <span>Ngôn ngữ chính: <strong className="text-white">{repo.primaryLanguage}</strong></span>
+                  <span>{locale === 'vi' ? 'Ngôn ngữ chính:' : 'Primary language:'} <strong className="text-white">{repo.primaryLanguage}</strong></span>
                   <span className="text-amber-300 italic">{repo.relevanceExplanation}</span>
                 </div>
               </div>

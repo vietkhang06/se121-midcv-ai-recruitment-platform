@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 
 export default function HRDashboardPage() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -55,7 +55,7 @@ export default function HRDashboardPage() {
         }
       })
       .catch((err) => {
-        setFetchError(err.message || 'Lỗi khi tải dữ liệu nhà tuyển dụng.');
+        setFetchError(err.message || (locale === 'vi' ? 'Lỗi khi tải dữ liệu nhà tuyển dụng.' : 'Error loading recruiter data.'));
       })
       .finally(() => setIsLoading(false));
   };
@@ -66,7 +66,7 @@ export default function HRDashboardPage() {
 
   const publishedJobs = jobs.filter((j) => j.status === 'PUBLISHED');
   const draftJobs = jobs.filter((j) => j.status === 'DRAFT');
-  const recruiterName = user?.fullName || 'Tuyển Dụng';
+  const recruiterName = user?.fullName || (locale === 'vi' ? 'Tuyển Dụng' : 'Recruiter');
 
   return (
     <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col py-8 transition-colors">
@@ -79,10 +79,10 @@ export default function HRDashboardPage() {
               RECRUITER PORTAL COMMAND CENTER
             </span>
             <h1 className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
-              Dashboard Console — Tổng Quan Tuyển Dụng Doanh Nghiệp
+              {locale === 'vi' ? 'Dashboard Console — Tổng Quan Tuyển Dụng Doanh Nghiệp' : 'Recruiter Command Console — Enterprise Hiring Dashboard'}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {company?.name || 'Doanh nghiệp'} Recruitment command center & telemetry
+              {company?.name || (locale === 'vi' ? 'Doanh nghiệp' : 'Enterprise')} Recruitment command center & telemetry
             </p>
           </div>
 
@@ -115,7 +115,7 @@ export default function HRDashboardPage() {
               className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-xs flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4 text-white" />
-              <span>Tạo Bài Tuyển Dụng Mới</span>
+              <span>{t('recruiterNav.createJob', 'Tạo Bài Tuyển Dụng Mới')}</span>
             </Link>
           </div>
         </div>
@@ -133,10 +133,14 @@ export default function HRDashboardPage() {
         <div className="bg-gradient-to-r from-[#0F2A52] via-[#1E3A5F] to-[#0F2A52] text-white rounded-2xl p-8 border border-blue-900/30 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <h2 suppressHydrationWarning className="text-2xl sm:text-3xl font-editorial font-normal text-white">
-              Chào mừng trở lại, {recruiterName}
+              {locale === 'vi' ? 'Chào mừng trở lại, ' : 'Welcome back, '}{recruiterName}
             </h2>
             <p className="text-xs sm:text-sm text-slate-200 font-light leading-relaxed">
-              Hệ sinh thái <strong className="font-semibold text-white">mid<span className="text-[#00B14F]">CV</span><sup>®</sup></strong> đang đồng bộ các vị trí tuyển dụng với mô hình trích xuất thực thể và đối sánh vector chuẩn hóa.
+              {locale === 'vi' ? (
+                <>Hệ sinh thái <strong className="font-semibold text-white">mid<span className="text-[#00B14F]">CV</span><sup>®</sup></strong> đang đồng bộ các vị trí tuyển dụng với mô hình trích xuất thực thể và đối sánh vector chuẩn hóa.</>
+              ) : (
+                <>The <strong className="font-semibold text-white">mid<span className="text-[#00B14F]">CV</span><sup>®</sup></strong> ecosystem is syncing requisition vectors and candidate semantic pipelines.</>
+              )}
             </p>
           </div>
 
@@ -145,14 +149,14 @@ export default function HRDashboardPage() {
               href="/recruiter/jobs/new"
               className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#00B14F] hover:bg-[#009643] text-white transition shadow-sm flex items-center gap-1.5"
             >
-              <span>+ Đăng Tin Tuyển Dụng</span>
+              <span>{locale === 'vi' ? '+ Đăng Tin Tuyển Dụng' : '+ Post New Job'}</span>
             </Link>
             {jobs.length > 0 && (
               <Link
                 href={`/recruiter/jobs/${jobs[0].id}/applications`}
                 className="px-4 py-2 rounded-lg text-xs font-medium border border-white/25 text-white hover:bg-white/10 transition"
               >
-                Duyệt Ứng Viên
+                {locale === 'vi' ? 'Duyệt Ứng Viên' : 'Review Candidates'}
               </Link>
             )}
           </div>
