@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Industry, CV, CVVersion } from '@/types';
 import { fetchCandidateCVs, saveCandidateCV } from '@/lib/api';
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   ArrowLeft,
   Sparkles,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 
 export default function CVBuilderPage() {
+  const { t, locale } = useLanguage();
   const [cvTitle, setCvTitle] = useState<string>('CV Senior Java Backend Engineer');
   const [fullName, setFullName] = useState<string>('Andrew Sterling');
   const [email, setEmail] = useState<string>('andrew@devops.sterling.io');
@@ -139,7 +141,7 @@ export default function CVBuilderPage() {
     await saveCandidateCV(cvToSave);
     setExistingCv(cvToSave);
     setCurrentVersionNumber(nextVersion);
-    setSuccessMessage(`Đã xuất bản phiên bản mới v${nextVersion}.0 thành công!`);
+    setSuccessMessage(locale === 'vi' ? `Đã xuất bản phiên bản mới v${nextVersion}.0 thành công!` : `Published new version v${nextVersion}.0 successfully!`);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 4000);
   };
@@ -165,7 +167,9 @@ export default function CVBuilderPage() {
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono uppercase text-slate-400 dark:text-slate-500">Template:</span>
+            <span className="text-xs font-mono uppercase text-slate-400 dark:text-slate-500">
+              {locale === 'vi' ? 'Mẫu CV:' : 'Template:'}
+            </span>
             <div className="relative">
               <select className="bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-md px-3 py-1 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]">
                 <option>Standard Technical (Default)</option>
@@ -185,7 +189,7 @@ export default function CVBuilderPage() {
             </span>
             {existingCv && (
               <span className="hidden sm:inline text-[11px] text-slate-400 font-mono">
-                (Lưu tiếp theo: v{currentVersionNumber + 1}.0)
+                {locale === 'vi' ? `(Lưu tiếp theo: v${currentVersionNumber + 1}.0)` : `(Next save: v${currentVersionNumber + 1}.0)`}
               </span>
             )}
           </div>
@@ -193,7 +197,7 @@ export default function CVBuilderPage() {
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
-            <span>AI Suggestions:</span>
+            <span>{locale === 'vi' ? 'Gợi ý AI:' : 'AI Suggestions:'}</span>
             <button
               type="button"
               onClick={() => setAiSuggestions(!aiSuggestions)}
@@ -209,7 +213,7 @@ export default function CVBuilderPage() {
             className="px-3.5 py-1.5 rounded-md text-xs font-semibold border border-slate-300 dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition flex items-center gap-1.5"
           >
             <Save className="w-3.5 h-3.5" />
-            <span>{saveSuccess ? 'Saved!' : 'Save Profile'}</span>
+            <span>{saveSuccess ? (locale === 'vi' ? 'Đã lưu!' : 'Saved!') : (locale === 'vi' ? 'Lưu Hồ Sơ' : 'Save Profile')}</span>
           </button>
 
           <button
@@ -217,7 +221,7 @@ export default function CVBuilderPage() {
             className="px-4 py-1.5 rounded-md text-xs font-semibold text-white bg-[#0C2B24] dark:bg-[#2563EB] hover:bg-[#133E34] dark:hover:bg-[#1D4ED8] transition flex items-center gap-1.5 shadow-xs"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Export PDF</span>
+            <span>{locale === 'vi' ? 'Xuất PDF' : 'Export PDF'}</span>
           </button>
         </div>
       </div>
@@ -227,8 +231,10 @@ export default function CVBuilderPage() {
         <div id="save-success-banner" className="bg-emerald-50 dark:bg-[#2563EB]/20 border-b border-emerald-200 dark:border-[#2563EB]/30 px-4 sm:px-8 py-2.5 flex items-center justify-between text-xs text-emerald-900 dark:text-emerald-200 transition-all">
           <div className="flex items-center gap-2 max-w-7xl mx-auto w-full">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-[#3B82F6] shrink-0" />
-            <span className="font-semibold">{successMessage || `Đã lưu phiên bản mới v${currentVersionNumber}.0 thành công!`}</span>
-            <span className="text-[11px] opacity-75 font-mono ml-auto">Bản lưu bất biến (Immutable Snapshot)</span>
+            <span className="font-semibold">{successMessage || (locale === 'vi' ? `Đã lưu phiên bản mới v${currentVersionNumber}.0 thành công!` : `Saved new version v${currentVersionNumber}.0 successfully!`)}</span>
+            <span className="text-[11px] opacity-75 font-mono ml-auto">
+              {locale === 'vi' ? 'Bản lưu bất biến (Immutable Snapshot)' : 'Immutable Snapshot'}
+            </span>
           </div>
         </div>
       )}
@@ -242,11 +248,17 @@ export default function CVBuilderPage() {
           {/* Card 1: Resume Evidence Editor Progress */}
           <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-sm text-slate-900 dark:text-white">Resume Evidence Editor</h2>
-              <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 font-mono">Completeness: 78%</span>
+              <h2 className="font-semibold text-sm text-slate-900 dark:text-white">
+                {locale === 'vi' ? 'Trình Soạn Thảo Minh Chứng CV' : 'Resume Evidence Editor'}
+              </h2>
+              <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 font-mono">
+                {locale === 'vi' ? 'Mức độ hoàn thiện: 78%' : 'Completeness: 78%'}
+              </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Complete profiles achieve up to 3x matching accuracy against automated engineering rubrics.
+              {locale === 'vi'
+                ? 'Hồ sơ đầy đủ giúp tăng độ chuẩn xác đối sánh lên tới 3 lần so với tiêu chí tuyển dụng.'
+                : 'Complete profiles achieve up to 3x matching accuracy against automated engineering rubrics.'}
             </p>
             <div className="w-full bg-slate-100 dark:bg-[#0B1329] rounded-full h-1.5 overflow-hidden">
               <div className="bg-amber-600 dark:bg-amber-500 h-1.5 rounded-full" style={{ width: '78%' }} />
@@ -256,12 +268,14 @@ export default function CVBuilderPage() {
           {/* Card 2: Section Work History & Project Commit Evidence */}
           <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
             <div className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Section: Work History & Project Commit Evidence
+              {locale === 'vi' ? 'Mục: Lịch Sử Công Tác & Minh Chứng Dự Án' : 'Section: Work History & Project Commit Evidence'}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">COMPANY NAME</label>
+                <label className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+                  {locale === 'vi' ? 'TÊN CÔNG TY' : 'COMPANY NAME'}
+                </label>
                 <input
                   type="text"
                   value={companyName}
@@ -271,7 +285,9 @@ export default function CVBuilderPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">ROLE TITLE</label>
+                <label className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+                  {locale === 'vi' ? 'CHỨC DANH / VỊ TRÍ' : 'ROLE TITLE'}
+                </label>
                 <input
                   type="text"
                   value={roleTitle}
@@ -282,7 +298,9 @@ export default function CVBuilderPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">TIMELINE DATES</label>
+              <label className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+                {locale === 'vi' ? 'THỜI GIAN LÀM VIỆC' : 'TIMELINE DATES'}
+              </label>
               <input
                 type="text"
                 value={timelineDates}
@@ -292,7 +310,9 @@ export default function CVBuilderPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">KEY CONTRIBUTION BULLET POINTS</label>
+              <label className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+                {locale === 'vi' ? 'ĐÓNG GÓP & THÀNH TỰU NỔI BẬT' : 'KEY CONTRIBUTION BULLET POINTS'}
+              </label>
               <textarea
                 rows={4}
                 value={bulletPoints}
@@ -309,7 +329,7 @@ export default function CVBuilderPage() {
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800/40 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                <span>Strengthen this bullet point</span>
+                <span>{locale === 'vi' ? 'Tăng sức nặng cho thành tựu này' : 'Strengthen this bullet point'}</span>
               </button>
 
               <button
@@ -318,7 +338,7 @@ export default function CVBuilderPage() {
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800/40 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                <span>Add quantifiable metric (e.g. % performance increase)</span>
+                <span>{locale === 'vi' ? 'Thêm số liệu định lượng (e.g. % hiệu suất)' : 'Add quantifiable metric (e.g. % performance increase)'}</span>
               </button>
             </div>
           </div>
@@ -327,17 +347,17 @@ export default function CVBuilderPage() {
           <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Section: Technical Skills Index
+                {locale === 'vi' ? 'Mục: Danh Mục Kỹ Năng Kỹ Thuật' : 'Section: Technical Skills Index'}
               </div>
               <span className="text-[11px] font-mono text-emerald-600 dark:text-[#3B82F6]">
-                Autocomplete & Aliases Active
+                {locale === 'vi' ? 'Tự động gợi ý & Bí danh kích hoạt' : 'Autocomplete & Aliases Active'}
               </span>
             </div>
 
             <SkillAutocomplete
               skills={skills}
               onSkillsChange={setSkills}
-              placeholder="Type e.g. jav, spr, doc, k8s to autocomplete..."
+              placeholder={locale === 'vi' ? 'Gõ ví dụ: jav, spr, doc, k8s để gợi ý...' : 'Type e.g. jav, spr, doc, k8s to autocomplete...'}
             />
           </div>
 
@@ -362,7 +382,7 @@ export default function CVBuilderPage() {
             {/* Professional Summary */}
             <div className="space-y-1.5">
               <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                PROFESSIONAL SUMMARY
+                {locale === 'vi' ? 'TÓM TẮT HỒ SƠ CHUYÊN MÔN' : 'PROFESSIONAL SUMMARY'}
               </div>
               <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-light">
                 Systems engineer specializing in high-concurrency cloud environments and automated cluster scaling structures. Over 4 years deployment infrastructure development experience.
@@ -372,7 +392,7 @@ export default function CVBuilderPage() {
             {/* Professional Experience */}
             <div className="space-y-2">
               <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                PROFESSIONAL EXPERIENCE
+                {locale === 'vi' ? 'KINH NGHIỆM LÀM VIỆC' : 'PROFESSIONAL EXPERIENCE'}
               </div>
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-900 dark:text-white">
@@ -388,7 +408,7 @@ export default function CVBuilderPage() {
             {/* Technical Skills Map */}
             <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
               <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                TECHNICAL SKILLS MAP
+                {locale === 'vi' ? 'BẢN ĐỒ KỸ NĂNG CHUYÊN MÔN' : 'TECHNICAL SKILLS MAP'}
               </div>
               <div className="flex flex-wrap gap-1.5 text-[10px] font-mono">
                 {skills.map((s) => (

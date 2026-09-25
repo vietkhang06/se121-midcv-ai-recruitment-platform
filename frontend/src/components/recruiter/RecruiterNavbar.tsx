@@ -50,97 +50,101 @@ export const RecruiterNavbar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-md border-b border-[#E2E8F0] dark:border-[#1E293B] text-[#1E3A5F] dark:text-[#D6E4E1] transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3 sm:gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-6 xl:px-8 h-16 flex items-center justify-between gap-2 xl:gap-4">
         
         {/* Brand & Recruiter Portal Indicator */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2 xl:gap-2.5 shrink-0">
           <BrandLogo href="/recruiter" size="md" />
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#FEF3C7] dark:bg-[#FACC15]/15 text-[#B45309] dark:text-[#FACC15] border border-[#FACC15]/40 font-sans tracking-wide">
+          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#FEF3C7] dark:bg-[#FACC15]/15 text-[#B45309] dark:text-[#FACC15] border border-[#FACC15]/40 font-sans tracking-wide whitespace-nowrap shrink-0">
             HR Portal
           </span>
         </div>
 
         {/* HR Navigation Links (Desktop) */}
-        <nav className="hidden lg:flex items-center gap-1.5 xl:gap-3 text-xs font-semibold">
+        <nav className="hidden lg:flex items-center gap-1 xl:gap-2 text-xs xl:text-[13px] font-semibold whitespace-nowrap shrink-0">
           <Link
             href="/recruiter"
-            className={`px-3 py-2 rounded-xl transition flex items-center gap-1.5 ${
+            className={`h-9 px-2.5 xl:px-3 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               pathname === '/recruiter' 
                 ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' 
                 : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'
             }`}
           >
-            <LayoutDashboard className="w-4 h-4" />
-            <span>{t('recruiterNav.dashboard', 'HR Dashboard')}</span>
+            <LayoutDashboard className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">{t('recruiterNav.dashboard', 'HR Dashboard')}</span>
           </Link>
 
           <Link
             href="/recruiter/jobs"
-            className={`px-3 py-2 rounded-xl transition flex items-center gap-1.5 ${
+            className={`h-9 px-2.5 xl:px-3 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               isActive('/recruiter/jobs') 
                 ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' 
                 : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'
             }`}
           >
-            <Briefcase className="w-4 h-4" />
-            <span>{t('recruiterNav.jobs', 'Quản lý Bài đăng')}</span>
+            <Briefcase className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">{t('recruiterNav.jobs', 'Quản lý Bài đăng')}</span>
           </Link>
 
           <Link
             href="/recruiter/company"
-            className={`px-3 py-2 rounded-xl transition flex items-center gap-1.5 ${
+            className={`h-9 px-2.5 xl:px-3 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               isActive('/recruiter/company') 
                 ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' 
                 : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'
             }`}
           >
-            <ShieldCheck className="w-4 h-4" />
-            <span>{t('recruiterNav.company', 'Doanh nghiệp')}</span>
+            <ShieldCheck className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">{t('recruiterNav.company', 'Doanh nghiệp')}</span>
           </Link>
 
           <Link
             href="/admin/ai-settings"
-            className={`px-3 py-2 rounded-xl transition flex items-center gap-1.5 ${
+            className={`h-9 px-2.5 xl:px-3 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               isActive('/admin/ai-settings') 
                 ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' 
                 : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'
             }`}
           >
-            <Cpu className="w-4 h-4" />
-            <span>Cấu hình AI</span>
+            <Cpu className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">Cấu hình AI</span>
           </Link>
         </nav>
 
         {/* Action Controls: Language, Theme, Create Job CTA, Back to Candidate */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2 xl:gap-3 shrink-0">
           {/* Language Switcher */}
           <button
             onClick={toggleLocale}
-            className="flex items-center gap-1 px-2.5 py-1 text-xs font-mono font-bold rounded-lg border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#111C38] text-[#1E3A5F] dark:text-[#D6E4E1] hover:border-[#2563EB] dark:hover:border-[#3B82F6] transition cursor-pointer shadow-2xs"
+            className="h-9 flex items-center gap-1 px-2.5 text-xs font-mono font-bold rounded-lg border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#111C38] text-[#1E3A5F] dark:text-[#D6E4E1] hover:border-[#2563EB] dark:hover:border-[#3B82F6] transition cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
             title={t('nav.switchLang', 'Switch Language')}
           >
-            <Globe className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#3B82F6]" />
-            <span>{locale.toUpperCase()}</span>
+            <Globe className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#3B82F6] shrink-0" />
+            <span className="whitespace-nowrap">{locale.toUpperCase()}</span>
           </button>
 
           {/* Theme Toggle Slider Switch (Kiểu gạt qua lại) */}
-          <ThemeSwitch />
+          <div className="shrink-0 flex items-center">
+            <ThemeSwitch />
+          </div>
 
           {/* Create Job Action */}
           <Link
             href="/recruiter/jobs/new"
-            className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm transition active:scale-95 shrink-0"
+            className="hidden sm:flex items-center gap-1.5 h-9 px-3 xl:px-3.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm transition active:scale-95 whitespace-nowrap shrink-0"
           >
-            <PlusCircle className="w-4 h-4" />
-            <span>{t('recruiterNav.createJob', 'Tạo Bài tuyển dụng')}</span>
+            <PlusCircle className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">{t('recruiterNav.createJob', 'Tạo Bài tuyển dụng')}</span>
           </Link>
 
           {/* Candidate Portal Shortcut */}
           <Link
             href="/"
-            className="text-xs text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white border-l border-[#E2E8F0] dark:border-[#1E293B] pl-3 hidden md:block shrink-0"
+            aria-label={t('recruiterNav.candidatePortal', 'Về Cổng Ứng viên')}
+            className="hidden md:flex items-center gap-1 h-9 text-xs text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white border-l border-[#E2E8F0] dark:border-[#1E293B] pl-2.5 xl:pl-3 whitespace-nowrap shrink-0"
           >
-            {t('recruiterNav.candidatePortal', 'Về Cổng Ứng viên')}
+            <ArrowLeft className="w-3.5 h-3.5 xl:hidden shrink-0" />
+            <span className="hidden xl:inline whitespace-nowrap">{t('recruiterNav.candidatePortal', 'Về Cổng Ứng viên')}</span>
           </Link>
 
           {/* Recruiter Mobile Menu Hamburger */}
@@ -148,9 +152,9 @@ export const RecruiterNavbar: React.FC = () => {
             id="recruiter-mobile-menu-btn"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label={isMobileMenuOpen ? t('common.close', 'Đóng menu') : t('recruiterNav.mobileMenu', 'Menu tuyển dụng')}
-            className="lg:hidden p-2 rounded-lg border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#111C38] text-[#1E3A5F] dark:text-[#D6E4E1] hover:border-[#2563EB] transition cursor-pointer"
+            className="lg:hidden p-2 rounded-lg border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#111C38] text-[#1E3A5F] dark:text-[#D6E4E1] hover:border-[#2563EB] transition cursor-pointer shrink-0"
           >
-            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {isMobileMenuOpen ? <X className="w-5 h-5 shrink-0" /> : <Menu className="w-5 h-5 shrink-0" />}
           </button>
         </div>
       </div>

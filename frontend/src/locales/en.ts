@@ -317,9 +317,54 @@ export const en = {
     delete: "Delete",
     edit: "Edit",
     view: "View",
-    download: "Download",
     filter: "Filter",
     search: "Search"
+  },
+  companyPages: {
+    title: "Company Profile & Verification Status",
+    subtitle: "Manage corporate information and inspect posting publication authorization",
+    saveSuccess: "Company profile saved successfully!",
+    nameLabel: "Company / Enterprise Name",
+    industryLabel: "Primary Industry Sector",
+    sizeLabel: "Workforce Size",
+    websiteLabel: "Official Corporate Website",
+    emailLabel: "Recruitment Contact Email",
+    phoneLabel: "Telephone Number",
+    addressLabel: "Corporate Headquarters Address",
+    descriptionLabel: "Company Overview",
+    saveButton: "Save Company Profile"
+  },
+  jobCreate: {
+    title: "Create New Job Opening",
+    subtitle: "Define requisition rubrics, technical skill requirements, and immutable JD record",
+    draftBtn: "Save Draft",
+    publishBtn: "Publish Job Requisition",
+    jobTitle: "Job Requisition Title",
+    department: "Department / Unit",
+    location: "Work Location",
+    employmentType: "Employment Type",
+    salaryRange: "Target Salary Range ($/month)",
+    seniority: "Seniority Level",
+    industry: "Industry Domain",
+    responsibilities: "Key Responsibilities (Delimited with •)",
+    requiredSkills: "Required Technical Skills",
+    preferredSkills: "Preferred Skills"
+  },
+  admin: {
+    title: "AI Configuration & Matching Engine",
+    subtitle: "Manage document parsing models (LLM) and vector embedding for intelligent recruitment.",
+    backToDashboard: "Back to HR Dashboard",
+    adminMode: "Admin & HR Mode"
+  },
+  jobDetail: {
+    jobDescription: "Job Description",
+    responsibilities: "Key Responsibilities",
+    technicalRequirements: "Technical Requirements",
+    companyOverview: "Company Overview",
+    applyNow: "Quick Apply",
+    backToJobs: "Back to Jobs Catalog",
+    posted: "Posted",
+    verifiedCompany: "Verified Enterprise"
   }
 };
 

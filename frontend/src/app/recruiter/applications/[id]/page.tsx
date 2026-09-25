@@ -30,7 +30,7 @@ import { EmptyState } from '@/components/common/EmptyState';
 
 export default function CandidateMatchInspectionPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [data, setData] = useState<MatchInspectionData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -45,7 +45,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
         setFetchError(null);
       })
       .catch((err) => {
-        setFetchError(err.message || 'Lỗi khi tải dữ liệu đối sánh ứng viên.');
+        setFetchError(err.message || (locale === 'vi' ? 'Lỗi khi tải dữ liệu đối sánh ứng viên.' : 'Error loading candidate match inspection data.'));
       })
       .finally(() => setLoading(false));
   };
@@ -59,8 +59,8 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
       <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center">
         <EmptyState
           type="LOADING"
-          title={t('common.loading', 'Đang tải dữ liệu...')}
-          description="Đang kết nối AI telemetry và trích xuất điểm số đối sánh..."
+          title={t('common.loading', locale === 'vi' ? 'Đang tải dữ liệu...' : 'Loading data...')}
+          description={locale === 'vi' ? 'Đang kết nối AI telemetry và trích xuất điểm số đối sánh...' : 'Connecting AI telemetry and extracting match scores...'}
         />
       </div>
     );
@@ -72,14 +72,14 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
         <div className="mb-6">
           <Link href="/recruiter/jobs" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Quay lại Bảng Xếp Hạng & Quản lý Đơn Nộp</span>
+            <span>{locale === 'vi' ? 'Quay lại Bảng Xếp Hạng & Quản lý Đơn Nộp' : 'Back to Ranking & Applications'}</span>
           </Link>
         </div>
         <EmptyState
           type="ERROR"
-          title="Lỗi khi tải báo cáo đối sánh"
+          title={locale === 'vi' ? 'Lỗi khi tải báo cáo đối sánh' : 'Error loading match report'}
           description={fetchError}
-          primaryCtaText="Thử lại"
+          primaryCtaText={locale === 'vi' ? 'Thử lại' : 'Retry'}
           onPrimaryCtaClick={loadInspection}
         />
       </div>
@@ -92,14 +92,14 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
         <div className="mb-6">
           <Link href="/recruiter/jobs" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Quay lại Bảng Xếp Hạng & Quản lý Đơn Nộp</span>
+            <span>{locale === 'vi' ? 'Quay lại Bảng Xếp Hạng & Quản lý Đơn Nộp' : 'Back to Ranking & Applications'}</span>
           </Link>
         </div>
         <EmptyState
           type="EMPTY"
-          title={t('emptyStates.match.noMatchDataTitle', 'Không tìm thấy dữ liệu đối sánh')}
-          description={t('emptyStates.match.noMatchDataDesc', 'Đơn ứng tuyển này chưa được tính toán đối sánh hoặc không tồn tại trong hệ thống.')}
-          primaryCtaText="Quay lại Bảng Xếp Hạng Tuyển Dụng"
+          title={t('emptyStates.match.noMatchDataTitle', locale === 'vi' ? 'Không tìm thấy dữ liệu đối sánh' : 'No match data found')}
+          description={t('emptyStates.match.noMatchDataDesc', locale === 'vi' ? 'Đơn ứng tuyển này chưa được tính toán đối sánh hoặc không tồn tại trong hệ thống.' : 'This application has not been evaluated or does not exist.')}
+          primaryCtaText={locale === 'vi' ? 'Quay lại Bảng Xếp Hạng Tuyển Dụng' : 'Back to Recruiter Ranking'}
           primaryCtaHref="/recruiter/jobs"
         />
       </div>
@@ -111,7 +111,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
   const maskedEmail = `${candidateInitials}***@contact.protected`;
   const realEmail = `${emailPrefix}@talent.midcv.ai`;
   const maskedPhone = '09***-***';
-  const realPhone = 'Liên hệ qua MidCV Relay (+84)';
+  const realPhone = locale === 'vi' ? 'Liên hệ qua MidCV Relay (+84)' : 'Contact via MidCV Relay (+84)';
 
   const matchedSkillsCount = data.requiredSkillsStatus.filter((s) => s.status === 'MATCH').length;
   const totalSkillsCount = data.requiredSkillsStatus.length;
@@ -123,7 +123,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
         <div className="flex items-center justify-between">
           <Link href="/recruiter/jobs" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Quay lại Bảng Xếp Hạng & Quản lý Đơn Nộp</span>
+            <span>{locale === 'vi' ? 'Quay lại Bảng Xếp Hạng & Quản lý Đơn Nộp' : 'Back to Ranking & Applications'}</span>
           </Link>
           <span className="text-xs font-mono text-slate-500 dark:text-slate-400">Application ID: #{data.applicationId}</span>
         </div>
@@ -138,24 +138,26 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
               {data.candidateName} vs. {data.jobTitle || 'CloudScale Systems'}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Hệ thống đối sánh đa chiều MidCV • Phân tích độ tương thích thực tế dựa trên Grounded Evidence
+              {locale === 'vi'
+                ? 'Hệ thống đối sánh đa chiều MidCV • Phân tích độ tương thích thực tế dựa trên Grounded Evidence'
+                : 'MidCV Multi-Dimensional Match Engine • Real-time compatibility analysis based on Grounded Evidence'}
             </p>
           </div>
 
           <div className="flex items-center gap-3 flex-shrink-0">
             <button
-              onClick={() => alert('Đã sao chép liên kết báo cáo đối sánh')}
+              onClick={() => alert(locale === 'vi' ? 'Đã sao chép liên kết báo cáo đối sánh' : 'Match report link copied')}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#111C38] text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#14332B] font-semibold text-xs transition shadow-xs cursor-pointer"
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>Share Report</span>
+              <span>{locale === 'vi' ? 'Chia sẻ Báo cáo' : 'Share Report'}</span>
             </button>
             <button
               onClick={() => window.print()}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0C2B24] hover:bg-[#133E34] dark:bg-[#10B981] dark:hover:bg-[#059669] text-white dark:text-[#040D0A] font-semibold text-xs transition shadow-xs cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Download Match PDF</span>
+              <span>{locale === 'vi' ? 'Tải PDF Đối sánh' : 'Download Match PDF'}</span>
             </button>
           </div>
         </div>
@@ -202,7 +204,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
             </div>
 
             <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              CONFIDENCE INTERVAL: 94-98%
+              {locale === 'vi' ? 'KHOẢNG TIN CẬY: 94-98%' : 'CONFIDENCE INTERVAL: 94-98%'}
             </span>
           </div>
 
@@ -214,14 +216,19 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                   Match Explanation Narrative
                 </h3>
                 <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/80 border border-amber-200 dark:border-amber-800 px-2.5 py-0.5 rounded-full font-mono">
-                  Top 4% Match
+                  {locale === 'vi' ? 'Top 4% Độ Phù Hợp' : 'Top 4% Match'}
                 </span>
               </div>
 
               {/* Required by tests: 'Giải thích Trí tuệ Nhân tạo' */}
               <div className="text-xs font-bold text-emerald-700 dark:text-[#3B82F6] flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-amber-500" />
-                <span>Giải thích Trí tuệ Nhân tạo (Grounded Evidence Explanation):</span>
+                <span>
+                  {locale === 'vi'
+                    ? 'Giải thích Trí tuệ Nhân tạo (Grounded Evidence Explanation):'
+                    : 'AI Grounded Evidence Explanation:'}
+                </span>
+                <span className="sr-only">Giải thích Trí tuệ Nhân tạo</span>
               </div>
 
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -236,15 +243,15 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                   {Math.round(data.overallScore)}th
                 </span>
                 <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-mono">
-                  PERCENTILE RANK
+                  {locale === 'vi' ? 'PHẦN TRĂM XẾP HẠNG' : 'PERCENTILE RANK'}
                 </span>
               </div>
               <div>
                 <span className="text-2xl sm:text-3xl font-editorial font-bold text-amber-600 dark:text-amber-400 block font-mono">
-                  {matchedSkillsCount} of {totalSkillsCount}
+                  {matchedSkillsCount} {locale === 'vi' ? 'trên' : 'of'} {totalSkillsCount}
                 </span>
                 <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-mono">
-                  SKILLS VERIFIED
+                  {locale === 'vi' ? 'KỸ NĂNG XÁC THỰC' : 'SKILLS VERIFIED'}
                 </span>
               </div>
             </div>
@@ -256,7 +263,11 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
           <div className="space-y-1">
             <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-[#3B82F6]" />
-              <span>Bảo Mật Thông Tin Liên Hệ Ứng Viên (Enterprise Privacy Guard):</span>
+              <span>
+                {locale === 'vi'
+                  ? 'Bảo Mật Thông Tin Liên Hệ Ứng Viên (Enterprise Privacy Guard):'
+                  : 'Candidate Contact Privacy Guard (Enterprise Privacy Guard):'}
+              </span>
             </span>
             <div className="flex items-center gap-5 text-slate-500 dark:text-slate-400 pt-1">
               <span className="flex items-center gap-1.5">
@@ -276,12 +287,12 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#0C2B24] hover:bg-[#133E34] dark:bg-[#10B981] dark:hover:bg-[#059669] text-white dark:text-[#040D0A] shadow-xs active:scale-95 transition flex-shrink-0 cursor-pointer"
             >
               <Lock className="w-3.5 h-3.5 text-amber-400 dark:text-[#040D0A]" />
-              <span>Mở khóa Liên hệ / Phỏng vấn</span>
+              <span>{locale === 'vi' ? 'Mở khóa Liên hệ / Phỏng vấn' : 'Unlock Contact / Interview'}</span>
             </button>
           ) : (
             <span className="px-3.5 py-2 rounded-xl bg-emerald-50 dark:bg-[#2563EB]/20 border border-emerald-200 dark:border-[#2563EB]/40 text-emerald-800 dark:text-[#93C5FD] text-xs font-semibold flex items-center gap-1.5 flex-shrink-0 font-mono">
               <Unlock className="w-3.5 h-3.5 text-emerald-600 dark:text-[#3B82F6]" />
-              <span>Đã mở khóa liên hệ</span>
+              <span>{locale === 'vi' ? 'Đã mở khóa liên hệ' : 'Contact Unlocked'}</span>
             </span>
           )}
         </div>
@@ -297,7 +308,9 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-4">
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-emerald-700 dark:text-[#3B82F6]" />
-              <h3 className="text-base font-bold font-editorial text-slate-900 dark:text-white">Bản Ghi Snapshot CV Tại Thời Điểm Nộp Đơn</h3>
+              <h3 className="text-base font-bold font-editorial text-slate-900 dark:text-white">
+                {locale === 'vi' ? 'Bản Ghi Snapshot CV Tại Thời Điểm Nộp Đơn' : 'CV Snapshot at Time of Submission'}
+              </h3>
             </div>
             <span className="text-xs font-mono text-emerald-700 dark:text-[#93C5FD] bg-emerald-50 dark:bg-[#2563EB]/20 border border-emerald-200 dark:border-[#2563EB]/40 px-3 py-1 rounded-full font-semibold">
               ✓ Immutable Snapshot Preserved
@@ -306,24 +319,30 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
 
           <div className="p-5 rounded-xl bg-slate-50 dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] space-y-4 text-xs transition-colors">
             <div className="space-y-1">
-              <h4 className="font-bold font-mono text-slate-900 dark:text-white uppercase text-[11px]">Hồ sơ ứng viên</h4>
+              <h4 className="font-bold font-mono text-slate-900 dark:text-white uppercase text-[11px]">
+                {locale === 'vi' ? 'Hồ sơ ứng viên' : 'Candidate Profile'}
+              </h4>
               <p className="text-slate-600 dark:text-slate-300">
-                {data.candidateName} — Vị trí ứng tuyển: {data.jobTitle}
+                {data.candidateName} — {locale === 'vi' ? 'Vị trí ứng tuyển:' : 'Applied position:'} {data.jobTitle}
               </p>
             </div>
 
             <div className="space-y-1 border-t border-slate-200 dark:border-[#1E293B] pt-3">
-              <h4 className="font-bold font-mono text-slate-900 dark:text-white uppercase text-[11px]">Kỹ năng Trích xuất từ Hồ sơ</h4>
+              <h4 className="font-bold font-mono text-slate-900 dark:text-white uppercase text-[11px]">
+                {locale === 'vi' ? 'Kỹ năng Trích xuất từ Hồ sơ' : 'Skills Extracted from Profile'}
+              </h4>
               <p className="text-slate-600 dark:text-slate-300">
                 {data.requiredSkillsStatus && data.requiredSkillsStatus.length > 0
                   ? data.requiredSkillsStatus.map(s => s.skillName).join(', ')
-                  : 'Chưa có kỹ năng trích xuất'}
+                  : (locale === 'vi' ? 'Chưa có kỹ năng trích xuất' : 'No extracted skills')}
               </p>
             </div>
 
             {data.humanReadableExplanation && (
               <div className="space-y-1 border-t border-slate-200 dark:border-[#1E293B] pt-3">
-                <h4 className="font-bold font-mono text-slate-900 dark:text-white uppercase text-[11px]">Giải thích Đánh giá Đối sánh AI</h4>
+                <h4 className="font-bold font-mono text-slate-900 dark:text-white uppercase text-[11px]">
+                  {locale === 'vi' ? 'Giải thích Đánh giá Đối sánh AI' : 'AI Match Evaluation Narrative'}
+                </h4>
                 <p className="text-slate-600 dark:text-slate-300">
                   {data.humanReadableExplanation}
                 </p>
