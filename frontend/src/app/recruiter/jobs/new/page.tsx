@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Industry, EmploymentType, Job, Company } from '@/types';
 import { fetchRecruiterProfile, saveJob } from '@/lib/api';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   ArrowLeft,
   Sparkles,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 
 export default function CreateJobPage() {
+  const { t, locale } = useLanguage();
   const [company, setCompany] = useState<Company | null>(null);
 
   const [title, setTitle] = useState<string>('');
@@ -82,7 +84,7 @@ export default function CreateJobPage() {
         <div className="border-b border-slate-200 dark:border-[#1E293B] pb-4">
           <Link href="/recruiter/jobs" className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition mb-3">
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Postings</span>
+            <span>{locale === 'vi' ? 'Quay lại Quản lý bài đăng' : 'Back to Postings'}</span>
           </Link>
 
           <span className="text-[11px] font-mono font-semibold text-[#2563EB] uppercase tracking-widest block">
@@ -92,7 +94,7 @@ export default function CreateJobPage() {
             Create Job Profile — Tạo Bài Tuyển Dụng Mới
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Thiết lập tiêu chuẩn năng lực kỹ thuật và rubric đối sánh vector cho ứng viên
+            {t('jobCreate.subtitle', 'Thiết lập tiêu chuẩn năng lực kỹ thuật và rubric đối sánh vector cho ứng viên')}
           </p>
         </div>
 
@@ -303,7 +305,7 @@ export default function CreateJobPage() {
                   onClick={() => handleSaveJob('DRAFT')}
                   className="w-full py-2.5 px-4 rounded-lg text-xs font-semibold border border-slate-300 dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#18294E] transition text-center cursor-pointer"
                 >
-                  Save Draft
+                  {locale === 'vi' ? 'Lưu Bản Nháp (Save Draft)' : 'Save Draft'}
                 </button>
 
                 <button
@@ -312,7 +314,7 @@ export default function CreateJobPage() {
                   onClick={() => handleSaveJob('PUBLISHED')}
                   className="w-full py-2.5 px-4 rounded-lg text-xs font-semibold text-white bg-[#00B14F] hover:bg-[#009643] transition shadow-md shadow-emerald-500/20 text-center cursor-pointer"
                 >
-                  Publish Posting
+                  {locale === 'vi' ? 'Xuất Bản Tin Tuyển Dụng' : 'Publish Posting'}
                 </button>
               </div>
             </div>

@@ -20,7 +20,7 @@ import { EmptyState } from '@/components/common/EmptyState';
 
 export default function JobApplicationsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [job, setJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -38,7 +38,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
         setApplications(apps);
       })
       .catch((err) => {
-        setFetchError(err.message || 'Không thể tải dữ liệu tuyển dụng.');
+        setFetchError(err.message || (locale === 'vi' ? 'Không thể tải dữ liệu tuyển dụng.' : 'Failed to load recruitment data.'));
       })
       .finally(() => setIsLoading(false));
   };
@@ -52,8 +52,8 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
       <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] p-12 text-center text-slate-500 flex items-center justify-center">
         <EmptyState
           type="LOADING"
-          title="Đang tải pipeline ứng viên..."
-          description="Hệ thống đang đồng bộ danh sách đơn ứng tuyển..."
+          title={locale === 'vi' ? 'Đang tải pipeline ứng viên...' : 'Loading candidate pipeline...'}
+          description={locale === 'vi' ? 'Hệ thống đang đồng bộ danh sách đơn ứng tuyển...' : 'Synchronizing application records...'}
         />
       </div>
     );
@@ -64,9 +64,9 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
       <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] p-12 text-center text-slate-500 flex items-center justify-center">
         <EmptyState
           type="ERROR"
-          title="Không thể tải pipeline ứng viên"
-          description={fetchError || 'Không tìm thấy vị trí tuyển dụng.'}
-          primaryCtaText="Thử lại"
+          title={locale === 'vi' ? 'Không thể tải pipeline ứng viên' : 'Failed to load candidate pipeline'}
+          description={fetchError || (locale === 'vi' ? 'Không tìm thấy vị trí tuyển dụng.' : 'Job opening not found.')}
+          primaryCtaText={locale === 'vi' ? 'Thử lại' : 'Retry'}
           onPrimaryCtaClick={loadData}
         />
       </div>
@@ -80,10 +80,10 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
   const rejectedApps = jobApplications.filter(a => a.status === 'REJECTED');
 
   const columns = [
-    { title: 'New (Mới Nộp)', count: submittedApps.length, items: submittedApps },
-    { title: 'Screening (Sàng Lọc)', count: reviewApps.length, items: reviewApps },
-    { title: 'Shortlisted (Chọn)', count: shortlistApps.length, items: shortlistApps },
-    { title: 'Rejected (Từ Chối)', count: rejectedApps.length, items: rejectedApps },
+    { title: locale === 'vi' ? 'Mới Nộp (New)' : 'New (Applied)', count: submittedApps.length, items: submittedApps },
+    { title: locale === 'vi' ? 'Sàng Lọc (Screening)' : 'Screening', count: reviewApps.length, items: reviewApps },
+    { title: locale === 'vi' ? 'Chọn (Shortlisted)' : 'Shortlisted', count: shortlistApps.length, items: shortlistApps },
+    { title: locale === 'vi' ? 'Từ Chối (Rejected)' : 'Rejected', count: rejectedApps.length, items: rejectedApps },
   ];
 
   return (
@@ -97,16 +97,16 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
             className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition mb-1"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Quay lại Dashboard Console</span>
+            <span>{locale === 'vi' ? 'Quay lại Dashboard Console' : 'Back to Dashboard Console'}</span>
           </Link>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
-                Job Candidate Pipeline — Danh Sách Đơn Ứng Tuyển
+                {locale === 'vi' ? 'Job Candidate Pipeline — Danh Sách Đơn Ứng Tuyển' : 'Job Candidate Pipeline — Applications'}
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Theo dõi và sàng lọc ứng viên cho vị trí: {job.title}
+                {locale === 'vi' ? `Theo dõi và sàng lọc ứng viên cho vị trí: ${job.title}` : `Track and screen candidates for: ${job.title}`}
               </p>
             </div>
 
@@ -116,7 +116,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                 className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-[#00B14F] hover:bg-[#009643] shadow-sm shadow-emerald-500/20 transition flex items-center gap-1.5"
               >
                 <Award className="w-4 h-4 text-white" />
-                <span>Mở Bảng Xếp Hạng AI (NDCG@K)</span>
+                <span>{locale === 'vi' ? 'Mở Bảng Xếp Hạng AI (NDCG@K)' : 'Open AI Ranking (NDCG@K)'}</span>
               </Link>
             </div>
           </div>
@@ -126,10 +126,10 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
         <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-              Vị trí tuyển: <strong className="text-slate-900 dark:text-white">{job.title}</strong>
+              {locale === 'vi' ? 'Vị trí tuyển:' : 'Job Position:'} <strong className="text-slate-900 dark:text-white">{job.title}</strong>
             </span>
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-blue-50 dark:bg-blue-950/60 text-[#2563EB] dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-              {jobApplications.length} Ứng viên đã nộp đơn
+              {locale === 'vi' ? `${jobApplications.length} Ứng viên đã nộp đơn` : `${jobApplications.length} Applicants`}
             </span>
           </div>
 
@@ -138,7 +138,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
               href={`/jobs/${job.id}`}
               className="px-3 py-1.5 rounded-md text-xs font-medium border border-slate-200 dark:border-[#1E293B] bg-slate-50 dark:bg-[#13233F] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#18294E] transition"
             >
-              Xem trang bài đăng JD
+              {locale === 'vi' ? 'Xem trang bài đăng JD' : 'View Job JD'}
             </Link>
           </div>
         </div>
@@ -149,7 +149,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
             type="EMPTY"
             title={t('emptyStates.applications.recruiterEmptyTitle', "Chưa có ứng viên ứng tuyển vào vị trí này")}
             description={t('emptyStates.applications.recruiterEmptyDesc', "Vị trí tuyển dụng chưa nhận được hồ sơ ứng tuyển nào từ ứng viên.")}
-            primaryCtaText="Xem trang bài đăng JD"
+            primaryCtaText={locale === 'vi' ? 'Xem trang bài đăng JD' : 'View Job JD'}
             primaryCtaHref={`/jobs/${job.id}`}
           />
         ) : (
@@ -170,10 +170,10 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                         <div className="flex items-center justify-between">
                           <div>
                             <span className="font-semibold text-xs text-slate-900 dark:text-white block">
-                              {app.candidateName || app.candidateProfile?.fullName || 'Ứng viên'}
+                              {app.candidateName || app.candidateProfile?.fullName || (locale === 'vi' ? 'Ứng viên' : 'Candidate')}
                             </span>
                             <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                              {app.appliedCvTitle || 'Ứng viên'}
+                              {app.appliedCvTitle || (locale === 'vi' ? 'Ứng viên' : 'Candidate')}
                             </span>
                           </div>
                           <span className="text-[10px] font-bold font-mono text-[#00B14F] bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
@@ -181,7 +181,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                           </span>
                         </div>
                         <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                          Nộp ngày: {app.appliedDate}
+                          {locale === 'vi' ? 'Nộp ngày:' : 'Applied on:'} {app.appliedDate}
                         </div>
                         {app.candidateNotes && (
                           <div className="text-[10px] text-slate-600 dark:text-slate-300 italic line-clamp-2">
@@ -192,13 +192,13 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                           href={`/recruiter/applications/${app.id}`}
                           className="block text-center py-1.5 rounded text-[10px] font-semibold border border-slate-200 dark:border-[#1E293B] text-[#2563EB] dark:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-[#18294E] transition"
                         >
-                          Kiểm tra hồ sơ đối sánh
+                          {locale === 'vi' ? 'Kiểm tra hồ sơ đối sánh' : 'Inspect match report'}
                         </Link>
                       </div>
                     ))
                   ) : (
                     <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
-                      Chưa có ứng viên
+                      {locale === 'vi' ? 'Chưa có ứng viên' : 'No applicants'}
                     </div>
                   )}
                 </div>
@@ -206,7 +206,6 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
             ))}
           </div>
         )}
-
       </main>
     </div>
   );

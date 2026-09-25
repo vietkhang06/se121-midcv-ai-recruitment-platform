@@ -10,6 +10,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Briefcase, PlusCircle, Search, Filter, Eye, Award, Users } from 'lucide-react';
 
 export default function RecruiterJobsListPage() {
+  const { t, locale } = useLanguage();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -26,7 +27,7 @@ export default function RecruiterJobsListPage() {
         setFetchError(null);
       })
       .catch((err) => {
-        setFetchError(err.message || 'Không thể tải danh sách bài tuyển dụng.');
+        setFetchError(err.message || (locale === 'vi' ? 'Không thể tải danh sách bài tuyển dụng.' : 'Unable to load jobs list.'));
       })
       .finally(() => setIsLoading(false));
   };
@@ -56,8 +57,12 @@ export default function RecruiterJobsListPage() {
               <Briefcase className="w-4 h-4" />
               <span>Job Management Center</span>
             </div>
-            <h1 className="text-3xl font-editorial font-bold text-slate-900 dark:text-white tracking-tight">Danh Sách Tin Tuyển Dụng Doanh Nghiệp</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Quản lý nội dung JD, trạng thái xuất bản, xem ứng tuyển và Bảng xếp hạng AI Matching</p>
+            <h1 className="text-3xl font-editorial font-bold text-slate-900 dark:text-white tracking-tight">
+              {t('recruiterPages.jobsTitle', 'Danh Sách Tin Tuyển Dụng Doanh Nghiệp')}
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {t('recruiterPages.jobsSubtitle', 'Quản lý nội dung JD, trạng thái xuất bản, xem ứng tuyển và Bảng xếp hạng AI Matching')}
+            </p>
           </div>
 
           <Link
@@ -65,7 +70,7 @@ export default function RecruiterJobsListPage() {
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-md shadow-blue-500/20 transition active:scale-95 flex-shrink-0"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>Tạo Bài Tuyển Dụng Mới</span>
+            <span>{t('recruiterNav.createJob', 'Tạo Bài Tuyển Dụng Mới')}</span>
           </Link>
         </div>
 
@@ -75,7 +80,7 @@ export default function RecruiterJobsListPage() {
             <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Tìm kiếm vị trí tuyển dụng..."
+              placeholder={locale === 'vi' ? 'Tìm kiếm vị trí tuyển dụng...' : 'Search job requisitions...'}
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-xl text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[#2563EB]"
@@ -88,10 +93,10 @@ export default function RecruiterJobsListPage() {
               onChange={(e) => setSelectedStatus(e.target.value)}
               className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-xl text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[#2563EB]"
             >
-              <option value="">Tất cả trạng thái</option>
-              <option value="PUBLISHED">PUBLISHED (Đã xuất bản)</option>
-              <option value="DRAFT">DRAFT (Bài nháp)</option>
-              <option value="CLOSED">CLOSED (Đã đóng)</option>
+              <option value="">{locale === 'vi' ? 'Tất cả trạng thái' : 'All Statuses'}</option>
+              <option value="PUBLISHED">PUBLISHED {locale === 'vi' ? '(Đã xuất bản)' : '(Published)'}</option>
+              <option value="DRAFT">DRAFT {locale === 'vi' ? '(Bài nháp)' : '(Draft)'}</option>
+              <option value="CLOSED">CLOSED {locale === 'vi' ? '(Đã đóng)' : '(Closed)'}</option>
             </select>
           </div>
         </div>
@@ -100,23 +105,23 @@ export default function RecruiterJobsListPage() {
         {isLoading ? (
           <EmptyState
             type="LOADING"
-            title="Đang tải danh sách bài tuyển dụng..."
-            description="Hệ thống đang kết nối dữ liệu việc làm..."
+            title={t('emptyStates.jobs.loading', 'Đang tải danh sách bài tuyển dụng...')}
+            description={locale === 'vi' ? 'Hệ thống đang kết nối dữ liệu việc làm...' : 'Connecting to requisitions catalog...'}
           />
         ) : fetchError ? (
           <EmptyState
             type="ERROR"
-            title="Không thể tải danh sách bài tuyển dụng"
+            title={t('emptyStates.jobs.errorTitle', 'Không thể tải danh sách bài tuyển dụng')}
             description={fetchError}
-            primaryCtaText="Thử lại"
+            primaryCtaText={t('common.retry', 'Thử lại')}
             onPrimaryCtaClick={loadJobs}
           />
         ) : jobs.length === 0 ? (
           <EmptyState
             type="EMPTY"
-            title="Chưa có bài tuyển dụng nào"
-            description="Doanh nghiệp chưa tạo bài tuyển dụng nào. Hãy bắt đầu bằng cách tạo vị trí tuyển dụng mới."
-            primaryCtaText="Tạo Bài Tuyển Dụng Mới"
+            title={t('emptyStates.jobs.emptyTitle', 'Chưa có bài tuyển dụng nào')}
+            description={t('emptyStates.jobs.emptyDesc', 'Doanh nghiệp chưa tạo bài tuyển dụng nào. Hãy bắt đầu bằng cách tạo vị trí tuyển dụng mới.')}
+            primaryCtaText={t('recruiterNav.createJob', 'Tạo Bài Tuyển Dụng Mới')}
             primaryCtaHref="/recruiter/jobs/new"
           />
         ) : filteredJobs.length > 0 ? (
@@ -142,7 +147,7 @@ export default function RecruiterJobsListPage() {
                       <Link href={`/recruiter/jobs/${job.id}`}>{job.title}</Link>
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Địa điểm: {job.location} • Cấp bậc: {job.seniority} • Lương: ${job.salaryMin} - ${job.salaryMax} /tháng
+                      {locale === 'vi' ? 'Địa điểm' : 'Location'}: {job.location} • {locale === 'vi' ? 'Cấp bậc' : 'Level'}: {job.seniority} • {locale === 'vi' ? 'Lương' : 'Salary'}: ${job.salaryMin} - ${job.salaryMax} /{locale === 'vi' ? 'tháng' : 'mo'}
                     </p>
                   </div>
 
@@ -152,7 +157,7 @@ export default function RecruiterJobsListPage() {
                       className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-[#13233F] hover:bg-slate-200 dark:hover:bg-[#18294E] text-slate-800 dark:text-slate-200 border border-transparent dark:border-[#1E293B] transition flex items-center gap-1"
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      <span>Xem Chi tiết JD</span>
+                      <span>{locale === 'vi' ? 'Xem Chi tiết JD' : 'View Requisition'}</span>
                     </Link>
 
                     <Link
@@ -160,7 +165,7 @@ export default function RecruiterJobsListPage() {
                       className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-[#13233F] hover:bg-slate-200 dark:hover:bg-[#18294E] text-slate-800 dark:text-slate-200 border border-transparent dark:border-[#1E293B] transition flex items-center gap-1"
                     >
                       <Users className="w-3.5 h-3.5 text-[#2563EB]" />
-                      <span>Đơn Ứng Tuyển</span>
+                      <span>{locale === 'vi' ? 'Đơn Ứng Tuyển' : 'Applications'}</span>
                     </Link>
 
                     <Link
@@ -168,7 +173,7 @@ export default function RecruiterJobsListPage() {
                       className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#00B14F] hover:bg-[#009643] shadow-xs shadow-emerald-500/20 transition active:scale-95 flex items-center gap-1.5"
                     >
                       <Award className="w-4 h-4" />
-                      <span>Bảng Xếp Hạng AI</span>
+                      <span>{locale === 'vi' ? 'Bảng Xếp Hạng AI' : 'AI Ranking'}</span>
                     </Link>
                   </div>
                 </div>

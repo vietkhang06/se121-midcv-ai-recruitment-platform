@@ -1,16 +1,24 @@
 'use client';
+'use client';
 
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { Job } from '@/types';
 import { fetchJobById } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { QuickApplyModal } from '@/components/application/QuickApplyModal';
 import { ShieldCheck, ChevronRight, Briefcase } from 'lucide-react';
 
-export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function JobDetailPage({
+  params
+}: {
+  params: Promise<{ id: string }>
+}) {
   const resolvedParams = use(params);
   const { user } = useAuth();
+  const { t, locale } = useLanguage();
+
   const [job, setJob] = useState<Job | null>(null);
   const [isApplyModalOpen, setIsApplyModalOpen] = useState<boolean>(false);
 
@@ -21,7 +29,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   if (!job) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-24 text-center text-slate-500">
-        <p className="text-sm">Loading job verification profile...</p>
+        <p className="text-sm">{t('common.loading', 'Loading job verification profile...')}</p>
       </div>
     );
   }
@@ -35,7 +43,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         
         {/* Breadcrumb Trail (Figma Screen 03) */}
         <div className="flex items-center gap-2 text-xs text-[#64748B] dark:text-[#94A3B8]">
-          <Link href="/jobs" className="hover:text-[#2563EB] transition">Danh sách việc làm</Link>
+          <Link href="/jobs" className="hover:text-[#2563EB] transition">
+            {locale === 'vi' ? 'Danh sách việc làm' : 'Jobs Directory'}
+          </Link>
           <ChevronRight className="w-3 h-3 text-slate-400" />
           <span>{job.industry || 'Technology'}</span>
           <ChevronRight className="w-3 h-3 text-slate-400" />
@@ -54,12 +64,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   {job.industry}
                 </span>
                 <span className="text-slate-300 text-xs">
-                  Đăng {job.publishedDate || 'gần đây'}
+                  {locale === 'vi' ? 'Đăng ' : 'Posted '}{job.publishedDate || (locale === 'vi' ? 'gần đây' : 'recently')}
                 </span>
                 {job.companyVerified && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#00B14F] bg-[#00B14F]/20 border border-[#00B14F]/40 px-2.5 py-0.5 rounded-full">
                     <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Doanh nghiệp xác thực</span>
+                    <span>{locale === 'vi' ? 'Doanh nghiệp xác thực' : 'Verified Enterprise'}</span>
                   </span>
                 )}
               </div>
@@ -90,7 +100,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             
             {/* Role Summary */}
             <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-3 transition-colors">
-              <h2 className="font-editorial text-xl font-bold text-[#0F2A52] dark:text-[#F1F5F9]">Mô Tả Công Việc</h2>
+              <h2 className="font-editorial text-xl font-bold text-[#0F2A52] dark:text-[#F1F5F9]">
+                {locale === 'vi' ? 'Mô Tả Công Việc' : 'Job Description'}
+              </h2>
               <p className="text-xs sm:text-sm text-[#64748B] dark:text-[#94A3B8] leading-relaxed">
                 {job.description}
               </p>
@@ -98,7 +110,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
             {/* Key Responsibilities */}
             <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-3 transition-colors">
-              <h2 className="font-editorial text-xl font-bold text-[#0F2A52] dark:text-[#F1F5F9]">Trách Nhiệm Chính</h2>
+              <h2 className="font-editorial text-xl font-bold text-[#0F2A52] dark:text-[#F1F5F9]">
+                {locale === 'vi' ? 'Trách Nhiệm Chính' : 'Key Responsibilities'}
+              </h2>
               <ul className="space-y-2 text-xs sm:text-sm text-[#64748B] dark:text-[#94A3B8] list-disc pl-5">
                 {(job.responsibilities || [
                   'Xây dựng và tối ưu hệ thống microservices chịu tải cao trên nền tảng hạ tầng hiện đại.',
@@ -113,7 +127,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
             {/* Technical Requirements & Evidence Rubrics */}
             <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-4 transition-colors">
-              <h2 className="font-editorial text-xl font-bold text-[#0F2A52] dark:text-[#F1F5F9]">Yêu Cầu Kỹ Thuật</h2>
+              <h2 className="font-editorial text-xl font-bold text-[#0F2A52] dark:text-[#F1F5F9]">
+                {locale === 'vi' ? 'Yêu Cầu Kỹ Thuật' : 'Technical Requirements'}
+              </h2>
               
               {/* Required Skills Section (Preserved for E2E Test Compatibility) */}
               <div className="space-y-2">
@@ -268,17 +284,19 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             <span className="text-[11px] font-mono font-semibold text-[#2563EB] dark:text-[#60A5FA] uppercase tracking-widest">
               EXPLAINABLE MATCHING AUDIT
             </span>
-            <h2 className="text-2xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9] mt-1">Đối Soát Minh Chứng Kỹ Năng</h2>
+            <h2 className="text-2xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9] mt-1">
+              {locale === 'vi' ? 'Đối Soát Minh Chứng Kỹ Năng' : 'Explainable Skill Verification Audit'}
+            </h2>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 dark:bg-[#13233F] text-[#64748B] dark:text-[#94A3B8] uppercase font-mono text-[10px] border-b border-slate-200 dark:border-[#1E293B]">
                 <tr>
-                  <th className="py-3 px-4 font-semibold">Yêu Cầu Kỹ Thuật (JD)</th>
-                  <th className="py-3 px-4 font-semibold">Minh Chứng Đã Xác Thực Từ CV</th>
-                  <th className="py-3 px-4 font-semibold">Trạng Thái Thẩm Định</th>
-                  <th className="py-3 px-4 font-semibold text-right">Độ Khớp</th>
+                  <th className="py-3 px-4 font-semibold">{locale === 'vi' ? 'Yêu Cầu Kỹ Thuật (JD)' : 'Technical Requirement (JD)'}</th>
+                  <th className="py-3 px-4 font-semibold">{locale === 'vi' ? 'Minh Chứng Đã Xác Thực Từ CV' : 'Verified CV Evidence'}</th>
+                  <th className="py-3 px-4 font-semibold">{locale === 'vi' ? 'Trạng Thái Thẩm Định' : 'Audit Status'}</th>
+                  <th className="py-3 px-4 font-semibold text-right">{locale === 'vi' ? 'Độ Khớp' : 'Match Rate'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-[#1E293B] text-[#0F2A52] dark:text-slate-200">

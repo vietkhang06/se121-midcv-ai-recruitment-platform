@@ -317,9 +317,54 @@ export const vi = {
     delete: "Xóa",
     edit: "Chỉnh Sửa",
     view: "Xem",
-    download: "Tải Xuống",
     filter: "Bộ Lọc",
     search: "Tìm Kiếm"
+  },
+  companyPages: {
+    title: "Hồ Sơ Doanh Nghiệp & Trạng Thái Xác Minh",
+    subtitle: "Quản lý thông tin công ty và kiểm tra quyền hạn xuất bản tin tuyển dụng",
+    saveSuccess: "Đã lưu thông tin doanh nghiệp thành công!",
+    nameLabel: "Tên Doanh Nghiệp / Công Ty",
+    industryLabel: "Lĩnh Vực Hoạt Động",
+    sizeLabel: "Quy Mô Nhân Sự",
+    websiteLabel: "Website Chính Thức",
+    emailLabel: "Email Liên Hệ Tuyển Dụng",
+    phoneLabel: "Số Điện Thoại",
+    addressLabel: "Trụ Sở Doanh Nghiệp",
+    descriptionLabel: "Giới Thiệu Doanh Nghiệp",
+    saveButton: "Lưu Thông Tin Doanh Nghiệp"
+  },
+  jobCreate: {
+    title: "Tạo Bài Tuyển Dụng Mới",
+    subtitle: "Thiết lập tiêu chuẩn tuyển dụng, danh mục kỹ năng và bản lưu yêu cầu bất biến",
+    draftBtn: "Lưu Bản Nháp",
+    publishBtn: "Xuất Bản Tin Tuyển Dụng",
+    jobTitle: "Tiêu Đề Vị Trí Tuyển Dụng",
+    department: "Phòng Ban / Đội Ngũ",
+    location: "Địa Điểm Làm Việc",
+    employmentType: "Hình Thức Làm Việc",
+    salaryRange: "Mức Lương Dự Kiến ($/tháng)",
+    seniority: "Cấp Bậc Chuyên Môn",
+    industry: "Ngành Nghề Tuyển Dụng",
+    responsibilities: "Trách Nhiệm Công Việc (Mỗi dòng một dấu •)",
+    requiredSkills: "Kỹ Năng Bắt Buộc (Required Skills)",
+    preferredSkills: "Kỹ Năng Ưu Tiên (Preferred Skills)"
+  },
+  admin: {
+    title: "Cấu hình AI & Engine Đối sánh",
+    subtitle: "Quản lý mô hình bóc tách tài liệu (LLM) và vector embedding cho quy trình tuyển dụng thông minh.",
+    backToDashboard: "Quay lại Bảng điều khiển HR",
+    adminMode: "Chế độ Quản trị & HR"
+  },
+  jobDetail: {
+    jobDescription: "Mô Tả Công Việc",
+    responsibilities: "Trách Nhiệm Chính",
+    technicalRequirements: "Yêu Cầu Kỹ Thuật",
+    companyOverview: "Tổng Quan Doanh Nghiệp",
+    applyNow: "Ứng Tuyển Nhanh",
+    backToJobs: "Danh sách việc làm",
+    posted: "Đăng",
+    verifiedCompany: "Doanh nghiệp xác thực"
   }
 };
 
