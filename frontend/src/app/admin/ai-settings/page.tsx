@@ -2,24 +2,21 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Cpu, ArrowLeft, ShieldCheck } from 'lucide-react';
-import { RecruiterNavbar } from '@/components/recruiter/RecruiterNavbar';
+import { Cpu, ArrowLeft, ShieldAlert } from 'lucide-react';
 import { AiSettingsPanel } from '@/components/admin/AiSettingsPanel';
 
 export default function AdminAiSettingsPage() {
   return (
-    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 transition-colors">
-      <RecruiterNavbar />
-
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#060D1E] text-slate-800 dark:text-slate-100 transition-colors">
+      <main className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6">
         {/* Breadcrumb Navigation */}
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
           <Link
-            href="/recruiter"
-            className="hover:text-slate-900 dark:hover:text-white transition flex items-center gap-1"
+            href="/admin"
+            className="hover:text-indigo-600 dark:hover:text-indigo-400 transition flex items-center gap-1"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Quay lại Bảng điều khiển HR</span>
+            <span>Quay lại Bảng điều khiển Quản trị</span>
           </Link>
         </div>
 
@@ -27,7 +24,7 @@ export default function AdminAiSettingsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-blue-500 text-white shadow-sm">
+              <div className="p-2 rounded-xl bg-indigo-600 text-white shadow-sm">
                 <Cpu className="w-6 h-6" />
               </div>
               <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -39,9 +36,9 @@ export default function AdminAiSettingsPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
-            <span>Chế độ Quản trị & HR</span>
+          <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/50 shrink-0">
+            <ShieldAlert className="w-4 h-4 text-rose-500" />
+            <span>Khu vực Độc quyền Quản trị viên (Admin Only)</span>
           </div>
         </div>
 
