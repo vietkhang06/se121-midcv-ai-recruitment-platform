@@ -55,12 +55,7 @@ public class AdminBootstrapRunner implements CommandLineRunner {
         }
 
         if (userRepository.existsByEmail(email)) {
-            User existing = userRepository.findByEmail(email).orElseThrow();
-            existing.setRole(Role.ADMIN);
-            existing.setIsActive(true);
-            existing.setEmailVerified(true);
-            userRepository.save(existing);
-            log.info("Promoted existing user to initial ADMIN role successfully.");
+            log.warn("ADMIN_INITIAL_EMAIL is already associated with an existing account. Refusing to modify or promote existing account. Aborting admin bootstrap.");
             return;
         }
 

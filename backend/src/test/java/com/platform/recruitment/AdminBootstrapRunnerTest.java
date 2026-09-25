@@ -83,26 +83,28 @@ public class AdminBootstrapRunnerTest {
     }
 
     @Test
-    @DisplayName("Promote existing user to ADMIN if email matches")
-    void testPromoteExistingUser() {
+    @DisplayName("Fail-safe: Do not promote or modify existing non-ADMIN user when email conflicts")
+    void testDoNotPromoteOrModifyExistingUser() {
         User existingUser = User.builder()
-                .email("promoted@company.com")
+                .email("candidate@company.com")
+                .passwordHash("original_hash")
                 .role(Role.CANDIDATE)
                 .isActive(true)
                 .emailVerified(true)
                 .build();
 
         when(userRepository.existsByRole(Role.ADMIN)).thenReturn(false);
-        when(userRepository.existsByEmail("promoted@company.com")).thenReturn(true);
-        when(userRepository.findByEmail("promoted@company.com")).thenReturn(Optional.of(existingUser));
+        when(userRepository.existsByEmail("candidate@company.com")).thenReturn(true);
 
-        ReflectionTestUtils.setField(bootstrapRunner, "initialAdminEmail", "promoted@company.com");
+        ReflectionTestUtils.setField(bootstrapRunner, "initialAdminEmail", "candidate@company.com");
         ReflectionTestUtils.setField(bootstrapRunner, "initialAdminPassword", "SecretPass123!");
 
         bootstrapRunner.run();
 
-        verify(userRepository).save(existingUser);
-        assertEquals(Role.ADMIN, existingUser.getRole());
+        verify(userRepository, never()).save(any());
+        verify(passwordEncoder, never()).encode(any());
+        assertEquals(Role.CANDIDATE, existingUser.getRole());
+        assertEquals("original_hash", existingUser.getPasswordHash());
     }
 
     @Test
