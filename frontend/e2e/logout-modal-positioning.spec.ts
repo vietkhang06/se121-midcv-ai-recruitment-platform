@@ -144,9 +144,9 @@ test.describe('Logout Confirmation Modal Positioning & UX Suite', () => {
     const vpWidth = 375;
     const vpHeight = 667;
     await page.setViewportSize({ width: vpWidth, height: vpHeight });
-    await page.addInitScript(candidateInitScript);
-
     await page.goto('/');
+    await page.evaluate(candidateInitScript);
+    await page.reload();
 
     const mobileBtn = page.locator('#mobile-menu-btn');
     await expect(mobileBtn).toBeVisible();

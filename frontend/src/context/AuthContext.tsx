@@ -112,10 +112,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('auth_token', result.accessToken);
     closeAuthModal();
 
-    // Execute intended action if present
-    if (intendedAction?.type === 'NAVIGATE' && intendedAction.target) {
-      window.location.href = intendedAction.target;
-      setIntendedAction(null);
+    if (typeof window !== 'undefined') {
+      const currentPath = window.location.pathname;
+
+      // 1. If an intended navigation target was specified, check role compatibility
+      if (intendedAction?.type === 'NAVIGATE' && intendedAction.target) {
+        const target = intendedAction.target;
+        setIntendedAction(null);
+
+        if (result.user.role === 'ADMIN') {
+          window.location.href = target.startsWith('/admin') ? target : '/admin';
+          return;
+        }
+        if (result.user.role === 'RECRUITER') {
+          window.location.href = (target.startsWith('/candidate') || target.startsWith('/admin')) ? '/recruiter' : target;
+          return;
+        }
+        if (result.user.role === 'CANDIDATE') {
+          window.location.href = (target.startsWith('/recruiter') || target.startsWith('/admin')) ? '/candidate/profile' : target;
+          return;
+        }
+        window.location.href = target;
+        return;
+      }
+
+      // 2. Default landing page redirection by role
+      if (result.user.role === 'ADMIN') {
+        window.location.href = '/admin';
+      } else if (result.user.role === 'RECRUITER') {
+        window.location.href = '/recruiter';
+      } else {
+        // If candidate logged in from an HR route, Admin route or auth route, redirect to candidate portal
+        if (currentPath.startsWith('/recruiter') || currentPath.startsWith('/admin') || currentPath === '/login' || currentPath === '/register') {
+          window.location.href = '/candidate/profile';
+        }
+      }
     }
   };
 
@@ -126,12 +157,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setAuthState('ANONYMOUS');
 
-    // If on protected candidate or recruiter route, redirect to home
     if (typeof window !== 'undefined') {
-      const pathname = window.location.pathname;
-      if (pathname.startsWith('/candidate') || pathname.startsWith('/recruiter')) {
-        window.location.href = '/';
-      }
+      window.location.href = '/';
     }
   };
 

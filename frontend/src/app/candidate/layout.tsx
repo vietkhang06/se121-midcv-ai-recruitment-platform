@@ -1,15 +1,13 @@
 import React from 'react';
-import { RecruiterNavbar } from '@/components/recruiter/RecruiterNavbar';
 import { RoleGuard } from '@/components/auth/RoleGuard';
 
-export default function RecruiterLayout({
+export default function CandidateLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <RoleGuard allowedRoles={['RECRUITER']}>
-      <RecruiterNavbar />
+    <RoleGuard allowedRoles={['CANDIDATE']}>
       {children}
     </RoleGuard>
   );

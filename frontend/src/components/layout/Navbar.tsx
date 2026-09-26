@@ -40,6 +40,7 @@ export const Navbar: React.FC = () => {
 
   const isRecruiter = isAuthenticated && user?.role === 'RECRUITER';
   const isCandidate = isAuthenticated && user?.role === 'CANDIDATE';
+  const isAdmin = isAuthenticated && user?.role === 'ADMIN';
 
   // Handle escape key to close mobile menu
   useEffect(() => {
@@ -62,22 +63,21 @@ export const Navbar: React.FC = () => {
     if (href === '/candidate/profile') return pathname === '/candidate/profile';
     if (href === '/help') return pathname === '/help';
     if (href === '/recruiter') return pathname === '/recruiter';
-    if (href === '/recruiter/jobs') return pathname.startsWith('/recruiter/jobs');
-    if (href === '/recruiter/company') return pathname.startsWith('/recruiter/company');
+    if (href === '/admin') return pathname === '/admin';
     return pathname === href;
   };
 
-  // If on recruiter portal routes, let RecruiterLayout / RecruiterNavbar handle top navigation
-  if (pathname?.startsWith('/recruiter')) {
+  // If on recruiter or admin portal routes, let their dedicated layouts handle top navigation
+  if (pathname?.startsWith('/recruiter') || pathname?.startsWith('/admin')) {
     return null;
   }
 
   return (
     <>
       <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-md border-b border-blue-100/80 dark:border-[#1E293B] text-[#173B73] dark:text-[#D6E4E1] transition-colors">
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-2 xl:gap-4">
+      <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-2.5 xl:gap-4">
         
-        {/* Brand Logo (No tagline under logo as requested) */}
+        {/* Brand Logo */}
         <div className="flex items-center gap-3 shrink-0">
           <BrandLogo size="md" />
 
@@ -86,109 +86,89 @@ export const Navbar: React.FC = () => {
               HR PORTAL
             </span>
           )}
+          {isAdmin && (
+            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-indigo-950 text-indigo-300 border border-indigo-500/40 uppercase whitespace-nowrap">
+              ADMIN
+            </span>
+          )}
         </div>
 
-        {/* Desktop Navigation Menus (whitespace-nowrap to prevent line breaks) */}
+        {/* Desktop Navigation Menus (Strictly segregated by Role, no text compression) */}
         <nav className="hidden lg:flex items-center gap-1 xl:gap-2.5 text-xs xl:text-[13px] font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap shrink-0">
           
-          {/* 1. Việc làm Dropdown */}
-          <div className="relative group py-3 shrink-0">
-            <Link
-              href="/jobs"
-              className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-lg hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition-colors whitespace-nowrap ${
-                isTabActive('/jobs') ? 'text-[#2563EB] font-bold' : ''
-              }`}
-            >
-              <span className="whitespace-nowrap">{locale === 'vi' ? 'Việc làm' : 'Jobs'}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#2563EB] group-hover:rotate-180 transition-transform duration-200" />
-            </Link>
+          {/* 1. Việc làm (Public / Shared) */}
+          <Link
+            href="/jobs"
+            className={`px-2.5 xl:px-3 py-1.5 rounded-lg hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition-colors whitespace-nowrap shrink-0 ${
+              isTabActive('/jobs') ? 'text-[#2563EB] font-bold' : ''
+            }`}
+          >
+            {locale === 'vi' ? 'Việc làm' : 'Jobs'}
+          </Link>
 
-            <div className="absolute top-full left-0 hidden group-hover:block bg-white dark:bg-[#111C38] border border-blue-100 dark:border-[#1E293B] rounded-xl shadow-xl py-2 w-56 z-50 animate-fade-in">
-              <Link href="/jobs" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
-                {locale === 'vi' ? 'Tìm việc làm mới nhất' : 'Find Latest Jobs'}
-              </Link>
-              <Link href="/jobs" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
-                {locale === 'vi' ? 'Việc làm IT & Công nghệ' : 'Technology & IT Roles'}
-              </Link>
-              <Link href="/jobs" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
-                {locale === 'vi' ? 'Việc làm đối sánh AI phù hợp' : 'AI Matched Positions'}
-              </Link>
-            </div>
-          </div>
+          {isCandidate && (
+            /* CANDIDATE Desktop Links */
+            <>
+              {/* Tạo CV Dropdown */}
+              <div className="relative group py-3 shrink-0">
+                <Link
+                  href="/candidate/cvs"
+                  className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-lg hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition-colors whitespace-nowrap shrink-0 ${
+                    isTabActive('/candidate/cvs') ? 'text-[#2563EB] font-bold' : ''
+                  }`}
+                >
+                  <span className="whitespace-nowrap">{locale === 'vi' ? 'Tạo CV' : 'Create CV'}</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#2563EB] group-hover:rotate-180 transition-transform duration-200 shrink-0" />
+                </Link>
 
-          {/* 2. Tạo CV Dropdown */}
-          <div className="relative group py-3 shrink-0">
-            <Link
-              href="/candidate/cvs"
-              className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-lg hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition-colors whitespace-nowrap ${
-                isTabActive('/candidate/cvs') ? 'text-[#2563EB] font-bold' : ''
-              }`}
-            >
-              <span className="whitespace-nowrap">{locale === 'vi' ? 'Tạo CV' : 'Create CV'}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#2563EB] group-hover:rotate-180 transition-transform duration-200" />
-            </Link>
+                <div className="absolute top-full left-0 hidden group-hover:block bg-white dark:bg-[#111C38] border border-blue-100 dark:border-[#1E293B] rounded-xl shadow-xl py-2 w-60 z-50 animate-fade-in">
+                  <Link href="/candidate/cvs" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
+                    {locale === 'vi' ? 'Thư viện CV của tôi' : 'My CV Repository'}
+                  </Link>
+                  <Link href="/candidate/cvs" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
+                    {locale === 'vi' ? 'Tải lên CV & Trích xuất AI' : 'Upload CV & AI Parser'}
+                  </Link>
+                  <Link href="/candidate/cvs/builder" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
+                    {locale === 'vi' ? 'Trình tạo CV chuẩn ATS' : 'ATS Resume Studio'}
+                  </Link>
+                </div>
+              </div>
 
-            <div className="absolute top-full left-0 hidden group-hover:block bg-white dark:bg-[#111C38] border border-blue-100 dark:border-[#1E293B] rounded-xl shadow-xl py-2 w-60 z-50 animate-fade-in">
-              <Link href="/candidate/cvs" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
-                {locale === 'vi' ? 'Thư viện CV của tôi' : 'My CV Repository'}
-              </Link>
-              <Link href="/candidate/cvs" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
-                {locale === 'vi' ? 'Tải lên CV & Trích xuất AI' : 'Upload CV & AI Parser'}
-              </Link>
-              <Link href="/candidate/cvs/builder" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
-                {locale === 'vi' ? 'Trình tạo CV chuẩn ATS' : 'ATS Resume Studio'}
-              </Link>
-            </div>
-          </div>
+              {/* Công cụ Dropdown */}
+              <div className="relative group py-3 shrink-0">
+                <Link
+                  href="/candidate/applications"
+                  className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-lg hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition-colors whitespace-nowrap shrink-0 ${
+                    isTabActive('/candidate/applications') ? 'text-[#2563EB] font-bold' : ''
+                  }`}
+                >
+                  <span className="whitespace-nowrap">{locale === 'vi' ? 'Công cụ' : 'Tools'}</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#2563EB] group-hover:rotate-180 transition-transform duration-200 shrink-0" />
+                </Link>
 
-          {/* 3. Công cụ Dropdown */}
-          <div className="relative group py-3 shrink-0">
-            <Link
-              href="/candidate/applications"
-              className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-lg hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition-colors whitespace-nowrap ${
-                isTabActive('/candidate/applications') ? 'text-[#2563EB] font-bold' : ''
-              }`}
-            >
-              <span className="whitespace-nowrap">{locale === 'vi' ? 'Công cụ' : 'Tools'}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#2563EB] group-hover:rotate-180 transition-transform duration-200" />
-            </Link>
+                <div className="absolute top-full left-0 hidden group-hover:block bg-white dark:bg-[#111C38] border border-blue-100 dark:border-[#1E293B] rounded-xl shadow-xl py-2 w-64 z-50 animate-fade-in">
+                  <Link href="/candidate/applications" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
+                    {locale === 'vi' ? 'Báo cáo ứng tuyển & Đối sánh' : 'Match & Application Reports'}
+                  </Link>
+                  <Link href="/candidate/profile" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
+                    {locale === 'vi' ? 'Xác thực hồ sơ & GitHub Signal' : 'Profile & GitHub Verification'}
+                  </Link>
+                </div>
+              </div>
+            </>
+          )}
 
-            <div className="absolute top-full left-0 hidden group-hover:block bg-white dark:bg-[#111C38] border border-blue-100 dark:border-[#1E293B] rounded-xl shadow-xl py-2 w-64 z-50 animate-fade-in">
-              <Link href="/candidate/applications" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
-                {locale === 'vi' ? 'Báo cáo ứng tuyển & Đối sánh' : 'Match & Application Reports'}
-              </Link>
-              <Link href="/candidate/profile" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
-                {locale === 'vi' ? 'Xác thực hồ sơ & GitHub Signal' : 'Profile & GitHub Verification'}
-              </Link>
-              <Link href="/help" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
-                {locale === 'vi' ? 'Kiểm tra độ chuẩn hóa NDCG@3' : 'NDCG@3 Validation Telemetry'}
-              </Link>
-            </div>
-          </div>
+          {/* Hướng dẫn / Help (Public) */}
+          <Link
+            href="/help"
+            className={`px-3 py-1.5 rounded-lg hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition-colors whitespace-nowrap ${
+              isTabActive('/help') ? 'text-[#2563EB] font-bold' : ''
+            }`}
+          >
+            {locale === 'vi' ? 'Cẩm nang' : 'Help & Guides'}
+          </Link>
 
-          {/* 4. Cẩm nang nghề nghiệp */}
-          <div className="relative group py-3 shrink-0">
-            <Link
-              href="/help"
-              className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-lg hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition-colors whitespace-nowrap ${
-                isTabActive('/help') ? 'text-[#2563EB] font-bold' : ''
-              }`}
-            >
-              <span className="whitespace-nowrap">{locale === 'vi' ? 'Cẩm nang nghề nghiệp' : 'Career Guide'}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#2563EB] group-hover:rotate-180 transition-transform duration-200" />
-            </Link>
-
-            <div className="absolute top-full left-0 hidden group-hover:block bg-white dark:bg-[#111C38] border border-blue-100 dark:border-[#1E293B] rounded-xl shadow-xl py-2 w-64 z-50 animate-fade-in">
-              <Link href="/help" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
-                {locale === 'vi' ? 'Hướng dẫn nền tảng midCV®' : 'midCV® Platform Guide'}
-              </Link>
-              <Link href="/help" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
-                {locale === 'vi' ? 'Chính sách bảo vệ Zero-Penalty' : 'Zero-Penalty Policy'}
-              </Link>
-            </div>
-          </div>
-
-          {/* 5. midCV Pro Badge */}
+          {/* midCV Pro Badge */}
           <Link
             href="/help"
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-200 hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition whitespace-nowrap shrink-0"
@@ -207,31 +187,46 @@ export const Navbar: React.FC = () => {
           {/* Language Switcher */}
           <button
             onClick={toggleLocale}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full border border-blue-100 dark:border-[#1E293B] bg-blue-50/50 dark:bg-[#111C38] text-slate-700 dark:text-slate-200 hover:border-[#2563EB] hover:text-[#2563EB] transition cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-mono font-bold rounded-lg border border-blue-100 dark:border-[#1E293B] bg-blue-50/50 dark:bg-[#111C38] text-slate-700 dark:text-slate-200 hover:border-[#2563EB] hover:text-[#2563EB] transition cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
             title={locale === 'vi' ? 'Chuyển sang English' : 'Switch to Tiếng Việt'}
           >
             <Globe className="w-3.5 h-3.5 text-[#2563EB]" />
             <span className="whitespace-nowrap">{locale.toUpperCase()}</span>
           </button>
 
-          {/* Theme Toggle Slider Switch (Kiểu gạt qua lại) */}
+          {/* Theme Toggle Slider Switch */}
           <ThemeSwitch />
 
           {isAuthenticated ? (
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Recruiter button */}
-              <Link
-                href="/recruiter"
-                className="hidden xl:inline-flex items-center px-4 py-2 rounded-full text-xs font-semibold bg-blue-50 dark:bg-[#152342] hover:bg-blue-100 dark:hover:bg-[#1C2F57] text-[#173B73] dark:text-blue-200 border border-blue-200/60 dark:border-blue-900/50 transition whitespace-nowrap"
-              >
-                {locale === 'vi' ? 'Đăng tuyển & tìm hồ sơ' : 'Recruiter Portal'}
-              </Link>
+            <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+              {/* Role-Specific Destination CTA */}
+              {isAdmin ? (
+                <Link
+                  href="/admin"
+                  className="hidden xl:inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 transition whitespace-nowrap shrink-0"
+                >
+                  {locale === 'vi' ? 'Cổng Quản trị (Admin)' : 'Admin Portal'}
+                </Link>
+              ) : isRecruiter ? (
+                <Link
+                  href="/recruiter"
+                  className="hidden xl:inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 transition whitespace-nowrap shrink-0"
+                >
+                  {locale === 'vi' ? 'Cổng Tuyển dụng (HR)' : 'Recruiter Portal'}
+                </Link>
+              ) : null}
 
               {/* User Name & Role */}
               <div className="text-right hidden sm:block">
-                <span className="text-xs font-semibold text-[#0F2A52] dark:text-[#F1F5F9] block truncate max-w-[140px]">{user?.fullName}</span>
+                <span className="text-xs font-semibold text-[#0F2A52] dark:text-[#F1F5F9] block truncate max-w-[100px] xl:max-w-[130px]">{user?.fullName}</span>
                 {user?.role && (
-                  <span className="text-[10px] font-mono font-bold text-[#2563EB] bg-blue-50 dark:bg-[#2563EB]/15 px-1.5 py-0.5 rounded border border-[#2563EB]/30 uppercase inline-block">
+                  <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border uppercase inline-block ${
+                    user.role === 'ADMIN'
+                      ? 'text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-900'
+                      : user.role === 'RECRUITER'
+                      ? 'text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-900'
+                      : 'text-[#2563EB] dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-900'
+                  }`}>
                     {user.role}
                   </span>
                 )}
@@ -258,7 +253,7 @@ export const Navbar: React.FC = () => {
             </div>
           ) : (
             <div className="hidden sm:flex items-center gap-2 xl:gap-2.5 shrink-0">
-              {/* Đăng nhập: Clean text / subtle pill matching Image 3 */}
+              {/* Đăng nhập */}
               <button
                 onClick={() => openAuthModal('LOGIN')}
                 className="px-3.5 py-2 rounded-full text-xs font-bold text-[#173B73] dark:text-slate-200 hover:text-[#2563EB] dark:hover:text-[#3B82F6] hover:bg-blue-50/70 dark:hover:bg-[#152342] transition cursor-pointer whitespace-nowrap shrink-0"
@@ -266,7 +261,7 @@ export const Navbar: React.FC = () => {
                 {locale === 'vi' ? 'Đăng nhập' : 'Sign In'}
               </button>
 
-              {/* Đăng ký: Solid blue pill (#2563EB) matching Image 3 */}
+              {/* Đăng ký */}
               <button
                 onClick={() => openAuthModal('REGISTER')}
                 className="px-5 py-2 rounded-full text-xs font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-xs cursor-pointer whitespace-nowrap shrink-0 active:scale-95"
@@ -274,12 +269,12 @@ export const Navbar: React.FC = () => {
                 {locale === 'vi' ? 'Đăng ký' : 'Register'}
               </button>
 
-              {/* Đăng tuyển & tìm hồ sơ: Subtle pill */}
+              {/* Dành cho Doanh nghiệp (Anonymous only) */}
               <Link
                 href="/recruiter"
                 className="hidden xl:inline-flex items-center px-3.5 py-2 rounded-full text-xs font-semibold bg-blue-50/80 dark:bg-[#152342] hover:bg-blue-100 dark:hover:bg-[#1C2F57] text-[#173B73] dark:text-blue-200 border border-blue-200/60 dark:border-blue-900/50 transition cursor-pointer whitespace-nowrap shrink-0"
               >
-                {locale === 'vi' ? 'Đăng tuyển & tìm hồ sơ' : 'Recruiter Portal'}
+                {locale === 'vi' ? 'Dành cho Doanh nghiệp' : 'For Employers'}
               </Link>
             </div>
           )}

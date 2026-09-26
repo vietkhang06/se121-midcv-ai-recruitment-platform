@@ -51,10 +51,20 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/jobs", "/api/v1/jobs/*").permitAll()
+                        // Candidate-only endpoints
                         .requestMatchers("/api/v1/candidate/**").hasRole("CANDIDATE")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/processing/candidate/**").hasRole("CANDIDATE")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/processing/cvs/**").hasRole("CANDIDATE")
+                        // HR-only & HR/Admin endpoints
                         .requestMatchers("/api/v1/recruiter/**").hasRole("HR")
-                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "HR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/jobs/draft").hasAnyRole("HR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/jobs/*/publish").hasAnyRole("HR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/processing/jobs/**").hasAnyRole("HR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/matching/jobs/*/candidates/*").hasAnyRole("HR", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/matching/jobs/*/rankings").hasAnyRole("HR", "ADMIN")
                         .requestMatchers("/api/hr/**").hasAnyRole("HR", "ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

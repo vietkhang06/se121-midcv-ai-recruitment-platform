@@ -29,7 +29,7 @@ public class AdminController {
     if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof User user)) {
       throw new CustomException(ErrorCode.AUTHENTICATION_FAILED, "Vui lòng đăng nhập để tiếp tục.");
     }
-    if (user.getRole() != Role.ADMIN && user.getRole() != Role.HR) {
+    if (user.getRole() != Role.ADMIN) {
       throw new CustomException(ErrorCode.ACCESS_DENIED, "Chỉ quản trị viên mới có quyền cấu hình AI hệ thống.");
     }
     return user;

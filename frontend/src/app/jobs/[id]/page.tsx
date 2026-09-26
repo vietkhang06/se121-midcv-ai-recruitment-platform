@@ -1,16 +1,24 @@
 'use client';
+'use client';
 
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { Job } from '@/types';
 import { fetchJobById } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { QuickApplyModal } from '@/components/application/QuickApplyModal';
-import { ShieldCheck, ChevronRight, CheckCircle2, AlertCircle, XCircle } from 'lucide-react';
+import { ShieldCheck, ChevronRight, Briefcase } from 'lucide-react';
 
-export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function JobDetailPage({
+  params
+}: {
+  params: Promise<{ id: string }>
+}) {
   const resolvedParams = use(params);
+  const { user } = useAuth();
   const { t, locale } = useLanguage();
+
   const [job, setJob] = useState<Job | null>(null);
   const [isApplyModalOpen, setIsApplyModalOpen] = useState<boolean>(false);
 
@@ -174,20 +182,39 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 </div>
               </div>
 
-              <div className="space-y-2.5 pt-2">
-                <button
-                  onClick={() => setIsApplyModalOpen(true)}
-                  className="w-full py-3 px-4 rounded-xl font-semibold text-xs text-white bg-[#00B14F] hover:bg-[#009643] transition shadow-xs text-center cursor-pointer active:scale-[0.99]"
-                >
-                  Apply via midCV® (Quick Apply) — Nộp đơn
-                </button>
-                <button
-                  onClick={() => setIsApplyModalOpen(true)}
-                  className="w-full py-2.5 px-4 rounded-xl font-medium text-xs text-[#0F2A52] dark:text-slate-200 border border-slate-200 dark:border-[#1E293B] hover:bg-slate-50 dark:hover:bg-[#18294E] transition text-center cursor-pointer"
-                >
-                  Ứng tuyển tiêu chuẩn
-                </button>
-              </div>
+              {user?.role === 'RECRUITER' ? (
+                <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-[#152342] border border-blue-200 dark:border-blue-900/50 text-center space-y-2.5">
+                  <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#173B73] dark:text-blue-200">
+                    <Briefcase className="w-3.5 h-3.5 text-[#2563EB]" />
+                    <span>Tài khoản Nhà tuyển dụng (HR)</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Bạn đang xem tin đăng dưới góc nhìn của ứng viên. Chức năng nộp đơn chỉ dành cho tài khoản Ứng viên.
+                  </p>
+                  <Link
+                    href={`/recruiter/jobs/${job.id}/applications`}
+                    className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg text-xs font-semibold bg-[#2563EB] hover:bg-[#1D4ED8] text-white transition shadow-2xs"
+                  >
+                    Xem hồ sơ ứng tuyển vị trí này
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-2.5 pt-2">
+                  <button
+                    id="job-quick-apply-btn"
+                    onClick={() => setIsApplyModalOpen(true)}
+                    className="w-full py-3 px-4 rounded-xl font-semibold text-xs text-white bg-[#00B14F] hover:bg-[#009643] transition shadow-xs text-center cursor-pointer active:scale-[0.99]"
+                  >
+                    Apply via midCV® (Quick Apply) — Nộp đơn
+                  </button>
+                  <button
+                    onClick={() => setIsApplyModalOpen(true)}
+                    className="w-full py-2.5 px-4 rounded-xl font-medium text-xs text-[#0F2A52] dark:text-slate-200 border border-slate-200 dark:border-[#1E293B] hover:bg-slate-50 dark:hover:bg-[#18294E] transition text-center cursor-pointer"
+                  >
+                    Ứng tuyển tiêu chuẩn
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Semantic Fit Evaluation Widget (Radial Score Gauge) */}

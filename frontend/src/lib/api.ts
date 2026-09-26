@@ -855,7 +855,7 @@ export class RealApiClient implements ApiClient {
       id: jwtData.userId,
       email: jwtData.email,
       fullName: jwtData.email.split('@')[0],
-      role: jwtData.role === 'HR' ? 'RECRUITER' : 'CANDIDATE',
+      role: jwtData.role === 'HR' ? 'RECRUITER' : (jwtData.role === 'ADMIN' ? 'ADMIN' : 'CANDIDATE'),
       emailVerified: true
     };
     return { user, accessToken: jwtData.accessToken, refreshToken: jwtData.refreshToken };
