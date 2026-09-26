@@ -161,8 +161,11 @@ public class CVService {
         Documents.Saved savedDoc;
         try {
             savedDoc = documents.upload(candidateUser.getId(), "CV", cvTitle, file, null);
-        } catch (IOException e) {
-            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to store uploaded file: " + e.getMessage());
+        } catch (CustomException ce) {
+            throw ce;
+        } catch (Exception e) {
+            log.error("Failed to store uploaded file for candidate user {}: {}", candidateUser.getId(), e.getMessage(), e);
+            throw new CustomException(ErrorCode.FILE_STORAGE_FAILED, "Không thể lưu tệp CV lên hệ thống lưu trữ. Vui lòng thử lại.");
         }
 
         String ext = originalFileName.contains(".")

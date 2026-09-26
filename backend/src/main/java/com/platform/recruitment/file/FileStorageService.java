@@ -20,7 +20,7 @@ public class FileStorageService {
 
     private final Path storageLocation;
 
-    public FileStorageService(@Value("${app.file-storage-path:./uploads/cvs/private}") String storagePath) {
+    public FileStorageService(@Value("${app.file-storage-path:${app.upload-dir:./uploads}}") String storagePath) {
         this.storageLocation = Paths.get(storagePath).toAbsolutePath().normalize();
         try {
             Files.createDirectories(this.storageLocation);
