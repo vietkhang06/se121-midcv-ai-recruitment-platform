@@ -10,7 +10,7 @@ export default defineConfig({
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:3000',
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
     screenshot: 'on',
   },
   projects: [
@@ -19,7 +19,6 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1280, height: 800 },
-        channel: 'chrome',
       },
     },
   ],
