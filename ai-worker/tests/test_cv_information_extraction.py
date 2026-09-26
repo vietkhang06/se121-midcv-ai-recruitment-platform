@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from app.schemas.cv import CVExtractRequest
 from app.services.cv_parser import CVParser
 from app.services.llm_client import LLMClient, LLMAPIError
+from tests.fixtures.mock_llm_client import MockLLMClient
 
 def test_cv_ie_01_rich_cv_comprehensive_extraction():
     """
@@ -157,7 +158,7 @@ def test_cv_ie_04_no_experience_years_speculation():
     CV-IE-04: Candidate lists skills without years of experience.
     The parser MUST NOT speculate years_exp = 2 or fabricate arbitrary numbers.
     """
-    parser = CVParser()
+    parser = CVParser(llm_client=MockLLMClient())
     raw_text = """
     HOANG MINH DUC
     Email: duc.hoang@example.com
@@ -183,7 +184,7 @@ def test_cv_ie_05_missing_and_empty_raw_text_validation():
     CV-IE-05: Missing raw text (None or whitespace-only) MUST return status FAILED
     with error codes RAW_TEXT_MISSING or RAW_TEXT_EMPTY, not silent success.
     """
-    parser = CVParser()
+    parser = CVParser(llm_client=MockLLMClient())
 
     # Case A: None
     req_none = CVExtractRequest(
@@ -213,7 +214,7 @@ def test_cv_ie_06_insufficient_raw_text_validation():
     CV-IE-06: Raw text with too few characters (< 30 chars) and no meaningful content
     MUST return status FAILED with error code RAW_TEXT_INSUFFICIENT.
     """
-    parser = CVParser()
+    parser = CVParser(llm_client=MockLLMClient())
     req_insufficient = CVExtractRequest(
         cv_id="cv-short",
         cv_version_id="ver-short",
@@ -230,7 +231,7 @@ def test_cv_ie_07_vietnamese_cv_unicode_preserved():
     CV-IE-07: Vietnamese CV with full diacritics must preserve exact Unicode spelling
     for full name, university, and company names.
     """
-    parser = CVParser()
+    parser = CVParser(llm_client=MockLLMClient())
     raw_text = """
     NGUYỄN VĂN ĐẠI
     Kỹ sư phần mềm Backend
