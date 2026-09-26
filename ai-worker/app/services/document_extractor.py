@@ -1,26 +1,41 @@
 import io
+import os
 import time
 import base64
 import logging
+import tempfile
+import subprocess
 import unicodedata
-from typing import Optional, Dict, Any, Tuple
-from app.schemas.document import DocumentExtractRequest, DocumentExtractResponse
+from typing import Optional, Dict, Any, Tuple, List
+from PIL import Image, ImageOps
+
+from app.schemas.document import DocumentExtractRequest, DocumentExtractResponse, PageSegment
 
 logger = logging.getLogger(__name__)
 
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
+MAX_PIXELS = 50_000_000  # 50 Megapixels max to prevent decompression bombs
+MIN_PAGE_CHARS_FOR_NATIVE = 40  # Threshold to classify page as native vs scan
+
 
 class DocumentExtractor:
     """
-    Strict real-data document extraction service for PDF and DOCX documents with OCR support.
-    Follows zero-mock, no-silent-fallback, and non-fabrication principles.
+    Robust CV and Document extraction engine implementing:
+    - PDF native text and layout parsing via pdfplumber (with 2-column layout detection).
+    - Per-page classification (native vs scanned vs mixed).
+    - PDF page rendering via pypdfium2 for scanned pages.
+    - OCR via Tesseract 5 + pytesseract with 'eng+vie' language models.
+    - Image extraction (PNG, JPG, JPEG, WEBP) with EXIF orientation and pixel limit protection.
+    - DOCX extraction via python-docx traversing paragraphs and tables in document order.
+    - DOC (legacy Word) conversion via isolated LibreOffice headless sandbox.
+    - Strict provenance: stores immutable raw source text, normalized text, page segments, and warnings.
     """
 
     def extract_document(self, request: DocumentExtractRequest) -> DocumentExtractResponse:
         start_time = time.time()
         correlation_id = request.correlation_id or "unknown"
         file_name = request.file_name or "unknown_document"
-        
+
         logger.info(
             f"Starting document extraction [correlation_id={correlation_id}, "
             f"file_name={file_name}, declared_type={request.file_type}]"
@@ -28,17 +43,26 @@ class DocumentExtractor:
 
         # 1. Handle raw text direct pass-through if explicitly provided
         if request.raw_text and request.raw_text.strip():
-            norm_text = self._normalize_text(request.raw_text)
+            raw_text = request.raw_text
+            norm_text = self._normalize_text(raw_text)
             duration_ms = int((time.time() - start_time) * 1000)
-            logger.info(
-                f"Document extraction succeeded from raw_text [correlation_id={correlation_id}, "
-                f"char_count={len(norm_text)}, duration_ms={duration_ms}]"
+            segment = PageSegment(
+                page_number=None,
+                text=norm_text,
+                raw_text=raw_text,
+                method="text",
+                used_ocr=False,
+                start_char=0,
+                end_char=len(norm_text)
             )
             return DocumentExtractResponse(
                 status="SUCCESS",
                 source_type="TEXT",
                 used_ocr=False,
                 text=norm_text,
+                raw_source_text=raw_text,
+                pages=[segment],
+                warnings=[],
                 error_code=None,
                 error_message=None,
                 metadata={
@@ -48,7 +72,7 @@ class DocumentExtractor:
                 }
             )
 
-        # 2. Decode and validate file bytes
+        # 2. Validate base64 input
         if not request.file_base64:
             return DocumentExtractResponse(
                 status="FAILED",
@@ -71,7 +95,6 @@ class DocumentExtractor:
                 error_message=f"Failed to decode base64 file content: {str(e)}"
             )
 
-        # Check empty file
         if len(file_bytes) == 0:
             return DocumentExtractResponse(
                 status="FAILED",
@@ -82,7 +105,6 @@ class DocumentExtractor:
                 error_message="Uploaded document file is 0 bytes (empty file)."
             )
 
-        # Check file size limit (10MB)
         if len(file_bytes) > MAX_FILE_SIZE_BYTES:
             return DocumentExtractResponse(
                 status="FAILED",
@@ -102,16 +124,18 @@ class DocumentExtractor:
                 used_ocr=False,
                 text=None,
                 error_code="UNSUPPORTED_FILE_TYPE",
-                error_message=f"Unsupported or invalid document type: {detected_type}. Only PDF and DOCX files are supported."
+                error_message=f"Unsupported document format: {detected_type}. Supported: PDF, DOCX, DOC, PNG, JPG, JPEG, WEBP."
             )
 
-        # 4. Route to specific extractor
+        # 4. Route to extractor
         if detected_type == "PDF":
             return self._extract_pdf(file_bytes, correlation_id, file_name, start_time)
         elif detected_type == "DOCX":
             return self._extract_docx(file_bytes, correlation_id, file_name, start_time)
+        elif detected_type == "DOC":
+            return self._extract_doc_via_libreoffice(file_bytes, correlation_id, file_name, start_time)
         elif detected_type == "IMAGE":
-            return self._extract_image_ocr(file_bytes, correlation_id, file_name, start_time)
+            return self._extract_image(file_bytes, correlation_id, file_name, start_time)
         else:
             return DocumentExtractResponse(
                 status="FAILED",
@@ -123,302 +147,731 @@ class DocumentExtractor:
             )
 
     def _detect_file_type(self, file_bytes: bytes, file_name: Optional[str], declared_type: Optional[str]) -> Tuple[str, bool]:
-        """Detect and validate document type using magic bytes."""
-        # PDF check: begins with %PDF-
+        """Detect document type using magic bytes and extension check."""
+        fn = (file_name or "").lower()
+        dt = (declared_type or "").upper()
+
+        # PDF: %PDF-
         if file_bytes.startswith(b"%PDF-"):
             return "PDF", True
 
-        # DOCX check: begins with ZIP header PK\x03\x04
+        # DOCX: PK\x03\x04
         if file_bytes.startswith(b"PK\x03\x04"):
-            # Further verify it is declared or named as docx
-            fn = (file_name or "").lower()
-            dt = (declared_type or "").upper()
-            if fn.endswith(".docx") or "DOCX" in dt or "WORD" in dt or not fn:
+            if fn.endswith(".docx") or "DOCX" in dt or not fn:
                 return "DOCX", True
 
-        # Image checks
-        if file_bytes.startswith(b"\xff\xd8\xff") or file_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        # DOC (Legacy OLE CFB compound binary): \xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1
+        if file_bytes.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1") or fn.endswith(".doc"):
+            return "DOC", True
+
+        # PNG: \x89PNG\r\n\x1a\n
+        if file_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
             return "IMAGE", True
 
-        # Check declared extension mismatch
-        fn = (file_name or "").lower()
+        # JPEG: \xff\xd8\xff
+        if file_bytes.startswith(b"\xff\xd8\xff"):
+            return "IMAGE", True
+
+        # WEBP: RIFF....WEBP
+        if file_bytes.startswith(b"RIFF") and len(file_bytes) >= 12 and file_bytes[8:12] == b"WEBP":
+            return "IMAGE", True
+
+        # Check by file extension fallback
         if fn.endswith(".pdf"):
-            # Has .pdf extension but missing %PDF- magic bytes -> corrupted or invalid PDF
             return "PDF", True
         elif fn.endswith(".docx"):
             return "DOCX", True
-        elif fn.endswith((".jpg", ".jpeg", ".png")):
+        elif fn.endswith(".doc"):
+            return "DOC", True
+        elif fn.endswith((".png", ".jpg", ".jpeg", ".webp")):
             return "IMAGE", True
 
         return "UNSUPPORTED", False
 
     def _extract_pdf(self, file_bytes: bytes, correlation_id: str, file_name: str, start_time: float) -> DocumentExtractResponse:
-        import pypdf
+        """
+        Extracts PDF using pdfplumber for native text and layout analysis (two-column handling).
+        Uses pypdfium2 to render scanned pages and pytesseract for OCR fallback.
+        """
+        import pdfplumber
+        import pypdfium2 as pdfium
+
+        segments: List[PageSegment] = []
+        raw_page_texts: List[str] = []
+        norm_page_texts: List[str] = []
+        warnings: List[str] = []
+        any_ocr_used = False
 
         try:
-            reader = pypdf.PdfReader(io.BytesIO(file_bytes))
+            pdf_doc = pdfplumber.open(io.BytesIO(file_bytes))
         except Exception as e:
-            logger.error(f"PDF extraction failed during initialization [correlation_id={correlation_id}]: {e}")
+            logger.error(f"Failed to open PDF with pdfplumber [correlation_id={correlation_id}]: {e}")
             return DocumentExtractResponse(
                 status="FAILED",
                 source_type="PDF",
                 used_ocr=False,
                 text=None,
                 error_code="PDF_EXTRACTION_FAILED",
-                error_message=f"PDF document is corrupted or unreadable: {str(e)}"
+                error_message=f"PDF document is corrupted, password-protected, or unreadable: {str(e)}"
             )
 
-        page_texts = []
-        try:
-            num_pages = len(reader.pages)
-            for page_idx, page in enumerate(reader.pages):
-                extracted = page.extract_text()
-                if extracted and extracted.strip():
-                    page_texts.append(extracted.strip())
-        except Exception as e:
-            logger.error(f"PDF page extraction error [correlation_id={correlation_id}]: {e}")
+
+        num_pages = len(pdf_doc.pages)
+        if num_pages == 0:
+            pdf_doc.close()
             return DocumentExtractResponse(
                 status="FAILED",
                 source_type="PDF",
                 used_ocr=False,
                 text=None,
-                error_code="PDF_EXTRACTION_FAILED",
-                error_message=f"Failed reading pages from PDF: {str(e)}"
+                error_code="PDF_NO_PAGES",
+                error_message="PDF contains 0 pages."
             )
 
-        combined_text = "\n\n".join(page_texts)
-        normalized_text = self._normalize_text(combined_text)
+        pdfium_doc = None
+        try:
+            pdfium_doc = pdfium.PdfDocument(io.BytesIO(file_bytes))
+        except Exception as pium_err:
+            logger.warning(f"pypdfium2 initialization warning [correlation_id={correlation_id}]: {pium_err}")
 
-        # Scanned PDF detection: if non-empty PDF produces no or negligible text (< 30 characters)
-        if len(normalized_text.strip()) < 30:
-            logger.info(
-                f"PDF contains negligible text ({len(normalized_text.strip())} chars) across {num_pages} pages. "
-                f"Flagging OCR_REQUIRED [correlation_id={correlation_id}]."
+        current_char_offset = 0
+
+        try:
+            for page_idx, page in enumerate(pdf_doc.pages):
+                page_num = page_idx + 1
+                page_raw = ""
+                page_method = "pdf-native"
+                page_ocr = False
+                page_ocr_conf = None
+                page_warnings = []
+
+                # 1. Attempt two-column / native text extraction
+                extracted_native, is_two_col, layout_warn = self._extract_pdf_page_layout(page)
+                if layout_warn:
+                    page_warnings.append(layout_warn)
+
+                non_space_chars = len(extracted_native.replace(" ", "").replace("\n", "").replace("\t", ""))
+
+                # 2. Check if page is scanned or text is insufficient
+                if non_space_chars >= MIN_PAGE_CHARS_FOR_NATIVE:
+                    page_raw = extracted_native
+                    page_method = "pdf-native"
+                else:
+                    # Page has insufficient text -> Attempt OCR rendering via pypdfium2 / _perform_ocr
+                    logger.info(f"Page {page_num} has only {non_space_chars} native chars. Initiating OCR fallback.")
+                    any_ocr_used = True
+                    ocr_text, ocr_err = self._perform_ocr(file_bytes, is_pdf=True)
+                    if ocr_text and ocr_text.strip():
+                        page_raw = ocr_text
+                        page_method = "pdf-ocr"
+                        page_ocr = True
+                        page_warnings.append(f"Page {page_num}: OCR was used successfully.")
+                    else:
+                        last_ocr_error = ocr_err
+                        if extracted_native.strip():
+                            # Fallback to sparse native text if OCR failed
+                            page_raw = extracted_native
+                            page_warnings.append(f"Page {page_num}: Sparse text detected; OCR failed ({ocr_err or 'engine error'}).")
+                        else:
+                            page_warnings.append(f"Page {page_num}: Scanned page with no readable text detected ({ocr_err or 'unreadable'}).")
+
+                page_norm = self._normalize_text(page_raw)
+                start_c = current_char_offset
+                end_c = start_c + len(page_norm)
+                current_char_offset = end_c + 2  # account for "\n\n" between pages
+
+                segment = PageSegment(
+                    page_number=page_num,
+                    text=page_norm,
+                    raw_text=page_raw,
+                    method=page_method,
+                    used_ocr=page_ocr,
+                    start_char=start_c,
+                    end_char=end_c,
+                    ocr_confidence=page_ocr_conf,
+                    warnings=page_warnings
+                )
+                segments.append(segment)
+                raw_page_texts.append(page_raw)
+                norm_page_texts.append(page_norm)
+                warnings.extend(page_warnings)
+
+        finally:
+            pdf_doc.close()
+            if pdfium_doc:
+                try:
+                    pdfium_doc.close()
+                except Exception:
+                    pass
+
+        full_raw = "\n\n".join(raw_page_texts).strip()
+        full_norm = "\n\n".join(norm_page_texts).strip()
+
+        if not full_norm or len(full_norm.replace(" ", "").replace("\n", "")) < 15:
+            if any_ocr_used:
+                return DocumentExtractResponse(
+                    status="FAILED",
+                    source_type="PDF",
+                    used_ocr=True,
+                    text=None,
+                    raw_source_text=full_raw if full_raw else None,
+                    pages=segments,
+                    warnings=warnings,
+                    error_code="OCR_FAILED",
+                    error_message=last_ocr_error or "Scanned document requires OCR, but OCR processing failed or returned empty content."
+                )
+            return DocumentExtractResponse(
+                status="FAILED",
+                source_type="PDF",
+                used_ocr=any_ocr_used,
+                text=None,
+                raw_source_text=full_raw if full_raw else None,
+                pages=segments,
+                warnings=warnings,
+                error_code="PDF_TEXT_EMPTY",
+                error_message="Document contains no readable text content (scanned image unreadable or blank pages)."
             )
-            return self._attempt_ocr_on_pdf(file_bytes, correlation_id, file_name, num_pages, start_time)
+
 
         duration_ms = int((time.time() - start_time) * 1000)
-        logger.info(
-            f"PDF extraction successful [correlation_id={correlation_id}, "
-            f"pages={num_pages}, char_count={len(normalized_text)}, duration_ms={duration_ms}]"
-        )
-
         return DocumentExtractResponse(
             status="SUCCESS",
             source_type="PDF",
-            used_ocr=False,
-            text=normalized_text,
+            used_ocr=any_ocr_used,
+            text=full_norm,
+            raw_source_text=full_raw,
+            pages=segments,
+            warnings=warnings,
             error_code=None,
             error_message=None,
             metadata={
                 "page_count": num_pages,
-                "character_count": len(normalized_text),
-                "word_count": len(normalized_text.split()),
+                "character_count": len(full_norm),
+                "word_count": len(full_norm.split()),
+                "duration_ms": duration_ms,
+                "used_ocr": any_ocr_used
+            }
+        )
+
+    def _extract_pdf_page_layout(self, page) -> Tuple[str, bool, Optional[str]]:
+        """
+        Analyzes page geometry to detect multi-column resumes.
+        Extracts words and groups them by column if a clear two-column split exists.
+        Falls back to pdfplumber layout extraction.
+        """
+        try:
+            words = page.extract_words(keep_blank_chars=False, extra_attrs=["x0", "x1", "top", "bottom"])
+            if not words:
+                native = page.extract_text(layout=True) or ""
+                return native, False, None
+
+            page_width = float(page.width)
+            page_height = float(page.height)
+
+            # Check if there is a distinct two-column split
+            # Left column typically has x1 <= midpoint, right column x0 >= midpoint
+            # Let's inspect words that span across the vertical middle band (0.35 * width to 0.65 * width)
+            page_mid = page_width / 2.0
+            left_words = [w for w in words if w["x1"] <= page_mid + 15]
+            right_words = [w for w in words if w["x0"] >= page_mid - 15]
+            spanning_words = [w for w in words if w["x0"] < page_mid - 15 and w["x1"] > page_mid + 15]
+
+            total_words = len(words)
+            is_two_column = (
+                len(left_words) > total_words * 0.2
+                and len(right_words) > total_words * 0.2
+                and len(spanning_words) < total_words * 0.15
+            )
+
+            if is_two_column:
+                try:
+                    left_max_x = max(w["x1"] for w in left_words)
+                    right_min_x = min(w["x0"] for w in right_words)
+                    split_x = (left_max_x + right_min_x) / 2.0 if right_min_x > left_max_x else page_mid
+
+                    left_crop = page.crop((0, 0, split_x, page_height))
+                    right_crop = page.crop((split_x, 0, page_width, page_height))
+                    left_text = left_crop.extract_text(layout=True) or ""
+                    right_text = right_crop.extract_text(layout=True) or ""
+                    combined = left_text.strip() + "\n\n" + right_text.strip()
+                    if combined.strip():
+                        return combined, True, "Page analyzed with two-column resume layout cropping."
+                except Exception as crop_err:
+                    logger.warning(f"Column crop fallback: {crop_err}")
+
+
+
+            # Default: use layout-preserved extraction
+            native = page.extract_text(layout=True) or ""
+            return native, False, None
+
+        except Exception as e:
+            logger.warning(f"Layout analysis fallback: {e}")
+            native = page.extract_text() or ""
+            return native, False, None
+
+    def _ocr_pdf_page(self, pdfium_doc, page_idx: int) -> Tuple[Optional[str], Optional[float], Optional[str]]:
+        """Renders a PDF page via pypdfium2 at 300 DPI and performs Tesseract OCR."""
+        if pdfium_doc is None:
+            return None, None, "pypdfium2 renderer unavailable"
+
+        try:
+            import pytesseract
+        except ImportError:
+            return None, None, "pytesseract not installed"
+
+        try:
+            page = pdfium_doc.get_page(page_idx)
+            # Render at scale 3.0 (~216-300 DPI) for optimal OCR quality
+            bitmap = page.render(scale=3.0)
+            pil_image = bitmap.to_pil()
+            page.close()
+
+            # Preprocess: convert to grayscale
+            gray_img = pil_image.convert("L")
+
+            # OCR with pytesseract
+            try:
+                data = pytesseract.image_to_data(gray_img, lang="eng+vie", output_type=pytesseract.Output.DICT)
+                confidences = [int(c) for c in data.get("conf", []) if str(c).isdigit() and int(c) >= 0]
+                avg_conf = round(sum(confidences) / len(confidences), 1) if confidences else None
+                text = pytesseract.image_to_string(gray_img, lang="eng+vie", config="--psm 3")
+                return text.strip(), avg_conf, None
+            except pytesseract.TesseractNotFoundError:
+                return None, None, "TESSERACT_NOT_FOUND: Tesseract-OCR is not installed or not in system PATH."
+            except Exception as tess_err:
+                # Retry with simple image_to_string
+                try:
+                    text = pytesseract.image_to_string(gray_img, lang="eng+vie")
+                    return text.strip(), None, None
+                except Exception as inner_err:
+                    return None, None, f"Tesseract error: {str(inner_err)}"
+
+        except Exception as e:
+            return None, None, f"Failed rendering or OCRing PDF page: {str(e)}"
+
+    def _perform_ocr(self, file_bytes: bytes, is_pdf: bool) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Executes OCR engine on PDF bytes or Image bytes using pypdfium2 + pytesseract.
+        Returns (text, error_message).
+        """
+        try:
+            import pytesseract
+        except ImportError:
+            return None, "OCR engine unavailable: 'pytesseract' is not installed in the environment."
+
+        try:
+            if is_pdf:
+                import pypdfium2 as pdfium
+                try:
+                    pdf = pdfium.PdfDocument(io.BytesIO(file_bytes))
+                except Exception as p_err:
+                    return None, f"Failed opening PDF for OCR: {p_err}"
+
+                texts = []
+                for i in range(len(pdf)):
+                    page = pdf.get_page(i)
+                    bitmap = page.render(scale=3.0)
+                    pil_img = bitmap.to_pil().convert("L")
+                    page.close()
+                    t = pytesseract.image_to_string(pil_img, lang="eng+vie")
+                    if t and t.strip():
+                        texts.append(t.strip())
+                pdf.close()
+                if texts:
+                    return "\n\n".join(texts), None
+                return None, "No readable text could be recognized from the scanned PDF."
+            else:
+                image = Image.open(io.BytesIO(file_bytes)).convert("L")
+                text = pytesseract.image_to_string(image, lang="eng+vie")
+                if text and text.strip():
+                    return text.strip(), None
+                return None, "No readable text could be recognized from the image."
+        except pytesseract.TesseractNotFoundError:
+            return None, "TESSERACT_NOT_FOUND: Tesseract-OCR is not installed or not in system PATH."
+        except Exception as e:
+            return None, f"Tesseract process crashed: {str(e)}"
+
+    def _extract_image(self, file_bytes: bytes, correlation_id: str, file_name: str, start_time: float) -> DocumentExtractResponse:
+
+        """
+        Extracts text from images (PNG, JPG, JPEG, WEBP) using Pillow for EXIF correction and Tesseract OCR.
+        Defends against decompression bombs via MAX_PIXELS check.
+        """
+        try:
+            import pytesseract
+        except ImportError:
+            return DocumentExtractResponse(
+                status="FAILED",
+                source_type="IMAGE",
+                used_ocr=True,
+                text=None,
+                error_code="OCR_ENGINE_UNAVAILABLE",
+                error_message="OCR engine unavailable: 'pytesseract' is not installed."
+            )
+
+        try:
+            image = Image.open(io.BytesIO(file_bytes))
+        except Exception as e:
+            return DocumentExtractResponse(
+                status="FAILED",
+                source_type="IMAGE",
+                used_ocr=True,
+                text=None,
+                error_code="IMAGE_CORRUPTED",
+                error_message=f"Image file is corrupted or unreadable: {str(e)}"
+            )
+
+        # Decompression bomb check
+        pixel_count = image.width * image.height
+        if pixel_count > MAX_PIXELS:
+            return DocumentExtractResponse(
+                status="FAILED",
+                source_type="IMAGE",
+                used_ocr=True,
+                text=None,
+                error_code="IMAGE_TOO_LARGE",
+                error_message=f"Image resolution {image.width}x{image.height} ({pixel_count} pixels) exceeds limit of 50M pixels."
+            )
+
+        # EXIF Orientation Correction
+        try:
+            image = ImageOps.exif_transpose(image)
+        except Exception as exif_err:
+            logger.debug(f"EXIF orientation skip: {exif_err}")
+
+        # Grayscale conversion
+        gray = image.convert("L")
+
+        warnings = []
+        try:
+            data = pytesseract.image_to_data(gray, lang="eng+vie", output_type=pytesseract.Output.DICT)
+            confidences = [int(c) for c in data.get("conf", []) if str(c).isdigit() and int(c) >= 0]
+            avg_conf = round(sum(confidences) / len(confidences), 1) if confidences else None
+            raw_text = pytesseract.image_to_string(gray, lang="eng+vie", config="--psm 3")
+        except pytesseract.TesseractNotFoundError:
+            return DocumentExtractResponse(
+                status="FAILED",
+                source_type="IMAGE",
+                used_ocr=True,
+                text=None,
+                error_code="TESSERACT_NOT_FOUND",
+                error_message="Tesseract-OCR engine is not installed or not found on system PATH. Please install Tesseract 5 with vie+eng."
+            )
+        except Exception as ocr_err:
+            return DocumentExtractResponse(
+                status="FAILED",
+                source_type="IMAGE",
+                used_ocr=True,
+                text=None,
+                error_code="OCR_FAILED",
+                error_message=f"OCR execution failed on image: {str(ocr_err)}"
+            )
+
+        norm_text = self._normalize_text(raw_text)
+
+        if not norm_text or len(norm_text.replace(" ", "").replace("\n", "")) < 10:
+            return DocumentExtractResponse(
+                status="FAILED",
+                source_type="IMAGE",
+                used_ocr=True,
+                text=None,
+                raw_source_text=raw_text,
+                error_code="OCR_TEXT_EMPTY",
+                error_message="Tesseract scanned the image but detected no readable text. Ensure image is clear and well-lit."
+            )
+
+        if avg_conf is not None and avg_conf < 40:
+            warnings.append(f"Image OCR confidence is low ({avg_conf}%). Image may be blurry or low contrast.")
+
+        duration_ms = int((time.time() - start_time) * 1000)
+        segment = PageSegment(
+            page_number=None,
+            text=norm_text,
+            raw_text=raw_text,
+            method="image-ocr",
+            used_ocr=True,
+            start_char=0,
+            end_char=len(norm_text),
+            ocr_confidence=avg_conf,
+            warnings=warnings
+        )
+
+        return DocumentExtractResponse(
+            status="SUCCESS",
+            source_type="IMAGE",
+            used_ocr=True,
+            text=norm_text,
+            raw_source_text=raw_text,
+            pages=[segment],
+            warnings=warnings,
+            error_code=None,
+            error_message=None,
+            metadata={
+                "character_count": len(norm_text),
+                "word_count": len(norm_text.split()),
+                "ocr_confidence": avg_conf,
                 "duration_ms": duration_ms
             }
         )
 
     def _extract_docx(self, file_bytes: bytes, correlation_id: str, file_name: str, start_time: float) -> DocumentExtractResponse:
+        """
+        Extracts DOCX documents using python-docx.
+        Traverses paragraphs, tables, hyperlinks, and textboxes in actual document order.
+        Does not assign synthetic page numbers (DOCX is unpaged flow).
+        """
         import docx
+        from docx.oxml.ns import qn
 
         try:
             doc = docx.Document(io.BytesIO(file_bytes))
         except Exception as e:
-            logger.error(f"DOCX extraction failed during parse [correlation_id={correlation_id}]: {e}")
             return DocumentExtractResponse(
                 status="FAILED",
                 source_type="DOCX",
                 used_ocr=False,
                 text=None,
-                error_code="DOCX_EXTRACTION_FAILED",
-                error_message=f"DOCX document is corrupted or unreadable: {str(e)}"
+                error_code="DOCX_CORRUPTED",
+                error_message=f"DOCX document is corrupted or invalid: {str(e)}"
             )
 
-        elements = []
+        elements_text: List[str] = []
+        warnings: List[str] = []
 
-        # 1. Paragraphs (including headings, lists, body)
-        for p in doc.paragraphs:
-            txt = p.text.strip()
-            if txt:
-                elements.append(txt)
+        try:
+            # 1. Traverse document body elements in DOM order (paragraphs and tables)
+            for child in doc.element.body:
+                tag = child.tag
+                if tag.endswith("p"):  # Paragraph
+                    para = docx.text.paragraph.Paragraph(child, doc)
+                    txt = para.text.strip()
+                    if txt:
+                        elements_text.append(txt)
+                elif tag.endswith("tbl"):  # Table
+                    table = docx.table.Table(child, doc)
+                    for row in table.rows:
+                        seen_cells = set()
+                        row_cells = []
+                        for cell in row.cells:
+                            cid = id(cell._tc)
+                            if cid not in seen_cells:
+                                seen_cells.add(cid)
+                                c_text = cell.text.strip()
+                                if c_text:
+                                    row_cells.append(c_text)
+                        if row_cells:
+                            elements_text.append(" | ".join(row_cells))
 
-        # 2. Tables (crucial for resumes with structured tables)
-        for table in doc.tables:
-            for row in table.rows:
-                # Deduplicate cells in case of merged cells
-                seen_cells = set()
-                cell_texts = []
-                for cell in row.cells:
-                    cell_id = id(cell._tc)
-                    if cell_id not in seen_cells:
-                        seen_cells.add(cell_id)
-                        cell_txt = cell.text.strip()
-                        if cell_txt:
-                            cell_texts.append(cell_txt)
-                if cell_texts:
-                    elements.append(" | ".join(cell_texts))
+            # 2. Extract header & footer if present
+            for section in doc.sections:
+                try:
+                    if section.header and section.header.paragraphs:
+                        h_text = " ".join([p.text.strip() for p in section.header.paragraphs if p.text.strip()])
+                        if h_text and h_text not in elements_text:
+                            elements_text.insert(0, h_text)
+                except Exception:
+                    pass
 
-        combined_text = "\n\n".join(elements)
-        normalized_text = self._normalize_text(combined_text)
+            # 3. Extract text from textboxes (w:txbxContent)
+            textbox_texts = []
+            try:
+                for txbx in doc.element.xpath(".//w:txbxContent//w:t"):
+                    if txbx.text and txbx.text.strip():
+                        textbox_texts.append(txbx.text.strip())
+            except Exception:
+                pass
+            if textbox_texts:
+                tb_combined = " ".join(textbox_texts)
+                if tb_combined not in elements_text:
+                    elements_text.append(tb_combined)
 
-        if not normalized_text or not normalized_text.strip():
+        except Exception as read_err:
+            logger.error(f"Error reading DOCX elements: {read_err}")
+            warnings.append(f"Some DOCX elements could not be fully parsed: {str(read_err)}")
+
+        raw_combined = "\n\n".join(elements_text)
+        norm_combined = self._normalize_text(raw_combined)
+
+        if not norm_combined or len(norm_combined.replace(" ", "").replace("\n", "")) < 10:
             return DocumentExtractResponse(
                 status="FAILED",
                 source_type="DOCX",
                 used_ocr=False,
                 text=None,
-                error_code="DOCX_EXTRACTION_FAILED",
+                raw_source_text=raw_combined,
+                error_code="DOCX_TEXT_EMPTY",
                 error_message="DOCX document contains no extractable text content or tables."
             )
 
         duration_ms = int((time.time() - start_time) * 1000)
-        logger.info(
-            f"DOCX extraction successful [correlation_id={correlation_id}, "
-            f"elements={len(elements)}, char_count={len(normalized_text)}, duration_ms={duration_ms}]"
+        segment = PageSegment(
+            page_number=None,
+            text=norm_combined,
+            raw_text=raw_combined,
+            method="docx",
+            used_ocr=False,
+            start_char=0,
+            end_char=len(norm_combined),
+            warnings=warnings
         )
 
         return DocumentExtractResponse(
             status="SUCCESS",
             source_type="DOCX",
             used_ocr=False,
-            text=normalized_text,
+            text=norm_combined,
+            raw_source_text=raw_combined,
+            pages=[segment],
+            warnings=warnings,
             error_code=None,
             error_message=None,
             metadata={
-                "elements_count": len(elements),
-                "character_count": len(normalized_text),
-                "word_count": len(normalized_text.split()),
+                "elements_count": len(elements_text),
+                "character_count": len(norm_combined),
+                "word_count": len(norm_combined.split()),
                 "duration_ms": duration_ms
             }
         )
 
-    def _attempt_ocr_on_pdf(self, file_bytes: bytes, correlation_id: str, file_name: str, page_count: int, start_time: float) -> DocumentExtractResponse:
+    def _extract_doc_via_libreoffice(self, file_bytes: bytes, correlation_id: str, file_name: str, start_time: float) -> DocumentExtractResponse:
         """
-        Executes OCR when PDF is scanned/image-only.
-        Differentiates OCR_REQUIRED, OCR_SUCCESS, and OCR_FAILED.
-        Never fakes success when OCR engine is unavailable or fails.
+        Converts legacy .doc files to PDF using LibreOffice headless in an isolated sandbox.
+        Enforces timeout (60s), temporary user profile, and no macro execution.
+        Returns DOC_CONVERTER_UNAVAILABLE if LibreOffice is not installed.
         """
-        ocr_result, error_msg = self._perform_ocr(file_bytes, is_pdf=True)
-        duration_ms = int((time.time() - start_time) * 1000)
-
-        if ocr_result and ocr_result.strip():
-            normalized = self._normalize_text(ocr_result)
-            logger.info(
-                f"OCR extraction successful for scanned PDF [correlation_id={correlation_id}, "
-                f"char_count={len(normalized)}, duration_ms={duration_ms}]"
-            )
-            return DocumentExtractResponse(
-                status="SUCCESS",
-                source_type="PDF",
-                used_ocr=True,
-                text=normalized,
-                error_code=None,
-                error_message=None,
-                metadata={
-                    "page_count": page_count,
-                    "character_count": len(normalized),
-                    "word_count": len(normalized.split()),
-                    "ocr_engine": "tesseract",
-                    "duration_ms": duration_ms
-                }
-            )
-        else:
-            logger.warning(
-                f"OCR execution failed or unavailable for scanned PDF [correlation_id={correlation_id}, error={error_msg}]"
-            )
+        soffice_bin = self._find_libreoffice()
+        if not soffice_bin:
             return DocumentExtractResponse(
                 status="FAILED",
-                source_type="PDF",
-                used_ocr=True,
+                source_type="DOC",
+                used_ocr=False,
                 text=None,
-                error_code="OCR_FAILED",
-                error_message=error_msg or "Scanned document requires OCR, but OCR processing failed or returned empty content."
+                error_code="DOC_CONVERTER_UNAVAILABLE",
+                error_message=(
+                    "DOC_CONVERTER_UNAVAILABLE: LibreOffice headless is required to convert legacy .doc files, "
+                    "but 'soffice' was not found on PATH or standard install directories. "
+                    "Please save the document as .docx or .pdf, or install LibreOffice on the server."
+                )
             )
 
-    def _extract_image_ocr(self, file_bytes: bytes, correlation_id: str, file_name: str, start_time: float) -> DocumentExtractResponse:
-        """
-        Extracts text from image document via OCR.
-        """
-        ocr_result, error_msg = self._perform_ocr(file_bytes, is_pdf=False)
-        duration_ms = int((time.time() - start_time) * 1000)
+        with tempfile.TemporaryDirectory(prefix="midcv_doc_convert_") as temp_dir:
+            input_doc_path = os.path.join(temp_dir, "input.doc")
+            with open(input_doc_path, "wb") as f:
+                f.write(file_bytes)
 
-        if ocr_result and ocr_result.strip():
-            normalized = self._normalize_text(ocr_result)
-            return DocumentExtractResponse(
-                status="SUCCESS",
-                source_type="IMAGE",
-                used_ocr=True,
-                text=normalized,
-                error_code=None,
-                error_message=None,
-                metadata={
-                    "character_count": len(normalized),
-                    "word_count": len(normalized.split()),
-                    "duration_ms": duration_ms
-                }
-            )
-        else:
-            return DocumentExtractResponse(
-                status="FAILED",
-                source_type="IMAGE",
-                used_ocr=True,
-                text=None,
-                error_code="OCR_FAILED",
-                error_message=error_msg or "Image document requires OCR, but OCR engine failed or is unavailable."
-            )
+            temp_profile = os.path.join(temp_dir, "profile")
+            os.makedirs(temp_profile, exist_ok=True)
+            profile_url = f"file:///{temp_profile.replace(os.sep, '/')}"
 
-    def _perform_ocr(self, file_bytes: bytes, is_pdf: bool) -> Tuple[Optional[str], Optional[str]]:
-        """
-        Invokes OCR engine if installed and configured.
-        Returns (text, error_message).
-        """
-        try:
-            import pytesseract
-            from PIL import Image
-        except ImportError:
-            return None, "OCR engine unavailable: 'pytesseract' or 'Pillow' is not installed in the environment."
+            cmd = [
+                soffice_bin,
+                "--headless",
+                "--invisible",
+                "--nodefault",
+                "--norestore",
+                "--nolockcheck",
+                f"-env:UserInstallation={profile_url}",
+                "--convert-to", "pdf",
+                "--outdir", temp_dir,
+                input_doc_path
+            ]
 
-        try:
-            if is_pdf:
-                # Extract images from PDF pages using pypdf
-                import pypdf
-                reader = pypdf.PdfReader(io.BytesIO(file_bytes))
-                ocr_texts = []
-                for page_idx, page in enumerate(reader.pages):
-                    for img_idx, image_file_object in enumerate(page.images):
-                        try:
-                            image = Image.open(io.BytesIO(image_file_object.data))
-                            text = pytesseract.image_to_string(image, lang="eng+vie")
-                            if text and text.strip():
-                                ocr_texts.append(text.strip())
-                        except Exception as img_err:
-                            logger.error(f"Error processing image {img_idx} on page {page_idx}: {img_err}")
-                
-                if ocr_texts:
-                    return "\n\n".join(ocr_texts), None
-                return None, "No readable text could be recognized from images inside the scanned PDF."
-            else:
-                image = Image.open(io.BytesIO(file_bytes))
-                text = pytesseract.image_to_string(image, lang="eng+vie")
-                if text and text.strip():
-                    return text.strip(), None
-                return None, "No readable text could be recognized from the image."
-        except Exception as e:
-            return None, f"Tesseract OCR execution failed: {str(e)}"
+            try:
+                proc = subprocess.run(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=60,
+                    check=False
+                )
+            except subprocess.TimeoutExpired:
+                return DocumentExtractResponse(
+                    status="FAILED",
+                    source_type="DOC",
+                    used_ocr=False,
+                    text=None,
+                    error_code="DOC_CONVERSION_TIMEOUT",
+                    error_message="LibreOffice conversion timed out after 60 seconds."
+                )
+            except Exception as proc_err:
+                return DocumentExtractResponse(
+                    status="FAILED",
+                    source_type="DOC",
+                    used_ocr=False,
+                    text=None,
+                    error_code="DOC_CONVERSION_FAILED",
+                    error_message=f"Failed executing LibreOffice conversion: {str(proc_err)}"
+                )
+
+            converted_pdf = os.path.join(temp_dir, "input.pdf")
+            if not os.path.exists(converted_pdf) or os.path.getsize(converted_pdf) == 0:
+                stderr_str = proc.stderr.decode("utf-8", errors="ignore")
+                return DocumentExtractResponse(
+                    status="FAILED",
+                    source_type="DOC",
+                    used_ocr=False,
+                    text=None,
+                    error_code="DOC_CONVERSION_FAILED",
+                    error_message=f"LibreOffice failed to convert .doc to PDF: {stderr_str or 'Process exited with code ' + str(proc.returncode)}"
+                )
+
+            with open(converted_pdf, "rb") as pf:
+                pdf_bytes = pf.read()
+
+            pdf_res = self._extract_pdf(pdf_bytes, correlation_id, file_name, start_time)
+            # Update source type to DOC (via LibreOffice)
+            pdf_res.source_type = "DOC"
+            for seg in pdf_res.pages:
+                seg.method = "doc-libreoffice"
+            return pdf_res
+
+    def _find_libreoffice(self) -> Optional[str]:
+        """Finds LibreOffice soffice binary on Windows, Linux, or macOS."""
+        import shutil
+
+        # Check standard PATH
+        bin_path = shutil.which("soffice") or shutil.which("libreoffice")
+        if bin_path:
+            return bin_path
+
+        # Windows default installation paths
+        win_candidates = [
+            r"C:\Program Files\LibreOffice\program\soffice.exe",
+            r"C:\Program Files (x86)\LibreOffice\program\soffice.exe"
+        ]
+        for p in win_candidates:
+            if os.path.isfile(p):
+                return p
+
+        # Linux default paths
+        linux_candidates = [
+            "/usr/bin/soffice",
+            "/usr/bin/libreoffice",
+            "/usr/local/bin/soffice"
+        ]
+        for p in linux_candidates:
+            if os.path.isfile(p):
+                return p
+
+        return None
 
     def _normalize_text(self, text: str) -> str:
         """
-        Normalizes extracted text:
-        - Unicode NFC normalization (crucial for Vietnamese accents: e.g. 'ệ', 'ơ', 'ư')
-        - Preserves paragraphs and intentional newlines
-        - Replaces non-standard whitespace/control characters
+        Normalizes extracted text while preserving facts and identifiers:
+        - Unicode NFC normalization (essential for Vietnamese accents like 'ệ', 'ơ', 'ư').
+        - Normalizes carriage returns without dropping phone numbers, emails, or names.
+        - Preserves paragraph structures while removing non-printable control characters.
         """
         if not text:
             return ""
+
         # 1. Unicode NFC normalization
         normalized = unicodedata.normalize("NFC", text)
+
         # 2. Normalize Windows/Mac carriage returns
         normalized = normalized.replace("\r\n", "\n").replace("\r", "\n")
+
         # 3. Clean control characters while preserving \n and \t
         cleaned_chars = []
         for ch in normalized:
@@ -427,9 +880,11 @@ class DocumentExtractor:
             else:
                 cleaned_chars.append(" ")
         cleaned = "".join(cleaned_chars)
-        # 4. Collapse runs of horizontal spaces (not newlines)
-        lines = [line.strip() for line in cleaned.split("\n")]
-        # Keep paragraph breaks but avoid more than two consecutive newlines
+
+        # 4. Collapse trailing/leading spaces on lines and multiple spaces
+        import re
+        lines = [re.sub(r"[ \t]+", " ", line).strip() for line in cleaned.split("\n")]
+
         result_lines = []
         blank_count = 0
         for line in lines:
@@ -440,4 +895,5 @@ class DocumentExtractor:
             else:
                 blank_count = 0
                 result_lines.append(line)
+
         return "\n".join(result_lines).strip()

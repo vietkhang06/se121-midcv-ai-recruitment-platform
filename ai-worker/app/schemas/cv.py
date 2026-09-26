@@ -1,16 +1,23 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
+from app.schemas.document import PageSegment
 
 class CVEvidence(BaseModel):
     field_name: str
     section: str
     snippet: str
     normalized_value: str
+    page_number: Optional[int] = None
+    start_char: Optional[int] = None
+    end_char: Optional[int] = None
+    method: Optional[str] = "native"  # "native" or "ocr"
+    confidence: Optional[float] = None
+    is_verified: bool = True
 
 class ExtractedSkill(BaseModel):
     skill_name: str
     normalized_name: str
-    years_exp: int = 0
+    years_exp: Optional[int] = None
     section: str = "SKILLS"
 
 class ExtractedExperience(BaseModel):
@@ -47,7 +54,11 @@ class ExtractedCertification(BaseModel):
 class ContactInfo(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
+    address: Optional[str] = None
     linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    portfolio_url: Optional[str] = None
+
 
 class CVExtractRequest(BaseModel):
     cv_id: str
@@ -66,8 +77,10 @@ class CVExtractResponse(BaseModel):
     age: Optional[int] = None
     headline: Optional[str] = None
     bio: Optional[str] = None
+    summary: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+    address: Optional[str] = None
     contact_info: Optional[ContactInfo] = None
     github_url: Optional[str] = None
     linkedin_url: Optional[str] = None
@@ -79,6 +92,11 @@ class CVExtractResponse(BaseModel):
     certifications: List[ExtractedCertification] = Field(default_factory=list)
     languages: List[ExtractedLanguage] = Field(default_factory=list)
     evidences: List[CVEvidence] = Field(default_factory=list)
+    unverified_facts: List[dict] = Field(default_factory=list)
+    raw_text: Optional[str] = None
+    pages: List[PageSegment] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
+    schema_version: str = "2.0"
     status: str = "SUCCESS"
     error_code: Optional[str] = None
     error_message: Optional[str] = None
