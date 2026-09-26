@@ -160,7 +160,16 @@ export const en = {
     confirmSave: "Commit & Save to CV Repository",
     failedTitle: "Parsing Failed",
     failedDesc: "The document format or text could not be recognized. Please check the file and try again.",
-    retry: "Retry"
+    retry: "Retry",
+    errors: {
+      invalidFileType: "Unsupported file format. Please upload PDF, DOCX, DOC, or PNG/JPG image.",
+      fileTooLarge: "File size exceeds maximum allowed limit (maximum 10MB).",
+      fileStorageFailed: "System failed to store the uploaded CV file. Please try again.",
+      cvTextExtractionFailed: "Could not extract text content from the uploaded CV file.",
+      cvStructuringFailed: "Could not structure CV data using AI model. Please try again.",
+      cvProcessingFailed: "CV processing pipeline encountered an issue. Please try again.",
+      generic: "An error occurred during CV processing. Please try again later."
+    }
   },
   quickApply: {
     badge: "midCV® APPLICATION NODE",

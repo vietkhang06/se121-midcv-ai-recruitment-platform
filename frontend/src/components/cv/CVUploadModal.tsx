@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Industry, CV } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
-import { uploadCandidateCV } from '@/lib/api';
+import { uploadCandidateCV, ApiError } from '@/lib/api';
 import {
   X,
   UploadCloud,
@@ -62,12 +62,12 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
       const hasValidExt = validExtensions.some(ext => selected.name.toLowerCase().endsWith(ext));
       
       if (!hasValidExt && !selected.type.startsWith('image/') && selected.type !== 'application/pdf') {
-        setErrorMessage(t('common.error', 'Chỉ hỗ trợ PDF, DOCX, DOC hoặc ảnh PNG/JPG/WEBP.'));
+        setErrorMessage(t('cvUpload.errors.invalidFileType', 'Định dạng tệp không được hỗ trợ. Vui lòng tải lên PDF, DOCX, DOC hoặc ảnh PNG/JPG.'));
         return;
       }
 
       if (selected.size > 10 * 1024 * 1024) {
-        setErrorMessage(t('common.error', 'Dung lượng tệp vượt quá giới hạn tối đa 10MB.'));
+        setErrorMessage(t('cvUpload.errors.fileTooLarge', 'Dung lượng tệp vượt quá giới hạn tối đa 10MB.'));
         return;
       }
 
@@ -75,6 +75,35 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
       setCvTitle(selected.name.replace(/\.[^/.]+$/, ''));
       setErrorMessage('');
     }
+  };
+
+  const mapErrorMessage = (err: any): string => {
+    const code = err?.responseBody?.code || (err?.code ? String(err.code) : '');
+    const reqId = err?.responseBody?.requestId;
+
+    let msg = '';
+    if (code === 'INVALID_FILE' || code === 'INVALID_FILE_TYPE') {
+      msg = t('cvUpload.errors.invalidFileType', 'Định dạng tệp không được hỗ trợ. Vui lòng tải lên PDF, DOCX, DOC hoặc ảnh PNG/JPG.');
+    } else if (code === 'FILE_SIZE_EXCEEDED' || code === 'FILE_TOO_LARGE') {
+      msg = t('cvUpload.errors.fileTooLarge', 'Dung lượng tệp vượt quá giới hạn tối đa 10MB.');
+    } else if (code === 'FILE_STORAGE_FAILED') {
+      msg = t('cvUpload.errors.fileStorageFailed', 'Hệ thống không thể lưu trữ tệp CV lúc này. Vui lòng thử lại.');
+    } else if (code === 'CV_TEXT_EXTRACTION_FAILED') {
+      msg = t('cvUpload.errors.cvTextExtractionFailed', 'Không thể trích xuất nội dung văn bản từ tệp CV đã tải lên.');
+    } else if (code === 'CV_STRUCTURING_FAILED') {
+      msg = t('cvUpload.errors.cvStructuringFailed', 'Không thể chuẩn hóa cấu trúc dữ liệu CV bằng AI. Vui lòng thử lại.');
+    } else if (code === 'CV_PROCESSING_FAILED') {
+      msg = t('cvUpload.errors.cvProcessingFailed', 'Quá trình xử lý CV gặp sự cố kỹ thuật. Vui lòng thử lại.');
+    } else if (err?.responseBody?.message && !err.responseBody.message.includes('C:\\') && !err.responseBody.message.includes('/')) {
+      msg = err.responseBody.message;
+    } else {
+      msg = t('cvUpload.errors.generic', 'Đã xảy ra lỗi trong quá trình xử lý CV. Vui lòng thử lại sau.');
+    }
+
+    if (reqId) {
+      msg += ` (${t('common.requestId', 'Mã yêu cầu')}: ${reqId})`;
+    }
+    return msg;
   };
 
   const handleStartProcessing = async (e: React.FormEvent) => {
@@ -101,7 +130,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
       }, 800);
     } catch (err: any) {
       setStatus('FAILED');
-      setErrorMessage(err.message || 'Lỗi khi tải lên và phân tích CV.');
+      setErrorMessage(mapErrorMessage(err));
     }
   };
 
@@ -124,7 +153,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
       setStatus('IDLE');
       setFile(null);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Lưu CV thất bại. Vui lòng thử lại.');
+      setErrorMessage(mapErrorMessage(err));
     } finally {
       setIsSaving(false);
     }
@@ -142,7 +171,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl shadow-2xl p-6 sm:p-7 text-slate-800 dark:text-slate-100 relative transition-colors max-h-[90vh] overflow-y-auto">
+      <div id="cv-upload-modal" className="w-full max-w-xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl shadow-2xl p-6 sm:p-7 text-slate-800 dark:text-slate-100 relative transition-colors max-h-[90vh] overflow-y-auto">
         
         {/* Close Button */}
         <button
@@ -172,7 +201,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
           </div>
         </div>
 
-        {errorMessage && (
+        {errorMessage && status !== 'FAILED' && (
           <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{errorMessage}</span>
@@ -376,12 +405,15 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
               <h4 className="text-base font-editorial font-bold text-slate-900 dark:text-white">
                 {t('cvUpload.failedTitle', 'Phân Tích Thất Bại')}
               </h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t('cvUpload.failedDesc', 'Định dạng tệp tin hoặc nội dung văn bản không thể nhận diện. Vui lòng kiểm tra lại file.')}
+              <p className="text-xs text-rose-600 dark:text-rose-400 max-w-md mx-auto">
+                {errorMessage || t('cvUpload.failedDesc', 'Định dạng tệp tin hoặc nội dung văn bản không thể nhận diện. Vui lòng kiểm tra lại file.')}
               </p>
             </div>
             <button
-              onClick={() => setStatus('IDLE')}
+              onClick={() => {
+                setStatus('IDLE');
+                setErrorMessage('');
+              }}
               className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition cursor-pointer"
             >
               {t('cvUpload.retry', 'Thử Lại (Retry)')}
