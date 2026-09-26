@@ -1,0 +1,98 @@
+{
+  "01_single_column_tech_cv.pdf": {
+    "format": "PDF (Text Native)",
+    "expected_method": "PDFPLUMBER_LAYOUT",
+    "expected_facts": {
+      "full_name": "NGUYEN TUAN ANH",
+      "headline": "Senior Java Backend Developer",
+      "email": "tuananh.nguyen@example.com",
+      "phone": "+84901234567",
+      "address": "Da Nang, Vietnam",
+      "skills": ["Java", "Spring Boot", "PostgreSQL", "Docker", "Redis", "Kubernetes"],
+      "experience_company": "FinTech Solutions Vietnam",
+      "education_institution": "Da Nang University of Technology"
+    },
+    "key_verbatim_quotes": [
+      "NGUYEN TUAN ANH",
+      "tuananh.nguyen@example.com",
+      "Spring Boot",
+      "FinTech Solutions Vietnam"
+    ]
+  },
+  "02_two_column_cv.pdf": {
+    "format": "PDF (Two-column layout)",
+    "expected_method": "PDFPLUMBER_TWO_COLUMN",
+    "expected_facts": {
+      "full_name": "LE MINH QUAN",
+      "headline": "SENIOR AI & BACKEND DEVELOPER",
+      "email": "quan.le@example.com",
+      "phone": "+84988776655",
+      "skills": ["Python", "FastAPI", "Docker", "PyTorch"],
+      "experience_company": "NextGen Tech Hanoi"
+    },
+    "key_verbatim_quotes": [
+      "LE MINH QUAN",
+      "quan.le@example.com",
+      "FastAPI",
+      "NextGen Tech Hanoi"
+    ]
+  },
+  "03_scanned_cv.pdf": {
+    "format": "PDF (Scanned Image-based)",
+    "expected_method": "TESSERACT_OCR",
+    "expected_facts": {
+      "full_name": "TRAN THI MAI",
+      "headline": "Marketing Specialist & Brand Strategist",
+      "email": "mai.tran@example.com",
+      "phone": "0912345678",
+      "skills": ["Content Marketing", "SEO", "Google Analytics", "English Fluent"]
+    },
+    "note": "Requires Tesseract 5 OCR installed. If Tesseract binary is absent, pipeline gracefully returns warning or falls back without crash."
+  },
+  "04_cv_image.png": {
+    "format": "Image (PNG)",
+    "expected_method": "TESSERACT_OCR",
+    "expected_facts": {
+      "full_name": "TRAN THI MAI",
+      "skills": ["Content Marketing", "SEO", "Google Analytics"]
+    }
+  },
+  "05_structured_table_cv.docx": {
+    "format": "DOCX (Word with tables & paragraphs)",
+    "expected_method": "PYTHON_DOCX",
+    "expected_facts": {
+      "full_name": "PHAM DUC THANG",
+      "headline": "Full Stack Developer",
+      "email": "thang.pham@example.com",
+      "phone": "0977112233",
+      "address": "Ho Chi Minh City",
+      "linkedin_url": "https://linkedin.com/in/thangpham-dev",
+      "github_url": "https://github.com/thangpham-dev",
+      "skills": ["React", "TypeScript", "Next.js", "Node.js", "PostgreSQL", "Docker", "TailwindCSS"],
+      "experiences": [
+        {
+          "company": "Saigon Tech Labs",
+          "role": "Senior Frontend Engineer",
+          "period": "2022 - 2024"
+        },
+        {
+          "company": "InnoSoft Vietnam",
+          "role": "Frontend Developer",
+          "period": "2020 - 2022"
+        }
+      ]
+    },
+    "key_verbatim_quotes": [
+      "PHAM DUC THANG",
+      "thang.pham@example.com",
+      "Saigon Tech Labs",
+      "InnoSoft Vietnam"
+    ]
+  },
+  "06_legacy_cv.doc": {
+    "format": "DOC (Legacy Binary Word)",
+    "expected_method": "LIBREOFFICE_PDF_CONVERSION",
+    "fallback_error": "DOC_CONVERTER_UNAVAILABLE",
+    "note": "If LibreOffice headless is not installed on the host machine, pipeline returns clean status FAILED or WARNING with error_code DOC_CONVERTER_UNAVAILABLE without crashing or misidentifying as DOCX."
+  }
+}

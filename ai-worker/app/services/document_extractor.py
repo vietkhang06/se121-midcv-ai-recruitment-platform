@@ -368,17 +368,32 @@ class DocumentExtractor:
             page_width = float(page.width)
             page_height = float(page.height)
 
-            # Check if there is a distinct two-column split
-            # Left column typically has x1 <= midpoint, right column x0 >= midpoint
-            # Let's inspect words that span across the vertical middle band (0.35 * width to 0.65 * width)
             page_mid = page_width / 2.0
+
+            # Detect whether lines span continuously across the page (single-column text lines)
+            lines_dict = {}
+            for w in words:
+                line_key = round(w["top"] / 4.0) * 4
+                lines_dict.setdefault(line_key, []).append(w)
+
+            total_lines = len(lines_dict)
+            full_width_lines = 0
+            for line_words in lines_dict.values():
+                min_x = min(w["x0"] for w in line_words)
+                max_x = max(w["x1"] for w in line_words)
+                if min_x < page_mid - 35 and max_x > page_mid + 35:
+                    full_width_lines += 1
+
+            has_full_width_lines = total_lines > 0 and (full_width_lines / total_lines) > 0.15
+
             left_words = [w for w in words if w["x1"] <= page_mid + 15]
             right_words = [w for w in words if w["x0"] >= page_mid - 15]
             spanning_words = [w for w in words if w["x0"] < page_mid - 15 and w["x1"] > page_mid + 15]
 
             total_words = len(words)
             is_two_column = (
-                len(left_words) > total_words * 0.2
+                not has_full_width_lines
+                and len(left_words) > total_words * 0.2
                 and len(right_words) > total_words * 0.2
                 and len(spanning_words) < total_words * 0.15
             )

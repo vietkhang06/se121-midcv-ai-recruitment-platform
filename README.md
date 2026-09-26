@@ -280,11 +280,13 @@ Khi triển khai ở quy mô trên 100.000 ứng viên, hệ thống có thể c
 19. Demo Instructions / Hướng dẫn Demo
 🇬🇧 English
 Follow the step-by-step storyline in:
+`docs/cv-extraction-guide.md` (End-to-end CV Extraction & Review Guide)
 `docs/final/demo-scenario.md`
 `docs/final/local-development.md`
 For deterministic offline demonstration or test-only scenarios, a dedicated mock mode may be enabled according to the project's demo configuration.
 🇻🇳 Tiếng Việt
 Thực hiện demo theo kịch bản chi tiết tại:
+`docs/cv-extraction-guide.md` (Hướng dẫn chi tiết luồng trích xuất CV & Bằng chứng đối chiếu)
 `docs/final/demo-scenario.md`
 `docs/final/local-development.md`
 Đối với demo offline hoặc các kịch bản kiểm thử cần tính xác định, có thể sử dụng mock mode theo cấu hình dành riêng cho demo/test của project.

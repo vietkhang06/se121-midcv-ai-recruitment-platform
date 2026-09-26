@@ -1,0 +1,51 @@
+%PDF-1.4
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj
+4 0 obj << /Length 633 >> stream
+BT
+/F1 12 Tf
+50 720 Td
+(LE MINH QUAN) Tj
+0 -20 Td
+(quan.le@example.com) Tj
+0 -15 Td
+(+84988776655) Tj
+0 -25 Td
+(TECHNICAL SKILLS) Tj
+0 -15 Td
+(Python, FastAPI, Docker, PyTorch) Tj
+0 -25 Td
+(EDUCATION) Tj
+0 -15 Td
+(VNU University of Engineering) Tj
+0 -15 Td
+(Graduated: 2021) Tj
+300 135 Td
+(SENIOR AI & BACKEND DEVELOPER) Tj
+0 -20 Td
+(PROFESSIONAL SUMMARY) Tj
+0 -15 Td
+(Dedicated AI Engineer with deep focus on NLP, OCR, and scalable LLM microservices.) Tj
+0 -25 Td
+(WORK EXPERIENCE) Tj
+0 -15 Td
+(AI Lead - NextGen Tech Hanoi (2021 - 2024)) Tj
+0 -15 Td
+(Deployed document processing pipeline reducing extraction latency by 45%.) Tj
+ET
+endstream
+endobj
+5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000244 00000 n 
+0000000350 00000 n 
+trailer << /Size 6 /Root 1 0 R >>
+startxref
+430
+%%EOF
