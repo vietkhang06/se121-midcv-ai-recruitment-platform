@@ -52,6 +52,34 @@ public class CVController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/{id}/review")
+    public ResponseEntity<ApiResponse<CVReviewResponse>> getCVReview(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        CVReviewResponse response = cvService.getCVReview(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/{id}/download/{format}")
+    public ResponseEntity<byte[]> downloadCV(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @PathVariable String format) {
+        DownloadResult result = cvService.downloadCV(currentUser, id, format);
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + result.filename() + "\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType(result.contentType()))
+                .body(result.data());
+    }
+
+    @PostMapping("/{id}/retry")
+    public ResponseEntity<ApiResponse<CVReviewResponse>> retryCV(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        CVReviewResponse response = cvService.retryCVExtraction(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success("CV extraction re-triggered successfully", response));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteCV(
             @AuthenticationPrincipal User currentUser,

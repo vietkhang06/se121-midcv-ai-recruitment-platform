@@ -99,4 +99,40 @@ class CVOwnershipTest {
 
         assertTrue(ex.getMessage().contains("Candidate does not own this CV"));
     }
+
+    @Test
+    void testGetCVReview_CandidateAAccessingCandidateBCV_ThrowsUnauthorizedException() {
+        when(candidateProfileRepository.findByUserId(candidateUserA.getId())).thenReturn(Optional.of(profileA));
+        when(cvRepository.findById(cvOfCandidateB.getId())).thenReturn(Optional.of(cvOfCandidateB));
+
+        UnauthorizedAccessException ex = assertThrows(UnauthorizedAccessException.class, () -> {
+            cvService.getCVReview(candidateUserA, cvOfCandidateB.getId());
+        });
+
+        assertTrue(ex.getMessage().contains("Candidate does not own this CV"));
+    }
+
+    @Test
+    void testDownloadCV_CandidateAAccessingCandidateBCV_ThrowsUnauthorizedException() {
+        when(candidateProfileRepository.findByUserId(candidateUserA.getId())).thenReturn(Optional.of(profileA));
+        when(cvRepository.findById(cvOfCandidateB.getId())).thenReturn(Optional.of(cvOfCandidateB));
+
+        UnauthorizedAccessException ex = assertThrows(UnauthorizedAccessException.class, () -> {
+            cvService.downloadCV(candidateUserA, cvOfCandidateB.getId(), "raw");
+        });
+
+        assertTrue(ex.getMessage().contains("Candidate does not own this CV"));
+    }
+
+    @Test
+    void testRetryCVExtraction_CandidateAAccessingCandidateBCV_ThrowsUnauthorizedException() {
+        when(candidateProfileRepository.findByUserId(candidateUserA.getId())).thenReturn(Optional.of(profileA));
+        when(cvRepository.findById(cvOfCandidateB.getId())).thenReturn(Optional.of(cvOfCandidateB));
+
+        UnauthorizedAccessException ex = assertThrows(UnauthorizedAccessException.class, () -> {
+            cvService.retryCVExtraction(candidateUserA, cvOfCandidateB.getId());
+        });
+
+        assertTrue(ex.getMessage().contains("Candidate does not own this CV"));
+    }
 }
