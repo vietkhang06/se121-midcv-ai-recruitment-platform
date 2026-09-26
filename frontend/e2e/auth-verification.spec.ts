@@ -76,6 +76,24 @@ test.describe('Authentication, Email Verification & Runtime Stability Suite', ()
       window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
     });
 
+    await page.route('**/api/v1/auth/check-email**', async (route) => {
+      const url = new URL(route.request().url());
+      const email = url.searchParams.get('email');
+
+      const exists = email === 'nguyenvanjava@example.com';
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            exists,
+            status: exists ? 'ALREADY_EXISTS' : 'AVAILABLE'
+          }
+        })
+      });
+    });
+
     await page.goto('/');
     await page.getByRole('button', { name: /đăng ký/i }).click();
 
@@ -83,13 +101,21 @@ test.describe('Authentication, Email Verification & Runtime Stability Suite', ()
 
     // 1. Enter already registered email
     await emailInput.fill('nguyenvanjava@example.com');
-    await expect(page.getByText('Email này đã được sử dụng. Hãy đăng nhập hoặc sử dụng email khác.')).toBeVisible({ timeout: 4000 });
+    await expect(
+      page.getByText(
+        'Email này đã được sử dụng. Hãy đăng nhập hoặc sử dụng email khác.'
+      )
+    ).toBeVisible({ timeout: 4000 });
 
     // 2. Enter fresh available email
     await emailInput.fill('totally.new.candidate.2026@test.org');
-    await expect(page.getByText('Email có thể sử dụng.')).toBeVisible({ timeout: 4000 });
+    await expect(
+      page.getByText('Email có thể sử dụng.')
+    ).toBeVisible({ timeout: 4000 });
 
-    await page.screenshot({ path: 'e2e/screenshots/auth-04-email-check-ux.png' });
+    await page.screenshot({
+      path: 'e2e/screenshots/auth-04-email-check-ux.png'
+    });
   });
 
   test('05: Registration creates unverified account and displays verification screen', async ({ page }) => {
