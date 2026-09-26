@@ -13,7 +13,8 @@ import {
   RequirementType,
   AiSettings,
   QuickScreeningRun,
-  QuickScreeningDetail
+  QuickScreeningDetail,
+  CVReviewData
 } from '@/types';
 
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -214,6 +215,9 @@ export interface ApiClient {
   saveCandidateCV(cv: CV): Promise<CV>;
   uploadCandidateCV(file: File, title?: string, targetIndustry?: string, isDefault?: boolean): Promise<CV>;
   deleteCandidateCV(cvId: string): Promise<void>;
+  fetchCVReview(cvId: string): Promise<CVReviewData>;
+  downloadCVFile(cvId: string, format: string, defaultFilename: string): Promise<void>;
+  retryCVExtraction(cvId: string): Promise<CVReviewData>;
   fetchCandidateApplications(): Promise<Application[]>;
   submitApplication(app: Application): Promise<Application>;
   fetchJobApplications(jobId: string): Promise<Application[]>;
@@ -410,6 +414,55 @@ export class RealApiClient implements ApiClient {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });
+  }
+
+  async fetchCVReview(cvId: string): Promise<CVReviewData> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/review`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
+    }
+    const json: any = await apiRequest(`/api/v1/candidate/cvs/${cvId}/review`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return json.data;
+  }
+
+  async downloadCVFile(cvId: string, format: string, defaultFilename: string): Promise<void> {
+    const token = getAuthToken();
+    const url = `${BASE_URL}/api/v1/candidate/cvs/${cvId}/download/${format}`;
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+    if (!res.ok) {
+      throw new Error(`Tải tập tin thất bại: ${res.statusText}`);
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get('Content-Disposition');
+    let filename = defaultFilename;
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  }
+
+  async retryCVExtraction(cvId: string): Promise<CVReviewData> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('POST', `/api/v1/candidate/cvs/${cvId}/retry`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
+    }
+    const json: any = await apiRequest(`/api/v1/candidate/cvs/${cvId}/retry`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return json.data;
   }
 
   async fetchCandidateApplications(): Promise<Application[]> {
@@ -907,6 +960,9 @@ export const saveCandidateCV = (cv: CV) => currentApiClient.saveCandidateCV(cv);
 export const uploadCandidateCV = (file: File, title?: string, targetIndustry?: string, isDefault?: boolean) =>
   currentApiClient.uploadCandidateCV(file, title, targetIndustry, isDefault);
 export const deleteCandidateCV = (cvId: string) => currentApiClient.deleteCandidateCV(cvId);
+export const fetchCVReview = (cvId: string) => currentApiClient.fetchCVReview(cvId);
+export const downloadCVFile = (cvId: string, format: string, defaultFilename: string) => currentApiClient.downloadCVFile(cvId, format, defaultFilename);
+export const retryCVExtraction = (cvId: string) => currentApiClient.retryCVExtraction(cvId);
 export const fetchCandidateApplications = () => currentApiClient.fetchCandidateApplications();
 export const submitApplication = (app: Application) => currentApiClient.submitApplication(app);
 export const fetchJobApplications = (jobId: string) => currentApiClient.fetchJobApplications(jobId);

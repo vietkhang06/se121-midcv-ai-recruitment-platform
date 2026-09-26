@@ -8,7 +8,8 @@ import {
   Company,
   CandidateRankingItem,
   MatchInspectionData,
-  Industry
+  Industry,
+  CVReviewData
 } from '@/types';
 import {
   ApiClient,
@@ -319,6 +320,37 @@ export class BenchmarkFixtureClient implements ApiClient {
 
   async deleteCandidateCV(_cvId: string): Promise<void> {
     return;
+  }
+
+  async fetchCVReview(cvId: string): Promise<CVReviewData> {
+    return {
+      cvId,
+      title: 'Benchmark Candidate CV',
+      fileName: 'benchmark_cv.pdf',
+      fileType: 'application/pdf',
+      fileSize: 10240,
+      status: 'READY',
+      extractionMethod: 'PDFPLUMBER_LAYOUT',
+      rawText: 'Nguyễn Văn A\nKỹ sư phần mềm Java/Python...',
+      structured: {
+        schema_version: '2.0.0',
+        full_name: 'Nguyễn Văn A',
+        headline: 'Senior Full Stack Engineer',
+        skills: ['Java', 'Spring Boot', 'Python', 'PostgreSQL']
+      },
+      evidences: [],
+      unverifiedFacts: [],
+      warnings: [],
+      pages: []
+    };
+  }
+
+  async downloadCVFile(_cvId: string, _format: string, _defaultFilename: string): Promise<void> {
+    // No-op for test benchmark fixture client
+  }
+
+  async retryCVExtraction(cvId: string): Promise<CVReviewData> {
+    return this.fetchCVReview(cvId);
   }
 
   async fetchCandidateApplications(): Promise<Application[]> {

@@ -58,16 +58,22 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selected = e.target.files[0];
-      const validExtensions = ['.pdf', '.docx'];
+      const validExtensions = ['.pdf', '.docx', '.doc', '.png', '.jpg', '.jpeg', '.webp'];
       const hasValidExt = validExtensions.some(ext => selected.name.toLowerCase().endsWith(ext));
       
-      if (hasValidExt || selected.type === 'application/pdf') {
-        setFile(selected);
-        setCvTitle(selected.name.replace(/\.[^/.]+$/, ''));
-        setErrorMessage('');
-      } else {
-        setErrorMessage(t('common.error', 'Only PDF or DOCX file formats are supported.'));
+      if (!hasValidExt && !selected.type.startsWith('image/') && selected.type !== 'application/pdf') {
+        setErrorMessage(t('common.error', 'Chỉ hỗ trợ PDF, DOCX, DOC hoặc ảnh PNG/JPG/WEBP.'));
+        return;
       }
+
+      if (selected.size > 10 * 1024 * 1024) {
+        setErrorMessage(t('common.error', 'Dung lượng tệp vượt quá giới hạn tối đa 10MB.'));
+        return;
+      }
+
+      setFile(selected);
+      setCvTitle(selected.name.replace(/\.[^/.]+$/, ''));
+      setErrorMessage('');
     }
   };
 
@@ -212,7 +218,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
             <div className="border-2 border-dashed border-slate-300 dark:border-[#1E3A5F] hover:border-[#2563EB] dark:hover:border-[#3B82F6] rounded-2xl p-8 text-center bg-slate-50/50 dark:bg-[#13233F]/40 transition cursor-pointer group">
               <input
                 type="file"
-                accept=".pdf,.docx"
+                accept=".pdf,.docx,.doc,.png,.jpg,.jpeg,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,image/*"
                 onChange={handleFileChange}
                 className="hidden"
                 id="cv-file-modal-input"
@@ -226,7 +232,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
                     {file ? file.name : t('cvUpload.dropzoneText', 'Nhấp hoặc kéo thả file CV tại đây')}
                   </span>
                   <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    {t('cvUpload.dropzoneHint', 'Hỗ trợ định dạng PDF hoặc DOCX (Tối đa 10MB)')}
+                    Hỗ trợ PDF (văn bản & scan), DOCX, DOC hoặc ảnh PNG/JPG/WEBP (Tối đa 10MB)
                   </span>
                 </div>
                 {file && (
