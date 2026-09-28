@@ -8,9 +8,11 @@ from app.services.jd_parser import JDParser
 from app.services.cv_parser import CVParser
 from app.services.document_extractor import DocumentExtractor
 from app.services.github_analyzer import GitHubAnalyzer
+from app.api.dev_endpoints import dev_router
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+router.include_router(dev_router)
 
 jd_parser = JDParser()
 document_extractor = DocumentExtractor()
