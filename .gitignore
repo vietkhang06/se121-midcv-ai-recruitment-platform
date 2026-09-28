@@ -25,6 +25,9 @@ __pycache__/
 ai-worker/**/__pycache__/
 ai-worker/.pytest_cache/
 ai-worker/test-output/
-venv/
 .env*
-!.env.example
+!.env.example
+ai-worker/.env
+ai-worker/.env.*
+!ai-worker/.env.example
+
