@@ -24,7 +24,13 @@ import java.util.UUID;
 
 import com.platform.recruitment.cv.CVVersion;
 import com.platform.recruitment.cv.CVVersionRepository;
+import com.platform.recruitment.matching.CandidateRankingService;
+import com.platform.recruitment.matching.MatchResult;
+import com.platform.recruitment.matching.MatchResultRepository;
 import com.platform.recruitment.matching.MatchingEngineService;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +44,23 @@ public class ApplicationService {
     private final CVRepository cvRepository;
     private final CVVersionRepository cvVersionRepository;
     private final MatchingEngineService matchingEngineService;
+    private final CandidateRankingService candidateRankingService;
+    private final MatchResultRepository matchResultRepository;
+    private final ApplicationAuditLogRepository auditLogRepository;
+
+    public ApplicationService(
+            ApplicationRepository applicationRepository,
+            ApplicationCVSnapshotRepository snapshotRepository,
+            JobRepository jobRepository,
+            CandidateProfileRepository candidateProfileRepository,
+            RecruiterProfileRepository recruiterProfileRepository,
+            CVRepository cvRepository,
+            CVVersionRepository cvVersionRepository,
+            MatchingEngineService matchingEngineService) {
+        this(applicationRepository, snapshotRepository, jobRepository, candidateProfileRepository,
+             recruiterProfileRepository, cvRepository, cvVersionRepository, matchingEngineService,
+             null, null, null);
+    }
 
     @Transactional
     public ApplicationResponse submitApplication(User candidateUser, SubmitApplicationRequest request) {
@@ -154,6 +177,103 @@ public class ApplicationService {
                 .toList();
     }
 
+    @Transactional
+    public ApplicationResponse updateApplicationStatus(User recruiterUser, UUID applicationId, UpdateApplicationStatusRequest request) {
+        RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
+
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Application", "id", applicationId));
+
+        // Ownership Check: Recruiter can only modify applications for jobs belonging to their company
+        if (recruiter.getCompany() == null || !application.getJob().getCompany().getId().equals(recruiter.getCompany().getId())) {
+            throw new UnauthorizedAccessException("Recruiter does not have permission to manage this application");
+        }
+
+        ApplicationStatus previousStatus = application.getStatus();
+        application.setStatus(request.getStatus());
+        Application savedApplication = applicationRepository.save(application);
+
+        // AC-P9-02: Record human decision in Audit Log
+        ApplicationAuditLog auditLog = ApplicationAuditLog.builder()
+                .application(savedApplication)
+                .recruiterUser(recruiterUser)
+                .previousStatus(previousStatus)
+                .newStatus(request.getStatus())
+                .decisionNote(request.getDecisionNote())
+                .build();
+        auditLogRepository.save(auditLog);
+
+        ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(savedApplication.getId()).orElse(null);
+        return mapToResponse(savedApplication, snap);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApplicationResponse> getRankedApplicationsForJob(User recruiterUser, UUID jobId, BigDecimal minScoreFilter) {
+        RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
+
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
+
+        // Ownership Check: Recruiter can only view applications for jobs belonging to their company
+        if (recruiter.getCompany() == null || !job.getCompany().getId().equals(recruiter.getCompany().getId())) {
+            throw new UnauthorizedAccessException("Recruiter does not own the company for this job posting");
+        }
+
+        List<MatchResult> rankedResults = candidateRankingService.getRankedCandidatesForJob(jobId, minScoreFilter);
+        List<UUID> rankedAppIds = rankedResults.stream().map(r -> r.getApplication().getId()).toList();
+
+        List<ApplicationResponse> responses = new ArrayList<>();
+        for (MatchResult mr : rankedResults) {
+            Application app = mr.getApplication();
+            ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(app.getId()).orElse(null);
+            ApplicationResponse resp = mapToResponse(app, snap);
+            resp.setMatchScore(mr.getOverallScore());
+            resp.setMatchStatus(mr.getStatus());
+            responses.add(resp);
+        }
+
+        // Include any remaining applications for this job if no minScoreFilter is set
+        if (minScoreFilter == null) {
+            List<Application> allApps = applicationRepository.findByJobId(jobId);
+            for (Application app : allApps) {
+                if (!rankedAppIds.contains(app.getId())) {
+                    ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(app.getId()).orElse(null);
+                    responses.add(mapToResponse(app, snap));
+                }
+            }
+        }
+
+        return responses;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApplicationAuditLogResponse> getApplicationAuditLogs(User recruiterUser, UUID applicationId) {
+        RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
+
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Application", "id", applicationId));
+
+        if (recruiter.getCompany() == null || !application.getJob().getCompany().getId().equals(recruiter.getCompany().getId())) {
+            throw new UnauthorizedAccessException("Recruiter does not have permission to view audit logs for this application");
+        }
+
+        List<ApplicationAuditLog> logs = auditLogRepository.findByApplicationIdOrderByCreatedAtDesc(applicationId);
+        return logs.stream()
+                .map(l -> ApplicationAuditLogResponse.builder()
+                        .id(l.getId())
+                        .applicationId(l.getApplication().getId())
+                        .recruiterUserId(l.getRecruiterUser().getId())
+                        .previousStatus(l.getPreviousStatus())
+                        .newStatus(l.getNewStatus())
+                        .decisionNote(l.getDecisionNote())
+                        .createdAt(l.getCreatedAt())
+                        .build())
+                .toList();
+    }
+
     public ApplicationResponse mapToResponse(Application app, ApplicationCVSnapshot snap) {
         ApplicationResponse.SnapshotInfo snapshotInfo = null;
         if (snap != null) {
@@ -164,6 +284,16 @@ public class ApplicationService {
                     .build();
         }
 
+        BigDecimal matchScore = null;
+        String matchStatus = null;
+        if (matchResultRepository != null) {
+            var matchOpt = matchResultRepository.findByApplicationId(app.getId());
+            if (matchOpt.isPresent()) {
+                matchScore = matchOpt.get().getOverallScore();
+                matchStatus = matchOpt.get().getStatus();
+            }
+        }
+
         return ApplicationResponse.builder()
                 .id(app.getId())
                 .jobId(app.getJob().getId())
@@ -172,6 +302,8 @@ public class ApplicationService {
                 .candidateName(app.getCandidate().getFullName())
                 .appliedCvId(app.getAppliedCv() != null ? app.getAppliedCv().getId() : null)
                 .status(app.getStatus())
+                .matchScore(matchScore)
+                .matchStatus(matchStatus)
                 .appliedAt(app.getAppliedAt())
                 .snapshot(snapshotInfo)
                 .build();
