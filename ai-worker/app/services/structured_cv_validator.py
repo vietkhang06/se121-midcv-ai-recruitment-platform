@@ -57,6 +57,7 @@ class ExtractedLanguageItem(BaseModel):
 
 class StructuredCVData(BaseModel):
     personalInfo: PersonalInfo = Field(default_factory=PersonalInfo)
+    headline: Optional[str] = None
     summary: Optional[str] = None
     skills: List[ExtractedSkillItem] = Field(default_factory=list)
     education: List[ExtractedEducationItem] = Field(default_factory=list)
@@ -64,6 +65,9 @@ class StructuredCVData(BaseModel):
     projects: List[ExtractedProjectItem] = Field(default_factory=list)
     certifications: List[ExtractedCertificationItem] = Field(default_factory=list)
     languages: List[ExtractedLanguageItem] = Field(default_factory=list)
+    links: List[str] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
+    evidence: Dict[str, Any] = Field(default_factory=dict)
 
 
 class StructuredCVValidator:
@@ -72,6 +76,7 @@ class StructuredCVValidator:
     - Strips whitespace and markdown code fences.
     - Validates JSON syntax.
     - Validates schema structure using Pydantic.
+    - Verifies factual grounding against raw text.
     - Never fabricates or invents data to force validation to pass.
     """
 
@@ -89,7 +94,7 @@ class StructuredCVValidator:
                 text = "\n".join(lines).strip()
         return text
 
-    def validate(self, raw_output: str) -> Tuple[bool, bool, Optional[StructuredCVData], Optional[str]]:
+    def validate(self, raw_output: str, raw_text: Optional[str] = None) -> Tuple[bool, bool, Optional[StructuredCVData], Optional[str]]:
         """
         Returns (json_valid, schema_valid, parsed_data, error_message).
         """
@@ -108,7 +113,37 @@ class StructuredCVValidator:
         # 2. Validate Pydantic schema
         try:
             model = StructuredCVData.model_validate(parsed_dict)
+            if raw_text:
+                model = self.ground_with_raw_text(model, raw_text)
             return True, True, model, None
         except Exception as e:
             logger.warning(f"Schema validation error: {e}")
             return True, False, None, f"Schema validation error: {str(e)}"
+
+    def ground_with_raw_text(self, model: StructuredCVData, raw_text: str) -> StructuredCVData:
+        """
+        Verify extracted facts against raw text to enforce anti-fabrication rules.
+        - Adds warnings for any skills or facts not explicitly found in raw CV text.
+        - Builds factual evidence references.
+        """
+        if not raw_text:
+            return model
+
+        lower_raw = raw_text.lower()
+
+        # Check skills grounding against raw text
+        for skill in model.skills:
+            if skill.name.lower() not in lower_raw:
+                warn_msg = f"Skill '{skill.name}' was not explicitly found in raw CV text."
+                if warn_msg not in model.warnings:
+                    model.warnings.append(warn_msg)
+
+        # Check personal info grounding
+        if model.personalInfo.email and model.personalInfo.email.lower() not in lower_raw:
+            model.warnings.append(f"Email '{model.personalInfo.email}' not found in raw text.")
+        if model.personalInfo.phone and model.personalInfo.phone not in raw_text:
+            model.warnings.append(f"Phone '{model.personalInfo.phone}' not found in raw text.")
+
+        model.evidence["raw_char_count"] = len(raw_text)
+        model.evidence["extracted_skills_count"] = len(model.skills)
+        return model
