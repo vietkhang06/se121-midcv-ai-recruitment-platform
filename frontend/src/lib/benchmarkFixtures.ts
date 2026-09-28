@@ -353,6 +353,49 @@ export class BenchmarkFixtureClient implements ApiClient {
     return this.fetchCVReview(cvId);
   }
 
+  async fetchCVDraft(cvId: string): Promise<any> {
+    return {
+      cv_id: cvId,
+      profile_id: 'cand-prof-01',
+      version_id: 'ver-01',
+      version_number: 1,
+      title: 'Resume Nguyen Van A',
+      status: 'DRAFT',
+      skills: [{ name: 'Java', origin: 'CV_EXTRACTED', verified: true }],
+      work_experience: [{ company: 'Tech Corp', position: 'Backend Dev', origin: 'CV_EXTRACTED' }]
+    };
+  }
+
+  async updateCVDraft(cvId: string, draftData: any): Promise<any> {
+    return {
+      cv_id: cvId,
+      ...draftData,
+      status: 'DRAFT'
+    };
+  }
+
+  async confirmCandidateCV(cvId: string): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }> {
+    return {
+      cv_id: cvId,
+      profile_id: 'cand-prof-01',
+      status: 'CONFIRMED',
+      confirmed_at: new Date().toISOString()
+    };
+  }
+
+  async fetchCVVersions(cvId: string): Promise<any[]> {
+    return [
+      {
+        version_id: 'ver-01',
+        version_number: 1,
+        title: 'Resume Nguyen Van A v1.0',
+        status: 'CONFIRMED',
+        confirmed_at: new Date().toISOString(),
+        created_at: new Date().toISOString()
+      }
+    ];
+  }
+
   async fetchCandidateApplications(): Promise<Application[]> {
     return [...SEED_APPLICATIONS];
   }

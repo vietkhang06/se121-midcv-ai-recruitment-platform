@@ -583,4 +583,461 @@ public class CVService {
                 .createdAt(cv.getCreatedAt())
                 .build();
     }
+
+    @Transactional(readOnly = true)
+    public CVDraftResponse getCVDraft(User candidateUser, UUID cvId) {
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        CV cv = cvRepository.findById(cvId)
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
+
+        if (!cv.getCandidate().getId().equals(candidate.getId())) {
+            throw new UnauthorizedAccessException("Candidate does not own this CV");
+        }
+
+        List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+        CVVersion version;
+        if (versions.isEmpty()) {
+            version = CVVersion.builder()
+                    .cv(cv)
+                    .versionNumber(1)
+                    .title(cv.getTitle() + " v1.0")
+                    .rawTextContent(cv.getRawText())
+                    .status("DRAFT")
+                    .build();
+            version = cvVersionRepository.save(version);
+        } else {
+            version = versions.get(0);
+        }
+
+        Map<String, Object> rawStructured = new LinkedHashMap<>();
+        if (version.getStructuredJsonContent() != null && !version.getStructuredJsonContent().isBlank()) {
+            try {
+                rawStructured = objectMapper.readValue(version.getStructuredJsonContent(), new TypeReference<>() {});
+            } catch (Exception e) {
+                log.warn("Failed to parse structuredJsonContent for version {}", version.getId());
+            }
+        }
+
+        if (rawStructured.isEmpty()) {
+            List<Map<String, Object>> vRows = jdbcTemplate.queryForList(
+                    "SELECT normalized FROM document_versions WHERE document_id = ? ORDER BY version_no DESC LIMIT 1",
+                    cvId
+            );
+            if (!vRows.isEmpty() && vRows.get(0).get("normalized") != null) {
+                try {
+                    rawStructured = objectMapper.readValue(vRows.get(0).get("normalized").toString(), new TypeReference<>() {});
+                } catch (Exception ignored) {}
+            }
+        }
+
+        Map<String, Object> personalInfo = extractPersonalInfoWithLineage(rawStructured, candidate, cv);
+        Map<String, Object> summary = extractSummaryWithLineage(rawStructured, cv);
+        List<Map<String, Object>> skills = extractSkillsWithLineage(rawStructured, version.getId());
+        List<Map<String, Object>> experiences = extractExperienceWithLineage(rawStructured, version.getId());
+        List<Map<String, Object>> projects = extractProjectsWithLineage(rawStructured);
+        List<Map<String, Object>> education = extractEducationWithLineage(rawStructured, version.getId());
+        List<Map<String, Object>> certifications = extractCertificationsWithLineage(rawStructured);
+        List<Map<String, Object>> languages = extractLanguagesWithLineage(rawStructured);
+        Map<String, Object> links = extractLinksWithLineage(rawStructured, personalInfo);
+
+        return CVDraftResponse.builder()
+                .cvId(cv.getId())
+                .profileId(candidate.getId())
+                .versionId(version.getId())
+                .versionNumber(version.getVersionNumber())
+                .title(version.getTitle() != null ? version.getTitle() : cv.getTitle())
+                .status(version.getStatus() != null ? version.getStatus() : "DRAFT")
+                .confirmedAt(version.getConfirmedAt())
+                .personalInfo(personalInfo)
+                .summary(summary)
+                .skills(skills)
+                .workExperience(experiences)
+                .projects(projects)
+                .education(education)
+                .certifications(certifications)
+                .languages(languages)
+                .links(links)
+                .rawStructured(rawStructured)
+                .createdAt(version.getCreatedAt() != null ? version.getCreatedAt() : cv.getCreatedAt())
+                .updatedAt(version.getUpdatedAt() != null ? version.getUpdatedAt() : cv.getUpdatedAt())
+                .build();
+    }
+
+    @Transactional
+    public CVDraftResponse updateCVDraft(User candidateUser, UUID cvId, UpdateCVDraftRequest request) {
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        CV cv = cvRepository.findById(cvId)
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
+
+        if (!cv.getCandidate().getId().equals(candidate.getId())) {
+            throw new UnauthorizedAccessException("Candidate does not own this CV");
+        }
+
+        List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+        CVVersion targetVersion;
+
+        // If latest version was already CONFIRMED, fork a new DRAFT version to maintain audit immutability (AC-P0-03, AC-P3-03)
+        if (!versions.isEmpty() && "CONFIRMED".equalsIgnoreCase(versions.get(0).getStatus())) {
+            CVVersion latestConfirmed = versions.get(0);
+            int newVersionNum = latestConfirmed.getVersionNumber() + 1;
+            targetVersion = CVVersion.builder()
+                    .cv(cv)
+                    .versionNumber(newVersionNum)
+                    .title(cv.getTitle() + " v" + newVersionNum + ".0 (Draft)")
+                    .rawTextContent(latestConfirmed.getRawTextContent())
+                    .status("DRAFT")
+                    .build();
+            targetVersion = cvVersionRepository.save(targetVersion);
+            cv.setStatus("DRAFT");
+            cvRepository.save(cv);
+        } else if (!versions.isEmpty()) {
+            targetVersion = versions.get(0);
+        } else {
+            targetVersion = CVVersion.builder()
+                    .cv(cv)
+                    .versionNumber(1)
+                    .title(cv.getTitle() + " v1.0")
+                    .rawTextContent(cv.getRawText())
+                    .status("DRAFT")
+                    .build();
+            targetVersion = cvVersionRepository.save(targetVersion);
+        }
+
+        Map<String, Object> updatedStructured = new LinkedHashMap<>();
+        if (targetVersion.getStructuredJsonContent() != null && !targetVersion.getStructuredJsonContent().isBlank()) {
+            try {
+                updatedStructured = objectMapper.readValue(targetVersion.getStructuredJsonContent(), new TypeReference<>() {});
+            } catch (Exception ignored) {}
+        }
+
+        if (request.getTitle() != null && !request.getTitle().isBlank()) {
+            targetVersion.setTitle(request.getTitle());
+            cv.setTitle(request.getTitle());
+            cvRepository.save(cv);
+        }
+
+        if (request.getPersonalInfo() != null) {
+            updatedStructured.put("personal_info", markLineageOnMap(request.getPersonalInfo()));
+        }
+        if (request.getSummary() != null) {
+            updatedStructured.put("summary", markLineageOnMap(request.getSummary()));
+        }
+        if (request.getSkills() != null) {
+            updatedStructured.put("skills", markLineageOnList(request.getSkills()));
+        }
+        if (request.getWorkExperience() != null) {
+            updatedStructured.put("work_experience", markLineageOnList(request.getWorkExperience()));
+        }
+        if (request.getProjects() != null) {
+            updatedStructured.put("projects", markLineageOnList(request.getProjects()));
+        }
+        if (request.getEducation() != null) {
+            updatedStructured.put("education", markLineageOnList(request.getEducation()));
+        }
+        if (request.getCertifications() != null) {
+            updatedStructured.put("certifications", markLineageOnList(request.getCertifications()));
+        }
+        if (request.getLanguages() != null) {
+            updatedStructured.put("languages", markLineageOnList(request.getLanguages()));
+        }
+        if (request.getLinks() != null) {
+            updatedStructured.put("links", markLineageOnMap(request.getLinks()));
+        }
+        if (request.getStructuredJson() != null) {
+            updatedStructured.putAll(request.getStructuredJson());
+        }
+
+        try {
+            targetVersion.setStructuredJsonContent(objectMapper.writeValueAsString(updatedStructured));
+        } catch (Exception e) {
+            log.error("Failed to serialize updated structured json for version {}", targetVersion.getId(), e);
+        }
+
+        cvVersionRepository.save(targetVersion);
+
+        return getCVDraft(candidateUser, cvId);
+    }
+
+    @Transactional
+    public CVConfirmResponse confirmCV(User candidateUser, UUID cvId) {
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        CV cv = cvRepository.findById(cvId)
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
+
+        if (!cv.getCandidate().getId().equals(candidate.getId())) {
+            throw new UnauthorizedAccessException("Candidate does not own this CV");
+        }
+
+        List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+        CVVersion targetVersion;
+        if (versions.isEmpty()) {
+            targetVersion = CVVersion.builder()
+                    .cv(cv)
+                    .versionNumber(1)
+                    .title(cv.getTitle() + " v1.0")
+                    .rawTextContent(cv.getRawText())
+                    .status("DRAFT")
+                    .build();
+            targetVersion = cvVersionRepository.save(targetVersion);
+        } else {
+            targetVersion = versions.get(0);
+        }
+
+        ZonedDateTime now = ZonedDateTime.now();
+        targetVersion.setStatus("CONFIRMED");
+        targetVersion.setConfirmedAt(now);
+        cvVersionRepository.save(targetVersion);
+
+        cv.setStatus("CONFIRMED");
+        cvRepository.save(cv);
+
+        return CVConfirmResponse.builder()
+                .cvId(cv.getId())
+                .profileId(candidate.getId())
+                .status("CONFIRMED")
+                .confirmedAt(now)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CVVersionSummaryResponse> getCVVersions(User candidateUser, UUID cvId) {
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        CV cv = cvRepository.findById(cvId)
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
+
+        if (!cv.getCandidate().getId().equals(candidate.getId())) {
+            throw new UnauthorizedAccessException("Candidate does not own this CV");
+        }
+
+        return cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId).stream()
+                .map(v -> CVVersionSummaryResponse.builder()
+                        .versionId(v.getId())
+                        .versionNumber(v.getVersionNumber())
+                        .title(v.getTitle())
+                        .status(v.getStatus() != null ? v.getStatus() : "DRAFT")
+                        .confirmedAt(v.getConfirmedAt())
+                        .createdAt(v.getCreatedAt())
+                        .build())
+                .toList();
+    }
+
+    private Map<String, Object> extractPersonalInfoWithLineage(Map<String, Object> structured, CandidateProfile profile, CV cv) {
+        Map<String, Object> personal = new LinkedHashMap<>();
+        Object pObj = structured.get("personal_info");
+        Map<?, ?> pMap = (pObj instanceof Map<?, ?>) ? (Map<?, ?>) pObj : Collections.emptyMap();
+
+        addProvenanceField(personal, "full_name", pMap.get("full_name"), profile.getFullName() != null ? profile.getFullName() : cv.getTitle());
+        addProvenanceField(personal, "email", pMap.get("email"), profile.getUser() != null ? profile.getUser().getEmail() : null);
+        addProvenanceField(personal, "phone", pMap.get("phone"), profile.getPhone());
+        addProvenanceField(personal, "location", pMap.get("location"), null);
+        addProvenanceField(personal, "github_url", pMap.get("github_url"), profile.getGithubUrl());
+        addProvenanceField(personal, "linkedin_url", pMap.get("linkedin_url"), null);
+        addProvenanceField(personal, "portfolio_url", pMap.get("portfolio_url"), profile.getPortfolioUrl());
+        return personal;
+    }
+
+    private Map<String, Object> extractSummaryWithLineage(Map<String, Object> structured, CV cv) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        Object sumVal = structured.get("professional_summary");
+        if (sumVal == null) sumVal = structured.get("summary");
+        if (sumVal == null) sumVal = cv.getRawText();
+        addProvenanceField(summary, "summary", sumVal, "Hồ sơ ứng viên.");
+        return summary;
+    }
+
+    private void addProvenanceField(Map<String, Object> target, String key, Object extractedVal, Object fallbackVal) {
+        Object chosen = extractedVal != null ? extractedVal : fallbackVal;
+        if (chosen instanceof Map<?, ?> m && m.containsKey("origin")) {
+            target.put(key, m);
+        } else {
+            Map<String, Object> field = new LinkedHashMap<>();
+            field.put("value", chosen != null ? chosen : "");
+            field.put("origin", extractedVal != null ? "CV_EXTRACTED" : "USER_ADDED");
+            target.put(key, field);
+        }
+    }
+
+    private List<Map<String, Object>> extractSkillsWithLineage(Map<String, Object> structured, UUID versionId) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        if (structured.get("skills") instanceof List<?> list) {
+            for (Object obj : list) {
+                if (obj instanceof Map<?, ?> m) {
+                    Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) m);
+                    if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+                    result.add(copy);
+                } else if (obj != null) {
+                    Map<String, Object> s = new LinkedHashMap<>();
+                    s.put("name", String.valueOf(obj));
+                    s.put("origin", "CV_EXTRACTED");
+                    s.put("verified", false);
+                    result.add(s);
+                }
+            }
+        }
+        if (result.isEmpty() && versionId != null) {
+            List<CVSection> sections = cvSectionRepository.findByCvVersionId(versionId);
+            for (CVSection sec : sections) {
+                if ("SKILLS".equalsIgnoreCase(sec.getSectionType())) {
+                    try {
+                        List<?> sList = objectMapper.readValue(sec.getContent(), List.class);
+                        for (Object o : sList) {
+                            Map<String, Object> s = new LinkedHashMap<>();
+                            s.put("name", String.valueOf(o));
+                            s.put("origin", "CV_EXTRACTED");
+                            s.put("verified", false);
+                            result.add(s);
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> extractExperienceWithLineage(Map<String, Object> structured, UUID versionId) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        Object expObj = structured.get("work_experience");
+        if (expObj == null) expObj = structured.get("experiences");
+        if (expObj instanceof List<?> list) {
+            int idx = 1;
+            for (Object obj : list) {
+                if (obj instanceof Map<?, ?> m) {
+                    Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) m);
+                    if (!copy.containsKey("id")) copy.put("id", "exp_" + idx++);
+                    if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+                    result.add(copy);
+                }
+            }
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> extractProjectsWithLineage(Map<String, Object> structured) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        if (structured.get("projects") instanceof List<?> list) {
+            int idx = 1;
+            for (Object obj : list) {
+                if (obj instanceof Map<?, ?> m) {
+                    Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) m);
+                    if (!copy.containsKey("id")) copy.put("id", "proj_" + idx++);
+                    if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+                    result.add(copy);
+                }
+            }
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> extractEducationWithLineage(Map<String, Object> structured, UUID versionId) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        Object eduObj = structured.get("education");
+        if (eduObj == null) eduObj = structured.get("educations");
+        if (eduObj instanceof List<?> list) {
+            int idx = 1;
+            for (Object obj : list) {
+                if (obj instanceof Map<?, ?> m) {
+                    Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) m);
+                    if (!copy.containsKey("id")) copy.put("id", "edu_" + idx++);
+                    if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+                    result.add(copy);
+                }
+            }
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> extractCertificationsWithLineage(Map<String, Object> structured) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        if (structured.get("certifications") instanceof List<?> list) {
+            int idx = 1;
+            for (Object obj : list) {
+                if (obj instanceof Map<?, ?> m) {
+                    Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) m);
+                    if (!copy.containsKey("id")) copy.put("id", "cert_" + idx++);
+                    if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+                    result.add(copy);
+                } else if (obj != null) {
+                    Map<String, Object> c = new LinkedHashMap<>();
+                    c.put("id", "cert_" + idx++);
+                    c.put("name", String.valueOf(obj));
+                    c.put("origin", "CV_EXTRACTED");
+                    result.add(c);
+                }
+            }
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> extractLanguagesWithLineage(Map<String, Object> structured) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        if (structured.get("languages") instanceof List<?> list) {
+            int idx = 1;
+            for (Object obj : list) {
+                if (obj instanceof Map<?, ?> m) {
+                    Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) m);
+                    if (!copy.containsKey("id")) copy.put("id", "lang_" + idx++);
+                    if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+                    result.add(copy);
+                } else if (obj != null) {
+                    Map<String, Object> l = new LinkedHashMap<>();
+                    l.put("id", "lang_" + idx++);
+                    l.put("name", String.valueOf(obj));
+                    l.put("origin", "CV_EXTRACTED");
+                    result.add(l);
+                }
+            }
+        }
+        return result;
+    }
+
+    private Map<String, Object> extractLinksWithLineage(Map<String, Object> structured, Map<String, Object> personalInfo) {
+        Map<String, Object> links = new LinkedHashMap<>();
+        if (personalInfo.containsKey("github_url")) links.put("github_url", personalInfo.get("github_url"));
+        if (personalInfo.containsKey("linkedin_url")) links.put("linkedin_url", personalInfo.get("linkedin_url"));
+        if (personalInfo.containsKey("portfolio_url")) links.put("portfolio_url", personalInfo.get("portfolio_url"));
+        return links;
+    }
+
+    private Map<String, Object> markLineageOnMap(Map<String, Object> map) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            Object val = entry.getValue();
+            if (val instanceof Map<?, ?> innerMap) {
+                Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) innerMap);
+                if (!copy.containsKey("origin")) {
+                    copy.put("origin", "USER_CONFIRMED");
+                }
+                result.put(entry.getKey(), copy);
+            } else if (val != null) {
+                Map<String, Object> cell = new LinkedHashMap<>();
+                cell.put("value", val);
+                cell.put("origin", "USER_CONFIRMED");
+                result.put(entry.getKey(), cell);
+            }
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> markLineageOnList(List<Map<String, Object>> list) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> item : list) {
+            Map<String, Object> copy = new LinkedHashMap<>(item);
+            if (!copy.containsKey("origin") || copy.get("origin") == null) {
+                copy.put("origin", copy.containsKey("id") ? "USER_CONFIRMED" : "USER_ADDED");
+            }
+            if (!copy.containsKey("id") || copy.get("id") == null) {
+                copy.put("id", UUID.randomUUID().toString());
+            }
+            result.add(copy);
+        }
+        return result;
+    }
 }

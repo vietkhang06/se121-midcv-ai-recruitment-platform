@@ -81,6 +81,12 @@ public class ApplicationService {
             appliedVersion = versions.get(0);
         }
 
+        // AC-P3-04: Block application submission if CV is in DRAFT status
+        if ("DRAFT".equalsIgnoreCase(cv.getStatus()) || (appliedVersion.getStatus() != null && "DRAFT".equalsIgnoreCase(appliedVersion.getStatus()))) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                    "Hồ sơ CV đang ở trạng thái DRAFT. Vui lòng xác nhận hồ sơ trước khi nộp ứng tuyển.");
+        }
+
         // Atomic Transaction: Create Application + Immutable ApplicationCVSnapshot
         Application application = Application.builder()
                 .job(job)

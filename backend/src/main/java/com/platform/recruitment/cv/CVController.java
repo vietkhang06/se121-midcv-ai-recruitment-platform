@@ -87,4 +87,37 @@ public class CVController {
         cvService.deleteCV(currentUser, id);
         return ResponseEntity.ok(ApiResponse.success("CV deleted successfully", null));
     }
+
+    @GetMapping("/{id}/draft")
+    public ResponseEntity<ApiResponse<CVDraftResponse>> getCVDraft(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        CVDraftResponse response = cvService.getCVDraft(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PutMapping("/{id}/draft")
+    public ResponseEntity<ApiResponse<CVDraftResponse>> updateCVDraft(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @RequestBody UpdateCVDraftRequest request) {
+        CVDraftResponse response = cvService.updateCVDraft(currentUser, id, request);
+        return ResponseEntity.ok(ApiResponse.success("CV draft updated successfully", response));
+    }
+
+    @PostMapping("/{id}/confirm")
+    public ResponseEntity<ApiResponse<CVConfirmResponse>> confirmCV(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        CVConfirmResponse response = cvService.confirmCV(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success("CV profile confirmed successfully", response));
+    }
+
+    @GetMapping("/{id}/versions")
+    public ResponseEntity<ApiResponse<List<CVVersionSummaryResponse>>> getCVVersions(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        List<CVVersionSummaryResponse> response = cvService.getCVVersions(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }

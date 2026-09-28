@@ -28,4 +28,11 @@ public class CVVersion extends BaseEntity {
 
     @Column(name = "structured_json_content", columnDefinition = "TEXT")
     private String structuredJsonContent;
+
+    @Builder.Default
+    @Column(name = "status")
+    private String status = "DRAFT";
+
+    @Column(name = "confirmed_at")
+    private java.time.ZonedDateTime confirmedAt;
 }

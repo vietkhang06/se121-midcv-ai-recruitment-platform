@@ -41,6 +41,28 @@ export class ApiError extends Error {
   }
 }
 
+export function isJwtExpired(token: string | null): boolean {
+  if (!token) return true;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const payload = JSON.parse(jsonPayload);
+    if (!payload.exp) return false;
+    // 10 second clock skew buffer
+    return Date.now() >= (payload.exp * 1000 - 10000);
+  } catch {
+    return true;
+  }
+}
+
 export function getAuthUser(): User | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -53,7 +75,16 @@ export function getAuthUser(): User | null {
 
 export function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('auth_token');
+  const token = localStorage.getItem('auth_token');
+  if (token && isJwtExpired(token)) {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('midcv:session_expired'));
+    }
+    return null;
+  }
+  return token;
 }
 
 export async function apiRequest<T>(
@@ -92,6 +123,14 @@ export async function apiRequest<T>(
       // response is not JSON
     }
     const errMsg = errBody?.message || res.statusText || `Request failed with status ${res.status}`;
+
+    // Auto-clean expired or invalid credentials on 401/403
+    if (typeof window !== 'undefined' && (res.status === 401 || (res.status === 403 && (!token || isJwtExpired(token))))) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      window.dispatchEvent(new CustomEvent('midcv:session_expired', { detail: { message: errMsg } }));
+    }
+
     console.error(`[API ERROR] method=${method} url=${url} status=${res.status} statusText=${res.statusText} message=${errMsg}`, errBody);
     throw new ApiError(method, url, res.status, res.statusText, errMsg, errBody);
   }
@@ -144,6 +183,7 @@ export function mapBackendCVToFrontend(raw: any): CV {
     targetIndustry: (raw.targetIndustry || 'Technology') as Industry,
     creationPath: raw.creationPath === 'BUILDER' ? 'BUILDER' : 'UPLOAD',
     isDefault: !!raw.isDefault,
+    status: raw.status || 'DRAFT',
     currentVersionNumber: 1,
     rawText: raw.rawText || '',
     updatedAt: raw.createdAt ? String(raw.createdAt).split('T')[0] : '',
@@ -218,6 +258,10 @@ export interface ApiClient {
   fetchCVReview(cvId: string): Promise<CVReviewData>;
   downloadCVFile(cvId: string, format: string, defaultFilename: string): Promise<void>;
   retryCVExtraction(cvId: string): Promise<CVReviewData>;
+  fetchCVDraft(cvId: string): Promise<any>;
+  updateCVDraft(cvId: string, draftData: any): Promise<any>;
+  confirmCandidateCV(cvId: string): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }>;
+  fetchCVVersions(cvId: string): Promise<any[]>;
   fetchCandidateApplications(): Promise<Application[]>;
   submitApplication(app: Application): Promise<Application>;
   fetchJobApplications(jobId: string): Promise<Application[]>;
@@ -463,6 +507,53 @@ export class RealApiClient implements ApiClient {
       headers: { Authorization: `Bearer ${token}` }
     });
     return json.data;
+  }
+
+  async fetchCVDraft(cvId: string): Promise<any> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/draft`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
+    }
+    const json: any = await apiRequest(`/api/v1/candidate/cvs/${cvId}/draft`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return json.data;
+  }
+
+  async updateCVDraft(cvId: string, draftData: any): Promise<any> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('PUT', `/api/v1/candidate/cvs/${cvId}/draft`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
+    }
+    const json: any = await apiRequest(`/api/v1/candidate/cvs/${cvId}/draft`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(draftData)
+    });
+    return json.data;
+  }
+
+  async confirmCandidateCV(cvId: string): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('POST', `/api/v1/candidate/cvs/${cvId}/confirm`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
+    }
+    const json: any = await apiRequest(`/api/v1/candidate/cvs/${cvId}/confirm`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return json.data;
+  }
+
+  async fetchCVVersions(cvId: string): Promise<any[]> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/versions`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
+    }
+    const json: any = await apiRequest(`/api/v1/candidate/cvs/${cvId}/versions`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return Array.isArray(json) ? json : (json?.data ?? []);
   }
 
   async fetchCandidateApplications(): Promise<Application[]> {
@@ -963,6 +1054,10 @@ export const deleteCandidateCV = (cvId: string) => currentApiClient.deleteCandid
 export const fetchCVReview = (cvId: string) => currentApiClient.fetchCVReview(cvId);
 export const downloadCVFile = (cvId: string, format: string, defaultFilename: string) => currentApiClient.downloadCVFile(cvId, format, defaultFilename);
 export const retryCVExtraction = (cvId: string) => currentApiClient.retryCVExtraction(cvId);
+export const fetchCVDraft = (cvId: string) => currentApiClient.fetchCVDraft(cvId);
+export const updateCVDraft = (cvId: string, draftData: any) => currentApiClient.updateCVDraft(cvId, draftData);
+export const confirmCandidateCV = (cvId: string) => currentApiClient.confirmCandidateCV(cvId);
+export const fetchCVVersions = (cvId: string) => currentApiClient.fetchCVVersions(cvId);
 export const fetchCandidateApplications = () => currentApiClient.fetchCandidateApplications();
 export const submitApplication = (app: Application) => currentApiClient.submitApplication(app);
 export const fetchJobApplications = (jobId: string) => currentApiClient.fetchJobApplications(jobId);

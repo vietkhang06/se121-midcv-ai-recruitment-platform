@@ -91,6 +91,8 @@ export interface CVVersion {
   versionNumber: number;
   summaryText?: string;
   title?: string;
+  status?: string;
+  confirmedAt?: string;
   createdAt: string;
   sections: CVSection[];
 }
@@ -102,6 +104,7 @@ export interface CV {
   targetRole?: string;
   creationPath: 'UPLOAD' | 'BUILDER';
   isDefault: boolean;
+  status?: string;
   currentVersionNumber: number;
   rawText?: string;
   updatedAt: string;
