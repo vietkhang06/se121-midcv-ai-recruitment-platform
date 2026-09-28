@@ -4,10 +4,17 @@ from app.schemas.jd import JDExtractRequest, JDExtractResponse
 from app.schemas.cv import CVExtractRequest, CVExtractResponse
 from app.schemas.document import DocumentExtractRequest, DocumentExtractResponse
 from app.schemas.github import GitHubAnalyzeRequest, GitHubAnalyzeResponse
+from app.schemas.taxonomy import (
+    SkillNormalizeRequest,
+    SkillNormalizeResponse,
+    AutocompleteResponse
+)
 from app.services.jd_parser import JDParser
 from app.services.cv_parser import CVParser
 from app.services.document_extractor import DocumentExtractor
 from app.services.github_analyzer import GitHubAnalyzer
+from app.services.taxonomy_normalizer import TaxonomyNormalizer
+from app.services.llm.openai_compatible_client import OpenAICompatibleClient
 from app.api.dev_endpoints import dev_router
 from app.config import settings
 
@@ -19,6 +26,22 @@ jd_parser = JDParser()
 document_extractor = DocumentExtractor()
 cv_parser = CVParser(document_extractor=document_extractor)
 github_analyzer = GitHubAnalyzer()
+
+# Initialize TaxonomyNormalizer with primary LLM client if configured
+primary_llm_client = None
+if settings.LLM_PRIMARY_ENABLED and settings.LLM_PRIMARY_API_KEY:
+    try:
+        primary_llm_client = OpenAICompatibleClient(
+            base_url=settings.LLM_PRIMARY_BASE_URL,
+            api_key=settings.LLM_PRIMARY_API_KEY,
+            model=settings.LLM_PRIMARY_MODEL,
+            timeout_seconds=settings.LLM_PRIMARY_TIMEOUT_SECONDS,
+            max_retries=settings.LLM_PRIMARY_MAX_RETRIES
+        )
+    except Exception as e:
+        logger.warning(f"Failed to initialize LLM client for taxonomy normalizer: {e}")
+
+taxonomy_normalizer = TaxonomyNormalizer(llm_client=primary_llm_client)
 
 import httpx
 
@@ -127,4 +150,27 @@ def analyze_github(request: GitHubAnalyzeRequest):
             overall_supporting_rating="UNAVAILABLE",
             status="UNAVAILABLE",
             error_message=str(e)
+        )
+
+@router.post("/taxonomy/normalize-skills", response_model=SkillNormalizeResponse)
+def normalize_skills(request: SkillNormalizeRequest):
+    try:
+        logger.info(f"Received Taxonomy Normalization request for {len(request.skills)} skills")
+        return taxonomy_normalizer.normalize_skills(request)
+    except Exception as e:
+        logger.error(f"Taxonomy Normalization failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Taxonomy Normalization Error: {str(e)}"
+        )
+
+@router.get("/taxonomy/autocomplete", response_model=AutocompleteResponse)
+def autocomplete_skills(query: str = "", limit: int = 10):
+    try:
+        return taxonomy_normalizer.autocomplete(query=query, limit=limit)
+    except Exception as e:
+        logger.error(f"Taxonomy Autocomplete failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Taxonomy Autocomplete Error: {str(e)}"
         )
