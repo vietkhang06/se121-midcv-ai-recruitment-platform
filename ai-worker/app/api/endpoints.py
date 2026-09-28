@@ -9,11 +9,13 @@ from app.schemas.taxonomy import (
     SkillNormalizeResponse,
     AutocompleteResponse
 )
+from app.schemas.matching import SemanticCompareRequest, SemanticCompareResponse
 from app.services.jd_parser import JDParser
 from app.services.cv_parser import CVParser
 from app.services.document_extractor import DocumentExtractor
 from app.services.github_analyzer import GitHubAnalyzer
 from app.services.taxonomy_normalizer import TaxonomyNormalizer
+from app.services.semantic_matching_service import SemanticMatchingService
 from app.services.llm.openai_compatible_client import OpenAICompatibleClient
 from app.api.dev_endpoints import dev_router
 from app.config import settings
@@ -26,6 +28,7 @@ jd_parser = JDParser()
 document_extractor = DocumentExtractor()
 cv_parser = CVParser(document_extractor=document_extractor)
 github_analyzer = GitHubAnalyzer()
+semantic_matching_service = SemanticMatchingService()
 
 # Initialize TaxonomyNormalizer with primary LLM client if configured
 primary_llm_client = None
@@ -174,3 +177,20 @@ def autocomplete_skills(query: str = "", limit: int = 10):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Taxonomy Autocomplete Error: {str(e)}"
         )
+
+@router.post("/matching/semantic-compare", response_model=SemanticCompareResponse)
+def semantic_compare(request: SemanticCompareRequest):
+    try:
+        logger.info(
+            f"Received Semantic Compare request: "
+            f"candidate chunks={list(request.candidate_text_chunks.keys())}, "
+            f"jd chunks={list(request.jd_text_chunks.keys())}"
+        )
+        return semantic_matching_service.compare_semantic(request)
+    except Exception as e:
+        logger.error(f"Semantic comparison failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Semantic Comparison Error: {str(e)}"
+        )
+
