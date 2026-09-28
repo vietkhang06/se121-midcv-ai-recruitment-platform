@@ -190,6 +190,26 @@ Target JSON schema structure:
             except Exception as repair_exc:
                 logger.error(f"[{cid}] JSON repair request encountered error: {repair_exc}")
 
+            # If repair failed on PRIMARY, trigger fallback to Ollama per fallback rules
+            if not (json_valid and schema_valid) and not exec_res.fallback_used and self.orchestrator.fallback_enabled and self.orchestrator.fallback_client:
+                logger.warning(f"[{cid}] Primary JSON repair unrecoverable. Engaging fallback Ollama client...")
+                try:
+                    fb_resp = await self.orchestrator.fallback_client.chat(messages, correlation_id=f"{cid}-json-fallback")
+                    fb_json_valid, fb_schema_valid, fb_data, fb_err = self.validator.validate(fb_resp.content)
+                    if fb_json_valid and fb_schema_valid and fb_data:
+                        json_valid = True
+                        schema_valid = True
+                        parsed_data = fb_data
+                        llm_resp = fb_resp
+                        exec_res.fallback_used = True
+                        exec_res.provider_used = "fallback"
+                        exec_res.fallback_reason = "Primary output JSON invalid after repair attempt"
+                        logger.info(f"[{cid}] Fallback Ollama structuring succeeded.")
+                    else:
+                        logger.error(f"[{cid}] Fallback Ollama output also invalid: {fb_err}")
+                except Exception as fb_exc:
+                    logger.error(f"[{cid}] Fallback Ollama structuring error: {fb_exc}")
+
         data_dict = parsed_data.model_dump() if parsed_data else {}
 
         usage_dict = {

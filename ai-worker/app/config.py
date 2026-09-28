@@ -29,6 +29,7 @@ class Settings(BaseModel):
     # -------------------------------------------------------------
     # PRIMARY LLM Configuration (OpenAI Compatible)
     # -------------------------------------------------------------
+    LLM_PRIMARY_ENABLED: bool = os.getenv("LLM_PRIMARY_ENABLED", "true").lower() == "true"
     LLM_PRIMARY_PROVIDER: str = os.getenv("LLM_PRIMARY_PROVIDER", "openai_compatible")
     LLM_PRIMARY_BASE_URL: str = os.getenv(
         "LLM_PRIMARY_BASE_URL", 
