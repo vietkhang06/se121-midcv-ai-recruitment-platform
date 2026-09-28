@@ -18,6 +18,9 @@ frontend/out/
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+**/*.py[cod]
+**/__pycache__/**
 .pytest_cache/
 ai-worker/**/__pycache__/
 ai-worker/.pytest_cache/
