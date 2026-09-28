@@ -102,8 +102,24 @@ if (-not (Test-Path $EnvFile)) {
 
 Write-Host "  -> Docker, Java 21, Maven, Node environment valid." -ForegroundColor Green
 
-# Check Local Ollama Engine (Port 11434)
-Write-Host "  -> Checking Local Ollama Engine (127.0.0.1:11434)..." -ForegroundColor Gray
+# 1. Check PRIMARY LLM Configuration
+Write-Host "  -> Checking PRIMARY LLM Configuration (OpenAI-Compatible)..." -ForegroundColor Gray
+$primaryCheckOk = $false
+try {
+    $proc = Start-Process -FilePath "python" -ArgumentList "-m", "app.tools.check_primary_llm" -WorkingDirectory "$rootDir/ai-worker" -NoNewWindow -Wait -PassThru
+    if ($proc.ExitCode -eq 0) {
+        $primaryCheckOk = $true
+        Write-Host "  -> PRIMARY LLM: Verified and operational." -ForegroundColor Green
+    } else {
+        Write-Host "  -> WARNING: PRIMARY LLM is not verified or configuration needs attention." -ForegroundColor Yellow
+        Write-Host "     Ensure LLM_PRIMARY_BASE_URL, LLM_PRIMARY_API_KEY, and LLM_PRIMARY_MODEL are set in .env." -ForegroundColor Gray
+    }
+} catch {
+    Write-Host "  -> NOTICE: Could not execute Python primary LLM pre-flight check." -ForegroundColor Yellow
+}
+
+# 2. Check Local Ollama Engine (Port 11434)
+Write-Host "  -> Checking Fallback Local Ollama Engine (127.0.0.1:11434)..." -ForegroundColor Gray
 $ollamaReady = $false
 try {
     $req = [System.Net.HttpWebRequest]::Create("http://127.0.0.1:11434/api/tags")
@@ -116,10 +132,15 @@ try {
 } catch {}
 
 if ($ollamaReady) {
-    Write-Host "  -> Local Ollama Service is READY with dna5rm/granite4.2:3b-8k & bge-m3." -ForegroundColor Green
+    Write-Host "  -> Fallback Ollama Service is READY with dna5rm/granite4.2:3b-8k & bge-m3." -ForegroundColor Green
 } else {
-    Write-Host "  -> NOTICE: Local Ollama is not responding on http://127.0.0.1:11434." -ForegroundColor Yellow
-    Write-Host "     If using Local AI mode, please launch Ollama ('ollama serve') before testing AI features." -ForegroundColor Yellow
+    if ($primaryCheckOk) {
+        Write-Host "  -> WARNING: Fallback Ollama is not running on http://127.0.0.1:11434." -ForegroundColor Yellow
+        Write-Host "     PRIMARY LLM is available; system will run on PRIMARY with fallback unavailable." -ForegroundColor Yellow
+    } else {
+        Write-Host "  -> NOTICE: Local Ollama is not responding on http://127.0.0.1:11434." -ForegroundColor Yellow
+        Write-Host "     If using Local AI mode, please launch Ollama ('ollama serve') before testing AI features." -ForegroundColor Yellow
+    }
 }
 
 # Helper function to test TCP Port using 127.0.0.1 IPv4

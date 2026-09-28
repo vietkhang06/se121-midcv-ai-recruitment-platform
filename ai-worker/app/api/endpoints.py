@@ -9,6 +9,7 @@ from app.services.cv_parser import CVParser
 from app.services.document_extractor import DocumentExtractor
 from app.services.github_analyzer import GitHubAnalyzer
 from app.api.dev_endpoints import dev_router
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -19,9 +20,53 @@ document_extractor = DocumentExtractor()
 cv_parser = CVParser(document_extractor=document_extractor)
 github_analyzer = GitHubAnalyzer()
 
+import httpx
+
 @router.get("/health")
 def health_check():
-    return {"status": "UP", "service": "AI Recruitment Worker", "version": "1.0.0"}
+    primary_configured = bool(
+        settings.LLM_PRIMARY_BASE_URL and settings.LLM_PRIMARY_API_KEY and settings.LLM_PRIMARY_MODEL
+    )
+    
+    primary_reachable = False
+    if primary_configured:
+        try:
+            with httpx.Client(timeout=1.0) as http_client:
+                headers = {"Authorization": f"Bearer {settings.LLM_PRIMARY_API_KEY}"}
+                resp = http_client.get(f"{settings.LLM_PRIMARY_BASE_URL}/models", headers=headers)
+                primary_reachable = resp.status_code in [200, 404]
+        except Exception:
+            primary_reachable = False
+
+    ollama_reachable = False
+    if settings.LLM_FALLBACK_ENABLED:
+        try:
+            with httpx.Client(timeout=1.0) as http_client:
+                resp = http_client.get(f"{settings.OLLAMA_BASE_URL}/api/tags")
+                ollama_reachable = resp.status_code == 200
+        except Exception:
+            ollama_reachable = False
+
+    return {
+        "status": "UP",
+        "documentExtraction": {
+            "status": "UP"
+        },
+        "llm": {
+            "primary": {
+                "provider": settings.LLM_PRIMARY_PROVIDER,
+                "configured": primary_configured,
+                "reachable": primary_reachable,
+                "model": settings.LLM_PRIMARY_MODEL
+            },
+            "fallback": {
+                "provider": settings.LLM_FALLBACK_PROVIDER,
+                "enabled": settings.LLM_FALLBACK_ENABLED,
+                "reachable": ollama_reachable,
+                "model": settings.OLLAMA_CHAT_MODEL
+            }
+        }
+    }
 
 @router.post("/extract-document", response_model=DocumentExtractResponse)
 def extract_document(request: DocumentExtractRequest):
