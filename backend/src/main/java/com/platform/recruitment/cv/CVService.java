@@ -302,7 +302,7 @@ public class CVService {
                 .isDefault(isDefault != null ? isDefault : false)
                 .build();
         cv.setId(savedDoc.documentId());
-        CV savedCv = cvRepository.save(cv);
+        CV savedCv = cvRepository.saveAndFlush(cv);
 
         CVVersion version = CVVersion.builder()
                 .cv(savedCv)
@@ -311,7 +311,7 @@ public class CVService {
                 .status("DRAFT")
                 .build();
         version.setId(savedDoc.versionId());
-        cvVersionRepository.save(version);
+        cvVersionRepository.saveAndFlush(version);
 
         updateJobStage(savedDoc.jobId(), "UPLOADED", 5, "Đã tải tệp lên");
 
@@ -660,7 +660,7 @@ public class CVService {
         if (!vRows.isEmpty()) {
             Map<String, Object> v = vRows.get(0);
             versionId = (UUID) v.get("id");
-            if (v.get("raw_text") != null) {
+            if (v.get("raw_text") != null && !((String) v.get("raw_text")).isBlank()) {
                 rawText = (String) v.get("raw_text");
             }
             if (v.get("extraction_method") != null) {
@@ -704,6 +704,25 @@ public class CVService {
                     }
                 } catch (Exception e) {
                     log.warn("Failed parsing normalized JSON for cvId: {}", cvId);
+                }
+            }
+        }
+
+        // Secondary fallback to cv_versions entity if vRows is empty or missing raw_text
+        if ((rawText == null || rawText.isBlank()) || structured.isEmpty()) {
+            List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+            if (!versions.isEmpty()) {
+                CVVersion latestVer = versions.get(0);
+                if (versionId.equals(cvId)) {
+                    versionId = latestVer.getId();
+                }
+                if ((rawText == null || rawText.isBlank()) && latestVer.getRawTextContent() != null) {
+                    rawText = latestVer.getRawTextContent();
+                }
+                if (structured.isEmpty() && latestVer.getStructuredJsonContent() != null && !latestVer.getStructuredJsonContent().isBlank()) {
+                    try {
+                        structured = objectMapper.readValue(latestVer.getStructuredJsonContent(), new TypeReference<>() {});
+                    } catch (Exception ignored) {}
                 }
             }
         }
@@ -752,6 +771,12 @@ public class CVService {
             if (!vRows.isEmpty() && vRows.get(0).get("raw_text") != null) {
                 text = (String) vRows.get(0).get("raw_text");
             }
+            if (text.isBlank()) {
+                List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+                if (!versions.isEmpty() && versions.get(0).getRawTextContent() != null) {
+                    text = versions.get(0).getRawTextContent();
+                }
+            }
             return new DownloadResult(
                     text.getBytes(StandardCharsets.UTF_8),
                     baseName + "_raw.txt",
@@ -763,6 +788,11 @@ public class CVService {
             String jsonStr = "{}";
             if (!vRows.isEmpty() && vRows.get(0).get("normalized") != null) {
                 jsonStr = vRows.get(0).get("normalized").toString();
+            } else {
+                List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+                if (!versions.isEmpty() && versions.get(0).getStructuredJsonContent() != null && !versions.get(0).getStructuredJsonContent().isBlank()) {
+                    jsonStr = versions.get(0).getStructuredJsonContent();
+                }
             }
             return new DownloadResult(
                     jsonStr.getBytes(StandardCharsets.UTF_8),
@@ -772,11 +802,17 @@ public class CVService {
         }
 
         // Original file
+        Path filePath = null;
         if (!vRows.isEmpty() && vRows.get(0).get("storage_key") != null) {
             String key = (String) vRows.get(0).get("storage_key");
-            Path path = documents.path(key);
+            filePath = documents.path(key);
+        } else if (cv.getFilePath() != null && !cv.getFilePath().isBlank()) {
+            filePath = Path.of(cv.getFilePath());
+        }
+
+        if (filePath != null && Files.exists(filePath)) {
             try {
-                byte[] data = Files.readAllBytes(path);
+                byte[] data = Files.readAllBytes(filePath);
                 String originalFilename = cv.getFileName() != null ? cv.getFileName() : baseName + ".pdf";
                 String contentType = cv.getFileType() != null ? cv.getFileType() : "application/octet-stream";
                 return new DownloadResult(data, originalFilename, contentType);
@@ -805,28 +841,51 @@ public class CVService {
                 cvId
         );
 
-        if (vRows.isEmpty()) {
-            throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Document version not found for CV: " + cvId);
+        UUID versionId = cvId;
+        String existingRaw = cv.getRawText();
+        Map<String, Object> versionRow = null;
+        if (!vRows.isEmpty()) {
+            versionRow = vRows.get(0);
+            versionId = (UUID) versionRow.get("id");
+            if (versionRow.get("raw_text") != null) {
+                existingRaw = (String) versionRow.get("raw_text");
+            }
+        } else {
+            List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+            if (!versions.isEmpty()) {
+                versionId = versions.get(0).getId();
+                if (existingRaw == null || existingRaw.isBlank()) {
+                    existingRaw = versions.get(0).getRawTextContent();
+                }
+            }
         }
 
-        Map<String, Object> versionRow = vRows.get(0);
-        UUID versionId = (UUID) versionRow.get("id");
-        String existingRaw = (String) versionRow.get("raw_text");
         String extractedText = existingRaw;
         Map<String, Object> aiResult = null;
 
         if (extractedText == null || extractedText.isBlank()) {
             // Missing raw text fallback: read original file
-            String storageKey = (String) versionRow.get("storage_key");
-            Path path = documents.path(storageKey);
-            byte[] fileBytes;
-            try {
-                fileBytes = Files.readAllBytes(path);
-            } catch (IOException e) {
-                throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Stored document file missing from disk.");
+            Path path = null;
+            String storageKey = versionRow != null ? (String) versionRow.get("storage_key") : null;
+            if (storageKey != null && !storageKey.isBlank()) {
+                path = documents.path(storageKey);
+            } else if (cv.getFilePath() != null && !cv.getFilePath().isBlank()) {
+                path = Path.of(cv.getFilePath());
             }
 
-            String ext = storageKey.contains(".") ? storageKey.substring(storageKey.lastIndexOf('.') + 1) : "pdf";
+            if (path != null && Files.exists(path)) {
+                byte[] fileBytes;
+                try {
+                    fileBytes = Files.readAllBytes(path);
+                } catch (IOException e) {
+                    throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Stored document file missing from disk.");
+                }
+
+                String ext = storageKey != null && storageKey.contains(".") 
+                        ? storageKey.substring(storageKey.lastIndexOf('.') + 1) 
+                        : (cv.getFileName() != null && cv.getFileName().contains(".") 
+                                ? cv.getFileName().substring(cv.getFileName().lastIndexOf('.') + 1) 
+                                : "pdf");
             if (aiWorkerClient != null && fileBytes.length > 0) {
                 try {
                     Map<String, Object> extractRes = aiWorkerClient.extractDocument(fileBytes, cv.getFileName(), ext.toUpperCase(Locale.ROOT), null);
@@ -846,8 +905,9 @@ public class CVService {
                 extractedText = extracted.text();
             }
 
-            if (extractedText != null && !extractedText.isBlank()) {
-                jdbcTemplate.update("UPDATE document_versions SET raw_text=?, state='EXTRACTED' WHERE id=?", extractedText, versionId);
+                if (extractedText != null && !extractedText.isBlank()) {
+                    jdbcTemplate.update("UPDATE document_versions SET raw_text=?, state='EXTRACTED' WHERE id=?", extractedText, versionId);
+                }
             }
         }
 

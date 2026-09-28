@@ -316,3 +316,16 @@ export interface CVReviewData {
   pages?: PageSegmentItem[];
   createdAt?: string;
 }
+
+export interface CVProcessingStatus {
+  cvId: string;
+  jobId: string;
+  status: 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CONFIRMED' | string;
+  stage: string;
+  progress: number;
+  message: string;
+  retryable: boolean;
+  errorCode?: string;
+  correlationId?: string;
+  updatedAt?: string;
+}

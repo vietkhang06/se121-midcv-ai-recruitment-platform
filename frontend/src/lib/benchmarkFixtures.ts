@@ -9,7 +9,8 @@ import {
   CandidateRankingItem,
   MatchInspectionData,
   Industry,
-  CVReviewData
+  CVReviewData,
+  CVProcessingStatus
 } from '@/types';
 import {
   ApiClient,
@@ -320,6 +321,19 @@ export class BenchmarkFixtureClient implements ApiClient {
 
   async deleteCandidateCV(_cvId: string): Promise<void> {
     return;
+  }
+
+  async fetchCVProcessingStatus(cvId: string): Promise<CVProcessingStatus> {
+    return {
+      cvId,
+      jobId: `job-${cvId}`,
+      status: 'COMPLETED',
+      stage: 'NEEDS_REVIEW',
+      progress: 100,
+      message: 'Sẵn sàng để bạn kiểm tra',
+      retryable: false,
+      updatedAt: new Date().toISOString()
+    };
   }
 
   async fetchCVReview(cvId: string): Promise<CVReviewData> {

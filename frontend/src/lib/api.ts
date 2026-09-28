@@ -14,7 +14,8 @@ import {
   AiSettings,
   QuickScreeningRun,
   QuickScreeningDetail,
-  CVReviewData
+  CVReviewData,
+  CVProcessingStatus
 } from '@/types';
 
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -256,6 +257,7 @@ export interface ApiClient {
   uploadCandidateCV(file: File, title?: string, targetIndustry?: string, isDefault?: boolean): Promise<CV>;
   deleteCandidateCV(cvId: string): Promise<void>;
   fetchCVReview(cvId: string): Promise<CVReviewData>;
+  fetchCVProcessingStatus(cvId: string): Promise<CVProcessingStatus>;
   downloadCVFile(cvId: string, format: string, defaultFilename: string): Promise<void>;
   retryCVExtraction(cvId: string): Promise<CVReviewData>;
   fetchCVDraft(cvId: string): Promise<any>;
@@ -466,6 +468,17 @@ export class RealApiClient implements ApiClient {
       throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/review`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
     const json: any = await apiRequest(`/api/v1/candidate/cvs/${cvId}/review`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return json.data;
+  }
+
+  async fetchCVProcessingStatus(cvId: string): Promise<CVProcessingStatus> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/processing-status`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
+    }
+    const json: any = await apiRequest(`/api/v1/candidate/cvs/${cvId}/processing-status`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     return json.data;
@@ -1052,6 +1065,7 @@ export const uploadCandidateCV = (file: File, title?: string, targetIndustry?: s
   currentApiClient.uploadCandidateCV(file, title, targetIndustry, isDefault);
 export const deleteCandidateCV = (cvId: string) => currentApiClient.deleteCandidateCV(cvId);
 export const fetchCVReview = (cvId: string) => currentApiClient.fetchCVReview(cvId);
+export const fetchCVProcessingStatus = (cvId: string) => currentApiClient.fetchCVProcessingStatus(cvId);
 export const downloadCVFile = (cvId: string, format: string, defaultFilename: string) => currentApiClient.downloadCVFile(cvId, format, defaultFilename);
 export const retryCVExtraction = (cvId: string) => currentApiClient.retryCVExtraction(cvId);
 export const fetchCVDraft = (cvId: string) => currentApiClient.fetchCVDraft(cvId);

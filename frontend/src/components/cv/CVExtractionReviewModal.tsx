@@ -62,7 +62,20 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const review = await fetchCVReview(cvId);
+      let review = await fetchCVReview(cvId);
+      // If review is currently in PROCESSING state or rawText is null/empty and processing, poll briefly
+      if (review && (review.status === 'PROCESSING' || (!review.rawText && review.status !== 'FAILED'))) {
+        for (let i = 0; i < 15; i++) {
+          await new Promise((r) => setTimeout(r, 1500));
+          try {
+            const nextReview = await fetchCVReview(cvId);
+            if (nextReview && (nextReview.status === 'READY' || nextReview.status === 'EXTRACTED' || nextReview.rawText)) {
+              review = nextReview;
+              break;
+            }
+          } catch (_) {}
+        }
+      }
       setData(review);
     } catch (err: any) {
       setErrorMessage(err.message || 'Không thể tải kết quả trích xuất CV.');

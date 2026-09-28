@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Industry, CV } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
-import { uploadCandidateCV, ApiError } from '@/lib/api';
+import { uploadCandidateCV, fetchCVProcessingStatus, ApiError } from '@/lib/api';
+import { CVProcessingStatus } from '@/types';
 import {
   X,
   UploadCloud,
@@ -34,6 +35,8 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
   const [targetRole, setTargetRole] = useState<string>('Software Engineer');
   const [status, setStatus] = useState<ProcessingStatus>('IDLE');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [processingProgress, setProcessingProgress] = useState<number>(5);
+  const [processingStageMessage, setProcessingStageMessage] = useState<string>('');
 
   // Extracted fields editable
   const [cvTitle, setCvTitle] = useState<string>('');
@@ -112,6 +115,8 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
 
     setStatus('UPLOADING');
     setErrorMessage('');
+    setProcessingProgress(5);
+    setProcessingStageMessage('Đang tải tệp an toàn lên máy chủ...');
 
     try {
       const savedCv = await uploadCandidateCV(
@@ -120,6 +125,61 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
         targetIndustry,
         false
       );
+
+      setStatus('PROCESSING');
+      setProcessingProgress(15);
+      setProcessingStageMessage('Đang kiểm tra và trích xuất tệp...');
+
+      // Real asynchronous status polling loop
+      let isDone = false;
+      const cvId = savedCv.id;
+      const maxAttempts = 60; // 60s timeout for safety
+      let attempts = 0;
+
+      while (!isDone && attempts < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 1000));
+        attempts++;
+
+        try {
+          const statusResp: CVProcessingStatus = await fetchCVProcessingStatus(cvId);
+          if (statusResp) {
+            setProcessingProgress(Math.max(statusResp.progress || 10, 10));
+            if (statusResp.message) {
+              setProcessingStageMessage(statusResp.message);
+            }
+
+            if (statusResp.status === 'FAILED') {
+              isDone = true;
+              setStatus('FAILED');
+              setErrorMessage(statusResp.message || 'Quá trình trích xuất hồ sơ gặp sự cố.');
+              return;
+            } else if (
+              statusResp.status === 'COMPLETED' ||
+              statusResp.status === 'DONE' ||
+              statusResp.status === 'CONFIRMED' ||
+              statusResp.stage === 'NEEDS_REVIEW' ||
+              (statusResp.progress && statusResp.progress >= 100)
+            ) {
+              isDone = true;
+              setProcessingProgress(100);
+              setStatus('COMPLETED');
+              if (onUploadSuccess) onUploadSuccess(savedCv);
+              if (onSuccess) onSuccess();
+              setTimeout(() => {
+                onClose();
+                setStatus('IDLE');
+                setFile(null);
+              }, 600);
+              return;
+            }
+          }
+        } catch (pollErr: any) {
+          // If polling has a transient network error, keep polling until maxAttempts
+          console.warn('Polling processing status warning:', pollErr);
+        }
+      }
+
+      // If loop finished due to timeout but not explicit failure, allow review anyway
       setStatus('COMPLETED');
       if (onUploadSuccess) onUploadSuccess(savedCv);
       if (onSuccess) onSuccess();
@@ -127,7 +187,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
         onClose();
         setStatus('IDLE');
         setFile(null);
-      }, 800);
+      }, 600);
     } catch (err: any) {
       setStatus('FAILED');
       setErrorMessage(mapErrorMessage(err));
@@ -286,7 +346,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
 
         {/* STEP: PROCESSING PIPELINE STATES */}
         {(status === 'UPLOADING' || status === 'QUEUED' || status === 'PROCESSING' || status === 'COMPLETED') && (
-          <div className="py-12 text-center space-y-5">
+          <div className="py-10 text-center space-y-5">
             <div className="relative w-16 h-16 mx-auto">
               <div className="w-16 h-16 rounded-full border-4 border-slate-200 dark:border-[#1E293B] border-t-[#2563EB] animate-spin" />
               <div className="absolute inset-0 flex items-center justify-center text-[#2563EB] dark:text-[#3B82F6]">
@@ -294,15 +354,30 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
               </div>
             </div>
 
-            <div className="space-y-1.5 max-w-sm mx-auto">
-              <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-[#2563EB] dark:text-[#3B82F6] text-[10px] font-mono font-bold uppercase tracking-wider">
-                PIPELINE STATUS: {status}
-              </span>
-              <h4 className="text-base font-editorial font-bold text-slate-900 dark:text-white pt-1">
-                {status === 'UPLOADING' && t('cvUpload.statusUploading', 'Đang tải file an toàn lên máy chủ...')}
-                {status === 'QUEUED' && t('cvUpload.statusQueued', 'Đang phân phối vào hàng đợi AI Worker...')}
-                {status === 'PROCESSING' && t('cvUpload.statusProcessing', 'AI đang trích xuất thực thể, kỹ năng & kinh nghiệm...')}
-                {status === 'COMPLETED' && t('cvUpload.statusCompleted', 'Trích xuất hoàn tất! Chuẩn bị chuyển sang màn hình Đánh giá...')}
+            <div className="space-y-3 max-w-md mx-auto">
+              <div className="flex items-center justify-between px-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-[#2563EB] dark:text-[#3B82F6] text-[10px] font-mono font-bold uppercase tracking-wider">
+                  TIẾN ĐỘ: {processingProgress}%
+                </span>
+                <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                  {status === 'COMPLETED' ? 'HOÀN TẤT' : 'ĐANG XỬ LÝ'}
+                </span>
+              </div>
+
+              {/* Real Progress Bar */}
+              <div className="w-full bg-slate-100 dark:bg-[#18294E] rounded-full h-2.5 overflow-hidden border border-slate-200 dark:border-[#1E3A5F]">
+                <div
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${Math.min(Math.max(processingProgress, 5), 100)}%` }}
+                />
+              </div>
+
+              <h4 className="text-sm font-semibold text-slate-900 dark:text-white pt-1">
+                {processingStageMessage || (
+                  status === 'UPLOADING' ? 'Đang tải file an toàn lên máy chủ...' :
+                  status === 'COMPLETED' ? 'Trích xuất hoàn tất! Chuẩn bị chuyển sang màn hình Đánh giá...' :
+                  'Đang xử lý và trích xuất hồ sơ...'
+                )}
               </h4>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-light">
                 {t('cvUpload.normalizationHint', 'Chuẩn hóa các kỹ năng đồng nghĩa (JS → JavaScript, Postgres → PostgreSQL) và vector embedding.')}
