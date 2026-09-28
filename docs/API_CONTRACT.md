@@ -198,14 +198,15 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
 
 #### `POST /api/v1/candidate/cv/upload`
 - **Role**: `CANDIDATE`
-- **Description**: Upload file CV gốc, kích hoạt extraction & LLM structuring, tạo hồ sơ trạng thái `DRAFT`.
+- **Description**: Upload file CV gốc, kích hoạt extraction & LLM structuring, tạo hồ sơ trạng thái `DRAFT`. File CV gốc là artifact đầu vào bất biến phục vụ truy vết và kiểm toán. Việc người dùng chỉnh structured profile không được ghi đè file gốc.
 - **Request**: Multipart file (`file`).
 - **Response**: `201 Created`
   ```json
   {
+    "cv_id": "cv_987654",
     "profile_id": "prof_987654",
     "status": "DRAFT",
-    "original_cv_file_url": "/api/v1/files/cv/prof_987654.pdf",
+    "original_cv_file_url": "/api/v1/files/cv/cv_987654.pdf",
     "created_at": "2026-09-28T12:00:00Z"
   }
   ```
@@ -248,12 +249,13 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
 - **Request Body**: Cấu trúc profile tương đương `GET /api/v1/candidate/profile`.
 - **Response**: `200 OK`
 
-#### `POST /api/v1/candidate/profile/confirm`
+#### `POST /api/v1/candidate/cvs/{cvId}/confirm`
 - **Role**: `CANDIDATE`
-- **Description**: Ứng viên cam kết và xác nhận toàn bộ thông tin hồ sơ. Chuyển trạng thái hồ sơ sang `CONFIRMED`.
+- **Description**: Ứng viên cam kết và xác nhận toàn bộ thông tin hồ sơ cho CV cụ thể (`cvId`). Chuyển trạng thái hồ sơ sang `CONFIRMED`.
 - **Response**: `200 OK`
   ```json
   {
+    "cv_id": "cv_987654",
     "profile_id": "prof_987654",
     "status": "CONFIRMED",
     "confirmed_at": "2026-09-28T12:15:00Z"

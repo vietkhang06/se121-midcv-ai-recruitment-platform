@@ -71,7 +71,7 @@ Tài liệu này là **Nguồn sự thật duy nhất (Single Source of Truth - 
 
 ### Bước 1: Tiếp nhận và Lưu trữ File CV Gốc
 - **Đầu vào:** File CV do ứng viên tải lên định dạng PDF, DOCX, DOC, PNG, JPG, JPEG, WEBP.
-- **Nguyên tắc bất biến:** File nhị phân gốc được lưu trữ nguyên vẹn vào phân vùng lưu trữ bảo mật (Storage Path) với checksum SHA-256. File gốc này là **bất biến (immutable)** và **không bao giờ bị ghi đè** khi ứng viên chỉnh sửa thông tin form sau này.
+- **Nguyên tắc bất biến:** File CV gốc là artifact đầu vào bất biến phục vụ truy vết và kiểm toán. Việc người dùng chỉnh structured profile không được ghi đè file gốc. File nhị phân gốc được lưu trữ nguyên vẹn vào phân vùng lưu trữ bảo mật (Storage Path) với checksum SHA-256.
 
 ### Bước 2: Trích xuất Văn bản Thô (Raw Text Extraction)
 - **Công nghệ:** Thư viện local: `pdfplumber` (hỗ trợ layout 2 cột), `python-docx` (bảo toàn cấu trúc bảng và đoạn văn), `pypdfium2` (render trang scan), `pytesseract` (Tesseract 5 với model `eng+vie`).
@@ -115,7 +115,7 @@ Tài liệu này là **Nguồn sự thật duy nhất (Single Source of Truth - 
   - Dữ liệu nguyên bản từ CV được người dùng giữ nguyên và kiểm tra được đánh dấu: `source = "USER_CONFIRMED"`.
 
 ### Bước 7: Ứng viên Xác nhận Hồ sơ (User Confirmation)
-- Ứng viên nhấn nút **"Xác nhận hồ sơ"** (`Confirm Profile`).
+- Ứng viên xác nhận thông tin hồ sơ qua API endpoint chuẩn: `POST /api/v1/candidate/cvs/{cvId}/confirm`.
 - Hệ thống cập nhật trạng thái hồ sơ thành `CONFIRMED`.
 - **Quy tắc bắt buộc:** Chỉ hồ sơ đã được ứng viên xác nhận mới đủ điều kiện tham gia luồng đối sánh ngữ nghĩa với JD.
 
@@ -145,6 +145,7 @@ Tài liệu này là **Nguồn sự thật duy nhất (Single Source of Truth - 
 
 ### Bước 12: Thu thập Bằng chứng Kỹ thuật Bổ sung qua GitHub
 - Hệ thống gửi yêu cầu phân tích tài khoản GitHub do ứng viên cung cấp.
+- **Xác thực GitHub:** Luồng sản phẩm chỉ chấp nhận **GitHub OAuth App hoặc GitHub App**. Không yêu cầu ứng viên nhập Personal Access Token vào sản phẩm. PAT, nếu cần, chỉ được dùng cục bộ trong môi trường development và không được lưu trong source, database hoặc log.
 - Đánh giá tín hiệu hoạt động thực tế: ngôn ngữ lập trình chủ đạo, cấu trúc dự án công khai, commit gần nhất.
 - Bằng chứng được đính kèm vào hồ sơ dưới dạng bằng chứng bổ trợ (`GITHUB_VERIFIED`) kèm mức độ tin cậy (`confidence level`).
 - **Nguyên tắc:** GitHub không bao giờ là yếu tố loại trừ ứng viên duy nhất.

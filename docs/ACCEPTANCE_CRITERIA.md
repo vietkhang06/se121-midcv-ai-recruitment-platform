@@ -1,18 +1,34 @@
-# MidCV Acceptance Criteria
+# MidCV Acceptance Criteria (Phase 0 – Phase 10)
 
-Tài liệu này xác định các tiêu chí nghiệm thu (Acceptance Criteria - AC) có thể đo lường, kiểm chứng và bác bỏ (falsifiable) cho từng giai đoạn triển khai của hệ thống **AI Recruitment Platform / MidCV**. Mọi tính năng chỉ được đánh dấu là hoàn thành khi vượt qua tất cả các tiêu chí trong tài liệu này bằng kiểm thử thực tế.
+Tài liệu này xác định các tiêu chí nghiệm thu (Acceptance Criteria - AC) có thể đo lường, kiểm chứng và bác bỏ (falsifiable) cho từng giai đoạn triển khai từ **Phase 0 đến Phase 10** của hệ thống **AI Recruitment Platform / MidCV**. Mọi tính năng chỉ được đánh dấu là hoàn thành khi vượt qua tất cả các tiêu chí trong tài liệu này bằng kiểm thử thực tế.
 
 ---
 
 ## 1. Tiêu chí chung toàn hệ thống
 
-- **AC-GEN-01 (Anti-Fabrication)**: Không đánh dấu `VERIFIED` bất kỳ thành phần nào nếu chưa thực thi lệnh test thực tế trên môi trường có dependencies thật (database thật, endpoint thật, file thật).
-- **AC-GEN-02 (Original CV Immutability)**: File CV gốc (PDF/DOCX/Ảnh) được lưu trữ bất biến (read-only/write-once) và không bao giờ bị ghi đè khi ứng viên chỉnh sửa thông tin trên form hồ sơ.
+- **AC-GEN-01 (Anti-Fabrication)**: Không đánh dấu `VERIFIED` bất kỳ thành phần nào nếu chưa thực thi lệnh test thực tế trên môi trường có dependencies thật (database thật, endpoint thật, file thật). Không dùng mock test hay unit test độc lập để khẳng định phase chức năng đã hoàn thành.
+- **AC-GEN-02 (Original CV Immutability)**: File CV gốc là artifact đầu vào bất biến phục vụ truy vết và kiểm toán. Việc người dùng chỉnh structured profile không được ghi đè file gốc.
 - **AC-GEN-03 (Human-in-the-Loop)**: Mọi quyết định quan trọng (chốt thông tin hồ sơ của ứng viên, quyết định phỏng vấn/tuyển dụng của nhà tuyển dụng) phải do con người thực hiện; AI/LLM tuyệt đối không tự động quyết định.
 
 ---
 
 ## 2. Tiêu chí theo từng Phase
+
+### Phase 0: Pre-Phase Consistency Gate & Architecture Baseline
+
+- **AC-P0-01 (Documentation Consistency)**:
+  - Toàn bộ tài liệu SSOT (`CORE_PRODUCT_FLOW.md`, `DOMAIN_RULES.md`, `IMPLEMENTATION_PHASES.md`, `ACCEPTANCE_CRITERIA.md`, `API_CONTRACT.md`, `IMPLEMENTATION_STATUS.md`) thống nhất 100% về:
+    - Endpoint xác nhận hồ sơ: `POST /api/v1/candidate/cvs/{cvId}/confirm`.
+    - Quy tắc artifact đầu vào bất biến cho file CV gốc.
+    - Phương thức xác thực GitHub: Chỉ sử dụng GitHub OAuth App hoặc GitHub App, không cho phép nhập PAT vào sản phẩm.
+    - Danh mục 11 phase chuẩn (Phase 0 – Phase 10).
+- **AC-P0-02 (Repository Hygiene)**:
+  - Git index sạch hoàn toàn khỏi các file bytecode Python (`__pycache__`, `*.pyc`).
+  - `.gitignore` cấu hình đầy đủ quy tắc chặn vĩnh viễn bytecode phát sinh.
+- **AC-P0-03 (Pre-existing Code Audit)**:
+  - Mọi thay đổi tồn tại trước trong working tree được phân loại rạch ròi (`PRE_EXISTING_RELEVANT`, `PRE_EXISTING_UNRELATED`, `GENERATED`, `UNKNOWN`) và không bị ghi đè, làm mất dữ liệu.
+
+---
 
 ### Phase 1: Local Document Extraction & Raw Text Quality Evaluation
 
@@ -23,11 +39,8 @@ Tài liệu này xác định các tiêu chí nghiệm thu (Acceptance Criteria 
 - **AC-P1-02 (Isolation from LLM)**: Quá trình trích xuất văn bản thô hoàn toàn cục bộ, không gửi file binary hoặc raw text tới bất kỳ external LLM API nào.
 - **AC-P1-03 (Quality Evaluation Metrics)**:
   - Đầu ra API `POST /internal/ai/cv/extract-text` trả về `raw_text` cùng đối tượng `quality_metrics` chứa: `char_count`, `word_count`, `whitespace_ratio`, `printable_ratio`.
-  - Phân loại chính xác cờ chất lượng:
-    - `PASSED`: Văn bản đầy đủ, cấu trúc rõ ràng.
-    - `WARNING`: Quá ngắn hoặc tỷ lệ ký tự lạ cao.
-    - `FAILED`: Rỗng hoặc không thể giải mã văn bản.
-- **AC-P1-04 (Automated Test Pass)**: Tất cả các bài test trong `ai-worker/tests/test_cv_text_extraction.py` (tối thiểu 13 tests) chạy thành công với exit code `0`.
+  - Phân loại chính xác cờ chất lượng: `PASSED`, `WARNING`, `FAILED`.
+- **AC-P1-04 (Automated Test Pass)**: Tất cả các bài test trong `ai-worker/tests/test_isolated_document_extraction.py` chạy thành công với exit code `0`.
 
 ---
 
@@ -37,15 +50,14 @@ Tài liệu này xác định các tiêu chí nghiệm thu (Acceptance Criteria 
   - Hệ thống đọc cấu hình từ biến môi trường: `AI_WORKER_PRIMARY_LLM_BASE_URL`, `AI_WORKER_PRIMARY_LLM_API_KEY`, `AI_WORKER_PRIMARY_LLM_MODEL_ID`, `AI_WORKER_PRIMARY_LLM_TIMEOUT`, `AI_WORKER_PRIMARY_LLM_MAX_RETRIES`.
   - Kết nối thành công tới endpoint tương thích OpenAI và parse raw text thành schema `CVData` chuẩn.
 - **AC-P2-02 (Strict Error Classification for Fallback)**:
-  - **Lỗi không được fallback**: Mã lỗi HTTP `401 Unauthorized`, `403 Forbidden`, `404 Not Found` (sai endpoint hoặc sai model) hoặc cấu hình thiếu bắt buộc phải ném lỗi ngay (`PrimaryLLMConfigurationError`), không được kích hoạt fallback làm che giấu lỗi cấu hình.
-  - **Lỗi đủ điều kiện fallback**: Lỗi kết nối mạng, timeout (`ReadTimeout`, `ConnectTimeout`), hoặc lỗi máy chủ `500`, `502`, `503 Service Unavailable`, `504 Gateway Timeout` sau khi đã retry hết số lần quy định thì được phép kích hoạt Ollama fallback.
+  - **Lỗi không được fallback**: Mã lỗi HTTP `401 Unauthorized`, `403 Forbidden`, `404 Not Found` hoặc cấu hình thiếu bắt buộc phải ném lỗi ngay (`PrimaryLLMConfigurationError`), không được kích hoạt fallback làm che giấu lỗi cấu hình.
+  - **Lỗi đủ điều kiện fallback**: Lỗi kết nối mạng, timeout (`ReadTimeout`, `ConnectTimeout`), hoặc lỗi máy chủ `500`, `502`, `503`, `504` sau khi đã retry hết số lần quy định thì được phép kích hoạt Ollama fallback.
 - **AC-P2-03 (Ollama Fallback Integrity)**:
   - Khi kích hoạt fallback, Ollama nhận prompt tương đương và parse ra cấu trúc JSON tuân thủ `CVData`.
   - Response trả về có trường metadata xác định rõ nguồn gốc xử lý: `structured_by: "OLLAMA_FALLBACK"` (hoặc `"PRIMARY"`).
 - **AC-P2-04 (Pydantic Schema Validation)**:
   - Bất kỳ JSON nào từ LLM đều phải qua kiểm tra của `CVData` (Pydantic model).
-  - Nếu JSON sai cú pháp hoặc thiếu trường cốt lõi, hệ thống báo lỗi rõ ràng thay vì lưu dữ liệu rác.
-- **AC-P2-05 (Automated Test Pass)**: Toàn bộ test suite trong `ai-worker/tests/test_fallback_orchestration.py` (tối thiểu 28 tests) chạy thành công với exit code `0`.
+- **AC-P2-05 (Automated Test Pass)**: Toàn bộ test suite trong `ai-worker/tests/test_fallback_orchestration.py` và `test_openai_compatible_client.py` chạy thành công với exit code `0`.
 
 ---
 
@@ -58,11 +70,13 @@ Tài liệu này xác định các tiêu chí nghiệm thu (Acceptance Criteria 
   - Giao diện người dùng tự động điền thông tin vào 9 section chuẩn: Thông tin cá nhân, Tóm tắt nghề nghiệp, Kỹ năng, Kinh nghiệm làm việc, Dự án, Học vấn, Chứng chỉ, Ngôn ngữ, Liên kết.
 - **AC-P3-03 (Repeated Card CRUD)**:
   - 5 phần (Kinh nghiệm, Dự án, Học vấn, Chứng chỉ, Ngôn ngữ) hiển thị dưới dạng card lặp.
-  - Người dùng có thể: Thêm card mới (gắn `origin: USER_ADDED`), Chỉnh sửa card có sẵn (gắn `origin: USER_CONFIRMED`), Xóa card khỏi danh sách.
+  - Người dùng có thể: Thêm card mới (`origin: USER_ADDED`), Chỉnh sửa card có sẵn (`origin: USER_CONFIRMED`), Xóa card khỏi danh sách.
   - Người dùng có thể thêm/xóa skill chip linh hoạt.
 - **AC-P3-04 (Explicit Human Confirmation Gate)**:
-  - Nút/Hành động "Xác nhận hồ sơ" (`POST /api/v1/candidate/profile/confirm`) chuyển trạng thái hồ sơ từ `DRAFT` sang `CONFIRMED`.
+  - Nút/Hành động "Xác nhận hồ sơ" gọi endpoint chuẩn: `POST /api/v1/candidate/cvs/{cvId}/confirm` chuyển trạng thái hồ sơ từ `DRAFT` sang `CONFIRMED`.
   - Hệ thống chặn không cho phép thực hiện matching ngữ nghĩa CV-JD nếu hồ sơ vẫn đang ở trạng thái `DRAFT`.
+- **AC-P3-05 (Original CV Immutability Verification)**:
+  - Sau khi người dùng chỉnh sửa và xác nhận hồ sơ, checksum SHA-256 của file CV gốc trong storage không thay đổi.
 
 ---
 
@@ -116,6 +130,8 @@ Tài liệu này xác định các tiêu chí nghiệm thu (Acceptance Criteria 
   - Không dựa vào số sao (stars) hay commit của forks/bots để làm bằng chứng duy nhất.
 - **AC-P7-03 (Non-Disqualification Rule)**:
   - Không có GitHub hoặc GitHub ít hoạt động không được coi là điều kiện loại trừ tuyệt đối đối với ứng viên; chỉ ghi nhận là "chưa có bằng chứng bổ sung từ GitHub" (Confidence = NONE).
+- **AC-P7-04 (Authentication Integrity)**:
+  - Chỉ chấp nhận xác thực qua GitHub OAuth App hoặc GitHub App. Không cho phép nhập PAT vào sản phẩm.
 
 ---
 
@@ -145,3 +161,14 @@ Tài liệu này xác định các tiêu chí nghiệm thu (Acceptance Criteria 
   - Mọi thao tác đều được ghi lại vào bảng Audit Log kèm timestamp và `recruiter_user_id`.
 - **AC-P9-03 (No Black-Box Decisions)**:
   - Không có bất kỳ quy trình nền (background job) nào tự động gửi email từ chối ứng viên dựa trên điểm số mà không có sự phê duyệt của Recruiter.
+
+---
+
+### Phase 10: End-to-End System Integration, Verification & Production Readiness
+
+- **AC-P10-01 (Full Pipeline E2E Integration)**:
+  - Kiểm thử toàn trình luồng 15 bước từ upload CV đến Recruiter quyết định chạy hoàn tất với dữ liệu thật, không mock service.
+- **AC-P10-02 (Security & Strict Role Separation)**:
+  - Kiểm tra thẩm định 100% các route API bảo đảm: Candidate không vào được Recruiter/Admin route, Recruiter không cấu hình AI, Admin không nộp đơn giả lập.
+- **AC-P10-03 (Zero Fabrication Audit)**:
+  - Mọi báo cáo kết quả kiểm thử đều có exit code, log và timestamp thực tế từ môi trường máy chủ.

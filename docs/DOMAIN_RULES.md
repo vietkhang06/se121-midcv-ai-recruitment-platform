@@ -74,6 +74,10 @@ Tài liệu này xác lập các **Quy tắc nghiệp vụ bất biến (Domain 
 * **Trách nhiệm:**
   - Cung cấp bằng chứng thực tế bổ trợ cho các kỹ năng lập trình do ứng viên khai báo.
   - Phân tích cấu trúc repository công khai, ngôn ngữ lập trình chủ đạo, tần suất hoạt động gần đây.
+* **Cơ chế xác thực (GitHub Authentication):**
+  - Luồng sản phẩm chỉ chấp nhận **GitHub OAuth App hoặc GitHub App**.
+  - Không yêu cầu ứng viên nhập Personal Access Token vào sản phẩm.
+  - PAT, nếu cần, chỉ được dùng cục bộ trong môi trường development và không được lưu trong source, database hoặc log.
 * **Nguyên tắc bất biến:**
   - Không dùng số commit hay số sao (stars) làm tiêu chí đánh giá duy nhất.
   - Phân biệt rõ giữa *Kỹ năng ứng viên tự khai báo trong CV* và *Kỹ năng có bằng chứng xác thực từ GitHub*.
@@ -109,7 +113,7 @@ Sau khi hệ thống hoàn tất trích xuất dữ liệu, Frontend hiển th�
   - Xóa bỏ skill chip do AI trích xuất nhầm hoặc ứng viên không muốn hiển thị.
 
 ### 2.3 Quy tắc Xác nhận Hồ sơ (Profile Confirmation Invariant)
-- Sau khi hoàn tất chỉnh sửa, ứng viên nhấn nút **"Xác nhận hồ sơ" (Confirm Profile)**.
+- Sau khi hoàn tất chỉnh sửa, ứng viên xác nhận thông tin qua API endpoint chuẩn: `POST /api/v1/candidate/cvs/{cvId}/confirm`.
 - Khi nhấn xác nhận, hệ thống:
   - Khóa phiên bản hồ sơ đã duyệt.
   - Chuyển trạng thái từ `DRAFT` sang `CONFIRMED`.
@@ -122,7 +126,7 @@ Sau khi hệ thống hoàn tất trích xuất dữ liệu, Frontend hiển th�
 Hệ thống phải phân định rạch ròi 7 trạng thái dữ liệu trong toàn bộ pipeline:
 
 ```text
-[1. File CV gốc] ─────────> Bất biến (Immutable), không bị ghi đè khi sửa form.
+[1. File CV gốc] ─────────> Artifact đầu vào bất biến phục vụ truy vết và kiểm toán; người dùng chỉnh sửa form không được ghi đè file gốc.
        │
 [2. Raw Text] ────────────> Chuỗi ký tự thô 100% từ thư viện local, lưu checksum.
        │

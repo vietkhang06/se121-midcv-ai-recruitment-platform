@@ -7,7 +7,7 @@ Trước mỗi lần bắt đầu hoặc tiếp tục bất kỳ công việc n�
 3. [docs/IMPLEMENTATION_STATUS.md](file:///c:/Users/Khang/OneDrive/Desktop/SE121/ai-recruitment-platform/docs/IMPLEMENTATION_STATUS.md) — Bảng trạng thái thực tế các phase, lệnh test thật và blockers còn lại.
 4. [docs/ACCEPTANCE_CRITERIA.md](file:///c:/Users/Khang/OneDrive/Desktop/SE121/ai-recruitment-platform/docs/ACCEPTANCE_CRITERIA.md) — Tiêu chí nghiệm thu có thể đo lường và kiểm chứng cho từng phase.
 5. [docs/API_CONTRACT.md](file:///c:/Users/Khang/OneDrive/Desktop/SE121/ai-recruitment-platform/docs/API_CONTRACT.md) — Hợp đồng giao tiếp chi tiết giữa AI Worker và Backend/Frontend.
-6. [docs/IMPLEMENTATION_PHASES.md](file:///c:/Users/Khang/OneDrive/Desktop/SE121/ai-recruitment-platform/docs/IMPLEMENTATION_PHASES.md) — Chi tiết lộ trình 9 phase triển khai.
+6. [docs/IMPLEMENTATION_PHASES.md](file:///c:/Users/Khang/OneDrive/Desktop/SE121/ai-recruitment-platform/docs/IMPLEMENTATION_PHASES.md) — Chi tiết lộ trình triển khai từ Phase 0 đến Phase 10.
 
 ---
 
