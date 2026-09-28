@@ -15,6 +15,10 @@ from app.schemas.matching import (
     ExplainScoreRequest,
     ExplainScoreResponse
 )
+from app.schemas.roadmap import (
+    SkillGapAnalysisRequest,
+    SkillGapAnalysisResponse
+)
 from app.services.jd_parser import JDParser
 from app.services.cv_parser import CVParser
 from app.services.document_extractor import DocumentExtractor
@@ -22,6 +26,7 @@ from app.services.github_analyzer import GitHubAnalyzer
 from app.services.taxonomy_normalizer import TaxonomyNormalizer
 from app.services.semantic_matching_service import SemanticMatchingService
 from app.services.score_explainer_service import ScoreExplainerService
+from app.services.skill_gap_service import SkillGapService
 from app.services.llm.openai_compatible_client import OpenAICompatibleClient
 from app.api.dev_endpoints import dev_router
 from app.config import settings
@@ -52,6 +57,7 @@ if settings.LLM_PRIMARY_ENABLED and settings.LLM_PRIMARY_API_KEY:
 
 taxonomy_normalizer = TaxonomyNormalizer(llm_client=primary_llm_client)
 score_explainer_service = ScoreExplainerService(llm_client=primary_llm_client)
+skill_gap_service = SkillGapService(normalizer=taxonomy_normalizer, llm_client=primary_llm_client)
 
 import httpx
 
@@ -215,5 +221,21 @@ def explain_score(request: ExplainScoreRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Score Explanation Error: {str(e)}"
         )
+
+@router.post("/matching/skill-gap-and-roadmap", response_model=SkillGapAnalysisResponse)
+def analyze_skill_gap_and_roadmap(request: SkillGapAnalysisRequest):
+    try:
+        logger.info(
+            f"Received Skill Gap and Roadmap request for job '{request.target_job_title}', "
+            f"cand_skills={len(request.candidate_skills)}, jd_req={len(request.jd_required_skills)}"
+        )
+        return skill_gap_service.analyze_gap_and_generate_roadmap(request)
+    except Exception as e:
+        logger.error(f"Skill Gap analysis failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Skill Gap Analysis Error: {str(e)}"
+        )
+
 
 
