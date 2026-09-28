@@ -45,14 +45,32 @@ class OllamaClient:
         self.temperature = temperature
         self.provider = "ollama"
 
+    def _classify_body(self, content_type: str, raw_bytes: bytes) -> str:
+        if not raw_bytes:
+            return "EMPTY"
+        ct = (content_type or "").lower()
+        if "text/event-stream" in ct or raw_bytes.lstrip().startswith(b"data:"):
+            return "SSE"
+        stripped = raw_bytes.strip()
+        if stripped.lower().startswith(b"<html") or stripped.lower().startswith(b"<!doctype html"):
+            return "HTML"
+        if "application/json" in ct or (stripped.startswith(b"{") and stripped.endswith(b"}")) or (stripped.startswith(b"[") and stripped.endswith(b"]")):
+            return "JSON"
+        if "text/plain" in ct:
+            return "TEXT"
+        return "UNKNOWN"
+
     def _build_payload(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
+        import os
+        num_predict = int(os.getenv("OLLAMA_NUM_PREDICT", "4096"))
         return {
             "model": self.model,
             "messages": messages,
             "format": "json",
             "stream": False,
             "options": {
-                "temperature": self.temperature
+                "temperature": self.temperature,
+                "num_predict": num_predict
             }
         }
 
@@ -143,6 +161,16 @@ class OllamaClient:
                 raise last_error
 
             latency_ms = int((time.time() - t0) * 1000)
+            content_type = resp.headers.get("content-type", "")
+            raw_bytes = resp.content or b""
+            body_length = len(raw_bytes)
+            classification = self._classify_body(content_type, raw_bytes)
+
+            logger.info(
+                f"[{self.provider}] status={resp.status_code} content_type='{content_type}' "
+                f"body_length={body_length} body_classification='{classification}' "
+                f"model='{self.model}' latency_ms={latency_ms} correlation_id='{correlation_id}'"
+            )
 
             if resp.is_error:
                 try:
@@ -152,6 +180,15 @@ class OllamaClient:
                     if attempts <= self.max_retries:
                         continue
                     raise
+
+            if classification == "EMPTY":
+                last_error = LLMInvalidResponseError(
+                    "Ollama returned an empty response body.",
+                    provider=self.provider
+                )
+                if attempts <= self.max_retries:
+                    continue
+                raise last_error
 
             try:
                 res_data = resp.json()
@@ -205,6 +242,16 @@ class OllamaClient:
                 raise last_error
 
             latency_ms = int((time.time() - t0) * 1000)
+            content_type = resp.headers.get("content-type", "")
+            raw_bytes = resp.content or b""
+            body_length = len(raw_bytes)
+            classification = self._classify_body(content_type, raw_bytes)
+
+            logger.info(
+                f"[{self.provider}] status={resp.status_code} content_type='{content_type}' "
+                f"body_length={body_length} body_classification='{classification}' "
+                f"model='{self.model}' latency_ms={latency_ms} correlation_id='{correlation_id}'"
+            )
 
             if resp.is_error:
                 try:
@@ -214,6 +261,15 @@ class OllamaClient:
                     if attempts <= self.max_retries:
                         continue
                     raise
+
+            if classification == "EMPTY":
+                last_error = LLMInvalidResponseError(
+                    "Ollama returned an empty response body.",
+                    provider=self.provider
+                )
+                if attempts <= self.max_retries:
+                    continue
+                raise last_error
 
             try:
                 res_data = resp.json()

@@ -14,6 +14,10 @@ from app.schemas.document import DocumentExtractRequest, PageSegment
 from app.services.llm_client import LLMClient
 from app.services.document_extractor import DocumentExtractor
 from app.services.normalizer import normalize_skill_name
+from app.config import settings
+from app.services.llm.openai_compatible_client import OpenAICompatibleClient
+from app.services.llm.ollama_client import OllamaClient
+from app.services.llm.fallback_client import FallbackLLMClient
 
 logger = logging.getLogger(__name__)
 
@@ -77,9 +81,36 @@ class CVParser:
     - Supports bounded retry for malformed LLM responses.
     """
 
-    def __init__(self, llm_client: Optional[LLMClient] = None, document_extractor: Optional[DocumentExtractor] = None):
-        self.llm_client = llm_client or LLMClient()
+    def __init__(
+        self,
+        llm_client: Optional[Any] = None,
+        document_extractor: Optional[DocumentExtractor] = None,
+        fallback_orchestrator: Optional[FallbackLLMClient] = None
+    ):
+        self.llm_client = llm_client
         self.document_extractor = document_extractor or DocumentExtractor()
+        if fallback_orchestrator:
+            self.orchestrator = fallback_orchestrator
+        else:
+            primary = OpenAICompatibleClient(
+                base_url=settings.LLM_PRIMARY_BASE_URL,
+                api_key=settings.LLM_PRIMARY_API_KEY,
+                model=settings.LLM_PRIMARY_MODEL,
+                timeout_seconds=settings.LLM_PRIMARY_TIMEOUT_SECONDS,
+                max_retries=settings.LLM_PRIMARY_MAX_RETRIES
+            )
+            fallback = OllamaClient(
+                base_url=settings.OLLAMA_BASE_URL,
+                model=settings.OLLAMA_CHAT_MODEL,
+                timeout_seconds=settings.OLLAMA_TIMEOUT_SECONDS,
+                max_retries=settings.OLLAMA_MAX_RETRIES
+            ) if settings.LLM_FALLBACK_ENABLED else None
+
+            self.orchestrator = FallbackLLMClient(
+                primary_client=primary,
+                fallback_client=fallback,
+                fallback_enabled=settings.LLM_FALLBACK_ENABLED
+            )
 
     def parse_cv_document(self, request: CVExtractRequest) -> CVExtractResponse:
         correlation_id = request.correlation_id or str(uuid.uuid4())
@@ -554,20 +585,61 @@ OUTPUT JSON SCHEMA:
             status="SUCCESS"
         )
 
-    def _call_llm_with_retry(self, system_instruction: str, user_content: str, correlation_id: str, max_retries: int = 2) -> Optional[dict]:
-        """Executes LLM call with bounded retry in case of malformed output."""
-        for attempt in range(max_retries + 1):
+    def _call_llm_with_retry(self, system_instruction: str, user_content: str, correlation_id: str, max_retries: int = 1) -> Optional[dict]:
+        """Executes LLM call through FallbackLLMClient with bounded retry in case of malformed output."""
+        if self.llm_client is not None and hasattr(self.llm_client, "generate_json"):
             try:
                 raw_json = self.llm_client.generate_json(system_instruction, user_content)
                 if isinstance(raw_json, dict):
                     return raw_json
-                logger.warning(f"LLM returned non-dict response on attempt {attempt + 1}")
             except Exception as e:
-                logger.warning(f"LLM call attempt {attempt + 1} failed [correlation_id={correlation_id}]: {e}")
-                if attempt == max_retries:
-                    logger.error(f"LLM extraction completely exhausted {max_retries + 1} attempts.")
-                    return None
-                time.sleep(1)
+                logger.warning(f"Custom LLM client call failed: {e}")
+
+        messages = [
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": user_content}
+        ]
+
+        content = ""
+        try:
+            exec_res = self.orchestrator.execute_sync(messages, correlation_id=correlation_id)
+            content = exec_res.response.content
+            cleaned = content.strip()
+            if cleaned.startswith("```"):
+                lines = cleaned.split("\n")
+                if lines[0].startswith("```"):
+                    lines = lines[1:]
+                if lines and lines[-1].strip() == "```":
+                    lines = lines[:-1]
+                cleaned = "\n".join(lines).strip()
+
+            raw_json = json.loads(cleaned)
+            if isinstance(raw_json, dict):
+                return raw_json
+        except Exception as e:
+            logger.warning(f"[{correlation_id}] Primary LLM call failed or produced malformed JSON: {e}")
+
+        # At most one JSON repair attempt within budget
+        repair_messages = [
+            {"role": "system", "content": "You are a JSON repair assistant. Fix syntax errors and return ONLY a valid JSON object without explanations or markdown fences."},
+            {"role": "user", "content": f"Fix this malformed JSON to be valid JSON:\n{content if content else user_content}"}
+        ]
+        try:
+            repair_res = self.orchestrator.execute_sync(repair_messages, correlation_id=f"{correlation_id}-repair")
+            r_content = repair_res.response.content.strip()
+            if r_content.startswith("```"):
+                r_lines = r_content.split("\n")
+                if r_lines[0].startswith("```"):
+                    r_lines = r_lines[1:]
+                if r_lines and r_lines[-1].strip() == "```":
+                    r_lines = r_lines[:-1]
+                r_content = "\n".join(r_lines).strip()
+            parsed = json.loads(r_content)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception as repair_err:
+            logger.error(f"[{correlation_id}] JSON repair attempt failed: {repair_err}")
+
         return None
 
     def _find_verbatim_evidence(self, query: str, raw_text: str, pages: List[PageSegment]) -> Tuple[Optional[str], dict]:

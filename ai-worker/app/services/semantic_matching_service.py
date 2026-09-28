@@ -27,8 +27,10 @@ CONCEPT_PATTERNS = [
     (r"frontend|front-end|client.*|web|ui|ux|interface|react.*|vue|angular", "sem_frontend"),
     (r"java.*|spring.*|springboot|jvm|hibernate", "sem_java"),
     (r"python.*|django|fastapi|flask|numpy|pandas", "sem_python"),
-    (r"postgres.*|pgvector|sql|mysql|oracle|database|db|nosql|mongodb", "sem_database"),
+    (r"postgres.*|pgvector|sql|mysql|oracle|database|db|nosql|mongodb|quer.*|optimiz.*|tuning|tuned", "sem_database"),
     (r"docker|k8s|kubernetes|aws|cloud|container.*|devops|ci\/cd|pipeline", "sem_cloud_infra"),
+    (r"system.*|distributed.*|scal.*|throughput.*|high-throughput|concurrent.*|performance", "sem_distributed"),
+    (r"engineer.*|developer.*|programmer.*|lead.*", "sem_engineer"),
     (r"test.*|qa|unit.*|integration.*|e2e|cypress|jest|pytest", "sem_testing"),
     (r"security|auth.*|oauth.*|jwt|encryption|vulnerability", "sem_security"),
     (r"lead.*|manage.*|mentor.*|agile|scrum|team", "sem_leadership"),
@@ -86,9 +88,10 @@ class SemanticMatchingService:
 
         scores["overall_similarity"] = self.compute_similarity(cand_full, jd_full)
 
-        # 2. Experience similarity: candidate experience vs JD requirements/overview
+        # 2. Experience similarity: candidate experience vs JD requirements/responsibilities/overview
         cand_exp = cand_chunks.get("experience", "")
-        jd_req = jd_chunks.get("requirements", jd_chunks.get("responsibilities", jd_chunks.get("overview", "")))
+        jd_req_parts = [jd_chunks.get("requirements", ""), jd_chunks.get("responsibilities", ""), jd_chunks.get("overview", "")]
+        jd_req = " ".join(p for p in jd_req_parts if p).strip()
         if cand_exp and jd_req:
             scores["experience_similarity"] = self.compute_similarity(cand_exp, jd_req)
         else:
@@ -96,7 +99,8 @@ class SemanticMatchingService:
 
         # 3. Project similarity: candidate projects vs JD responsibilities/requirements
         cand_proj = cand_chunks.get("projects", "")
-        jd_resp = jd_chunks.get("responsibilities", jd_chunks.get("requirements", ""))
+        jd_proj_parts = [jd_chunks.get("responsibilities", ""), jd_chunks.get("requirements", "")]
+        jd_resp = " ".join(p for p in jd_proj_parts if p).strip()
         if cand_proj and jd_resp:
             scores["project_similarity"] = self.compute_similarity(cand_proj, jd_resp)
         else:

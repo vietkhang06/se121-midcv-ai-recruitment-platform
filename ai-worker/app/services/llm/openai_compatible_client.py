@@ -138,6 +138,21 @@ class OpenAICompatibleClient:
         else:
             raise LLMServerError(msg, status_code=status_code, provider=self.provider)
 
+    def _classify_body(self, content_type: str, raw_bytes: bytes) -> str:
+        if not raw_bytes:
+            return "EMPTY"
+        ct = (content_type or "").lower()
+        if "text/event-stream" in ct or raw_bytes.lstrip().startswith(b"data:"):
+            return "SSE"
+        stripped = raw_bytes.strip()
+        if stripped.lower().startswith(b"<html") or stripped.lower().startswith(b"<!doctype html"):
+            return "HTML"
+        if "application/json" in ct or (stripped.startswith(b"{") and stripped.endswith(b"}")) or (stripped.startswith(b"[") and stripped.endswith(b"]")):
+            return "JSON"
+        if "text/plain" in ct:
+            return "TEXT"
+        return "UNKNOWN"
+
     async def chat(
         self,
         messages: List[Dict[str, str]],
@@ -182,6 +197,16 @@ class OpenAICompatibleClient:
                 raise last_error
 
             latency_ms = int((time.time() - t0) * 1000)
+            content_type = resp.headers.get("content-type", "")
+            raw_bytes = resp.content or b""
+            body_length = len(raw_bytes)
+            classification = self._classify_body(content_type, raw_bytes)
+
+            logger.info(
+                f"[{self.provider}] status={resp.status_code} content_type='{content_type}' "
+                f"body_length={body_length} body_classification='{classification}' "
+                f"model='{self.model}' latency_ms={latency_ms} correlation_id='{correlation_id}'"
+            )
 
             if resp.is_error:
                 status_code = resp.status_code
@@ -194,6 +219,24 @@ class OpenAICompatibleClient:
                         continue
                     raise
                 # Deterministic errors (400, 401, 403, 404) are raised immediately without retry
+
+            if classification == "SSE":
+                last_error = LLMInvalidResponseError(
+                    "Primary provider returned an unexpected SSE stream instead of non-streamed JSON response.",
+                    provider=self.provider
+                )
+                if attempts <= self.max_retries:
+                    continue
+                raise last_error
+
+            if classification == "EMPTY":
+                last_error = LLMInvalidResponseError(
+                    "Primary provider returned an empty response body.",
+                    provider=self.provider
+                )
+                if attempts <= self.max_retries:
+                    continue
+                raise last_error
 
             try:
                 res_data = resp.json()
@@ -256,6 +299,16 @@ class OpenAICompatibleClient:
                 raise last_error
 
             latency_ms = int((time.time() - t0) * 1000)
+            content_type = resp.headers.get("content-type", "")
+            raw_bytes = resp.content or b""
+            body_length = len(raw_bytes)
+            classification = self._classify_body(content_type, raw_bytes)
+
+            logger.info(
+                f"[{self.provider}] status={resp.status_code} content_type='{content_type}' "
+                f"body_length={body_length} body_classification='{classification}' "
+                f"model='{self.model}' latency_ms={latency_ms} correlation_id='{correlation_id}'"
+            )
 
             if resp.is_error:
                 status_code = resp.status_code
@@ -267,6 +320,24 @@ class OpenAICompatibleClient:
                         continue
                     raise
                 # Deterministic errors are raised immediately without retry
+
+            if classification == "SSE":
+                last_error = LLMInvalidResponseError(
+                    "Primary provider returned an unexpected SSE stream instead of non-streamed JSON response.",
+                    provider=self.provider
+                )
+                if attempts <= self.max_retries:
+                    continue
+                raise last_error
+
+            if classification == "EMPTY":
+                last_error = LLMInvalidResponseError(
+                    "Primary provider returned an empty response body.",
+                    provider=self.provider
+                )
+                if attempts <= self.max_retries:
+                    continue
+                raise last_error
 
             try:
                 res_data = resp.json()
