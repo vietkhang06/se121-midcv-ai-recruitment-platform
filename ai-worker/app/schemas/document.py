@@ -22,6 +22,15 @@ class DocumentExtractRequest(BaseModel):
 class DocumentExtractResponse(BaseModel):
     status: str = "SUCCESS"  # "SUCCESS", "PARTIAL", "FAILED"
     source_type: str = "PDF"  # "PDF", "DOCX", "DOC", "IMAGE", "TEXT", "UNSUPPORTED"
+    documentType: Optional[str] = None
+    extractionMethod: Optional[str] = None
+    rawText: Optional[str] = None
+    pageCount: Optional[int] = None
+    characterCount: Optional[int] = None
+    qualityScore: Optional[float] = None
+    ocrUsed: Optional[bool] = None
+    checksum: Optional[str] = None
+    correlationId: Optional[str] = None
     used_ocr: bool = False
     text: Optional[str] = None  # Normalized text
     raw_source_text: Optional[str] = None  # Immutable raw source text from extractor

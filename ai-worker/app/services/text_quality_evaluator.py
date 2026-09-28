@@ -70,6 +70,20 @@ class TextQualityEvaluator:
         # Base score starts at 1.0, penalized by corrupt characters and very short length
         score = 1.0 - (corrupt_ratio * 2.0)
 
+        # Check for abnormal repetition (repeated words or repeated character chains)
+        has_abnormal_repetition = False
+        if word_count >= 20:
+            unique_words = set(w.lower() for w in words)
+            unique_ratio = len(unique_words) / word_count
+            if unique_ratio < 0.20:
+                has_abnormal_repetition = True
+        elif char_count >= 50 and re.search(r'(.)\1{30,}', cleaned):
+            has_abnormal_repetition = True
+
+        if has_abnormal_repetition:
+            score -= 0.35
+            reasons.append("Abnormal text repetition detected")
+
         if char_count < self.MIN_ACCEPTABLE_CHARS:
             score -= 0.4
             reasons.append(f"Insufficient character count ({char_count} < {self.MIN_ACCEPTABLE_CHARS})")
@@ -88,6 +102,7 @@ class TextQualityEvaluator:
             char_count >= self.MIN_ACCEPTABLE_CHARS
             and word_count >= self.MIN_ACCEPTABLE_WORDS
             and corrupt_ratio <= self.MAX_CORRUPT_CHAR_RATIO
+            and not has_abnormal_repetition
         )
 
         needs_ocr = not is_acceptable or score < 0.5

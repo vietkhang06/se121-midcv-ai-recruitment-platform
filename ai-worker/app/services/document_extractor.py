@@ -2,6 +2,7 @@ import io
 import os
 import time
 import base64
+import hashlib
 import logging
 import tempfile
 import subprocess
@@ -55,7 +56,8 @@ class DocumentExtractor:
                 start_char=0,
                 end_char=len(norm_text)
             )
-            return DocumentExtractResponse(
+            checksum = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
+            res = DocumentExtractResponse(
                 status="SUCCESS",
                 source_type="TEXT",
                 used_ocr=False,
@@ -71,10 +73,11 @@ class DocumentExtractor:
                     "duration_ms": duration_ms
                 }
             )
+            return self._finalize_response(res, correlation_id, checksum)
 
         # 2. Validate base64 input
         if not request.file_base64:
-            return DocumentExtractResponse(
+            res = DocumentExtractResponse(
                 status="FAILED",
                 source_type="UNKNOWN",
                 used_ocr=False,
@@ -82,11 +85,12 @@ class DocumentExtractor:
                 error_code="FILE_EMPTY",
                 error_message="Document payload is empty: No base64 content or raw text provided."
             )
+            return self._finalize_response(res, correlation_id, None)
 
         try:
             file_bytes = base64.b64decode(request.file_base64)
         except Exception as e:
-            return DocumentExtractResponse(
+            res = DocumentExtractResponse(
                 status="FAILED",
                 source_type="UNKNOWN",
                 used_ocr=False,
@@ -94,9 +98,12 @@ class DocumentExtractor:
                 error_code="FILE_READ_FAILED",
                 error_message=f"Failed to decode base64 file content: {str(e)}"
             )
+            return self._finalize_response(res, correlation_id, None)
+
+        checksum = hashlib.sha256(file_bytes).hexdigest()
 
         if len(file_bytes) == 0:
-            return DocumentExtractResponse(
+            res = DocumentExtractResponse(
                 status="FAILED",
                 source_type="UNKNOWN",
                 used_ocr=False,
@@ -104,9 +111,10 @@ class DocumentExtractor:
                 error_code="FILE_EMPTY",
                 error_message="Uploaded document file is 0 bytes (empty file)."
             )
+            return self._finalize_response(res, correlation_id, checksum)
 
         if len(file_bytes) > MAX_FILE_SIZE_BYTES:
-            return DocumentExtractResponse(
+            res = DocumentExtractResponse(
                 status="FAILED",
                 source_type="UNKNOWN",
                 used_ocr=False,
@@ -114,11 +122,12 @@ class DocumentExtractor:
                 error_code="FILE_TOO_LARGE",
                 error_message=f"File size exceeds maximum allowed limit of 10MB (actual: {len(file_bytes)} bytes)."
             )
+            return self._finalize_response(res, correlation_id, checksum)
 
         # 3. Detect file type by magic bytes and declared extension
         detected_type, is_valid_type = self._detect_file_type(file_bytes, request.file_name, request.file_type)
         if not is_valid_type:
-            return DocumentExtractResponse(
+            res = DocumentExtractResponse(
                 status="FAILED",
                 source_type=detected_type,
                 used_ocr=False,
@@ -126,18 +135,19 @@ class DocumentExtractor:
                 error_code="UNSUPPORTED_FILE_TYPE",
                 error_message=f"Unsupported document format: {detected_type}. Supported: PDF, DOCX, DOC, PNG, JPG, JPEG, WEBP."
             )
+            return self._finalize_response(res, correlation_id, checksum)
 
         # 4. Route to extractor
         if detected_type == "PDF":
-            return self._extract_pdf(file_bytes, correlation_id, file_name, start_time)
+            res = self._extract_pdf(file_bytes, correlation_id, file_name, start_time)
         elif detected_type == "DOCX":
-            return self._extract_docx(file_bytes, correlation_id, file_name, start_time)
+            res = self._extract_docx(file_bytes, correlation_id, file_name, start_time)
         elif detected_type == "DOC":
-            return self._extract_doc_via_libreoffice(file_bytes, correlation_id, file_name, start_time)
+            res = self._extract_doc_via_libreoffice(file_bytes, correlation_id, file_name, start_time)
         elif detected_type == "IMAGE":
-            return self._extract_image(file_bytes, correlation_id, file_name, start_time)
+            res = self._extract_image(file_bytes, correlation_id, file_name, start_time)
         else:
-            return DocumentExtractResponse(
+            res = DocumentExtractResponse(
                 status="FAILED",
                 source_type=detected_type,
                 used_ocr=False,
@@ -145,6 +155,51 @@ class DocumentExtractor:
                 error_code="UNSUPPORTED_FILE_TYPE",
                 error_message=f"No parser available for detected file type: {detected_type}"
             )
+        return self._finalize_response(res, correlation_id, checksum)
+
+    def _finalize_response(
+        self,
+        resp: DocumentExtractResponse,
+        correlation_id: str,
+        checksum: Optional[str] = None
+    ) -> DocumentExtractResponse:
+        resp.correlationId = correlation_id
+        resp.checksum = checksum
+        resp.documentType = resp.source_type
+        resp.ocrUsed = resp.used_ocr
+        raw_text = resp.raw_source_text or resp.text or ""
+        resp.rawText = raw_text
+        resp.characterCount = len(raw_text)
+        resp.pageCount = len(resp.pages) if resp.pages else (1 if resp.status == "SUCCESS" else 0)
+
+        # Determine standardized extraction method
+        if resp.source_type == "PDF":
+            resp.extractionMethod = "PDF_OCR" if resp.used_ocr else "TEXT_LAYER"
+        elif resp.source_type == "IMAGE":
+            resp.extractionMethod = "IMAGE_OCR"
+        elif resp.source_type == "DOCX":
+            resp.extractionMethod = "DOCX_PARSER"
+        elif resp.source_type == "DOC":
+            resp.extractionMethod = "DOC_LIBREOFFICE"
+        elif resp.source_type == "TEXT":
+            resp.extractionMethod = "RAW_TEXT"
+        else:
+            resp.extractionMethod = "UNKNOWN"
+
+        # Quality score evaluation
+        if resp.status == "SUCCESS" and raw_text:
+            from app.services.text_quality_evaluator import TextQualityEvaluator
+            eval_res = TextQualityEvaluator().evaluate(raw_text)
+            resp.qualityScore = eval_res["qualityScore"]
+            if not eval_res["isAcceptable"]:
+                for r in eval_res.get("reasons", []):
+                    warn_msg = f"QualityWarning: {r}"
+                    if warn_msg not in resp.warnings:
+                        resp.warnings.append(warn_msg)
+        else:
+            resp.qualityScore = 0.0
+
+        return resp
 
     def _detect_file_type(self, file_bytes: bytes, file_name: Optional[str], declared_type: Optional[str]) -> Tuple[str, bool]:
         """Detect document type using magic bytes and extension check."""
