@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from fastapi import APIRouter, HTTPException, status
 from app.schemas.jd import JDExtractRequest, JDExtractResponse
 from app.schemas.cv import CVExtractRequest, CVExtractResponse
@@ -27,8 +28,11 @@ from app.services.taxonomy_normalizer import TaxonomyNormalizer
 from app.services.semantic_matching_service import SemanticMatchingService
 from app.services.score_explainer_service import ScoreExplainerService
 from app.services.skill_gap_service import SkillGapService
+from pydantic import BaseModel
 from app.services.llm.openai_compatible_client import OpenAICompatibleClient
 from app.api.dev_endpoints import dev_router
+from app.services.cv_structuring_service import CVStructuringService, StructuringResponse
+from app.services.document_extraction_service import DocumentExtractionService
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -145,6 +149,35 @@ def extract_cv(request: CVExtractRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"CV Extraction Error: {str(e)}"
+        )
+
+class StructureCVRequest(BaseModel):
+    rawText: str
+    documentVersionId: Optional[str] = None
+    correlationId: Optional[str] = None
+
+@router.post("/structure-cv", response_model=StructuringResponse)
+async def structure_cv(request: StructureCVRequest):
+    try:
+        logger.info(f"Received CV Structuring request [doc_version_id={request.documentVersionId}, correlation_id={request.correlationId}]")
+        structuring_service = CVStructuringService()
+        result = await structuring_service.structure_raw_text(
+            raw_text=request.rawText,
+            correlation_id=request.correlationId
+        )
+        if not result.success:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=result.error_message or "CV structuring failed"
+            )
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"CV Structuring failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"CV Structuring Error: {str(e)}"
         )
 
 @router.post("/analyze-github", response_model=GitHubAnalyzeResponse)

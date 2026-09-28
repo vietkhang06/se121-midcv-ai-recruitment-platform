@@ -38,6 +38,7 @@ public class CVService {
     private final JdbcTemplate jdbcTemplate;
     private final AiWorkerClient aiWorkerClient;
     private final ObjectMapper objectMapper;
+    private final org.springframework.transaction.support.TransactionTemplate tx;
 
     @Autowired
     public CVService(
@@ -49,7 +50,8 @@ public class CVService {
             TextReader textReader,
             JdbcTemplate jdbcTemplate,
             @Autowired(required = false) AiWorkerClient aiWorkerClient,
-            @Autowired(required = false) ObjectMapper objectMapper) {
+            @Autowired(required = false) ObjectMapper objectMapper,
+            @Autowired(required = false) org.springframework.transaction.PlatformTransactionManager transactionManager) {
         this.cvRepository = cvRepository;
         this.cvVersionRepository = cvVersionRepository;
         this.cvSectionRepository = cvSectionRepository;
@@ -59,6 +61,7 @@ public class CVService {
         this.jdbcTemplate = jdbcTemplate;
         this.aiWorkerClient = aiWorkerClient;
         this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
+        this.tx = transactionManager != null ? new org.springframework.transaction.support.TransactionTemplate(transactionManager) : null;
     }
 
     public CVService(
@@ -69,7 +72,7 @@ public class CVService {
             Documents documents,
             TextReader textReader,
             JdbcTemplate jdbcTemplate) {
-        this(cvRepository, cvVersionRepository, cvSectionRepository, candidateProfileRepository, documents, textReader, jdbcTemplate, null, new ObjectMapper());
+        this(cvRepository, cvVersionRepository, cvSectionRepository, candidateProfileRepository, documents, textReader, jdbcTemplate, null, new ObjectMapper(), null);
     }
 
     @Transactional
@@ -100,7 +103,7 @@ public class CVService {
         CVSection section = CVSection.builder()
                 .cvVersion(version)
                 .sectionType("SUMMARY")
-                .content(savedCv.getRawText() != null ? savedCv.getRawText() : savedCv.getTitle())
+                .content(savedCv.getTitle() != null ? savedCv.getTitle() : "")
                 .build();
         cvSectionRepository.save(section);
 
@@ -173,7 +176,7 @@ public class CVService {
                 : "pdf";
         String storageKey = savedDoc.versionId() + "." + ext;
 
-        // 2. Multi-tier extraction: try AI Worker with pdfplumber/ocr/anti-fabrication, fallback to native TextReader
+        // 2. Operation A: Document extraction (pure local text layer / OCR, strictly NO LLM)
         byte[] fileBytes = new byte[0];
         try {
             if (file != null) {
@@ -183,20 +186,20 @@ public class CVService {
 
         String extractedText = null;
         String extractionMethod = "native-reader";
-        Map<String, Object> aiResult = null;
+        boolean isDegradedFallback = false;
 
         if (aiWorkerClient != null && fileBytes.length > 0) {
             try {
-                aiResult = aiWorkerClient.extractCv(savedDoc.documentId(), savedDoc.versionId(), fileBytes, ext.toUpperCase(Locale.ROOT), null);
-                if (aiResult != null && "SUCCESS".equals(aiResult.get("status"))) {
-                    extractedText = (String) aiResult.get("raw_text");
+                Map<String, Object> extractRes = aiWorkerClient.extractDocument(fileBytes, originalFileName, ext.toUpperCase(Locale.ROOT), null);
+                if (extractRes != null && ("EXTRACTED".equals(extractRes.get("status")) || "SUCCESS".equals(extractRes.get("status")))) {
+                    extractedText = (String) extractRes.get("rawText");
                     if (extractedText == null || extractedText.isBlank()) {
-                        extractedText = (String) aiResult.get("text");
+                        extractedText = (String) extractRes.get("text");
                     }
-                    extractionMethod = "ai-worker";
+                    extractionMethod = (String) extractRes.getOrDefault("extractionMethod", "ai-worker");
                 }
             } catch (Exception ex) {
-                log.warn("AI Worker extract-cv call failed, falling back to native TextReader: {}", ex.getMessage());
+                log.warn("AI Worker extract-document call failed, falling back to native TextReader: {}", ex.getMessage());
             }
         }
 
@@ -204,34 +207,69 @@ public class CVService {
             TextReader.Extracted extracted = textReader.read(documents.path(storageKey));
             extractedText = extracted.text();
             extractionMethod = extracted.method();
+            isDegradedFallback = true;
         }
 
         if (extractedText == null || extractedText.isBlank()) {
             throw new CustomException(ErrorCode.INVALID_FILE, "DOCUMENT_TEXT_EMPTY: Document text extraction yielded no readable text");
         }
 
-        // 3. Update document_versions record
-        if (aiResult != null && "SUCCESS".equals(aiResult.get("status"))) {
-            try {
-                String normJson = objectMapper.writeValueAsString(aiResult);
+        final String finalExtractedText = extractedText;
+        final String finalExtractionMethod = extractionMethod;
+
+        // 3. PERSIST RAW TEXT AND COMMIT (EXTRACTED state)
+        // Raw text is permanently saved in document_versions before LLM structuring is invoked
+        if (tx != null) {
+            tx.executeWithoutResult(status -> {
                 jdbcTemplate.update(
-                        "UPDATE document_versions SET raw_text=?, extraction_method=?, normalized=?::jsonb, state='READY' WHERE id=?",
-                        extractedText, extractionMethod, normJson, savedDoc.versionId()
+                        "UPDATE document_versions SET raw_text=?, extraction_method=?, state='EXTRACTED' WHERE id=?",
+                        finalExtractedText, finalExtractionMethod, savedDoc.versionId()
                 );
-            } catch (Exception jsonErr) {
-                jdbcTemplate.update(
-                        "UPDATE document_versions SET raw_text=?, extraction_method=? WHERE id=?",
-                        extractedText, extractionMethod, savedDoc.versionId()
-                );
-            }
+            });
         } else {
             jdbcTemplate.update(
-                    "UPDATE document_versions SET raw_text=?, extraction_method=? WHERE id=?",
-                    extractedText, extractionMethod, savedDoc.versionId()
+                    "UPDATE document_versions SET raw_text=?, extraction_method=?, state='EXTRACTED' WHERE id=?",
+                    finalExtractedText, finalExtractionMethod, savedDoc.versionId()
             );
         }
 
-        // 4. Persist legacy CV entity with synchronized IDs
+        // 4. Operation B: CV structuring via LLM
+        Map<String, Object> aiResult = null;
+        boolean structuringSucceeded = false;
+        if (!isDegradedFallback && aiWorkerClient != null) {
+            try {
+                aiResult = aiWorkerClient.extractCv(savedDoc.documentId(), savedDoc.versionId(), null, null, finalExtractedText);
+                if (aiResult != null && "SUCCESS".equals(aiResult.get("status"))) {
+                    structuringSucceeded = true;
+                }
+            } catch (Exception ex) {
+                log.warn("AI Worker structuring failed, raw text is preserved: {}", ex.getMessage());
+            }
+        }
+
+        // 5. Update document_versions record with structuring outcome
+        if (structuringSucceeded && aiResult != null) {
+            try {
+                String normJson = objectMapper.writeValueAsString(aiResult);
+                jdbcTemplate.update(
+                        "UPDATE document_versions SET normalized=?::jsonb, state='READY' WHERE id=?",
+                        normJson, savedDoc.versionId()
+                );
+            } catch (Exception jsonErr) {
+                jdbcTemplate.update(
+                        "UPDATE document_versions SET state='READY' WHERE id=?",
+                        savedDoc.versionId()
+                );
+            }
+        } else {
+            // TextReader or failed LLM creates degraded extraction: EXTRACTED / STRUCTURING_FAILED
+            jdbcTemplate.update(
+                    "UPDATE document_versions SET state='STRUCTURING_FAILED', error_code='STRUCTURING_FAILED', error_message='Structuring incomplete, draft requires manual review' WHERE id=?",
+                    savedDoc.versionId()
+            );
+        }
+
+        // 6. Persist CV entity with synchronized IDs
         String filePath = documents.path(storageKey).toString();
         String contentType = (file != null && file.getContentType() != null && !file.getContentType().isBlank())
                 ? file.getContentType()
@@ -247,7 +285,7 @@ public class CVService {
                 .fileType(contentType)
                 .fileSize(file != null ? (int) file.getSize() : 0)
                 .status("PARSED")
-                .rawText(extractedText)
+                .rawText(finalExtractedText)
                 .isDefault(isDefault != null ? isDefault : false)
                 .build();
         cv.setId(savedDoc.documentId());
@@ -258,12 +296,13 @@ public class CVService {
                 .cv(savedCv)
                 .versionNumber(savedDoc.versionNo())
                 .title(savedCv.getTitle() + " v" + savedDoc.versionNo() + ".0")
-                .rawTextContent(extractedText)
+                .rawTextContent(finalExtractedText)
+                .status("DRAFT")
                 .build();
         version.setId(savedDoc.versionId());
         version = cvVersionRepository.save(version);
 
-        // 5. Persist sections
+        // 7. Persist structured sections (DO NOT dump raw CV into SUMMARY section)
         if (aiResult != null && aiResult.get("skills") instanceof List<?> skillsList && !skillsList.isEmpty()) {
             try {
                 cvSectionRepository.save(CVSection.builder()
@@ -292,12 +331,20 @@ public class CVService {
             } catch (Exception ignored) {}
         }
 
-        CVSection section = CVSection.builder()
-                .cvVersion(version)
-                .sectionType("SUMMARY")
-                .content(extractedText)
-                .build();
-        cvSectionRepository.save(section);
+        // Summary section stores strictly the extracted candidate summary/bio, NEVER full raw text
+        String candidateSummary = "";
+        if (aiResult != null && aiResult.get("summary") != null) {
+            candidateSummary = aiResult.get("summary").toString();
+        } else if (aiResult != null && aiResult.get("bio") != null) {
+            candidateSummary = aiResult.get("bio").toString();
+        }
+        if (!candidateSummary.isBlank()) {
+            cvSectionRepository.save(CVSection.builder()
+                    .cvVersion(version)
+                    .sectionType("SUMMARY")
+                    .content(candidateSummary)
+                    .build());
+        }
 
         CVResponse response = mapToResponse(savedCv);
         response.setJobId(savedDoc.jobId());
@@ -490,59 +537,76 @@ public class CVService {
 
         Map<String, Object> versionRow = vRows.get(0);
         UUID versionId = (UUID) versionRow.get("id");
-        String storageKey = (String) versionRow.get("storage_key");
-        Path path = documents.path(storageKey);
-
-        byte[] fileBytes;
-        try {
-            fileBytes = Files.readAllBytes(path);
-        } catch (IOException e) {
-            throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Stored document file missing from disk.");
-        }
-
-        String ext = storageKey.substring(storageKey.lastIndexOf('.') + 1);
+        String existingRaw = (String) versionRow.get("raw_text");
+        String extractedText = existingRaw;
         Map<String, Object> aiResult = null;
-        String extractedText = null;
 
-        if (aiWorkerClient != null) {
+        if (extractedText == null || extractedText.isBlank()) {
+            // Missing raw text fallback: read original file
+            String storageKey = (String) versionRow.get("storage_key");
+            Path path = documents.path(storageKey);
+            byte[] fileBytes;
             try {
-                aiResult = aiWorkerClient.extractCv(cvId, versionId, fileBytes, ext.toUpperCase(Locale.ROOT), null);
-                if (aiResult != null && "SUCCESS".equals(aiResult.get("status"))) {
-                    extractedText = (String) aiResult.get("raw_text");
-                    if (extractedText == null) extractedText = (String) aiResult.get("text");
+                fileBytes = Files.readAllBytes(path);
+            } catch (IOException e) {
+                throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Stored document file missing from disk.");
+            }
+
+            String ext = storageKey.contains(".") ? storageKey.substring(storageKey.lastIndexOf('.') + 1) : "pdf";
+            if (aiWorkerClient != null && fileBytes.length > 0) {
+                try {
+                    Map<String, Object> extractRes = aiWorkerClient.extractDocument(fileBytes, cv.getFileName(), ext.toUpperCase(Locale.ROOT), null);
+                    if (extractRes != null && ("EXTRACTED".equals(extractRes.get("status")) || "SUCCESS".equals(extractRes.get("status")))) {
+                        extractedText = (String) extractRes.get("rawText");
+                        if (extractedText == null || extractedText.isBlank()) {
+                            extractedText = (String) extractRes.get("text");
+                        }
+                    }
+                } catch (Exception ex) {
+                    log.warn("Retry extraction via AI Worker failed: {}", ex.getMessage());
                 }
-            } catch (Exception ex) {
-                log.error("Retry extraction via AI Worker failed: {}", ex.getMessage());
+            }
+
+            if (extractedText == null || extractedText.isBlank()) {
+                TextReader.Extracted extracted = textReader.read(path);
+                extractedText = extracted.text();
+            }
+
+            if (extractedText != null && !extractedText.isBlank()) {
+                jdbcTemplate.update("UPDATE document_versions SET raw_text=?, state='EXTRACTED' WHERE id=?", extractedText, versionId);
             }
         }
 
-        if (extractedText == null) {
-            TextReader.Extracted extracted = textReader.read(path);
-            extractedText = extracted.text();
+        // Retry structuring directly from saved raw text without reading binary file
+        if (extractedText != null && !extractedText.isBlank() && aiWorkerClient != null) {
+            try {
+                aiResult = aiWorkerClient.extractCv(cvId, versionId, null, null, extractedText);
+            } catch (Exception ex) {
+                log.error("Retry structuring via AI Worker failed: {}", ex.getMessage());
+            }
         }
 
         if (extractedText != null && !extractedText.isBlank()) {
             cv.setRawText(extractedText);
-            cv.setStatus("PARSED");
             cvRepository.save(cv);
 
             if (aiResult != null && "SUCCESS".equals(aiResult.get("status"))) {
                 try {
                     String normJson = objectMapper.writeValueAsString(aiResult);
                     jdbcTemplate.update(
-                            "UPDATE document_versions SET raw_text=?, extraction_method='ai-worker', normalized=?::jsonb, state='READY', error_code=NULL, error_message=NULL WHERE id=?",
-                            extractedText, normJson, versionId
+                            "UPDATE document_versions SET normalized=?::jsonb, state='READY', error_code=NULL, error_message=NULL WHERE id=?",
+                            normJson, versionId
                     );
                 } catch (Exception ignored) {
                     jdbcTemplate.update(
-                            "UPDATE document_versions SET raw_text=?, state='READY', error_code=NULL, error_message=NULL WHERE id=?",
-                            extractedText, versionId
+                            "UPDATE document_versions SET state='READY', error_code=NULL, error_message=NULL WHERE id=?",
+                            versionId
                     );
                 }
             } else {
                 jdbcTemplate.update(
-                        "UPDATE document_versions SET raw_text=?, state='READY', error_code=NULL, error_message=NULL WHERE id=?",
-                        extractedText, versionId
+                        "UPDATE document_versions SET state='STRUCTURING_FAILED', error_code='STRUCTURING_FAILED', error_message='Retry structuring failed' WHERE id=?",
+                        versionId
                 );
             }
         }

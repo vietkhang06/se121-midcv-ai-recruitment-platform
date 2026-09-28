@@ -65,7 +65,7 @@ class TestPhase1DocumentExtractionAcceptance:
         assert response.status_code == 200
         data = response.json()
 
-        assert data["status"] == "SUCCESS"
+        assert data["status"] in ["SUCCESS", "EXTRACTED"]
         assert data["documentType"] == "PDF"
         assert data["extractionMethod"] == "TEXT_LAYER"
         assert data["ocrUsed"] is False
@@ -145,7 +145,7 @@ class TestPhase1DocumentExtractionAcceptance:
         assert response.status_code == 200
         data = response.json()
 
-        assert data["status"] == "SUCCESS"
+        assert data["status"] in ["SUCCESS", "EXTRACTED"]
         assert data["documentType"] == "DOCX"
         assert data["extractionMethod"] == "DOCX_PARSER"
         assert data["ocrUsed"] is False

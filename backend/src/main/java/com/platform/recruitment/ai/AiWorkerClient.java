@@ -130,4 +130,26 @@ public class AiWorkerClient {
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "AI Worker extract-document failed: " + ex.getMessage());
         }
     }
+
+    public Map<String, Object> structureCv(String rawText, UUID documentVersionId, String correlationId) {
+        String cid = correlationId != null ? correlationId : UUID.randomUUID().toString();
+        Map<String, Object> body = new HashMap<>();
+        body.put("rawText", rawText);
+        if (documentVersionId != null) {
+            body.put("documentVersionId", documentVersionId.toString());
+        }
+        body.put("correlationId", cid);
+
+        try {
+            return restClient.post()
+                    .uri("/structure-cv")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (Exception ex) {
+            log.error("Failed to call AI Worker /structure-cv: {}", ex.getMessage());
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "AI Worker structure-cv failed: " + ex.getMessage());
+        }
+    }
 }

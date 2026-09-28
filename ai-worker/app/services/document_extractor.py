@@ -170,7 +170,7 @@ class DocumentExtractor:
         raw_text = resp.raw_source_text or resp.text or ""
         resp.rawText = raw_text
         resp.characterCount = len(raw_text)
-        resp.pageCount = len(resp.pages) if resp.pages else (1 if resp.status == "SUCCESS" else 0)
+        resp.pageCount = len(resp.pages) if resp.pages else (1 if resp.status in ["SUCCESS", "EXTRACTED"] else 0)
 
         # Determine standardized extraction method
         if resp.source_type == "PDF":
@@ -187,7 +187,7 @@ class DocumentExtractor:
             resp.extractionMethod = "UNKNOWN"
 
         # Quality score evaluation
-        if resp.status == "SUCCESS" and raw_text:
+        if resp.status in ["SUCCESS", "EXTRACTED"] and raw_text:
             from app.services.text_quality_evaluator import TextQualityEvaluator
             eval_res = TextQualityEvaluator().evaluate(raw_text)
             resp.qualityScore = eval_res["qualityScore"]
@@ -198,6 +198,9 @@ class DocumentExtractor:
                         resp.warnings.append(warn_msg)
         else:
             resp.qualityScore = 0.0
+
+        if resp.status == "SUCCESS":
+            resp.status = "EXTRACTED"
 
         return resp
 
