@@ -19,6 +19,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.platform.recruitment.company.RecruiterProfileRepository;
+import com.platform.recruitment.matching.CandidateRankingService;
+import com.platform.recruitment.matching.MatchResultRepository;
+
 import com.platform.recruitment.cv.CVVersion;
 import com.platform.recruitment.cv.CVVersionRepository;
 import com.platform.recruitment.matching.MatchingEngineService;
@@ -57,6 +61,18 @@ public class ApplicationDuplicateProtectionTest {
     @InjectMocks
     private ApplicationService applicationService;
 
+    @Mock
+    private RecruiterProfileRepository recruiterProfileRepository;
+
+    @Mock
+    private CandidateRankingService candidateRankingService;
+
+    @Mock
+    private MatchResultRepository matchResultRepository;
+
+    @Mock
+    private ApplicationAuditLogRepository auditLogRepository;
+
     private User candidateUser;
     private CandidateProfile candidate;
     private Job job1;
@@ -84,14 +100,22 @@ public class ApplicationDuplicateProtectionTest {
         job2 = Job.builder().title("Frontend Engineer").status(JobStatus.PUBLISHED).build();
         job2.setId(job2Id);
 
-        cv = CV.builder().candidate(candidate).title("Java CV").build();
+        cv = CV.builder()
+                .candidate(candidate)
+                .title("Java CV")
+                .status("CONFIRMED")
+                .build();
         cv.setId(cvId);
 
         request1 = new SubmitApplicationRequest();
         request1.setJobId(job1Id);
         request1.setCvId(cvId);
 
-        CVVersion version = CVVersion.builder().cv(cv).versionNumber(1).build();
+        CVVersion version = CVVersion.builder()
+                .cv(cv)
+                .versionNumber(1)
+                .status("CONFIRMED")
+                .build();
         version.setId(UUID.randomUUID());
         lenient().when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(any())).thenReturn(List.of(version));
     }
@@ -104,7 +128,8 @@ public class ApplicationDuplicateProtectionTest {
         when(cvRepository.findById(cv.getId())).thenReturn(Optional.of(cv));
         when(applicationRepository.existsByJobIdAndCandidateId(job1.getId(), candidate.getId())).thenReturn(false);
 
-        Application mockApp = Application.builder().job(job1).candidate(candidate).appliedCv(cv).status(ApplicationStatus.SUBMITTED).build();
+        Application mockApp = Application.builder().job(job1).candidate(candidate).appliedCv(cv)
+                .status(ApplicationStatus.SUBMITTED).build();
         mockApp.setId(UUID.randomUUID());
         when(applicationRepository.save(any(Application.class))).thenReturn(mockApp);
 
@@ -127,8 +152,7 @@ public class ApplicationDuplicateProtectionTest {
 
         DuplicateApplicationException exception = assertThrows(
                 DuplicateApplicationException.class,
-                () -> applicationService.submitApplication(candidateUser, request1)
-        );
+                () -> applicationService.submitApplication(candidateUser, request1));
 
         assertTrue(exception.getMessage().contains("already submitted an application"));
         verify(applicationRepository, never()).save(any(Application.class));
@@ -147,7 +171,8 @@ public class ApplicationDuplicateProtectionTest {
         when(cvRepository.findById(cv.getId())).thenReturn(Optional.of(cv));
         when(applicationRepository.existsByJobIdAndCandidateId(job2.getId(), candidate.getId())).thenReturn(false);
 
-        Application mockApp2 = Application.builder().job(job2).candidate(candidate).appliedCv(cv).status(ApplicationStatus.SUBMITTED).build();
+        Application mockApp2 = Application.builder().job(job2).candidate(candidate).appliedCv(cv)
+                .status(ApplicationStatus.SUBMITTED).build();
         mockApp2.setId(UUID.randomUUID());
         when(applicationRepository.save(any(Application.class))).thenReturn(mockApp2);
 

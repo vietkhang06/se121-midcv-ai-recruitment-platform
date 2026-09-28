@@ -18,6 +18,7 @@ import com.platform.recruitment.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,7 +34,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 
 @Service
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class ApplicationService {
 
     private final ApplicationRepository applicationRepository;
@@ -58,8 +59,8 @@ public class ApplicationService {
             CVVersionRepository cvVersionRepository,
             MatchingEngineService matchingEngineService) {
         this(applicationRepository, snapshotRepository, jobRepository, candidateProfileRepository,
-             recruiterProfileRepository, cvRepository, cvVersionRepository, matchingEngineService,
-             null, null, null);
+                recruiterProfileRepository, cvRepository, cvVersionRepository, matchingEngineService,
+                null, null, null);
     }
 
     @Transactional
@@ -72,8 +73,9 @@ public class ApplicationService {
 
         // Business Rule Enforcement: Candidate can ONLY apply to PUBLISHED jobs
         if (job.getStatus() != JobStatus.PUBLISHED) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, 
-                    String.format("Cannot submit application for job '%s' with status '%s'. Only PUBLISHED jobs accept applications.", 
+            throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                    String.format(
+                            "Cannot submit application for job '%s' with status '%s'. Only PUBLISHED jobs accept applications.",
                             job.getTitle(), job.getStatus()));
         }
 
@@ -105,7 +107,8 @@ public class ApplicationService {
         }
 
         // AC-P3-04: Block application submission if CV is in DRAFT status
-        if ("DRAFT".equalsIgnoreCase(cv.getStatus()) || (appliedVersion.getStatus() != null && "DRAFT".equalsIgnoreCase(appliedVersion.getStatus()))) {
+        if ("DRAFT".equalsIgnoreCase(cv.getStatus())
+                || (appliedVersion.getStatus() != null && "DRAFT".equalsIgnoreCase(appliedVersion.getStatus()))) {
             throw new CustomException(ErrorCode.VALIDATION_ERROR,
                     "Hồ sơ CV đang ở trạng thái DRAFT. Vui lòng xác nhận hồ sơ trước khi nộp ứng tuyển.");
         }
@@ -121,7 +124,7 @@ public class ApplicationService {
         Application savedApplication = applicationRepository.save(application);
 
         String rawTextContent = cv.getRawText() != null ? cv.getRawText() : "";
-        String jsonSnapshotContent = String.format("{\"cvId\":\"%s\",\"title\":\"%s\",\"path\":\"%s\"}", 
+        String jsonSnapshotContent = String.format("{\"cvId\":\"%s\",\"title\":\"%s\",\"path\":\"%s\"}",
                 cv.getId(), cv.getTitle(), cv.getCreationPath());
 
         ApplicationCVSnapshot snapshot = ApplicationCVSnapshot.builder()
@@ -149,7 +152,8 @@ public class ApplicationService {
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
 
-        // Ownership Check: Recruiter can only view applications for jobs belonging to their company
+        // Ownership Check: Recruiter can only view applications for jobs belonging to
+        // their company
         if (!job.getCompany().getId().equals(recruiter.getCompany().getId())) {
             throw new UnauthorizedAccessException("Recruiter does not own the company for this job posting");
         }
@@ -178,15 +182,18 @@ public class ApplicationService {
     }
 
     @Transactional
-    public ApplicationResponse updateApplicationStatus(User recruiterUser, UUID applicationId, UpdateApplicationStatusRequest request) {
+    public ApplicationResponse updateApplicationStatus(User recruiterUser, UUID applicationId,
+            UpdateApplicationStatusRequest request) {
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Application", "id", applicationId));
 
-        // Ownership Check: Recruiter can only modify applications for jobs belonging to their company
-        if (recruiter.getCompany() == null || !application.getJob().getCompany().getId().equals(recruiter.getCompany().getId())) {
+        // Ownership Check: Recruiter can only modify applications for jobs belonging to
+        // their company
+        if (recruiter.getCompany() == null
+                || !application.getJob().getCompany().getId().equals(recruiter.getCompany().getId())) {
             throw new UnauthorizedAccessException("Recruiter does not have permission to manage this application");
         }
 
@@ -209,14 +216,16 @@ public class ApplicationService {
     }
 
     @Transactional(readOnly = true)
-    public List<ApplicationResponse> getRankedApplicationsForJob(User recruiterUser, UUID jobId, BigDecimal minScoreFilter) {
+    public List<ApplicationResponse> getRankedApplicationsForJob(User recruiterUser, UUID jobId,
+            BigDecimal minScoreFilter) {
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
 
-        // Ownership Check: Recruiter can only view applications for jobs belonging to their company
+        // Ownership Check: Recruiter can only view applications for jobs belonging to
+        // their company
         if (recruiter.getCompany() == null || !job.getCompany().getId().equals(recruiter.getCompany().getId())) {
             throw new UnauthorizedAccessException("Recruiter does not own the company for this job posting");
         }
@@ -256,8 +265,10 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Application", "id", applicationId));
 
-        if (recruiter.getCompany() == null || !application.getJob().getCompany().getId().equals(recruiter.getCompany().getId())) {
-            throw new UnauthorizedAccessException("Recruiter does not have permission to view audit logs for this application");
+        if (recruiter.getCompany() == null
+                || !application.getJob().getCompany().getId().equals(recruiter.getCompany().getId())) {
+            throw new UnauthorizedAccessException(
+                    "Recruiter does not have permission to view audit logs for this application");
         }
 
         List<ApplicationAuditLog> logs = auditLogRepository.findByApplicationIdOrderByCreatedAtDesc(applicationId);

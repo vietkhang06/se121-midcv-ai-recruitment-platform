@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.*;
 
@@ -73,6 +74,19 @@ public class CVService {
             TextReader textReader,
             JdbcTemplate jdbcTemplate) {
         this(cvRepository, cvVersionRepository, cvSectionRepository, candidateProfileRepository, documents, textReader, jdbcTemplate, null, new ObjectMapper(), null);
+    }
+
+    public CVService(
+            CVRepository cvRepository,
+            CVVersionRepository cvVersionRepository,
+            CVSectionRepository cvSectionRepository,
+            CandidateProfileRepository candidateProfileRepository,
+            Documents documents,
+            TextReader textReader,
+            JdbcTemplate jdbcTemplate,
+            AiWorkerClient aiWorkerClient,
+            ObjectMapper objectMapper) {
+        this(cvRepository, cvVersionRepository, cvSectionRepository, candidateProfileRepository, documents, textReader, jdbcTemplate, aiWorkerClient, objectMapper, null);
     }
 
     @Transactional
@@ -176,7 +190,6 @@ public class CVService {
                 : "pdf";
         String storageKey = savedDoc.versionId() + "." + ext;
 
-        // 2. Operation A: Document extraction (pure local text layer / OCR, strictly NO LLM)
         byte[] fileBytes = new byte[0];
         try {
             if (file != null) {
@@ -184,92 +197,6 @@ public class CVService {
             }
         } catch (IOException ignored) {}
 
-        String extractedText = null;
-        String extractionMethod = "native-reader";
-        boolean isDegradedFallback = false;
-
-        if (aiWorkerClient != null && fileBytes.length > 0) {
-            try {
-                Map<String, Object> extractRes = aiWorkerClient.extractDocument(fileBytes, originalFileName, ext.toUpperCase(Locale.ROOT), null);
-                if (extractRes != null && ("EXTRACTED".equals(extractRes.get("status")) || "SUCCESS".equals(extractRes.get("status")))) {
-                    extractedText = (String) extractRes.get("rawText");
-                    if (extractedText == null || extractedText.isBlank()) {
-                        extractedText = (String) extractRes.get("text");
-                    }
-                    extractionMethod = (String) extractRes.getOrDefault("extractionMethod", "ai-worker");
-                }
-            } catch (Exception ex) {
-                log.warn("AI Worker extract-document call failed, falling back to native TextReader: {}", ex.getMessage());
-            }
-        }
-
-        if (extractedText == null || extractedText.isBlank()) {
-            TextReader.Extracted extracted = textReader.read(documents.path(storageKey));
-            extractedText = extracted.text();
-            extractionMethod = extracted.method();
-            isDegradedFallback = true;
-        }
-
-        if (extractedText == null || extractedText.isBlank()) {
-            throw new CustomException(ErrorCode.INVALID_FILE, "DOCUMENT_TEXT_EMPTY: Document text extraction yielded no readable text");
-        }
-
-        final String finalExtractedText = extractedText;
-        final String finalExtractionMethod = extractionMethod;
-
-        // 3. PERSIST RAW TEXT AND COMMIT (EXTRACTED state)
-        // Raw text is permanently saved in document_versions before LLM structuring is invoked
-        if (tx != null) {
-            tx.executeWithoutResult(status -> {
-                jdbcTemplate.update(
-                        "UPDATE document_versions SET raw_text=?, extraction_method=?, state='EXTRACTED' WHERE id=?",
-                        finalExtractedText, finalExtractionMethod, savedDoc.versionId()
-                );
-            });
-        } else {
-            jdbcTemplate.update(
-                    "UPDATE document_versions SET raw_text=?, extraction_method=?, state='EXTRACTED' WHERE id=?",
-                    finalExtractedText, finalExtractionMethod, savedDoc.versionId()
-            );
-        }
-
-        // 4. Operation B: CV structuring via LLM
-        Map<String, Object> aiResult = null;
-        boolean structuringSucceeded = false;
-        if (!isDegradedFallback && aiWorkerClient != null) {
-            try {
-                aiResult = aiWorkerClient.extractCv(savedDoc.documentId(), savedDoc.versionId(), null, null, finalExtractedText);
-                if (aiResult != null && "SUCCESS".equals(aiResult.get("status"))) {
-                    structuringSucceeded = true;
-                }
-            } catch (Exception ex) {
-                log.warn("AI Worker structuring failed, raw text is preserved: {}", ex.getMessage());
-            }
-        }
-
-        // 5. Update document_versions record with structuring outcome
-        if (structuringSucceeded && aiResult != null) {
-            try {
-                String normJson = objectMapper.writeValueAsString(aiResult);
-                jdbcTemplate.update(
-                        "UPDATE document_versions SET normalized=?::jsonb, state='READY' WHERE id=?",
-                        normJson, savedDoc.versionId()
-                );
-            } catch (Exception jsonErr) {
-                jdbcTemplate.update(
-                        "UPDATE document_versions SET state='READY' WHERE id=?",
-                        savedDoc.versionId()
-                );
-            }
-        } else {
-            // TextReader or failed LLM creates degraded extraction: EXTRACTED / STRUCTURING_FAILED
-            jdbcTemplate.update(
-                    "UPDATE document_versions SET state='STRUCTURING_FAILED', error_code='STRUCTURING_FAILED', error_message='Structuring incomplete, draft requires manual review' WHERE id=?",
-                    savedDoc.versionId()
-            );
-        }
-
-        // 6. Persist CV entity with synchronized IDs
         String filePath = documents.path(storageKey).toString();
         String contentType = (file != null && file.getContentType() != null && !file.getContentType().isBlank())
                 ? file.getContentType()
@@ -284,25 +211,265 @@ public class CVService {
                 .filePath(filePath)
                 .fileType(contentType)
                 .fileSize(file != null ? (int) file.getSize() : 0)
-                .status("PARSED")
-                .rawText(finalExtractedText)
+                .status("PROCESSING")
                 .isDefault(isDefault != null ? isDefault : false)
                 .build();
         cv.setId(savedDoc.documentId());
-
         CV savedCv = cvRepository.save(cv);
 
         CVVersion version = CVVersion.builder()
                 .cv(savedCv)
                 .versionNumber(savedDoc.versionNo())
                 .title(savedCv.getTitle() + " v" + savedDoc.versionNo() + ".0")
-                .rawTextContent(finalExtractedText)
                 .status("DRAFT")
                 .build();
         version.setId(savedDoc.versionId());
         version = cvVersionRepository.save(version);
 
-        // 7. Persist structured sections (DO NOT dump raw CV into SUMMARY section)
+        executeProcessingPipeline(candidateUser, candidate, savedCv, version, savedDoc, storageKey, fileBytes, originalFileName, ext);
+
+        CVResponse response = mapToResponse(savedCv);
+        response.setJobId(savedDoc.jobId());
+        response.setDocumentVersionId(savedDoc.versionId());
+        return response;
+    }
+
+    public void updateJobStage(UUID jobId, String stage, int progress, String message) {
+        if (jobId == null) return;
+        try {
+            jdbcTemplate.update(
+                    "UPDATE processing_jobs SET step=?, progress=?, updated_at=now() " +
+                    "WHERE id=? AND state != 'FAILED' AND progress <= ?",
+                    stage, progress, jobId, progress
+            );
+        } catch (Exception ex) {
+            log.warn("Failed to update processing job {} stage {}: {}", jobId, stage, ex.getMessage());
+        }
+    }
+
+    private boolean isRetryableErrorCode(String code) {
+        if (code == null) return false;
+        return switch (code) {
+            case "PRIMARY_NETWORK_ERROR", "PRIMARY_TIMEOUT", "PRIMARY_RESPONSE_EMPTY",
+                 "PRIMARY_RESPONSE_INVALID", "ALL_PROVIDERS_FAILED", "TRANSIENT_ERROR" -> true;
+            default -> false;
+        };
+    }
+
+    public CVUploadAsyncResponse uploadCVAsync(User candidateUser, MultipartFile file, String title, String targetIndustry, Boolean isDefault) {
+        if (file == null || file.isEmpty()) {
+            throw new CustomException(ErrorCode.INVALID_FILE, "FILE_EMPTY: File rỗng hoặc không tồn tại");
+        }
+        if (file.getSize() > 10 * 1024 * 1024) {
+            throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED, "FILE_TOO_LARGE: Dung lượng tệp vượt quá 10MB");
+        }
+
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        String originalFileName = Optional.ofNullable(file.getOriginalFilename()).orElse("document");
+        String cvTitle = (title != null && !title.isBlank()) ? title : originalFileName;
+
+        Documents.Saved savedDoc;
+        try {
+            savedDoc = documents.upload(candidateUser.getId(), "CV", cvTitle, file, null);
+        } catch (CustomException ce) {
+            throw ce;
+        } catch (Exception e) {
+            log.error("Failed to store uploaded file for candidate user {}: {}", candidateUser.getId(), e.getMessage(), e);
+            throw new CustomException(ErrorCode.FILE_STORAGE_FAILED, "Không thể lưu tệp CV lên hệ thống lưu trữ. Vui lòng thử lại.");
+        }
+
+        String ext = originalFileName.contains(".")
+                ? originalFileName.substring(originalFileName.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT)
+                : "pdf";
+        String storageKey = savedDoc.versionId() + "." + ext;
+        String filePath = documents.path(storageKey).toString();
+        String contentType = (file.getContentType() != null && !file.getContentType().isBlank())
+                ? file.getContentType()
+                : (ext.equals("docx") ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : "application/pdf");
+
+        CV cv = CV.builder()
+                .candidate(candidate)
+                .title(cvTitle)
+                .creationPath(CVCreationPath.UPLOAD)
+                .targetIndustry(targetIndustry)
+                .fileName(originalFileName)
+                .filePath(filePath)
+                .fileType(contentType)
+                .fileSize((int) file.getSize())
+                .status("PROCESSING")
+                .isDefault(isDefault != null ? isDefault : false)
+                .build();
+        cv.setId(savedDoc.documentId());
+        CV savedCv = cvRepository.save(cv);
+
+        CVVersion version = CVVersion.builder()
+                .cv(savedCv)
+                .versionNumber(savedDoc.versionNo())
+                .title(savedCv.getTitle() + " v" + savedDoc.versionNo() + ".0")
+                .status("DRAFT")
+                .build();
+        version.setId(savedDoc.versionId());
+        cvVersionRepository.save(version);
+
+        updateJobStage(savedDoc.jobId(), "UPLOADED", 5, "Đã tải tệp lên");
+
+        byte[] fileBytes;
+        try {
+            fileBytes = file.getBytes();
+        } catch (Exception ignored) {
+            fileBytes = new byte[0];
+        }
+        final byte[] capturedBytes = fileBytes;
+
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                executeProcessingPipeline(candidateUser, candidate, savedCv, version, savedDoc, storageKey, capturedBytes, originalFileName, ext);
+            } catch (Exception ex) {
+                log.error("Asynchronous CV pipeline processing failed: {}", ex.getMessage(), ex);
+                jdbcTemplate.update(
+                        "UPDATE processing_jobs SET state='FAILED', error_code='CV_PROCESSING_FAILED', error_message=?, updated_at=now() WHERE id=?",
+                        ex.getMessage(), savedDoc.jobId()
+                );
+            }
+        });
+
+        return CVUploadAsyncResponse.builder()
+                .cvId(savedDoc.documentId())
+                .versionId(savedDoc.versionId())
+                .jobId(savedDoc.jobId())
+                .status("UPLOADED")
+                .stage("UPLOADED")
+                .progress(5)
+                .build();
+    }
+
+    public void executeProcessingPipeline(
+            User candidateUser,
+            CandidateProfile candidate,
+            CV cv,
+            CVVersion version,
+            Documents.Saved savedDoc,
+            String storageKey,
+            byte[] fileBytes,
+            String originalFileName,
+            String ext
+    ) {
+        updateJobStage(savedDoc.jobId(), "VALIDATING_FILE", 10, "Đang kiểm tra tệp");
+
+        updateJobStage(savedDoc.jobId(), "EXTRACTING_TEXT", 20, "Đang trích xuất văn bản từ CV");
+
+        String extractedText = null;
+        String extractionMethod = "native-reader";
+        boolean isDegradedFallback = false;
+        boolean ocrUsed = false;
+
+        if (aiWorkerClient != null && fileBytes.length > 0) {
+            try {
+                Map<String, Object> extractRes = aiWorkerClient.extractDocument(fileBytes, originalFileName, ext.toUpperCase(Locale.ROOT), null);
+                if (extractRes != null && ("EXTRACTED".equals(extractRes.get("status")) || "SUCCESS".equals(extractRes.get("status")))) {
+                    extractedText = (String) extractRes.get("rawText");
+                    if (extractedText == null || extractedText.isBlank()) {
+                        extractedText = (String) extractRes.get("text");
+                    }
+                    extractionMethod = (String) extractRes.getOrDefault("extractionMethod", "ai-worker");
+                    if (Boolean.TRUE.equals(extractRes.get("ocrUsed"))) {
+                        ocrUsed = true;
+                    }
+                }
+            } catch (Exception ex) {
+                log.warn("AI Worker extract-document call failed, falling back to native TextReader: {}", ex.getMessage());
+            }
+        }
+
+        if (ocrUsed) {
+            updateJobStage(savedDoc.jobId(), "OCR_PROCESSING", 35, "Đang OCR tài liệu");
+        }
+
+        if (extractedText == null || extractedText.isBlank()) {
+            TextReader.Extracted extracted = textReader.read(documents.path(storageKey));
+            extractedText = extracted.text();
+            extractionMethod = extracted.method();
+            isDegradedFallback = true;
+        }
+
+        if (extractedText == null || extractedText.isBlank()) {
+            jdbcTemplate.update(
+                    "UPDATE processing_jobs SET state='FAILED', step='EXTRACTING_TEXT', error_code='EXTRACTION_EMPTY', error_message='Document text extraction yielded no readable text', updated_at=now() WHERE id=?",
+                    savedDoc.jobId()
+            );
+            throw new CustomException(ErrorCode.INVALID_FILE, "DOCUMENT_TEXT_EMPTY: Document text extraction yielded no readable text");
+        }
+
+        final String finalExtractedText = extractedText;
+        final String finalExtractionMethod = extractionMethod;
+
+        // Persist raw text permanently in document_versions before calling LLM
+        if (tx != null) {
+            tx.executeWithoutResult(status -> {
+                jdbcTemplate.update(
+                        "UPDATE document_versions SET raw_text=?, extraction_method=?, state='EXTRACTED' WHERE id=?",
+                        finalExtractedText, finalExtractionMethod, savedDoc.versionId()
+                );
+            });
+        } else {
+            jdbcTemplate.update(
+                    "UPDATE document_versions SET raw_text=?, extraction_method=?, state='EXTRACTED' WHERE id=?",
+                    finalExtractedText, finalExtractionMethod, savedDoc.versionId()
+            );
+        }
+
+        updateJobStage(savedDoc.jobId(), "RAW_TEXT_SAVED", 45, "Đã lưu văn bản");
+
+        updateJobStage(savedDoc.jobId(), "STRUCTURING_CV", 55, "Đang cấu trúc hồ sơ bằng AI");
+
+        Map<String, Object> aiResult = null;
+        boolean structuringSucceeded = false;
+        if (!isDegradedFallback && aiWorkerClient != null) {
+            try {
+                aiResult = aiWorkerClient.extractCv(savedDoc.documentId(), savedDoc.versionId(), null, null, finalExtractedText);
+                if (aiResult != null && "SUCCESS".equals(aiResult.get("status"))) {
+                    structuringSucceeded = true;
+                }
+            } catch (Exception ex) {
+                log.warn("AI Worker structuring failed, raw text is preserved: {}", ex.getMessage());
+            }
+        }
+
+        updateJobStage(savedDoc.jobId(), "VALIDATING_STRUCTURE", 75, "Đang kiểm tra dữ liệu");
+
+        if (structuringSucceeded && aiResult != null) {
+            try {
+                String normJson = objectMapper.writeValueAsString(aiResult);
+                jdbcTemplate.update(
+                        "UPDATE document_versions SET normalized=?::jsonb, state='READY' WHERE id=?",
+                        normJson, savedDoc.versionId()
+                );
+            } catch (Exception jsonErr) {
+                jdbcTemplate.update(
+                        "UPDATE document_versions SET state='READY' WHERE id=?",
+                        savedDoc.versionId()
+                );
+            }
+        } else {
+            jdbcTemplate.update(
+                    "UPDATE document_versions SET state='STRUCTURING_FAILED', error_code='STRUCTURING_FAILED', error_message='Structuring incomplete, draft requires manual review' WHERE id=?",
+                    savedDoc.versionId()
+            );
+        }
+
+        updateJobStage(savedDoc.jobId(), "SAVING_DRAFT", 90, "Đang tạo bản nháp");
+
+        cv.setRawText(finalExtractedText);
+        cv.setStatus("PARSED");
+        cvRepository.save(cv);
+
+        version.setRawTextContent(finalExtractedText);
+        version.setStatus("DRAFT");
+        cvVersionRepository.save(version);
+
+        // Persist structured sections (DO NOT dump raw CV into SUMMARY section)
         if (aiResult != null && aiResult.get("skills") instanceof List<?> skillsList && !skillsList.isEmpty()) {
             try {
                 cvSectionRepository.save(CVSection.builder()
@@ -331,7 +498,6 @@ public class CVService {
             } catch (Exception ignored) {}
         }
 
-        // Summary section stores strictly the extracted candidate summary/bio, NEVER full raw text
         String candidateSummary = "";
         if (aiResult != null && aiResult.get("summary") != null) {
             candidateSummary = aiResult.get("summary").toString();
@@ -346,10 +512,118 @@ public class CVService {
                     .build());
         }
 
-        CVResponse response = mapToResponse(savedCv);
-        response.setJobId(savedDoc.jobId());
-        response.setDocumentVersionId(savedDoc.versionId());
-        return response;
+        updateJobStage(savedDoc.jobId(), "NEEDS_REVIEW", 100, "Sẵn sàng để bạn kiểm tra");
+        jdbcTemplate.update(
+                "UPDATE processing_jobs SET state='DONE', step='NEEDS_REVIEW', progress=100, updated_at=now() WHERE id=?",
+                savedDoc.jobId()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public CVProcessingStatusResponse getProcessingStatus(User candidateUser, UUID cvId) {
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        CV cv = cvRepository.findById(cvId)
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
+
+        if (!cv.getCandidate().getId().equals(candidate.getId())) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED, "FORBIDDEN_RESOURCE: You do not own this CV");
+        }
+
+        List<Map<String, Object>> jobs = jdbcTemplate.queryForList(
+                "SELECT j.* FROM processing_jobs j " +
+                "JOIN cv_versions v ON v.id = j.entity_id " +
+                "WHERE v.cv_id = ? ORDER BY j.created_at DESC LIMIT 1",
+                cvId
+        );
+
+        if (jobs.isEmpty()) {
+            List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+            if (!versions.isEmpty()) {
+                CVVersion latest = versions.get(0);
+                if ("CONFIRMED".equals(latest.getStatus())) {
+                    return CVProcessingStatusResponse.builder()
+                            .cvId(cvId)
+                            .status("CONFIRMED")
+                            .stage("CONFIRMED")
+                            .progress(100)
+                            .message("Hồ sơ đã được bạn xác nhận")
+                            .retryable(false)
+                            .updatedAt(Instant.now())
+                            .build();
+                } else if ("DRAFT".equals(latest.getStatus())) {
+                    return CVProcessingStatusResponse.builder()
+                            .cvId(cvId)
+                            .status("COMPLETED")
+                            .stage("NEEDS_REVIEW")
+                            .progress(100)
+                            .message("Sẵn sàng để bạn kiểm tra")
+                            .retryable(false)
+                            .updatedAt(Instant.now())
+                            .build();
+                }
+            }
+            return CVProcessingStatusResponse.builder()
+                    .cvId(cvId)
+                    .status("UPLOADED")
+                    .stage("UPLOADED")
+                    .progress(5)
+                    .message("Đã tải tệp lên")
+                    .retryable(false)
+                    .updatedAt(Instant.now())
+                    .build();
+        }
+
+        Map<String, Object> job = jobs.get(0);
+        UUID jobId = (UUID) job.get("id");
+        String state = Objects.toString(job.get("state"), "QUEUED");
+        String step = Objects.toString(job.get("step"), "UPLOADED");
+        int progress = job.get("progress") != null ? ((Number) job.get("progress")).intValue() : 5;
+        String errorCode = (String) job.get("error_code");
+        String errorMessage = (String) job.get("error_message");
+        java.sql.Timestamp updatedAtTs = (java.sql.Timestamp) job.get("updated_at");
+        Instant updatedAt = updatedAtTs != null ? updatedAtTs.toInstant() : Instant.now();
+        String correlationId = Objects.toString(job.get("request_id"), UUID.randomUUID().toString());
+
+        String message;
+        boolean retryable = false;
+
+        if ("FAILED".equals(state)) {
+            message = errorMessage != null ? errorMessage : "Quá trình xử lý hồ sơ gặp lỗi";
+            retryable = isRetryableErrorCode(errorCode);
+        } else if ("DONE".equals(state) || "COMPLETED".equals(state) || progress >= 100) {
+            state = "COMPLETED";
+            step = "NEEDS_REVIEW";
+            progress = 100;
+            message = "Sẵn sàng để bạn kiểm tra";
+        } else {
+            state = "PROCESSING";
+            switch (step) {
+                case "UPLOADED" -> { progress = Math.max(progress, 5); message = "Đã tải tệp lên"; }
+                case "VALIDATING_FILE" -> { progress = Math.max(progress, 10); message = "Đang kiểm tra tệp"; }
+                case "EXTRACTING_TEXT" -> { progress = Math.max(progress, 20); message = "Đang trích xuất văn bản từ CV"; }
+                case "OCR_PROCESSING" -> { progress = Math.max(progress, 35); message = "Đang OCR tài liệu"; }
+                case "RAW_TEXT_SAVED" -> { progress = Math.max(progress, 45); message = "Đã lưu văn bản"; }
+                case "STRUCTURING_CV" -> { progress = Math.max(progress, 55); message = "Đang cấu trúc hồ sơ bằng AI"; }
+                case "VALIDATING_STRUCTURE" -> { progress = Math.max(progress, 75); message = "Đang kiểm tra dữ liệu"; }
+                case "SAVING_DRAFT" -> { progress = Math.max(progress, 90); message = "Đang tạo bản nháp"; }
+                default -> { progress = Math.max(progress, 25); message = "Đang xử lý hồ sơ"; }
+            }
+        }
+
+        return CVProcessingStatusResponse.builder()
+                .cvId(cvId)
+                .jobId(jobId)
+                .status(state)
+                .stage(step)
+                .progress(progress)
+                .message(message)
+                .retryable(retryable)
+                .errorCode(errorCode)
+                .correlationId(correlationId)
+                .updatedAt(updatedAt)
+                .build();
     }
 
     @Transactional(readOnly = true)

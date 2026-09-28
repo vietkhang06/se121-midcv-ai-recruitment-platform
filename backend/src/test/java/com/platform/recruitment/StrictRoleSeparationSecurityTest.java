@@ -92,7 +92,8 @@ public class StrictRoleSeparationSecurityTest {
         jobA = Job.builder().company(companyA).title("Principal Backend Engineer").build();
         jobA.setId(UUID.randomUUID());
 
-        CandidateProfile candProfile1 = CandidateProfile.builder().user(candidateUser1).fullName("Candidate One").build();
+        CandidateProfile candProfile1 = CandidateProfile.builder().user(candidateUser1).fullName("Candidate One")
+                .build();
         candProfile1.setId(UUID.randomUUID());
 
         appCand1JobA = Application.builder().candidate(candProfile1).job(jobA).build();
@@ -104,8 +105,7 @@ public class StrictRoleSeparationSecurityTest {
     void testCandidateAccessingHrRankingEndpoint_Rejected() {
         UnauthorizedAccessException ex = assertThrows(
                 UnauthorizedAccessException.class,
-                () -> matchingController.getCandidateRankings(candidateUser1, jobA.getId(), null)
-        );
+                () -> matchingController.getCandidateRankings(candidateUser1, jobA.getId(), null));
         assertTrue(ex.getMessage().contains("Ứng viên không có quyền truy cập xếp hạng ứng viên của nhà tuyển dụng"));
         verifyNoInteractions(candidateRankingService);
     }
@@ -115,8 +115,7 @@ public class StrictRoleSeparationSecurityTest {
     void testUnauthenticatedAccess_Rejected() {
         UnauthorizedAccessException ex = assertThrows(
                 UnauthorizedAccessException.class,
-                () -> matchingController.getCandidateRankings(null, jobA.getId(), null)
-        );
+                () -> matchingController.getCandidateRankings(null, jobA.getId(), null));
         assertTrue(ex.getMessage().contains("Vui lòng đăng nhập"));
     }
 
@@ -128,8 +127,7 @@ public class StrictRoleSeparationSecurityTest {
 
         UnauthorizedAccessException ex = assertThrows(
                 UnauthorizedAccessException.class,
-                () -> matchingController.getCandidateRankings(hrUserB, jobA.getId(), null)
-        );
+                () -> matchingController.getCandidateRankings(hrUserB, jobA.getId(), null));
         assertTrue(ex.getMessage().contains("Recruiter does not own the company"));
         verifyNoInteractions(candidateRankingService);
     }
@@ -151,8 +149,7 @@ public class StrictRoleSeparationSecurityTest {
 
         UnauthorizedAccessException ex = assertThrows(
                 UnauthorizedAccessException.class,
-                () -> matchingController.getMatchInspection(candidateUser2, appCand1JobA.getId())
-        );
+                () -> matchingController.getMatchInspection(candidateUser2, appCand1JobA.getId()));
         assertTrue(ex.getMessage().contains("Candidate cannot inspect another candidate's application"));
         verifyNoInteractions(matchingEngineService);
     }
@@ -174,8 +171,7 @@ public class StrictRoleSeparationSecurityTest {
 
         UnauthorizedAccessException ex = assertThrows(
                 UnauthorizedAccessException.class,
-                () -> matchingController.getMatchInspection(hrUserB, appCand1JobA.getId())
-        );
+                () -> matchingController.getMatchInspection(hrUserB, appCand1JobA.getId()));
         assertTrue(ex.getMessage().contains("Recruiter does not own the company"));
         verifyNoInteractions(matchingEngineService);
     }
@@ -185,9 +181,11 @@ public class StrictRoleSeparationSecurityTest {
     void testHrAccessingAdminController_Rejected() {
         com.platform.recruitment.ai.AiClient mockAiClient = mock(com.platform.recruitment.ai.AiClient.class);
         com.platform.recruitment.event.Events mockEvents = mock(com.platform.recruitment.event.Events.class);
-        com.platform.recruitment.admin.AdminController adminController = new com.platform.recruitment.admin.AdminController(mockAiClient, mockEvents);
+        com.platform.recruitment.admin.AdminController adminController = new com.platform.recruitment.admin.AdminController(
+                mockAiClient, mockEvents);
 
-        org.springframework.security.core.Authentication auth = mock(org.springframework.security.core.Authentication.class);
+        org.springframework.security.core.Authentication auth = mock(
+                org.springframework.security.core.Authentication.class);
         when(auth.isAuthenticated()).thenReturn(true);
         when(auth.getPrincipal()).thenReturn(hrUserA);
         org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(auth);
@@ -195,8 +193,7 @@ public class StrictRoleSeparationSecurityTest {
         try {
             com.platform.recruitment.common.CustomException ex = assertThrows(
                     com.platform.recruitment.common.CustomException.class,
-                    adminController::getSettings
-            );
+                    adminController::getSettings);
             assertEquals(com.platform.recruitment.common.ErrorCode.ACCESS_DENIED, ex.getErrorCode());
         } finally {
             org.springframework.security.core.context.SecurityContextHolder.clearContext();
@@ -208,19 +205,21 @@ public class StrictRoleSeparationSecurityTest {
     void testAdminAccessingAdminController_Success() {
         com.platform.recruitment.ai.AiClient mockAiClient = mock(com.platform.recruitment.ai.AiClient.class);
         com.platform.recruitment.event.Events mockEvents = mock(com.platform.recruitment.event.Events.class);
-        com.platform.recruitment.admin.AdminController adminController = new com.platform.recruitment.admin.AdminController(mockAiClient, mockEvents);
+        com.platform.recruitment.admin.AdminController adminController = new com.platform.recruitment.admin.AdminController(
+                mockAiClient, mockEvents);
 
         User adminUser = User.builder().email("root@midcv.io").role(Role.ADMIN).isActive(true).build();
         adminUser.setId(UUID.randomUUID());
 
-        org.springframework.security.core.Authentication auth = mock(org.springframework.security.core.Authentication.class);
+        org.springframework.security.core.Authentication auth = mock(
+                org.springframework.security.core.Authentication.class);
         when(auth.isAuthenticated()).thenReturn(true);
         when(auth.getPrincipal()).thenReturn(adminUser);
         org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(auth);
 
         when(mockAiClient.getSettings()).thenReturn(new com.platform.recruitment.ai.AiClient.SystemAiSettings(
-                "LOCAL_OLLAMA", "http://localhost:11434", "granite", "https://api.openai.com/v1", null, "gpt-4o-mini", "LOCAL_OLLAMA", "bge-m3"
-        ));
+                "LOCAL_OLLAMA", "http://localhost:11434", "granite", "https://api.openai.com/v1", null, "gpt-4o-mini",
+                "LOCAL_OLLAMA", "bge-m3"));
 
         try {
             var settings = adminController.getSettings();
@@ -234,8 +233,8 @@ public class StrictRoleSeparationSecurityTest {
     @Test
     @DisplayName("PasswordEncoder: Verify BCryptPasswordEncoder strength 10 operates dynamically")
     void testDynamicBCryptPasswordEncoder() {
-        org.springframework.security.crypto.password.PasswordEncoder encoder =
-                new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(10);
+        org.springframework.security.crypto.password.PasswordEncoder encoder = new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(
+                10);
         String testPassword = "test-sample-password-fixture";
         String encoded = encoder.encode(testPassword);
         assertTrue(encoder.matches(testPassword, encoded));

@@ -101,10 +101,12 @@ class ApplicationSnapshotImmutableTest {
                 .title("Original Java CV v1.0")
                 .creationPath(CVCreationPath.BUILDER)
                 .rawText("Skill: Java 17, Spring Boot. Experience: 2 Years.")
+                .status("CONFIRMED")
                 .build();
         originalCV.setId(UUID.randomUUID());
 
-        CVVersion version = CVVersion.builder().cv(originalCV).versionNumber(1).rawTextContent(originalCV.getRawText()).build();
+        // AC-P3-04: CVVersion must be CONFIRMED to pass the confirmation gate
+        CVVersion version = CVVersion.builder().cv(originalCV).versionNumber(1).rawTextContent(originalCV.getRawText()).status("CONFIRMED").build();
         version.setId(UUID.randomUUID());
         lenient().when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(any())).thenReturn(List.of(version));
     }

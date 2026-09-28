@@ -19,12 +19,23 @@ public class CVController {
 
     private final CVService cvService;
 
-    @PostMapping
+    @PostMapping(consumes = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<CVResponse>> createCV(
             @AuthenticationPrincipal User currentUser,
             @Valid @RequestBody CreateCVRequest request) {
         CVResponse response = cvService.createCV(currentUser, request);
         return new ResponseEntity<>(ApiResponse.success("CV created successfully", response), HttpStatus.CREATED);
+    }
+
+    @PostMapping(consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<CVUploadAsyncResponse>> uploadCVMultipart(
+            @AuthenticationPrincipal User currentUser,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "title", required = false) String title,
+            @RequestParam(value = "targetIndustry", required = false) String targetIndustry,
+            @RequestParam(value = "isDefault", required = false, defaultValue = "false") Boolean isDefault) {
+        CVUploadAsyncResponse response = cvService.uploadCVAsync(currentUser, file, title, targetIndustry, isDefault);
+        return new ResponseEntity<>(ApiResponse.success("CV upload accepted for asynchronous processing", response), HttpStatus.ACCEPTED);
     }
 
     @GetMapping
@@ -34,14 +45,22 @@ public class CVController {
     }
 
     @PostMapping(value = "/upload", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<CVResponse>> uploadCV(
+    public ResponseEntity<ApiResponse<CVUploadAsyncResponse>> uploadCV(
             @AuthenticationPrincipal User currentUser,
             @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "targetIndustry", required = false) String targetIndustry,
             @RequestParam(value = "isDefault", required = false, defaultValue = "false") Boolean isDefault) {
-        CVResponse response = cvService.uploadCV(currentUser, file, title, targetIndustry, isDefault);
-        return new ResponseEntity<>(ApiResponse.success("CV uploaded successfully", response), HttpStatus.CREATED);
+        CVUploadAsyncResponse response = cvService.uploadCVAsync(currentUser, file, title, targetIndustry, isDefault);
+        return new ResponseEntity<>(ApiResponse.success("CV upload accepted for asynchronous processing", response), HttpStatus.ACCEPTED);
+    }
+
+    @GetMapping("/{id}/processing-status")
+    public ResponseEntity<ApiResponse<CVProcessingStatusResponse>> getProcessingStatus(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        CVProcessingStatusResponse response = cvService.getProcessingStatus(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/{id}")
