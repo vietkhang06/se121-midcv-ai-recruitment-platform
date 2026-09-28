@@ -9,13 +9,19 @@ from app.schemas.taxonomy import (
     SkillNormalizeResponse,
     AutocompleteResponse
 )
-from app.schemas.matching import SemanticCompareRequest, SemanticCompareResponse
+from app.schemas.matching import (
+    SemanticCompareRequest,
+    SemanticCompareResponse,
+    ExplainScoreRequest,
+    ExplainScoreResponse
+)
 from app.services.jd_parser import JDParser
 from app.services.cv_parser import CVParser
 from app.services.document_extractor import DocumentExtractor
 from app.services.github_analyzer import GitHubAnalyzer
 from app.services.taxonomy_normalizer import TaxonomyNormalizer
 from app.services.semantic_matching_service import SemanticMatchingService
+from app.services.score_explainer_service import ScoreExplainerService
 from app.services.llm.openai_compatible_client import OpenAICompatibleClient
 from app.api.dev_endpoints import dev_router
 from app.config import settings
@@ -45,6 +51,7 @@ if settings.LLM_PRIMARY_ENABLED and settings.LLM_PRIMARY_API_KEY:
         logger.warning(f"Failed to initialize LLM client for taxonomy normalizer: {e}")
 
 taxonomy_normalizer = TaxonomyNormalizer(llm_client=primary_llm_client)
+score_explainer_service = ScoreExplainerService(llm_client=primary_llm_client)
 
 import httpx
 
@@ -193,4 +200,20 @@ def semantic_compare(request: SemanticCompareRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Semantic Comparison Error: {str(e)}"
         )
+
+@router.post("/matching/explain-score", response_model=ExplainScoreResponse)
+def explain_score(request: ExplainScoreRequest):
+    try:
+        logger.info(
+            f"Received Score Explanation request for score {request.overall_score} "
+            f"on job '{request.target_job_title}'"
+        )
+        return score_explainer_service.explain(request)
+    except Exception as e:
+        logger.error(f"Score explanation failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Score Explanation Error: {str(e)}"
+        )
+
 
