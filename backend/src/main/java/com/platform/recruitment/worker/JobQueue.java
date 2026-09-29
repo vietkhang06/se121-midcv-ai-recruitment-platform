@@ -125,7 +125,7 @@ public class JobQueue {
   public void complete(UUID job, UUID worker) {
     requireUpdated(jdbc.update(
         "UPDATE processing_jobs SET"
-            + " state='SUCCEEDED',step='DONE',progress=100,locked_by=NULL,lease_until=NULL,error_code=NULL,error_message=NULL,updated_at=now()"
+            + " state='SUCCEEDED',step='SUCCEEDED',progress=100,locked_by=NULL,lease_until=NULL,error_code=NULL,error_message=NULL,updated_at=now()"
             + " WHERE id=? AND locked_by=? AND state='RUNNING' AND lease_until>now()",
         job, worker));
   }

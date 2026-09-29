@@ -616,14 +616,37 @@ public class CVService {
         String message;
         boolean retryable = false;
 
-        if ("FAILED".equals(state)) {
+        boolean isSucceeded = "SUCCEEDED".equals(state) || "COMPLETED".equals(state);
+        if (isSucceeded || progress >= 100) {
+            // Requirement PHẦN 3: Chỉ trả NEEDS_REVIEW/progress=100 khi:
+            // a. raw_text đã được lưu.
+            // b. structured_json_content hợp lệ (không rỗng, đúng schema tối thiểu).
+            // c. DRAFT CV đã được lưu thành công.
+            boolean rawTextSaved = cv.getRawText() != null && !cv.getRawText().isBlank();
+            List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+            boolean draftSaved = !versions.isEmpty() && ("DRAFT".equals(versions.get(0).getStatus()) || "CONFIRMED".equals(versions.get(0).getStatus()));
+            boolean structuredJsonValid = !versions.isEmpty() && versions.get(0).getStructuredJsonContent() != null && !versions.get(0).getStructuredJsonContent().isBlank();
+
+            if (rawTextSaved && draftSaved && structuredJsonValid) {
+                state = "COMPLETED";
+                step = "NEEDS_REVIEW";
+                progress = 100;
+                message = "Sẵn sàng để bạn kiểm tra";
+            } else if ("FAILED".equals(state) || "FAILED".equals(cv.getStatus())) {
+                state = "FAILED";
+                step = "FAILED";
+                message = errorMessage != null ? errorMessage : "Quá trình xử lý hồ sơ gặp lỗi";
+                retryable = isRetryableErrorCode(errorCode);
+            } else {
+                state = "PROCESSING";
+                progress = Math.min(progress, 90);
+                message = "Đang xử lý hồ sơ";
+            }
+        } else if ("FAILED".equals(state) || "FAILED".equals(cv.getStatus())) {
+            state = "FAILED";
+            step = "FAILED";
             message = errorMessage != null ? errorMessage : "Quá trình xử lý hồ sơ gặp lỗi";
             retryable = isRetryableErrorCode(errorCode);
-        } else if ("DONE".equals(state) || "COMPLETED".equals(state) || "SUCCEEDED".equals(state) || progress >= 100) {
-            state = "COMPLETED";
-            step = "NEEDS_REVIEW";
-            progress = 100;
-            message = "Sẵn sàng để bạn kiểm tra";
         } else {
             state = "PROCESSING";
             switch (step) {
