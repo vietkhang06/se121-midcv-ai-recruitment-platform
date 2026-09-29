@@ -569,7 +569,17 @@ public class CVService {
             List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
             if (!versions.isEmpty()) {
                 CVVersion latest = versions.get(0);
-                if ("CONFIRMED".equals(latest.getStatus())) {
+                if ("FAILED".equals(latest.getStatus()) || "FAILED".equals(cv.getStatus())) {
+                    return CVProcessingStatusResponse.builder()
+                            .cvId(cvId)
+                            .status("FAILED")
+                            .stage("FAILED")
+                            .progress(0)
+                            .message("Quá trình xử lý hồ sơ gặp lỗi")
+                            .retryable(true)
+                            .updatedAt(Instant.now())
+                            .build();
+                } else if ("CONFIRMED".equals(latest.getStatus())) {
                     return CVProcessingStatusResponse.builder()
                             .cvId(cvId)
                             .status("CONFIRMED")
@@ -580,16 +590,41 @@ public class CVService {
                             .updatedAt(Instant.now())
                             .build();
                 } else if ("DRAFT".equals(latest.getStatus())) {
-                    return CVProcessingStatusResponse.builder()
-                            .cvId(cvId)
-                            .status("COMPLETED")
-                            .stage("NEEDS_REVIEW")
-                            .progress(100)
-                            .message("Sẵn sàng để bạn kiểm tra")
-                            .retryable(false)
-                            .updatedAt(Instant.now())
-                            .build();
+                    boolean rawTextSaved = cv.getRawText() != null && !cv.getRawText().isBlank();
+                    boolean structuredJsonValid = latest.getStructuredJsonContent() != null && !latest.getStructuredJsonContent().isBlank();
+                    if (rawTextSaved && structuredJsonValid) {
+                        return CVProcessingStatusResponse.builder()
+                                .cvId(cvId)
+                                .status("COMPLETED")
+                                .stage("NEEDS_REVIEW")
+                                .progress(100)
+                                .message("Sẵn sàng để bạn kiểm tra")
+                                .retryable(false)
+                                .updatedAt(Instant.now())
+                                .build();
+                    } else {
+                        return CVProcessingStatusResponse.builder()
+                                .cvId(cvId)
+                                .status("PROCESSING")
+                                .stage("PROCESSING")
+                                .progress(50)
+                                .message("Đang xử lý hồ sơ")
+                                .retryable(false)
+                                .updatedAt(Instant.now())
+                                .build();
+                    }
                 }
+            }
+            if ("FAILED".equals(cv.getStatus())) {
+                return CVProcessingStatusResponse.builder()
+                        .cvId(cvId)
+                        .status("FAILED")
+                        .stage("FAILED")
+                        .progress(0)
+                        .message("Quá trình xử lý hồ sơ gặp lỗi")
+                        .retryable(true)
+                        .updatedAt(Instant.now())
+                        .build();
             }
             return CVProcessingStatusResponse.builder()
                     .cvId(cvId)

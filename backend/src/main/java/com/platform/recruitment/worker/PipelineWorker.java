@@ -49,6 +49,7 @@ public class PipelineWorker {
   private final CVVersionRepository cvVersionRepository;
   private final CVSectionRepository cvSectionRepository;
 
+  @org.springframework.beans.factory.annotation.Autowired
   public PipelineWorker(
       JdbcTemplate jdbc,
       ObjectMapper mapper,

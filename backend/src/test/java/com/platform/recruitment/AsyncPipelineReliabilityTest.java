@@ -292,7 +292,7 @@ public class AsyncPipelineReliabilityTest {
         UUID jobId = UUID.randomUUID();
 
         when(jdbcTemplate.update(
-                contains("UPDATE processing_jobs SET state='SUCCEEDED',step='DONE',progress=100,locked_by=NULL,lease_until=NULL"),
+                contains("UPDATE processing_jobs SET state='SUCCEEDED',step='SUCCEEDED',progress=100,locked_by=NULL,lease_until=NULL"),
                 eq(jobId),
                 eq(workerId)
         )).thenReturn(1);
@@ -300,7 +300,7 @@ public class AsyncPipelineReliabilityTest {
         assertDoesNotThrow(() -> queue.complete(jobId, workerId));
 
         verify(jdbcTemplate).update(
-                contains("state='SUCCEEDED',step='DONE'"),
+                contains("state='SUCCEEDED',step='SUCCEEDED'"),
                 eq(jobId),
                 eq(workerId)
         );
