@@ -327,26 +327,6 @@ public class CVService {
 
         updateJobStage(savedDoc.jobId(), "UPLOADED", 5, "Đã tải tệp lên");
 
-        byte[] fileBytes;
-        try {
-            fileBytes = file.getBytes();
-        } catch (Exception ignored) {
-            fileBytes = new byte[0];
-        }
-        final byte[] capturedBytes = fileBytes;
-
-        java.util.concurrent.CompletableFuture.runAsync(() -> {
-            try {
-                executeProcessingPipeline(candidateUser, candidate, savedCv, savedVersion, savedDoc, storageKey, capturedBytes, originalFileName, ext);
-            } catch (Exception ex) {
-                log.error("Asynchronous CV pipeline processing failed: {}", ex.getMessage(), ex);
-                jdbcTemplate.update(
-                        "UPDATE processing_jobs SET state='FAILED', error_code='CV_PROCESSING_FAILED', error_message=?, updated_at=now() WHERE id=?",
-                        ex.getMessage(), savedDoc.jobId()
-                );
-            }
-        });
-
         return CVUploadAsyncResponse.builder()
                 .cvId(savedCv.getId())
                 .versionId(savedVersion.getId())
@@ -440,8 +420,10 @@ public class CVService {
         boolean structuringSucceeded = false;
         if (!isDegradedFallback && aiWorkerClient != null) {
             try {
-                aiResult = aiWorkerClient.extractCv(savedDoc.documentId(), savedDoc.versionId(), null, null, finalExtractedText);
-                if (aiResult != null && "SUCCESS".equals(aiResult.get("status"))) {
+                String correlationId = UUID.randomUUID().toString();
+                Map<String, Object> structRes = aiWorkerClient.structureCv(finalExtractedText, savedDoc.versionId(), correlationId);
+                if (structRes != null && Boolean.TRUE.equals(structRes.get("success")) && structRes.get("data") instanceof Map<?, ?> dataMap) {
+                    aiResult = (Map<String, Object>) dataMap;
                     structuringSucceeded = true;
                 }
             } catch (Exception ex) {
@@ -450,6 +432,8 @@ public class CVService {
         }
 
         updateJobStage(savedDoc.jobId(), "VALIDATING_STRUCTURE", 75, "Đang kiểm tra dữ liệu");
+
+        boolean llmAttempted = (!isDegradedFallback && aiWorkerClient != null);
 
         if (structuringSucceeded && aiResult != null) {
             try {
@@ -464,71 +448,102 @@ public class CVService {
                         savedDoc.versionId()
                 );
             }
-        } else {
+
+            updateJobStage(savedDoc.jobId(), "SAVING_DRAFT", 90, "Đang tạo bản nháp");
+
+            cv.setRawText(finalExtractedText);
+            cv.setStatus("PARSED");
+            cvRepository.save(cv);
+
+            version.setRawTextContent(finalExtractedText);
+            version.setStatus("DRAFT");
+            try {
+                version.setStructuredJsonContent(objectMapper.writeValueAsString(aiResult));
+            } catch (Exception ignored) {}
+            cvVersionRepository.save(version);
+
+            // Persist structured sections (DO NOT dump raw CV into SUMMARY section)
+            if (aiResult.get("skills") instanceof List<?> skillsList && !skillsList.isEmpty()) {
+                try {
+                    cvSectionRepository.save(CVSection.builder()
+                            .cvVersion(version)
+                            .sectionType("SKILLS")
+                            .content(objectMapper.writeValueAsString(skillsList))
+                            .build());
+                } catch (Exception ignored) {}
+            }
+            if (aiResult.get("experiences") instanceof List<?> expList && !expList.isEmpty()) {
+                try {
+                    cvSectionRepository.save(CVSection.builder()
+                            .cvVersion(version)
+                            .sectionType("EXPERIENCE")
+                            .content(objectMapper.writeValueAsString(expList))
+                            .build());
+                } catch (Exception ignored) {}
+            }
+            if (aiResult.get("educations") instanceof List<?> eduList && !eduList.isEmpty()) {
+                try {
+                    cvSectionRepository.save(CVSection.builder()
+                            .cvVersion(version)
+                            .sectionType("EDUCATION")
+                            .content(objectMapper.writeValueAsString(eduList))
+                            .build());
+                } catch (Exception ignored) {}
+            }
+
+            String candidateSummary = "";
+            if (aiResult.get("summary") != null) {
+                candidateSummary = aiResult.get("summary").toString();
+            } else if (aiResult.get("bio") != null) {
+                candidateSummary = aiResult.get("bio").toString();
+            }
+            if (!candidateSummary.isBlank()) {
+                cvSectionRepository.save(CVSection.builder()
+                        .cvVersion(version)
+                        .sectionType("SUMMARY")
+                        .content(candidateSummary)
+                        .build());
+            }
+
+            updateJobStage(savedDoc.jobId(), "NEEDS_REVIEW", 100, "Sẵn sàng để bạn kiểm tra");
             jdbcTemplate.update(
-                    "UPDATE document_versions SET state='STRUCTURING_FAILED', error_code='STRUCTURING_FAILED', error_message='Structuring incomplete, draft requires manual review' WHERE id=?",
+                    "UPDATE processing_jobs SET state='SUCCEEDED', step='NEEDS_REVIEW', progress=100, updated_at=now() WHERE id=?",
+                    savedDoc.jobId()
+            );
+        } else if (llmAttempted) {
+            // LLM attempted and failed -> MUST NOT mark PARSED! Mark FAILED!
+            jdbcTemplate.update(
+                    "UPDATE document_versions SET state='FAILED', error_code='STRUCTURING_FAILED', error_message='Structuring incomplete' WHERE id=?",
                     savedDoc.versionId()
             );
-        }
+            cv.setRawText(finalExtractedText);
+            cv.setStatus("FAILED");
+            cvRepository.save(cv);
 
-        updateJobStage(savedDoc.jobId(), "SAVING_DRAFT", 90, "Đang tạo bản nháp");
+            version.setRawTextContent(finalExtractedText);
+            version.setStatus("FAILED");
+            cvVersionRepository.save(version);
 
-        cv.setRawText(finalExtractedText);
-        cv.setStatus("PARSED");
-        cvRepository.save(cv);
+            jdbcTemplate.update(
+                    "UPDATE processing_jobs SET state='FAILED', step='FAILED', error_code='STRUCTURING_FAILED', error_message='Cấu trúc hóa CV bằng AI thất bại', updated_at=now() WHERE id=?",
+                    savedDoc.jobId()
+            );
+        } else {
+            // In-process fallback without LLM client (e.g. tests)
+            cv.setRawText(finalExtractedText);
+            cv.setStatus("PARSED");
+            cvRepository.save(cv);
 
-        version.setRawTextContent(finalExtractedText);
-        version.setStatus("DRAFT");
-        cvVersionRepository.save(version);
+            version.setRawTextContent(finalExtractedText);
+            version.setStatus("DRAFT");
+            cvVersionRepository.save(version);
 
-        // Persist structured sections (DO NOT dump raw CV into SUMMARY section)
-        if (aiResult != null && aiResult.get("skills") instanceof List<?> skillsList && !skillsList.isEmpty()) {
-            try {
-                cvSectionRepository.save(CVSection.builder()
-                        .cvVersion(version)
-                        .sectionType("SKILLS")
-                        .content(objectMapper.writeValueAsString(skillsList))
-                        .build());
-            } catch (Exception ignored) {}
+            updateJobStage(savedDoc.jobId(), "NEEDS_REVIEW", 100, "Sẵn sàng để bạn kiểm tra");
+            jdbcTemplate.update(
+                    "UPDATE processing_jobs SET state='SUCCEEDED', step='NEEDS_REVIEW', progress=100, updated_at=now() WHERE id=?",
+                    savedDoc.jobId()
+            );
         }
-        if (aiResult != null && aiResult.get("experiences") instanceof List<?> expList && !expList.isEmpty()) {
-            try {
-                cvSectionRepository.save(CVSection.builder()
-                        .cvVersion(version)
-                        .sectionType("EXPERIENCE")
-                        .content(objectMapper.writeValueAsString(expList))
-                        .build());
-            } catch (Exception ignored) {}
-        }
-        if (aiResult != null && aiResult.get("educations") instanceof List<?> eduList && !eduList.isEmpty()) {
-            try {
-                cvSectionRepository.save(CVSection.builder()
-                        .cvVersion(version)
-                        .sectionType("EDUCATION")
-                        .content(objectMapper.writeValueAsString(eduList))
-                        .build());
-            } catch (Exception ignored) {}
-        }
-
-        String candidateSummary = "";
-        if (aiResult != null && aiResult.get("summary") != null) {
-            candidateSummary = aiResult.get("summary").toString();
-        } else if (aiResult != null && aiResult.get("bio") != null) {
-            candidateSummary = aiResult.get("bio").toString();
-        }
-        if (!candidateSummary.isBlank()) {
-            cvSectionRepository.save(CVSection.builder()
-                    .cvVersion(version)
-                    .sectionType("SUMMARY")
-                    .content(candidateSummary)
-                    .build());
-        }
-
-        updateJobStage(savedDoc.jobId(), "NEEDS_REVIEW", 100, "Sẵn sàng để bạn kiểm tra");
-        jdbcTemplate.update(
-                "UPDATE processing_jobs SET state='DONE', step='NEEDS_REVIEW', progress=100, updated_at=now() WHERE id=?",
-                savedDoc.jobId()
-        );
     }
 
     @Transactional(readOnly = true)
@@ -545,8 +560,8 @@ public class CVService {
 
         List<Map<String, Object>> jobs = jdbcTemplate.queryForList(
                 "SELECT j.* FROM processing_jobs j " +
-                "JOIN cv_versions v ON v.id = j.entity_id " +
-                "WHERE v.cv_id = ? ORDER BY j.created_at DESC LIMIT 1",
+                "WHERE j.entity_id IN (SELECT id FROM cv_versions WHERE cv_id = ?) " +
+                "ORDER BY j.created_at DESC LIMIT 1",
                 cvId
         );
 
@@ -604,7 +619,7 @@ public class CVService {
         if ("FAILED".equals(state)) {
             message = errorMessage != null ? errorMessage : "Quá trình xử lý hồ sơ gặp lỗi";
             retryable = isRetryableErrorCode(errorCode);
-        } else if ("DONE".equals(state) || "COMPLETED".equals(state) || progress >= 100) {
+        } else if ("DONE".equals(state) || "COMPLETED".equals(state) || "SUCCEEDED".equals(state) || progress >= 100) {
             state = "COMPLETED";
             step = "NEEDS_REVIEW";
             progress = 100;
@@ -612,12 +627,12 @@ public class CVService {
         } else {
             state = "PROCESSING";
             switch (step) {
-                case "UPLOADED" -> { progress = Math.max(progress, 5); message = "Đã tải tệp lên"; }
+                case "UPLOADED", "QUEUED" -> { progress = Math.max(progress, 5); message = "Đã tải tệp lên"; }
                 case "VALIDATING_FILE" -> { progress = Math.max(progress, 10); message = "Đang kiểm tra tệp"; }
-                case "EXTRACTING_TEXT" -> { progress = Math.max(progress, 20); message = "Đang trích xuất văn bản từ CV"; }
+                case "READ_DOCUMENT", "EXTRACTING_TEXT" -> { progress = Math.max(progress, 20); message = "Đang trích xuất văn bản từ CV"; }
                 case "OCR_PROCESSING" -> { progress = Math.max(progress, 35); message = "Đang OCR tài liệu"; }
                 case "RAW_TEXT_SAVED" -> { progress = Math.max(progress, 45); message = "Đã lưu văn bản"; }
-                case "STRUCTURING_CV" -> { progress = Math.max(progress, 55); message = "Đang cấu trúc hồ sơ bằng AI"; }
+                case "LLM_EXTRACTION", "STRUCTURING_CV" -> { progress = Math.max(progress, 55); message = "Đang cấu trúc hồ sơ bằng AI"; }
                 case "VALIDATING_STRUCTURE" -> { progress = Math.max(progress, 75); message = "Đang kiểm tra dữ liệu"; }
                 case "SAVING_DRAFT" -> { progress = Math.max(progress, 90); message = "Đang tạo bản nháp"; }
                 default -> { progress = Math.max(progress, 25); message = "Đang xử lý hồ sơ"; }
@@ -924,24 +939,39 @@ public class CVService {
         }
 
         // Retry structuring directly from saved raw text without reading binary file
+        Map<String, Object> cvData = null;
         if (extractedText != null && !extractedText.isBlank() && aiWorkerClient != null) {
+            String corrId = UUID.randomUUID().toString();
             try {
-                aiResult = aiWorkerClient.extractCv(cvId, versionId, null, null, extractedText);
+                aiResult = aiWorkerClient.structureCv(extractedText, versionId, corrId);
+                if (aiResult != null && Boolean.TRUE.equals(aiResult.get("success")) && aiResult.get("data") instanceof Map<?, ?> dataMap) {
+                    cvData = (Map<String, Object>) dataMap;
+                }
             } catch (Exception ex) {
-                log.error("Retry structuring via AI Worker failed: {}", ex.getMessage());
+                log.error("Retry structuring via AI Worker failed [corrId={}]: {}", corrId, ex.getMessage());
             }
         }
 
         if (extractedText != null && !extractedText.isBlank()) {
             cv.setRawText(extractedText);
-            cvRepository.save(cv);
 
-            if (aiResult != null && "SUCCESS".equals(aiResult.get("status"))) {
+            if (cvData != null && !cvData.isEmpty()) {
                 try {
-                    String normJson = objectMapper.writeValueAsString(aiResult);
+                    String normJson = objectMapper.writeValueAsString(cvData);
+                    cv.setStatus("DRAFT");
+                    cvRepository.save(cv);
+
                     jdbcTemplate.update(
                             "UPDATE document_versions SET normalized=?::jsonb, state='READY', error_code=NULL, error_message=NULL WHERE id=?",
                             normJson, versionId
+                    );
+                    jdbcTemplate.update(
+                            "UPDATE cv_versions SET structured_json_content=?, status='DRAFT', raw_text_content=? WHERE id=?",
+                            normJson, extractedText, versionId
+                    );
+                    jdbcTemplate.update(
+                            "UPDATE processing_jobs SET state='SUCCEEDED', step='NEEDS_REVIEW', progress=100, updated_at=now() WHERE entity_id=?",
+                            versionId
                     );
                 } catch (Exception ignored) {
                     jdbcTemplate.update(
@@ -950,8 +980,18 @@ public class CVService {
                     );
                 }
             } else {
+                cv.setStatus("FAILED");
+                cvRepository.save(cv);
                 jdbcTemplate.update(
-                        "UPDATE document_versions SET state='STRUCTURING_FAILED', error_code='STRUCTURING_FAILED', error_message='Retry structuring failed' WHERE id=?",
+                        "UPDATE cv_versions SET status='FAILED' WHERE id=?",
+                        versionId
+                );
+                jdbcTemplate.update(
+                        "UPDATE document_versions SET state='FAILED', error_code='STRUCTURING_FAILED', error_message='Retry structuring failed' WHERE id=?",
+                        versionId
+                );
+                jdbcTemplate.update(
+                        "UPDATE processing_jobs SET state='FAILED', step='FAILED', error_code='STRUCTURING_FAILED', error_message='Retry structuring failed', updated_at=now() WHERE entity_id=?",
                         versionId
                 );
             }
