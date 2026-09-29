@@ -303,6 +303,12 @@ public class CVService {
                 .build();
         cv.setId(savedDoc.documentId());
         CV savedCv = cvRepository.saveAndFlush(cv);
+        if (!savedDoc.documentId().equals(savedCv.getId())) {
+            log.error("CRITICAL CONTRACT VIOLATION: Saved CV id [{}] does not match documentId [{}]",
+                    savedCv.getId(), savedDoc.documentId());
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR,
+                    "ID contract violation: CV id must match document id");
+        }
 
         CVVersion version = CVVersion.builder()
                 .cv(savedCv)
@@ -311,7 +317,13 @@ public class CVService {
                 .status("DRAFT")
                 .build();
         version.setId(savedDoc.versionId());
-        cvVersionRepository.saveAndFlush(version);
+        CVVersion savedVersion = cvVersionRepository.saveAndFlush(version);
+        if (!savedDoc.versionId().equals(savedVersion.getId())) {
+            log.error("CRITICAL CONTRACT VIOLATION: Saved CVVersion id [{}] does not match versionId [{}]",
+                    savedVersion.getId(), savedDoc.versionId());
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR,
+                    "ID contract violation: CVVersion id must match document version id");
+        }
 
         updateJobStage(savedDoc.jobId(), "UPLOADED", 5, "Đã tải tệp lên");
 
@@ -325,7 +337,7 @@ public class CVService {
 
         java.util.concurrent.CompletableFuture.runAsync(() -> {
             try {
-                executeProcessingPipeline(candidateUser, candidate, savedCv, version, savedDoc, storageKey, capturedBytes, originalFileName, ext);
+                executeProcessingPipeline(candidateUser, candidate, savedCv, savedVersion, savedDoc, storageKey, capturedBytes, originalFileName, ext);
             } catch (Exception ex) {
                 log.error("Asynchronous CV pipeline processing failed: {}", ex.getMessage(), ex);
                 jdbcTemplate.update(
@@ -336,8 +348,8 @@ public class CVService {
         });
 
         return CVUploadAsyncResponse.builder()
-                .cvId(savedDoc.documentId())
-                .versionId(savedDoc.versionId())
+                .cvId(savedCv.getId())
+                .versionId(savedVersion.getId())
                 .jobId(savedDoc.jobId())
                 .status("UPLOADED")
                 .stage("UPLOADED")

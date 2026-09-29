@@ -1,6 +1,6 @@
 package com.platform.recruitment.cv;
 
-import com.platform.recruitment.common.BaseEntity;
+import com.platform.recruitment.common.AssignedIdBaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -11,7 +11,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CVVersion extends BaseEntity {
+public class CVVersion extends AssignedIdBaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cv_id", nullable = false)
