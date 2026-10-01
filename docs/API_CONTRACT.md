@@ -223,6 +223,7 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
     "version_number": 1,
     "title": "Resume Nguyen Van A v1.0",
     "status": "DRAFT",
+    "schema_version": "2.0",
     "confirmed_at": null,
     "personal_info": {
       "full_name": { "value": "Nguyen Van A", "origin": "CV_EXTRACTED" },
@@ -235,15 +236,16 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
       "portfolio_url": { "value": null, "origin": "USER_ADDED" }
     },
     "summary": {
-      "summary": { "value": "<p>Software Engineer with 3+ years experience in <strong>Java</strong>.</p>", "origin": "CV_EXTRACTED" }
+      "content": { "value": "<p>Software Engineer with 3+ years experience in <strong>Java</strong>.</p>", "origin": "CV_EXTRACTED" }
     },
     "skills": [
       { "name": "Java", "canonical_id": "SKILL_JAVA", "category": "BACKEND", "is_custom": false, "origin": "CV_EXTRACTED", "verified": true }
     ],
     "work_experience": [
       {
-        "id": "exp_1",
+        "id": "e2a0cfbf-1cb7-47b2-be22-dfb8df2eead5",
         "company": "Tech Corp",
+        "role": "Backend Developer",
         "position": "Backend Developer",
         "start_date": "2021-01",
         "end_date": "2023-12",
@@ -255,7 +257,7 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
     ],
     "projects": [
       {
-        "id": "proj_1",
+        "id": "5fa2dc10-449e-436f-b148-356ba3a7d4a2",
         "name": "E-Commerce System",
         "role": "Lead Backend",
         "description": "<p>Architected order processing module.</p>",
@@ -266,7 +268,7 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
     ],
     "education": [
       {
-        "id": "edu_1",
+        "id": "7ac15b49-b682-411a-bd8a-b8cb79344161",
         "institution": "University of Technology",
         "degree": "Bachelor of Computer Science",
         "field_of_study": "Software Engineering",
@@ -281,7 +283,7 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
     ],
     "certifications": [
       {
-        "id": "cert_1",
+        "id": "3be5b072-b7e1-4509-9ca3-4886616ea4f9",
         "name": "AWS Certified Solutions Architect",
         "issuer": "Amazon Web Services",
         "issue_date": "2022-05",
@@ -300,7 +302,7 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
     ],
     "languages": [
       {
-        "id": "lang_1",
+        "id": "87b92fcb-a45b-4ec2-9e8c-529a6fb586ee",
         "language": "English",
         "proficiency": "Professional Working (IELTS 7.5)",
         "score": "7.5",
@@ -317,7 +319,7 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
 
 #### `PUT /api/v1/candidate/cvs/{id}/draft`
 - **Role**: `CANDIDATE`
-- **Description**: Lưu bản nháp đã chỉnh sửa của CV. Cho phép thêm, sửa, xóa các card lặp, chip kỹ năng, định dạng rich text, thông tin GPA. Không làm thay đổi file CV gốc hay raw text snapshot.
+- **Description**: Lưu bản nháp đã chỉnh sửa của CV. Cho phép thêm, sửa, xóa các card lặp, chip kỹ năng, định dạng rich text, thông tin GPA. Không làm thay đổi file CV gốc hay raw text snapshot. Origin được backend phân giải tự động (`CV_EXTRACTED` cho trường chưa sửa, `USER_EDITED` cho trường sửa, `USER_ADDED` cho phần tử tạo mới).
 - **Request Body**: Tương đương cấu trúc của `CVDraftResponse`.
 - **Response**: `200 OK` (trả về `CVDraftResponse` đã cập nhật).
 
@@ -366,18 +368,25 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
 
 #### `POST /api/v1/candidate/cvs/{cvId}/attachments`
 - **Role**: `CANDIDATE`
-- **Description**: Tải lên tài liệu minh chứng (PDF, PNG, JPG/JPEG <= 10MB) đính kèm cho từng chứng chỉ hoặc ngoại ngữ. Trạng thái minh chứng mặc định là `UPLOADED / UNVERIFIED`.
+- **Description**: Tải lên tài liệu minh chứng (PDF, PNG, JPG/JPEG <= 10MB) đính kèm cho từng chứng chỉ hoặc ngoại ngữ. Trạng thái minh chứng mặc định là `UPLOADED / UNVERIFIED`. Item ID phải là UUID hợp lệ đã tồn tại trong bản nháp.
 - **Content-Type**: `multipart/form-data`
 - **Form Data**:
   - `file`: MultipartFile
   - `itemType`: `CERTIFICATION | LANGUAGE`
-  - `itemId`: ID của chứng chỉ hoặc ngoại ngữ trong bản nháp (ví dụ: `cert_1`, `lang_1`)
+  - `itemId`: UUID của chứng chỉ hoặc ngoại ngữ trong bản nháp (ví dụ: `3be5b072-b7e1-4509-9ca3-4886616ea4f9`)
+- **Response Codes**:
+  - `201 Created`: Upload và liên kết thành công.
+  - `400 Bad Request`: `itemId` không phải UUID hợp lệ (`INVALID_ITEM_ID`).
+  - `403 Forbidden`: Ứng viên không sở hữu CV.
+  - `404 Not Found`: CV không tồn tại hoặc `itemId` không tồn tại trong bản nháp (`ITEM_NOT_FOUND`).
+  - `413 Payload Too Large`: Dung lượng file vượt quá giới hạn cho phép.
+  - `415 Unsupported Media Type`: Định dạng file không được hỗ trợ.
 - **Response**: `201 Created`
   ```json
   {
     "attachment_id": "att_111",
     "item_type": "CERTIFICATION",
-    "item_id": "cert_1",
+    "item_id": "3be5b072-b7e1-4509-9ca3-4886616ea4f9",
     "file_name": "aws_certificate.pdf",
     "file_size": 245100,
     "file_type": "application/pdf",
