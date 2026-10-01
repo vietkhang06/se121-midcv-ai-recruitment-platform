@@ -11,6 +11,7 @@ class PersonalInfo(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
+    headline: Optional[str] = None
     linkedinUrl: Optional[str] = None
     githubUrl: Optional[str] = None
 
@@ -26,6 +27,9 @@ class ExtractedEducationItem(BaseModel):
     fieldOfStudy: Optional[str] = None
     startYear: Optional[int] = None
     endYear: Optional[int] = None
+    gpa: Optional[float] = None
+    gpa_scale: Optional[float] = None
+    gpa_display: Optional[str] = None
 
 
 class ExtractedExperienceItem(BaseModel):
@@ -131,9 +135,13 @@ class StructuredCVValidator:
 
         lower_raw = raw_text.lower()
 
-        # Check skills grounding against raw text
+        # Check skills grounding against raw text with normalization
+        import re
+        norm_raw = re.sub(r'[\s\-_./\\]+', '', lower_raw)
         for skill in model.skills:
-            if skill.name.lower() not in lower_raw:
+            clean_skill = skill.name.lower().strip()
+            norm_skill = re.sub(r'[\s\-_./\\]+', '', clean_skill)
+            if clean_skill not in lower_raw and norm_skill not in norm_raw:
                 warn_msg = f"Skill '{skill.name}' was not explicitly found in raw CV text."
                 if warn_msg not in model.warnings:
                     model.warnings.append(warn_msg)

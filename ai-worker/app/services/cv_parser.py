@@ -244,7 +244,10 @@ OUTPUT JSON SCHEMA:
       "degree": string or null,
       "field_of_study": string or null,
       "start_year": integer or null,
-      "end_year": integer or null
+      "end_year": integer or null,
+      "gpa": float or null,
+      "gpa_scale": float or null,
+      "gpa_display": string or null
     }
   ],
   "projects": [
@@ -430,12 +433,32 @@ OUTPUT JSON SCHEMA:
             i_snip, i_loc = self._find_verbatim_evidence(inst, raw_text, pages) if inst else (None, {})
 
             if i_snip or (inst and any(part in lower_text for part in inst.lower().split() if len(part) > 4)):
+                edu_gpa = edu.get("gpa")
+                edu_scale = edu.get("gpa_scale")
+                edu_display = edu.get("gpa_display")
+
+                # If LLM didn't catch explicit GPA in raw text around education, check regex
+                if edu_gpa is None:
+                    gpa_match = re.search(r'\b(?:GPA|Điểm\s*(?:TB|trung\s*bình)?)\s*[:=\-]?\s*([0-9]+(?:\.[0-9]+)?)\s*(?:/\s*([0-9]+(?:\.[0-9]+)?))?', raw_text, re.IGNORECASE)
+                    if gpa_match:
+                        try:
+                            val = float(gpa_match.group(1))
+                            scale = float(gpa_match.group(2)) if gpa_match.group(2) else (10.0 if val > 4.0 else 4.0 if val <= 4.0 and "/4" in gpa_match.group(0) else None)
+                            edu_gpa = val
+                            edu_scale = scale
+                            edu_display = f"{val}/{int(scale) if scale and scale.is_integer() else scale}" if scale else str(val)
+                        except Exception:
+                            pass
+
                 educations.append(ExtractedEducation(
                     institution=inst,
                     degree=edu.get("degree"),
                     field_of_study=edu.get("field_of_study"),
                     start_year=edu.get("start_year"),
-                    end_year=edu.get("end_year")
+                    end_year=edu.get("end_year"),
+                    gpa=edu_gpa,
+                    gpa_scale=edu_scale,
+                    gpa_display=edu_display
                 ))
                 if i_snip:
                     evidences.append(CVEvidence(

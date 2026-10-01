@@ -38,6 +38,7 @@ Do not add new facts, explanations, or markdown fences. Return ONLY the valid JS
 SCHEMA_TEMPLATE = """{
   "personalInfo": {
     "fullName": null,
+    "headline": null,
     "email": null,
     "phone": null,
     "address": null,
@@ -46,7 +47,7 @@ SCHEMA_TEMPLATE = """{
   },
   "summary": null,
   "skills": [{"name": "string", "level": null}],
-  "education": [{"institution": "string", "degree": null, "fieldOfStudy": null, "startYear": null, "endYear": null}],
+  "education": [{"institution": "string", "degree": null, "fieldOfStudy": null, "startYear": null, "endYear": null, "gpa": null, "gpa_scale": null, "gpa_display": null}],
   "experience": [{"company": "string", "position": "string", "startDate": null, "endDate": null, "description": "", "technologies": []}],
   "projects": [{"name": "string", "role": null, "description": "", "techStack": []}],
   "certifications": [{"name": "string", "issuer": null, "date": null}],
