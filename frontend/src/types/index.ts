@@ -317,6 +317,47 @@ export interface CVReviewData {
   createdAt?: string;
 }
 
+export interface TaxonomySkillItem {
+  id: string;
+  canonicalName: string;
+  normalizedName: string;
+  category?: string;
+  description?: string;
+  isCustom?: boolean;
+}
+
+export interface CVEvidenceAttachmentItem {
+  attachmentId: string;
+  cvId: string;
+  itemType: 'CERTIFICATION' | 'LANGUAGE';
+  itemId: string;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  status: string;
+  previewUrl: string;
+  createdAt: string;
+}
+
+export interface CVDraftData {
+  cv_id: string;
+  profile_id?: string;
+  version_id?: string;
+  version_number?: number;
+  title?: string;
+  status?: string;
+  confirmed_at?: string;
+  personal_info?: Record<string, any>;
+  summary?: Record<string, any>;
+  skills?: Array<{ name: string; category?: string; level?: string; isCustom?: boolean; verified?: boolean; origin?: string }>;
+  work_experience?: Array<{ id?: string; company: string; role?: string; position?: string; start_date?: string; end_date?: string; is_current?: boolean; description?: string; technologies?: string[]; origin?: string }>;
+  projects?: Array<{ id?: string; name: string; role?: string; start_date?: string; end_date?: string; description?: string; techStack?: string[]; tech_stack?: string[]; origin?: string }>;
+  education?: Array<{ id?: string; institution: string; degree?: string; fieldOfStudy?: string; field_of_study?: string; startYear?: number; endYear?: number; gpa?: number; gpa_scale?: number; gpaScale?: number; gpa_display?: string; description?: string; origin?: string }>;
+  certifications?: Array<{ id?: string; name: string; issuer?: string; issueDate?: string; date?: string; credentialId?: string; credentialUrl?: string; attachment?: CVEvidenceAttachmentItem | null; origin?: string }>;
+  languages?: Array<{ id?: string; language: string; name?: string; proficiency?: string; proficiencyLevel?: string; score?: string; attachment?: CVEvidenceAttachmentItem | null; origin?: string }>;
+  links?: Record<string, any>;
+}
+
 export interface CVProcessingStatus {
   cvId: string;
   jobId: string;

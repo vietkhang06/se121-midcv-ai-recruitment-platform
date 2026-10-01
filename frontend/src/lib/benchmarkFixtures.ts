@@ -410,6 +410,40 @@ export class BenchmarkFixtureClient implements ApiClient {
     ];
   }
 
+  async searchTaxonomySkills(query: string, limit?: number): Promise<any[]> {
+    const list = [
+      { id: 'sk-1', name: 'Java', normalizedName: 'java', category: 'Backend' },
+      { id: 'sk-2', name: 'Spring Boot', normalizedName: 'spring boot', category: 'Backend' },
+      { id: 'sk-3', name: 'React', normalizedName: 'react', category: 'Frontend' },
+      { id: 'sk-4', name: 'TypeScript', normalizedName: 'typescript', category: 'Frontend' },
+      { id: 'sk-5', name: 'Docker', normalizedName: 'docker', category: 'DevOps' },
+      { id: 'sk-6', name: 'PostgreSQL', normalizedName: 'postgresql', category: 'Database' }
+    ];
+    return list.filter(s => s.name.toLowerCase().includes(query.toLowerCase())).slice(0, limit || 10);
+  }
+
+  async uploadCVEvidence(cvId: string, file: File, itemType: string, itemId: string): Promise<any> {
+    return {
+      id: `att-${Date.now()}`,
+      fileName: file.name,
+      originalFileName: file.name,
+      fileSize: file.size,
+      contentType: file.type || 'application/pdf',
+      itemType,
+      itemId,
+      verificationStatus: 'UNVERIFIED',
+      uploadedAt: new Date().toISOString()
+    };
+  }
+
+  async deleteCVEvidence(cvId: string, attachmentId: string): Promise<void> {
+    return;
+  }
+
+  async downloadCVEvidence(cvId: string, attachmentId: string, fileName: string): Promise<void> {
+    return;
+  }
+
   async fetchCandidateApplications(): Promise<Application[]> {
     return [...SEED_APPLICATIONS];
   }

@@ -264,6 +264,10 @@ export interface ApiClient {
   updateCVDraft(cvId: string, draftData: any): Promise<any>;
   confirmCandidateCV(cvId: string): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }>;
   fetchCVVersions(cvId: string): Promise<any[]>;
+  searchTaxonomySkills(query: string, limit?: number): Promise<any[]>;
+  uploadCVEvidence(cvId: string, file: File, itemType: string, itemId: string): Promise<any>;
+  deleteCVEvidence(cvId: string, attachmentId: string): Promise<void>;
+  downloadCVEvidence(cvId: string, attachmentId: string, fileName: string): Promise<void>;
   fetchCandidateApplications(): Promise<Application[]>;
   submitApplication(app: Application): Promise<Application>;
   fetchJobApplications(jobId: string): Promise<Application[]>;
@@ -567,6 +571,70 @@ export class RealApiClient implements ApiClient {
       headers: { Authorization: `Bearer ${token}` }
     });
     return Array.isArray(json) ? json : (json?.data ?? []);
+  }
+
+  async searchTaxonomySkills(query: string, limit = 10): Promise<any[]> {
+    const json: any = await apiRequest(`/api/v1/taxonomy/skills/search?query=${encodeURIComponent(query)}&limit=${limit}`);
+    const data = json?.data;
+    return data?.skills || [];
+  }
+
+  async uploadCVEvidence(cvId: string, file: File, itemType: string, itemId: string): Promise<any> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('POST', `/api/v1/candidate/cvs/${cvId}/attachments`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
+    }
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('itemType', itemType);
+    formData.append('itemId', itemId);
+
+    const url = `${BASE_URL}/api/v1/candidate/cvs/${cvId}/attachments`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    });
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => null);
+      throw new ApiError('POST', url, res.status, res.statusText, errJson?.message || 'Tải minh chứng thất bại.');
+    }
+    const json = await res.json();
+    return json?.data;
+  }
+
+  async deleteCVEvidence(cvId: string, attachmentId: string): Promise<void> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('DELETE', `/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập.');
+    }
+    await apiRequest(`/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  }
+
+  async downloadCVEvidence(cvId: string, attachmentId: string, fileName: string): Promise<void> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập.');
+    }
+    const url = `${BASE_URL}/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) {
+      throw new ApiError('GET', url, res.status, res.statusText, 'Không thể tải minh chứng.');
+    }
+    const blob = await res.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
   }
 
   async fetchCandidateApplications(): Promise<Application[]> {
@@ -1072,6 +1140,10 @@ export const fetchCVDraft = (cvId: string) => currentApiClient.fetchCVDraft(cvId
 export const updateCVDraft = (cvId: string, draftData: any) => currentApiClient.updateCVDraft(cvId, draftData);
 export const confirmCandidateCV = (cvId: string) => currentApiClient.confirmCandidateCV(cvId);
 export const fetchCVVersions = (cvId: string) => currentApiClient.fetchCVVersions(cvId);
+export const searchTaxonomySkills = (query: string, limit?: number) => currentApiClient.searchTaxonomySkills(query, limit);
+export const uploadCVEvidence = (cvId: string, file: File, itemType: string, itemId: string) => currentApiClient.uploadCVEvidence(cvId, file, itemType, itemId);
+export const deleteCVEvidence = (cvId: string, attachmentId: string) => currentApiClient.deleteCVEvidence(cvId, attachmentId);
+export const downloadCVEvidence = (cvId: string, attachmentId: string, fileName: string) => currentApiClient.downloadCVEvidence(cvId, attachmentId, fileName);
 export const fetchCandidateApplications = () => currentApiClient.fetchCandidateApplications();
 export const submitApplication = (app: Application) => currentApiClient.submitApplication(app);
 export const fetchJobApplications = (jobId: string) => currentApiClient.fetchJobApplications(jobId);
