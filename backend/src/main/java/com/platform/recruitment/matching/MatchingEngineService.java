@@ -512,18 +512,30 @@ public class MatchingEngineService {
 
             // Summary
             if (root.has("summary") && !root.get("summary").isNull()) {
-                String summary = root.get("summary").asText();
+                com.fasterxml.jackson.databind.JsonNode sNode = root.get("summary");
+                String summary = "";
+                if (sNode.isObject() && sNode.has("content")) {
+                    com.fasterxml.jackson.databind.JsonNode cNode = sNode.get("content");
+                    summary = (cNode.isObject() && cNode.has("value")) ? cNode.get("value").asText() : cNode.asText();
+                } else if (sNode.isObject() && sNode.has("summary")) {
+                    com.fasterxml.jackson.databind.JsonNode innerNode = sNode.get("summary");
+                    summary = (innerNode.isObject() && innerNode.has("value")) ? innerNode.get("value").asText() : innerNode.asText();
+                } else {
+                    summary = sNode.asText();
+                }
                 // strip basic HTML tags if any
                 summary = summary.replaceAll("<[^>]*>", " ");
                 sb.append("Summary: ").append(summary).append("\n");
             }
 
             // Experience
-            com.fasterxml.jackson.databind.JsonNode expNode = root.has("experience") ? root.get("experience") : root.get("experiences");
+            com.fasterxml.jackson.databind.JsonNode expNode = root.has("work_experience") ? root.get("work_experience")
+                    : (root.has("experience") ? root.get("experience") : root.get("experiences"));
             if (expNode != null && expNode.isArray()) {
                 for (com.fasterxml.jackson.databind.JsonNode exp : expNode) {
                     if (exp.has("company")) sb.append(exp.get("company").asText()).append(" ");
                     if (exp.has("role")) sb.append(exp.get("role").asText()).append(" ");
+                    if (exp.has("position") && !exp.has("role")) sb.append(exp.get("position").asText()).append(" ");
                     if (exp.has("description")) {
                         String desc = exp.get("description").asText().replaceAll("<[^>]*>", " ");
                         sb.append(desc).append(" ");
@@ -552,6 +564,11 @@ public class MatchingEngineService {
                             sb.append(t.asText()).append(" ");
                         }
                     }
+                    if (p.has("technologies") && p.get("technologies").isArray()) {
+                        for (com.fasterxml.jackson.databind.JsonNode t : p.get("technologies")) {
+                            sb.append(t.asText()).append(" ");
+                        }
+                    }
                     sb.append("\n");
                 }
             }
@@ -562,7 +579,8 @@ public class MatchingEngineService {
                 for (com.fasterxml.jackson.databind.JsonNode e : eduNode) {
                     if (e.has("institution")) sb.append(e.get("institution").asText()).append(" ");
                     if (e.has("degree")) sb.append(e.get("degree").asText()).append(" ");
-                    if (e.has("fieldOfStudy")) sb.append(e.get("fieldOfStudy").asText()).append(" ");
+                    if (e.has("field_of_study")) sb.append(e.get("field_of_study").asText()).append(" ");
+                    else if (e.has("fieldOfStudy")) sb.append(e.get("fieldOfStudy").asText()).append(" ");
                     sb.append("\n");
                 }
             }
