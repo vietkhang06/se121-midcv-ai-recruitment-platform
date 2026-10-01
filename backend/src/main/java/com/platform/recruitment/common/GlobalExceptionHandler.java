@@ -27,6 +27,7 @@ public class GlobalExceptionHandler {
             case RATE_LIMIT_EXCEEDED -> HttpStatus.TOO_MANY_REQUESTS;
             case VALIDATION_ERROR, INVALID_FILE, FILE_SIZE_EXCEEDED, TOKEN_EXPIRED, TOKEN_INVALID -> HttpStatus.BAD_REQUEST;
             case CV_TEXT_EXTRACTION_FAILED, CV_STRUCTURING_FAILED, CV_PROCESSING_FAILED -> HttpStatus.UNPROCESSABLE_ENTITY;
+            case SERVICE_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
             case FILE_STORAGE_FAILED -> HttpStatus.INTERNAL_SERVER_ERROR;
             default -> HttpStatus.INTERNAL_SERVER_ERROR;
         };

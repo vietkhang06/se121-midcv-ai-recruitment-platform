@@ -63,10 +63,16 @@ taxonomy_normalizer = TaxonomyNormalizer(llm_client=primary_llm_client)
 score_explainer_service = ScoreExplainerService(llm_client=primary_llm_client)
 skill_gap_service = SkillGapService(normalizer=taxonomy_normalizer, llm_client=primary_llm_client)
 
+from app.services.tesseract_runtime import tesseract_runtime
+from app.services.ocr_exceptions import OcrBaseException
+
 import httpx
 
 @router.get("/health")
 def health_check():
+    ocr_health = tesseract_runtime.get_health()
+    ocr_status = ocr_health.get("status")
+
     primary_configured = bool(
         settings.LLM_PRIMARY_BASE_URL and settings.LLM_PRIMARY_API_KEY and settings.LLM_PRIMARY_MODEL
     )
@@ -90,10 +96,16 @@ def health_check():
         except Exception:
             ollama_reachable = False
 
+    overall_status = "UP"
+    if ocr_status in ["BINARY_NOT_FOUND", "LANGUAGE_MISSING", "UNHEALTHY"]:
+        overall_status = "DEGRADED"
+
     return {
-        "status": "UP",
+        "status": overall_status,
+        "ocr": ocr_health,
         "documentExtraction": {
-            "status": "UP"
+            "status": "UP",
+            "ocrReady": ocr_status == "READY"
         },
         "llm": {
             "primary": {
@@ -116,6 +128,16 @@ def extract_document(request: DocumentExtractRequest):
     try:
         logger.info(f"Received Document Extraction request [file_name={request.file_name}, declared_type={request.file_type}]")
         return document_extractor.extract_document(request)
+    except OcrBaseException as ocr_ex:
+        logger.error(f"Document Extraction OCR domain error: {ocr_ex.code} - {ocr_ex.message}")
+        return DocumentExtractResponse(
+            status="FAILED",
+            source_type=request.file_type or "UNKNOWN",
+            used_ocr=True,
+            text=None,
+            error_code=ocr_ex.code,
+            error_message=ocr_ex.message
+        )
     except Exception as e:
         logger.error(f"Document Extraction unhandled exception: {e}", exc_info=True)
         return DocumentExtractResponse(
@@ -144,12 +166,19 @@ def extract_cv(request: CVExtractRequest):
     try:
         logger.info(f"Received CV Extraction request for cv_id: {request.cv_id}, version_id: {request.cv_version_id}")
         return cv_parser.parse_cv_document(request)
+    except OcrBaseException as ocr_ex:
+        logger.error(f"CV Extraction OCR domain error: {ocr_ex.code} - {ocr_ex.message}")
+        raise HTTPException(
+            status_code=ocr_ex.http_status,
+            detail=ocr_ex.to_dict()
+        )
     except Exception as e:
         logger.error(f"CV Extraction failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"CV Extraction Error: {str(e)}"
         )
+
 
 class StructureCVRequest(BaseModel):
     rawText: str
