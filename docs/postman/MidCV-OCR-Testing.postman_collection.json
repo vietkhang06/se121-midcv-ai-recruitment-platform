@@ -1,0 +1,220 @@
+{
+  "info": {
+    "_postman_id": "8c33e387-91a1-43ee-b4c6-fa28cf9b3c99",
+    "name": "MidCV-OCR-Testing",
+    "description": "Postman test suite for MidCV AI Worker OCR & Document Extraction (Tesseract OCR vie+eng).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 — OCR & Worker Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{ai_worker_base_url}}/internal/ai/health",
+          "host": ["{{ai_worker_base_url}}"],
+          "path": ["internal", "ai", "health"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"OCR status is READY\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.ocr.status).to.eql(\"READY\");",
+              "    pm.expect(jsonData.ocr.installed_languages).to.include(\"eng\");",
+              "    pm.expect(jsonData.ocr.installed_languages).to.include(\"vie\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 — Extract PNG Image CV",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"file_base64\": \"{{png_cv_base64}}\",\n  \"file_name\": \"cv_vietnamese.png\",\n  \"file_type\": \"PNG\"\n}"
+        },
+        "url": {
+          "raw": "{{ai_worker_base_url}}/internal/ai/extract-document",
+          "host": ["{{ai_worker_base_url}}"],
+          "path": ["internal", "ai", "extract-document"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Document extraction succeeded\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.status).to.eql(\"SUCCESS\");",
+              "    pm.expect(data.used_ocr).to.be.true;",
+              "    pm.expect(data.text).to.not.be.empty;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — Extract Scanned PDF CV",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"file_base64\": \"{{scanned_pdf_base64}}\",\n  \"file_name\": \"cv_scanned.pdf\",\n  \"file_type\": \"PDF\"\n}"
+        },
+        "url": {
+          "raw": "{{ai_worker_base_url}}/internal/ai/extract-document",
+          "host": ["{{ai_worker_base_url}}"],
+          "path": ["internal", "ai", "extract-document"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"PDF Scanned extraction used OCR\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.status).to.eql(\"SUCCESS\");",
+              "    pm.expect(data.used_ocr).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — Extract Structured CV from Raw Text",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cv_id\": \"cv-test-01\",\n  \"cv_version_id\": \"ver-test-01\",\n  \"file_type\": \"PDF\",\n  \"raw_text\": \"Nguyễn Văn A\\nKỹ sư phần mềm cao cấp\\nKỹ năng: Java, Spring Boot, PostgreSQL, Docker\\nKinh nghiệm: 4 năm phát triển hệ thống backend\"\n}"
+        },
+        "url": {
+          "raw": "{{ai_worker_base_url}}/internal/ai/extract-cv",
+          "host": ["{{ai_worker_base_url}}"],
+          "path": ["internal", "ai", "extract-cv"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"CV Structuring succeeded\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.status).to.eql(\"SUCCESS\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 — Error Test: Corrupted Document",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"file_base64\": \"bm90IGEgdmFsaWQgcGRmIG9yIGltYWdl\",\n  \"file_name\": \"corrupted.pdf\",\n  \"file_type\": \"PDF\"\n}"
+        },
+        "url": {
+          "raw": "{{ai_worker_base_url}}/internal/ai/extract-document",
+          "host": ["{{ai_worker_base_url}}"],
+          "path": ["internal", "ai", "extract-document"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 422 Unprocessable Entity\", function () {",
+              "    pm.response.to.have.status(422);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 — Error Test: Unsupported File Type",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"file_base64\": \"VGVzdCBjb250ZW50\",\n  \"file_name\": \"cv.exe\",\n  \"file_type\": \"EXE\"\n}"
+        },
+        "url": {
+          "raw": "{{ai_worker_base_url}}/internal/ai/extract-document",
+          "host": ["{{ai_worker_base_url}}"],
+          "path": ["internal", "ai", "extract-document"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 415 or 422\", function () {",
+              "    pm.expect([415, 422]).to.include(pm.response.code);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}
