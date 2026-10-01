@@ -73,6 +73,7 @@ public class CandidateCvDraftAndEvidenceIntegrationTest {
     private CVVersion draftVersion;
     private UUID cvId;
     private UUID versionId;
+    private UUID certId;
 
     @BeforeEach
     void setUp() {
@@ -141,6 +142,7 @@ public class CandidateCvDraftAndEvidenceIntegrationTest {
         cv.setId(cvId);
 
         versionId = UUID.randomUUID();
+        certId = UUID.randomUUID();
         String initialJson = "{" +
                 "\"personalInfo\":{\"fullName\":\"Doan Viet Khang\",\"email\":\"doanvietkhang06@gmail.com\",\"phone\":\"0762654245\",\"address\":\"Thu Duc, TP.HCM\",\"headline\":\"Software Engineer\",\"githubUrl\":\"https://github.com/vietkhang06\"}," +
                 "\"summary\":\"Passionate backend developer with experience in Spring Boot.\"," +
@@ -148,7 +150,7 @@ public class CandidateCvDraftAndEvidenceIntegrationTest {
                 "\"education\":[{\"institution\":\"University of Information Technology\",\"degree\":\"Bachelor\",\"fieldOfStudy\":\"Software Engineering\",\"gpa\":8.3,\"gpa_scale\":10.0,\"gpa_display\":\"8.3/10\"}]," +
                 "\"experience\":[{\"company\":\"Tech Corp\",\"role\":\"Backend Developer\",\"technologies\":[\"Java\",\"PostgreSQL\"],\"description\":\"Developed RESTful APIs.\"}]," +
                 "\"projects\":[{\"name\":\"CineMax App\",\"role\":\"Full-stack Developer\",\"techStack\":[\"Java\",\"Spring Boot\"],\"description\":\"Cinema management application.\"}]," +
-                "\"certifications\":[{\"name\":\"AWS Certified Developer\",\"issuer\":\"Amazon\",\"issueDate\":\"2024-01-15\"}]," +
+                "\"certifications\":[{\"id\":\"" + certId + "\",\"name\":\"AWS Certified Developer\",\"issuer\":\"Amazon\",\"issueDate\":\"2024-01-15\"}]," +
                 "\"languages\":[{\"language\":\"English\",\"proficiency\":\"Fluent\"}]" +
                 "}";
 
@@ -166,6 +168,7 @@ public class CandidateCvDraftAndEvidenceIntegrationTest {
         when(cvRepository.findById(cvId)).thenReturn(Optional.of(cv));
         when(cvVersionRepository.findById(versionId)).thenReturn(Optional.of(draftVersion));
         when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId)).thenReturn(new ArrayList<>(List.of(draftVersion)));
+        when(cvVersionRepository.save(any(CVVersion.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
     @Test
@@ -280,19 +283,24 @@ public class CandidateCvDraftAndEvidenceIntegrationTest {
         });
 
         CVEvidenceAttachmentResponse response = cvService.uploadEvidenceAttachment(
-                candidateUser, cvId, validPdf, "CERTIFICATION", "cert_1");
+                candidateUser, cvId, validPdf, "CERTIFICATION", certId.toString());
 
         assertNotNull(response);
         assertEquals("UNVERIFIED", response.getStatus());
         assertEquals("cert.pdf", response.getFileName());
         assertEquals("CERTIFICATION", response.getItemType());
 
+        // Invalid itemId (legacy or non-UUID cert_1 rejects with VALIDATION_ERROR -> 400)
+        CustomException invalidIdEx = assertThrows(CustomException.class, () ->
+                cvService.uploadEvidenceAttachment(candidateUser, cvId, validPdf, "CERTIFICATION", "cert_1"));
+        assertEquals(ErrorCode.VALIDATION_ERROR, invalidIdEx.getErrorCode());
+
         // Invalid file (magic byte spoofing)
         byte[] fakePdf = "NOT A REAL PDF FILE HEADER".getBytes(StandardCharsets.UTF_8);
         MockMultipartFile invalidPdf = new MockMultipartFile("file", "fake.pdf", "application/pdf", fakePdf);
 
         CustomException spoofEx = assertThrows(CustomException.class, () ->
-                cvService.uploadEvidenceAttachment(candidateUser, cvId, invalidPdf, "CERTIFICATION", "cert_1"));
+                cvService.uploadEvidenceAttachment(candidateUser, cvId, invalidPdf, "CERTIFICATION", certId.toString()));
         assertEquals(ErrorCode.INVALID_FILE, spoofEx.getErrorCode());
     }
 
