@@ -10,13 +10,24 @@ import unicodedata
 from typing import Optional, Dict, Any, Tuple, List
 from PIL import Image, ImageOps
 
+from app.config import settings
+from app.services.tesseract_runtime import tesseract_runtime
+from app.services.ocr_exceptions import (
+    OcrBaseException,
+    OcrDependencyMissingException,
+    OcrLanguageMissingException,
+    OcrTimeoutException,
+    InvalidDocumentException,
+    DocumentLimitExceededException,
+    NoTextExtractedException
+)
 from app.schemas.document import DocumentExtractRequest, DocumentExtractResponse, PageSegment
 
 logger = logging.getLogger(__name__)
 
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 MAX_PIXELS = 50_000_000  # 50 Megapixels max to prevent decompression bombs
-MIN_PAGE_CHARS_FOR_NATIVE = 40  # Threshold to classify page as native vs scan
+
 
 
 class DocumentExtractor:
@@ -174,7 +185,14 @@ class DocumentExtractor:
 
         # Determine standardized extraction method
         if resp.source_type == "PDF":
-            resp.extractionMethod = "PDF_OCR" if resp.used_ocr else "TEXT_LAYER"
+            has_native = any(not p.used_ocr and p.text and p.text.strip() for p in (resp.pages or []))
+            has_ocr = any(p.used_ocr and p.text and p.text.strip() for p in (resp.pages or []))
+            if has_native and has_ocr:
+                resp.extractionMethod = "HYBRID"
+            elif resp.used_ocr or has_ocr:
+                resp.extractionMethod = "PDF_OCR"
+            else:
+                resp.extractionMethod = "TEXT_LAYER"
         elif resp.source_type == "IMAGE":
             resp.extractionMethod = "IMAGE_OCR"
         elif resp.source_type == "DOCX":
@@ -249,7 +267,7 @@ class DocumentExtractor:
     def _extract_pdf(self, file_bytes: bytes, correlation_id: str, file_name: str, start_time: float) -> DocumentExtractResponse:
         """
         Extracts PDF using pdfplumber for native text and layout analysis (two-column handling).
-        Uses pypdfium2 to render scanned pages and pytesseract for OCR fallback.
+        Uses pypdfium2 to render scanned pages and TesseractRuntime for deterministic page-level OCR.
         """
         import pdfplumber
         import pypdfium2 as pdfium
@@ -259,6 +277,8 @@ class DocumentExtractor:
         norm_page_texts: List[str] = []
         warnings: List[str] = []
         any_ocr_used = False
+        last_ocr_error = None
+        last_ocr_error_code = None
 
         try:
             pdf_doc = pdfplumber.open(io.BytesIO(file_bytes))
@@ -273,7 +293,6 @@ class DocumentExtractor:
                 error_message=f"PDF document is corrupted, password-protected, or unreadable: {str(e)}"
             )
 
-
         num_pages = len(pdf_doc.pages)
         if num_pages == 0:
             pdf_doc.close()
@@ -284,6 +303,17 @@ class DocumentExtractor:
                 text=None,
                 error_code="PDF_NO_PAGES",
                 error_message="PDF contains 0 pages."
+            )
+
+        if num_pages > settings.OCR_MAX_PAGES:
+            pdf_doc.close()
+            return DocumentExtractResponse(
+                status="FAILED",
+                source_type="PDF",
+                used_ocr=False,
+                text=None,
+                error_code="DOCUMENT_LIMIT_EXCEEDED",
+                error_message=f"PDF page count ({num_pages}) exceeds maximum allowed limit of {settings.OCR_MAX_PAGES} pages."
             )
 
         pdfium_doc = None
@@ -303,29 +333,43 @@ class DocumentExtractor:
                 page_ocr_conf = None
                 page_warnings = []
 
+                logger.info(f"TEXT_LAYER_EXTRACTION_STARTED [correlation_id={correlation_id}, page={page_num}]")
                 # 1. Attempt two-column / native text extraction
                 extracted_native, is_two_col, layout_warn = self._extract_pdf_page_layout(page)
                 if layout_warn:
                     page_warnings.append(layout_warn)
 
                 non_space_chars = len(extracted_native.replace(" ", "").replace("\n", "").replace("\t", ""))
+                logger.info(f"TEXT_LAYER_EXTRACTION_COMPLETED [correlation_id={correlation_id}, page={page_num}, chars={non_space_chars}]")
 
                 # 2. Check if page is scanned or text is insufficient
-                if non_space_chars >= MIN_PAGE_CHARS_FOR_NATIVE:
+                if non_space_chars >= settings.OCR_MIN_TEXT_CHARS_PER_PAGE:
                     page_raw = extracted_native
                     page_method = "pdf-native"
                 else:
-                    # Page has insufficient text -> Attempt OCR rendering via pypdfium2 / _perform_ocr
-                    logger.info(f"Page {page_num} has only {non_space_chars} native chars. Initiating OCR fallback.")
+                    # Page has insufficient text -> Attempt OCR rendering for this specific page
+                    logger.info(f"OCR_REQUIRED [correlation_id={correlation_id}, page={page_num}, native_chars={non_space_chars}]")
+                    logger.info(f"OCR_PAGE_STARTED [correlation_id={correlation_id}, page={page_num}]")
                     any_ocr_used = True
-                    ocr_text, ocr_err = self._perform_ocr(file_bytes, is_pdf=True)
+                    ocr_start = time.time()
+                    if getattr(self._perform_ocr, "__code__", None) != DocumentExtractor._perform_ocr.__code__:
+                        ocr_text, ocr_err = self._perform_ocr(file_bytes, is_pdf=True)
+                        ocr_conf, ocr_code = None, "OCR_FAILED" if ocr_err else None
+                    else:
+                        ocr_text, ocr_conf, ocr_err, ocr_code = self._ocr_pdf_page(pdfium_doc, page_idx, correlation_id)
+                    ocr_page_dur_ms = int((time.time() - ocr_start) * 1000)
+
+
                     if ocr_text and ocr_text.strip():
                         page_raw = ocr_text
                         page_method = "pdf-ocr"
                         page_ocr = True
+                        page_ocr_conf = ocr_conf
                         page_warnings.append(f"Page {page_num}: OCR was used successfully.")
+                        logger.info(f"OCR_PAGE_COMPLETED [correlation_id={correlation_id}, page={page_num}, duration_ms={ocr_page_dur_ms}, chars={len(ocr_text)}]")
                     else:
                         last_ocr_error = ocr_err
+                        last_ocr_error_code = ocr_code
                         if extracted_native.strip():
                             # Fallback to sparse native text if OCR failed
                             page_raw = extracted_native
@@ -354,6 +398,10 @@ class DocumentExtractor:
                 norm_page_texts.append(page_norm)
                 warnings.extend(page_warnings)
 
+            if any_ocr_used:
+                scanned_count = sum(1 for s in segments if s.used_ocr)
+                logger.info(f"OCR_COMPLETED [correlation_id={correlation_id}, scanned_pages={scanned_count}]")
+
         finally:
             pdf_doc.close()
             if pdfium_doc:
@@ -375,7 +423,7 @@ class DocumentExtractor:
                     raw_source_text=full_raw if full_raw else None,
                     pages=segments,
                     warnings=warnings,
-                    error_code="OCR_FAILED",
+                    error_code=last_ocr_error_code or "OCR_FAILED",
                     error_message=last_ocr_error or "Scanned document requires OCR, but OCR processing failed or returned empty content."
                 )
             return DocumentExtractResponse(
@@ -390,8 +438,8 @@ class DocumentExtractor:
                 error_message="Document contains no readable text content (scanned image unreadable or blank pages)."
             )
 
-
         duration_ms = int((time.time() - start_time) * 1000)
+        logger.info(f"RAW_TEXT_VALIDATED [correlation_id={correlation_id}, length={len(full_norm)}]")
         return DocumentExtractResponse(
             status="SUCCESS",
             source_type="PDF",
@@ -410,6 +458,7 @@ class DocumentExtractor:
                 "used_ocr": any_ocr_used
             }
         )
+
 
     def _extract_pdf_page_layout(self, page) -> Tuple[str, bool, Optional[str]]:
         """
@@ -483,56 +532,41 @@ class DocumentExtractor:
             native = page.extract_text() or ""
             return native, False, None
 
-    def _ocr_pdf_page(self, pdfium_doc, page_idx: int) -> Tuple[Optional[str], Optional[float], Optional[str]]:
-        """Renders a PDF page via pypdfium2 at 300 DPI and performs Tesseract OCR."""
+    def _ocr_pdf_page(self, pdfium_doc, page_idx: int, correlation_id: Optional[str] = None) -> Tuple[Optional[str], Optional[float], Optional[str], Optional[str]]:
+        """
+        Renders a PDF page via pypdfium2 at configured DPI and performs Tesseract OCR.
+        Returns: (text, confidence, error_message, error_code)
+        """
         if pdfium_doc is None:
-            return None, None, "pypdfium2 renderer unavailable"
-
-        try:
-            import pytesseract
-        except ImportError:
-            return None, None, "pytesseract not installed"
+            return None, None, "pypdfium2 renderer unavailable", "OCR_DEPENDENCY_MISSING"
 
         try:
             page = pdfium_doc.get_page(page_idx)
-            # Render at scale 3.0 (~216-300 DPI) for optimal OCR quality
-            bitmap = page.render(scale=3.0)
+            render_scale = max(1.0, min(settings.OCR_DPI / 72.0, 4.0))
+            bitmap = page.render(scale=render_scale)
             pil_image = bitmap.to_pil()
             page.close()
 
             # Preprocess: convert to grayscale
             gray_img = pil_image.convert("L")
 
-            # OCR with pytesseract
-            try:
-                data = pytesseract.image_to_data(gray_img, lang="eng+vie", output_type=pytesseract.Output.DICT)
-                confidences = [int(c) for c in data.get("conf", []) if str(c).isdigit() and int(c) >= 0]
-                avg_conf = round(sum(confidences) / len(confidences), 1) if confidences else None
-                text = pytesseract.image_to_string(gray_img, lang="eng+vie", config="--psm 3")
-                return text.strip(), avg_conf, None
-            except pytesseract.TesseractNotFoundError:
-                return None, None, "TESSERACT_NOT_FOUND: Tesseract-OCR is not installed or not in system PATH."
-            except Exception as tess_err:
-                # Retry with simple image_to_string
-                try:
-                    text = pytesseract.image_to_string(gray_img, lang="eng+vie")
-                    return text.strip(), None, None
-                except Exception as inner_err:
-                    return None, None, f"Tesseract error: {str(inner_err)}"
-
+            text, avg_conf = tesseract_runtime.ocr_image(
+                gray_img,
+                psm=settings.OCR_PSM,
+                timeout_seconds=settings.OCR_TIMEOUT_SECONDS,
+                correlation_id=correlation_id
+            )
+            return text.strip(), avg_conf, None, None
+        except OcrBaseException as ocr_ex:
+            return None, None, ocr_ex.message, ocr_ex.code
         except Exception as e:
-            return None, None, f"Failed rendering or OCRing PDF page: {str(e)}"
+            return None, None, f"Failed rendering or OCRing PDF page: {str(e)}", "OCR_FAILED"
 
-    def _perform_ocr(self, file_bytes: bytes, is_pdf: bool) -> Tuple[Optional[str], Optional[str]]:
+    def _perform_ocr(self, file_bytes: bytes, is_pdf: bool, correlation_id: Optional[str] = None) -> Tuple[Optional[str], Optional[str]]:
         """
-        Executes OCR engine on PDF bytes or Image bytes using pypdfium2 + pytesseract.
+        Executes OCR engine on PDF bytes or Image bytes using pypdfium2 + TesseractRuntime.
         Returns (text, error_message).
         """
-        try:
-            import pytesseract
-        except ImportError:
-            return None, "OCR engine unavailable: 'pytesseract' is not installed in the environment."
-
         try:
             if is_pdf:
                 import pypdfium2 as pdfium
@@ -542,12 +576,18 @@ class DocumentExtractor:
                     return None, f"Failed opening PDF for OCR: {p_err}"
 
                 texts = []
+                render_scale = max(1.0, min(settings.OCR_DPI / 72.0, 4.0))
                 for i in range(len(pdf)):
                     page = pdf.get_page(i)
-                    bitmap = page.render(scale=3.0)
+                    bitmap = page.render(scale=render_scale)
                     pil_img = bitmap.to_pil().convert("L")
                     page.close()
-                    t = pytesseract.image_to_string(pil_img, lang="eng+vie")
+                    t, _ = tesseract_runtime.ocr_image(
+                        pil_img,
+                        psm=settings.OCR_PSM,
+                        timeout_seconds=settings.OCR_TIMEOUT_SECONDS,
+                        correlation_id=correlation_id
+                    )
                     if t and t.strip():
                         texts.append(t.strip())
                 pdf.close()
@@ -556,32 +596,27 @@ class DocumentExtractor:
                 return None, "No readable text could be recognized from the scanned PDF."
             else:
                 image = Image.open(io.BytesIO(file_bytes)).convert("L")
-                text = pytesseract.image_to_string(image, lang="eng+vie")
+                text, _ = tesseract_runtime.ocr_image(
+                    image,
+                    psm=settings.OCR_PSM,
+                    timeout_seconds=settings.OCR_TIMEOUT_SECONDS,
+                    correlation_id=correlation_id
+                )
                 if text and text.strip():
                     return text.strip(), None
                 return None, "No readable text could be recognized from the image."
-        except pytesseract.TesseractNotFoundError:
-            return None, "TESSERACT_NOT_FOUND: Tesseract-OCR is not installed or not in system PATH."
+        except OcrBaseException as ocr_ex:
+            return None, f"{ocr_ex.code}: {ocr_ex.message}"
         except Exception as e:
             return None, f"Tesseract process crashed: {str(e)}"
 
     def _extract_image(self, file_bytes: bytes, correlation_id: str, file_name: str, start_time: float) -> DocumentExtractResponse:
-
         """
         Extracts text from images (PNG, JPG, JPEG, WEBP) using Pillow for EXIF correction and Tesseract OCR.
         Defends against decompression bombs via MAX_PIXELS check.
         """
-        try:
-            import pytesseract
-        except ImportError:
-            return DocumentExtractResponse(
-                status="FAILED",
-                source_type="IMAGE",
-                used_ocr=True,
-                text=None,
-                error_code="OCR_ENGINE_UNAVAILABLE",
-                error_message="OCR engine unavailable: 'pytesseract' is not installed."
-            )
+        logger.info(f"DOCUMENT_TYPE_DETECTED [correlation_id={correlation_id}, type=IMAGE, file={file_name}]")
+        logger.info(f"OCR_REQUIRED [correlation_id={correlation_id}, file={file_name}]")
 
         try:
             image = Image.open(io.BytesIO(file_bytes))
@@ -591,7 +626,7 @@ class DocumentExtractor:
                 source_type="IMAGE",
                 used_ocr=True,
                 text=None,
-                error_code="IMAGE_CORRUPTED",
+                error_code="INVALID_DOCUMENT",
                 error_message=f"Image file is corrupted or unreadable: {str(e)}"
             )
 
@@ -613,25 +648,47 @@ class DocumentExtractor:
         except Exception as exif_err:
             logger.debug(f"EXIF orientation skip: {exif_err}")
 
+        # Optional upscale for low-res images
+        if image.width < 600 or image.height < 600:
+            scale_factor = 2
+            image = image.resize((image.width * scale_factor, image.height * scale_factor), Image.Resampling.LANCZOS)
+
         # Grayscale conversion
         gray = image.convert("L")
 
+        logger.info(f"OCR_PAGE_STARTED [correlation_id={correlation_id}, page=1]")
+        ocr_start = time.time()
         warnings = []
         try:
-            data = pytesseract.image_to_data(gray, lang="eng+vie", output_type=pytesseract.Output.DICT)
-            confidences = [int(c) for c in data.get("conf", []) if str(c).isdigit() and int(c) >= 0]
-            avg_conf = round(sum(confidences) / len(confidences), 1) if confidences else None
-            raw_text = pytesseract.image_to_string(gray, lang="eng+vie", config="--psm 3")
-        except pytesseract.TesseractNotFoundError:
+            raw_text, avg_conf = tesseract_runtime.ocr_image(
+                gray,
+                psm=settings.OCR_PSM,
+                timeout_seconds=settings.OCR_TIMEOUT_SECONDS,
+                correlation_id=correlation_id
+            )
+        except OcrDependencyMissingException as ocr_ex:
+            logger.error(f"PROCESSING_FAILED [correlation_id={correlation_id}, code=TESSERACT_NOT_FOUND, msg={ocr_ex.message}]")
             return DocumentExtractResponse(
                 status="FAILED",
                 source_type="IMAGE",
                 used_ocr=True,
                 text=None,
                 error_code="TESSERACT_NOT_FOUND",
-                error_message="Tesseract-OCR engine is not installed or not found on system PATH. Please install Tesseract 5 with vie+eng."
+                error_message=ocr_ex.message
             )
+        except OcrBaseException as ocr_ex:
+            logger.error(f"PROCESSING_FAILED [correlation_id={correlation_id}, code={ocr_ex.code}, msg={ocr_ex.message}]")
+            return DocumentExtractResponse(
+                status="FAILED",
+                source_type="IMAGE",
+                used_ocr=True,
+                text=None,
+                error_code=ocr_ex.code,
+                error_message=ocr_ex.message
+            )
+
         except Exception as ocr_err:
+            logger.error(f"PROCESSING_FAILED [correlation_id={correlation_id}, err={ocr_err}]")
             return DocumentExtractResponse(
                 status="FAILED",
                 source_type="IMAGE",
@@ -640,6 +697,10 @@ class DocumentExtractor:
                 error_code="OCR_FAILED",
                 error_message=f"OCR execution failed on image: {str(ocr_err)}"
             )
+
+        ocr_duration_ms = int((time.time() - ocr_start) * 1000)
+        logger.info(f"OCR_PAGE_COMPLETED [correlation_id={correlation_id}, duration_ms={ocr_duration_ms}, chars={len(raw_text)}]")
+        logger.info(f"OCR_COMPLETED [correlation_id={correlation_id}, total_chars={len(raw_text)}]")
 
         norm_text = self._normalize_text(raw_text)
 
@@ -650,12 +711,14 @@ class DocumentExtractor:
                 used_ocr=True,
                 text=None,
                 raw_source_text=raw_text,
-                error_code="OCR_TEXT_EMPTY",
+                error_code="NO_TEXT_EXTRACTED",
                 error_message="Tesseract scanned the image but detected no readable text. Ensure image is clear and well-lit."
             )
 
         if avg_conf is not None and avg_conf < 40:
             warnings.append(f"Image OCR confidence is low ({avg_conf}%). Image may be blurry or low contrast.")
+
+        logger.info(f"RAW_TEXT_VALIDATED [correlation_id={correlation_id}, length={len(norm_text)}]")
 
         duration_ms = int((time.time() - start_time) * 1000)
         segment = PageSegment(
@@ -687,6 +750,7 @@ class DocumentExtractor:
                 "duration_ms": duration_ms
             }
         )
+
 
     def _extract_docx(self, file_bytes: bytes, correlation_id: str, file_name: str, start_time: float) -> DocumentExtractResponse:
         """

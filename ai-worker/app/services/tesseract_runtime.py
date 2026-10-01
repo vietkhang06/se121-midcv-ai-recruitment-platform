@@ -342,6 +342,11 @@ class TesseractRuntime:
             confidences = [int(c) for c in data.get("conf", []) if str(c).isdigit() and int(c) >= 0]
             if confidences:
                 avg_conf = round(sum(confidences) / len(confidences), 1)
+        except pytesseract.TesseractNotFoundError:
+            raise OcrDependencyMissingException(
+                message="Tesseract-OCR executable not found or not in PATH.",
+                correlation_id=correlation_id
+            )
         except subprocess.TimeoutExpired:
             raise OcrTimeoutException(
                 message=f"OCR word analysis timed out after {timeout} seconds.",
@@ -349,6 +354,7 @@ class TesseractRuntime:
             )
         except Exception as e:
             logger.debug(f"Confidence calculation skip: {e}")
+
 
         # Step 2: Extract text with PSM
         try:
