@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -40,6 +41,12 @@ public class CVService {
     private final AiWorkerClient aiWorkerClient;
     private final ObjectMapper objectMapper;
     private final org.springframework.transaction.support.TransactionTemplate tx;
+    @Autowired(required = false)
+    private CVEvidenceAttachmentRepository cvEvidenceAttachmentRepository;
+
+    public void setCvEvidenceAttachmentRepository(CVEvidenceAttachmentRepository cvEvidenceAttachmentRepository) {
+        this.cvEvidenceAttachmentRepository = cvEvidenceAttachmentRepository;
+    }
 
     @Autowired
     public CVService(
@@ -1070,6 +1077,19 @@ public class CVService {
             throw new UnauthorizedAccessException("Candidate does not own this CV");
         }
 
+        if (cvEvidenceAttachmentRepository != null) {
+            try {
+                cvEvidenceAttachmentRepository.findByCvId(cvId).forEach(att -> {
+                    try {
+                        Files.deleteIfExists(documents.path(att.getStorageKey()));
+                    } catch (Exception ignored) {}
+                });
+                cvEvidenceAttachmentRepository.deleteByCvId(cvId);
+            } catch (Exception ex) {
+                log.warn("Failed to clean up evidence attachments for CV {}: {}", cvId, ex.getMessage());
+            }
+        }
+
         cvRepository.delete(cv);
         jdbcTemplate.update("UPDATE documents SET archived=true WHERE id=? AND owner_id=?", cvId, candidateUser.getId());
     }
@@ -1146,8 +1166,8 @@ public class CVService {
         List<Map<String, Object>> experiences = extractExperienceWithLineage(rawStructured, version.getId());
         List<Map<String, Object>> projects = extractProjectsWithLineage(rawStructured);
         List<Map<String, Object>> education = extractEducationWithLineage(rawStructured, version.getId());
-        List<Map<String, Object>> certifications = extractCertificationsWithLineage(rawStructured);
-        List<Map<String, Object>> languages = extractLanguagesWithLineage(rawStructured);
+        List<Map<String, Object>> certifications = extractCertificationsWithLineage(rawStructured, cvId);
+        List<Map<String, Object>> languages = extractLanguagesWithLineage(rawStructured, cvId);
         Map<String, Object> links = extractLinksWithLineage(rawStructured, personalInfo);
 
         return CVDraftResponse.builder()
@@ -1232,19 +1252,96 @@ public class CVService {
             updatedStructured.put("personal_info", markLineageOnMap(request.getPersonalInfo()));
         }
         if (request.getSummary() != null) {
-            updatedStructured.put("summary", markLineageOnMap(request.getSummary()));
+            Map<String, Object> sumCopy = new LinkedHashMap<>(request.getSummary());
+            for (Map.Entry<String, Object> e : sumCopy.entrySet()) {
+                if (e.getValue() instanceof Map<?, ?> inner) {
+                    Map<String, Object> innerCopy = new LinkedHashMap<>((Map<String, Object>) inner);
+                    if (innerCopy.get("value") != null) {
+                        innerCopy.put("value", sanitizeRichText(innerCopy.get("value").toString()));
+                    }
+                    e.setValue(innerCopy);
+                } else if (e.getValue() != null) {
+                    e.setValue(sanitizeRichText(e.getValue().toString()));
+                }
+            }
+            updatedStructured.put("summary", markLineageOnMap(sumCopy));
         }
         if (request.getSkills() != null) {
             updatedStructured.put("skills", markLineageOnList(request.getSkills()));
         }
         if (request.getWorkExperience() != null) {
-            updatedStructured.put("work_experience", markLineageOnList(request.getWorkExperience()));
+            List<Map<String, Object>> sanitizedExp = new ArrayList<>();
+            for (Map<String, Object> exp : request.getWorkExperience()) {
+                Map<String, Object> copy = new LinkedHashMap<>(exp);
+                if (copy.get("description") != null) {
+                    copy.put("description", sanitizeRichText(copy.get("description").toString()));
+                }
+                sanitizedExp.add(copy);
+            }
+            updatedStructured.put("work_experience", markLineageOnList(sanitizedExp));
         }
         if (request.getProjects() != null) {
-            updatedStructured.put("projects", markLineageOnList(request.getProjects()));
+            List<Map<String, Object>> sanitizedProj = new ArrayList<>();
+            for (Map<String, Object> proj : request.getProjects()) {
+                Map<String, Object> copy = new LinkedHashMap<>(proj);
+                if (copy.get("description") != null) {
+                    copy.put("description", sanitizeRichText(copy.get("description").toString()));
+                }
+                sanitizedProj.add(copy);
+            }
+            updatedStructured.put("projects", markLineageOnList(sanitizedProj));
         }
         if (request.getEducation() != null) {
-            updatedStructured.put("education", markLineageOnList(request.getEducation()));
+            List<Map<String, Object>> sanitizedEdu = new ArrayList<>();
+            for (Map<String, Object> edu : request.getEducation()) {
+                Map<String, Object> copy = new LinkedHashMap<>(edu);
+                Object gpaVal = copy.get("gpa");
+                Object scaleVal = copy.get("gpa_scale");
+                if (scaleVal == null) scaleVal = copy.get("gpaScale");
+
+                if (gpaVal != null && !gpaVal.toString().isBlank()) {
+                    try {
+                        double gpa = Double.parseDouble(gpaVal.toString().trim());
+                        if (gpa < 0.0) {
+                            throw new CustomException(ErrorCode.VALIDATION_ERROR, "GPA không được là số âm.");
+                        }
+                        copy.put("gpa", gpa);
+                        if (scaleVal != null && !scaleVal.toString().isBlank()) {
+                            double scale = Double.parseDouble(scaleVal.toString().trim());
+                            if (gpa > scale) {
+                                throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                                        "GPA (" + gpa + ") không được lớn hơn thang điểm (" + scale + ").");
+                            }
+                            copy.put("gpa_scale", scale);
+                            Object explicitDisplay = copy.get("gpa_display");
+                            if (explicitDisplay == null) explicitDisplay = copy.get("gpaDisplay");
+                            if (explicitDisplay != null && !explicitDisplay.toString().isBlank()) {
+                                copy.put("gpa_display", explicitDisplay.toString());
+                            } else {
+                                String scaleFmt = (scale == 4.0 || scale == 10.0) ? String.format(Locale.ROOT, "%.1f", scale) : String.valueOf(scale);
+                                copy.put("gpa_display", gpa + "/" + scaleFmt);
+                            }
+                        } else {
+                            copy.put("gpa_scale", null);
+                            Object explicitDisplay = copy.get("gpa_display");
+                            if (explicitDisplay == null) explicitDisplay = copy.get("gpaDisplay");
+                            copy.put("gpa_display", explicitDisplay != null ? explicitDisplay.toString() : String.valueOf(gpa));
+                        }
+                    } catch (NumberFormatException nfe) {
+                        throw new CustomException(ErrorCode.VALIDATION_ERROR, "GPA không hợp lệ: " + gpaVal);
+                    }
+                } else {
+                    copy.put("gpa", null);
+                    copy.put("gpa_scale", null);
+                    copy.put("gpa_display", null);
+                }
+
+                if (copy.get("description") != null) {
+                    copy.put("description", sanitizeRichText(copy.get("description").toString()));
+                }
+                sanitizedEdu.add(copy);
+            }
+            updatedStructured.put("education", markLineageOnList(sanitizedEdu));
         }
         if (request.getCertifications() != null) {
             updatedStructured.put("certifications", markLineageOnList(request.getCertifications()));
@@ -1341,6 +1438,11 @@ public class CVService {
         Map<String, Object> personal = new LinkedHashMap<>();
         Object pObj = structured.get("personal_info");
         Map<?, ?> pMap = (pObj instanceof Map<?, ?>) ? (Map<?, ?>) pObj : Collections.emptyMap();
+
+        Object headlineVal = pMap.get("headline");
+        if (headlineVal == null) headlineVal = pMap.get("title");
+        if (headlineVal == null) headlineVal = structured.get("headline");
+        addProvenanceField(personal, "headline", headlineVal, null);
 
         addProvenanceField(personal, "full_name", pMap.get("full_name"), profile.getFullName() != null ? profile.getFullName() : cv.getTitle());
         addProvenanceField(personal, "email", pMap.get("email"), profile.getUser() != null ? profile.getUser().getEmail() : null);
@@ -1455,6 +1557,42 @@ public class CVService {
                     Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) m);
                     if (!copy.containsKey("id")) copy.put("id", "edu_" + idx++);
                     if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+
+                    // GPA normalization & preservation
+                    Object gpa = copy.get("gpa");
+                    Object scale = copy.get("gpa_scale");
+                    if (scale == null) scale = copy.get("gpaScale");
+
+                    if (gpa != null && !gpa.toString().isBlank()) {
+                        try {
+                            double gpaNum = Double.parseDouble(gpa.toString().trim());
+                            copy.put("gpa", gpaNum);
+                            if (scale != null && !scale.toString().isBlank()) {
+                                double scaleNum = Double.parseDouble(scale.toString().trim());
+                                copy.put("gpa_scale", scaleNum);
+                                Object explicitDisplay = copy.get("gpa_display");
+                                if (explicitDisplay == null) explicitDisplay = copy.get("gpaDisplay");
+                                if (explicitDisplay != null && !explicitDisplay.toString().isBlank()) {
+                                    copy.put("gpa_display", explicitDisplay.toString());
+                                } else {
+                                    String scaleFmt = (scaleNum == 4.0 || scaleNum == 10.0) ? String.format(Locale.ROOT, "%.1f", scaleNum) : String.valueOf(scaleNum);
+                                    copy.put("gpa_display", gpaNum + "/" + scaleFmt);
+                                }
+                            } else {
+                                copy.put("gpa_scale", null);
+                                Object explicitDisplay = copy.get("gpa_display");
+                                if (explicitDisplay == null) explicitDisplay = copy.get("gpaDisplay");
+                                copy.put("gpa_display", explicitDisplay != null ? explicitDisplay.toString() : String.valueOf(gpaNum));
+                            }
+                        } catch (NumberFormatException ignored) {
+                            copy.put("gpa_display", String.valueOf(gpa));
+                        }
+                    } else {
+                        copy.put("gpa", null);
+                        copy.put("gpa_scale", null);
+                        copy.put("gpa_display", null);
+                    }
+
                     result.add(copy);
                 }
             }
@@ -1462,7 +1600,7 @@ public class CVService {
         return result;
     }
 
-    private List<Map<String, Object>> extractCertificationsWithLineage(Map<String, Object> structured) {
+    private List<Map<String, Object>> extractCertificationsWithLineage(Map<String, Object> structured, UUID cvId) {
         List<Map<String, Object>> result = new ArrayList<>();
         if (structured.get("certifications") instanceof List<?> list) {
             int idx = 1;
@@ -1471,12 +1609,22 @@ public class CVService {
                     Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) m);
                     if (!copy.containsKey("id")) copy.put("id", "cert_" + idx++);
                     if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+                    String itemId = String.valueOf(copy.get("id"));
+                    Map<String, Object> attInfo = findAttachmentInfo(cvId, "CERTIFICATION", itemId);
+                    if (attInfo != null) {
+                        copy.put("attachment", attInfo);
+                    } else if (!copy.containsKey("attachment")) {
+                        copy.put("attachment", null);
+                    }
                     result.add(copy);
                 } else if (obj != null) {
                     Map<String, Object> c = new LinkedHashMap<>();
-                    c.put("id", "cert_" + idx++);
+                    String certId = "cert_" + idx++;
+                    c.put("id", certId);
                     c.put("name", String.valueOf(obj));
                     c.put("origin", "CV_EXTRACTED");
+                    Map<String, Object> attInfo = findAttachmentInfo(cvId, "CERTIFICATION", certId);
+                    c.put("attachment", attInfo);
                     result.add(c);
                 }
             }
@@ -1484,7 +1632,7 @@ public class CVService {
         return result;
     }
 
-    private List<Map<String, Object>> extractLanguagesWithLineage(Map<String, Object> structured) {
+    private List<Map<String, Object>> extractLanguagesWithLineage(Map<String, Object> structured, UUID cvId) {
         List<Map<String, Object>> result = new ArrayList<>();
         if (structured.get("languages") instanceof List<?> list) {
             int idx = 1;
@@ -1493,17 +1641,35 @@ public class CVService {
                     Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) m);
                     if (!copy.containsKey("id")) copy.put("id", "lang_" + idx++);
                     if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+                    String itemId = String.valueOf(copy.get("id"));
+                    Map<String, Object> attInfo = findAttachmentInfo(cvId, "LANGUAGE", itemId);
+                    if (attInfo != null) {
+                        copy.put("attachment", attInfo);
+                    } else if (!copy.containsKey("attachment")) {
+                        copy.put("attachment", null);
+                    }
                     result.add(copy);
                 } else if (obj != null) {
                     Map<String, Object> l = new LinkedHashMap<>();
-                    l.put("id", "lang_" + idx++);
+                    String langId = "lang_" + idx++;
+                    l.put("id", langId);
                     l.put("name", String.valueOf(obj));
                     l.put("origin", "CV_EXTRACTED");
+                    Map<String, Object> attInfo = findAttachmentInfo(cvId, "LANGUAGE", langId);
+                    l.put("attachment", attInfo);
                     result.add(l);
                 }
             }
         }
         return result;
+    }
+
+    private List<Map<String, Object>> extractCertificationsWithLineage(Map<String, Object> structured) {
+        return extractCertificationsWithLineage(structured, null);
+    }
+
+    private List<Map<String, Object>> extractLanguagesWithLineage(Map<String, Object> structured) {
+        return extractLanguagesWithLineage(structured, null);
     }
 
     private Map<String, Object> extractLinksWithLineage(Map<String, Object> structured, Map<String, Object> personalInfo) {
@@ -1512,6 +1678,273 @@ public class CVService {
         if (personalInfo.containsKey("linkedin_url")) links.put("linkedin_url", personalInfo.get("linkedin_url"));
         if (personalInfo.containsKey("portfolio_url")) links.put("portfolio_url", personalInfo.get("portfolio_url"));
         return links;
+    }
+
+    private Map<String, Object> findAttachmentInfo(UUID cvId, String itemType, String itemId) {
+        if (cvEvidenceAttachmentRepository == null || cvId == null || itemId == null) return null;
+        try {
+            return cvEvidenceAttachmentRepository.findByCvIdAndItemTypeAndItemId(cvId, itemType, itemId)
+                    .map(att -> {
+                        Map<String, Object> m = new LinkedHashMap<>();
+                        m.put("id", att.getId().toString());
+                        m.put("file_name", att.getFileName());
+                        m.put("file_size", att.getFileSize());
+                        m.put("file_type", att.getFileType());
+                        m.put("status", att.getStatus());
+                        m.put("preview_url", "/api/v1/candidate/cvs/" + cvId + "/attachments/" + att.getId());
+                        return m;
+                    }).orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public String sanitizeRichText(String html) {
+        if (html == null) return null;
+        String s = html.trim();
+        if (s.isEmpty()) return "";
+        return s.replaceAll("(?i)<script[\\s\\S]*?</script>", "")
+                .replaceAll("(?i)<style[\\s\\S]*?</style>", "")
+                .replaceAll("(?i)<iframe[\\s\\S]*?</iframe>", "")
+                .replaceAll("(?i)<object[\\s\\S]*?</object>", "")
+                .replaceAll("(?i)<embed[\\s\\S]*?>", "")
+                .replaceAll("(?i)javascript:", "")
+                .replaceAll("(?i)\\s*on\\w+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)", "");
+    }
+
+    private void validateAttachmentMagic(byte[] b, String ext) {
+        boolean valid = switch (ext) {
+            case "pdf" -> b.length >= 4 && b[0] == '%' && b[1] == 'P' && b[2] == 'D' && b[3] == 'F';
+            case "png" -> b.length >= 8 && (b[0] & 0xFF) == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47;
+            case "jpg", "jpeg" -> b.length >= 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8;
+            default -> false;
+        };
+        if (!valid) {
+            throw new CustomException(ErrorCode.INVALID_FILE, "UNSUPPORTED_FILE_TYPE: Nội dung tệp không khớp định dạng " + ext);
+        }
+    }
+
+    @Transactional
+    public CVEvidenceAttachmentResponse uploadEvidenceAttachment(
+            User candidateUser,
+            UUID cvId,
+            org.springframework.web.multipart.MultipartFile file,
+            String itemType,
+            String itemId) {
+
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        CV cv = cvRepository.findById(cvId)
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
+
+        if (!cv.getCandidate().getId().equals(candidate.getId())) {
+            throw new UnauthorizedAccessException("Candidate does not own this CV");
+        }
+
+        String type = itemType != null ? itemType.toUpperCase(Locale.ROOT).trim() : "";
+        if (!"CERTIFICATION".equals(type) && !"LANGUAGE".equals(type)) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "itemType must be CERTIFICATION or LANGUAGE");
+        }
+        if (itemId == null || itemId.isBlank()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "itemId is required");
+        }
+
+        if (file == null || file.isEmpty() || file.getSize() == 0) {
+            throw new CustomException(ErrorCode.INVALID_FILE, "FILE_EMPTY: Chưa chọn tệp hoặc tệp rỗng (0 bytes).");
+        }
+        if (file.getSize() > 10L * 1024 * 1024) {
+            throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED, "FILE_TOO_LARGE: Tệp vượt quá giới hạn 10 MB.");
+        }
+
+        String originalFileName = Optional.ofNullable(file.getOriginalFilename()).orElse("attachment");
+        String sanitizedFileName = originalFileName.replaceAll("[\\\\/:*?\"<>|\\r\\n]", "_");
+        if (sanitizedFileName.length() > 200) {
+            sanitizedFileName = sanitizedFileName.substring(sanitizedFileName.length() - 200);
+        }
+
+        String ext = sanitizedFileName.contains(".")
+                ? sanitizedFileName.substring(sanitizedFileName.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT)
+                : "";
+        if (!List.of("pdf", "png", "jpg", "jpeg").contains(ext)) {
+            throw new CustomException(ErrorCode.INVALID_FILE, "UNSUPPORTED_FILE_TYPE: Chỉ hỗ trợ định dạng PDF, PNG, JPG, JPEG.");
+        }
+
+        byte[] bytes;
+        try {
+            bytes = file.getBytes();
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể đọc nội dung tệp tin.");
+        }
+
+        validateAttachmentMagic(bytes, ext);
+
+        UUID attachmentId = UUID.randomUUID();
+        String storageKey = attachmentId + "." + ext;
+        Path targetPath = documents.path(storageKey);
+
+        try {
+            Files.write(targetPath, bytes, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.FILE_STORAGE_FAILED, "Không thể lưu tệp minh chứng: " + e.getMessage());
+        }
+
+        if (cvEvidenceAttachmentRepository != null) {
+            cvEvidenceAttachmentRepository.findByCvIdAndItemTypeAndItemId(cvId, type, itemId).ifPresent(old -> {
+                try {
+                    Files.deleteIfExists(documents.path(old.getStorageKey()));
+                } catch (Exception ignored) {}
+                cvEvidenceAttachmentRepository.delete(old);
+            });
+        }
+
+        List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+        CVVersion targetVersion = versions.isEmpty() ? null : versions.get(0);
+
+        String contentType = (file.getContentType() != null && !file.getContentType().isBlank())
+                ? file.getContentType()
+                : ("pdf".equals(ext) ? "application/pdf" : ("png".equals(ext) ? "image/png" : "image/jpeg"));
+
+        CVEvidenceAttachment attachment = CVEvidenceAttachment.builder()
+                .candidate(candidate)
+                .cv(cv)
+                .cvVersion(targetVersion)
+                .itemType(type)
+                .itemId(itemId)
+                .fileName(sanitizedFileName)
+                .storageKey(storageKey)
+                .fileType(contentType)
+                .fileSize((int) file.getSize())
+                .status("UNVERIFIED")
+                .build();
+        attachment.setId(attachmentId);
+
+        if (cvEvidenceAttachmentRepository != null) {
+            attachment = cvEvidenceAttachmentRepository.save(attachment);
+        }
+
+        // Sync into targetVersion.structuredJsonContent
+        if (targetVersion != null && targetVersion.getStructuredJsonContent() != null && !targetVersion.getStructuredJsonContent().isBlank()) {
+            try {
+                Map<String, Object> struct = objectMapper.readValue(targetVersion.getStructuredJsonContent(), new TypeReference<>() {});
+                String listKey = "CERTIFICATION".equals(type) ? "certifications" : "languages";
+                if (struct.get(listKey) instanceof List<?> items) {
+                    for (Object it : items) {
+                        if (it instanceof Map<?, ?> itemMap && itemId.equals(String.valueOf(itemMap.get("id")))) {
+                            Map<String, Object> writable = (Map<String, Object>) itemMap;
+                            Map<String, Object> attMap = new LinkedHashMap<>();
+                            attMap.put("id", attachmentId.toString());
+                            attMap.put("file_name", sanitizedFileName);
+                            attMap.put("file_size", (int) file.getSize());
+                            attMap.put("file_type", contentType);
+                            attMap.put("status", "UNVERIFIED");
+                            attMap.put("preview_url", "/api/v1/candidate/cvs/" + cvId + "/attachments/" + attachmentId);
+                            writable.put("attachment", attMap);
+                            break;
+                        }
+                    }
+                    targetVersion.setStructuredJsonContent(objectMapper.writeValueAsString(struct));
+                    cvVersionRepository.save(targetVersion);
+                }
+            } catch (Exception ex) {
+                log.warn("Failed to update structuredJsonContent with attachment: {}", ex.getMessage());
+            }
+        }
+
+        return CVEvidenceAttachmentResponse.builder()
+                .attachmentId(attachmentId)
+                .cvId(cvId)
+                .itemType(type)
+                .itemId(itemId)
+                .fileName(sanitizedFileName)
+                .fileSize((int) file.getSize())
+                .fileType(contentType)
+                .status("UNVERIFIED")
+                .previewUrl("/api/v1/candidate/cvs/" + cvId + "/attachments/" + attachmentId)
+                .createdAt(attachment.getCreatedAt() != null ? attachment.getCreatedAt() : java.time.ZonedDateTime.now())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public DownloadResult getEvidenceAttachmentFile(User currentUser, UUID cvId, UUID attachmentId) {
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(currentUser.getId()).orElse(null);
+        CV cv = cvRepository.findById(cvId)
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
+
+        boolean isOwner = candidate != null && cv.getCandidate().getId().equals(candidate.getId());
+        if (!isOwner) {
+            boolean isAuthorizedStaff = currentUser.getRole() != null &&
+                    (currentUser.getRole() == com.platform.recruitment.user.Role.HR
+                            || currentUser.getRole() == com.platform.recruitment.user.Role.ADMIN);
+            if (!isAuthorizedStaff) {
+                throw new UnauthorizedAccessException("Bạn không có quyền truy cập minh chứng này.");
+            }
+        }
+
+        if (cvEvidenceAttachmentRepository == null) {
+            throw new ResourceNotFoundException("EvidenceAttachment", "id", attachmentId);
+        }
+
+        CVEvidenceAttachment att = cvEvidenceAttachmentRepository.findByCvIdAndId(cvId, attachmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("EvidenceAttachment", "id", attachmentId));
+
+        Path path = documents.path(att.getStorageKey());
+        if (!Files.exists(path)) {
+            throw new ResourceNotFoundException("Tệp tin minh chứng không tồn tại trên hệ thống lưu trữ.");
+        }
+
+        try {
+            byte[] data = Files.readAllBytes(path);
+            return new DownloadResult(data, att.getFileName(), att.getFileType());
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể đọc tệp minh chứng từ lưu trữ.");
+        }
+    }
+
+    @Transactional
+    public void deleteEvidenceAttachment(User candidateUser, UUID cvId, UUID attachmentId) {
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        CV cv = cvRepository.findById(cvId)
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
+
+        if (!cv.getCandidate().getId().equals(candidate.getId())) {
+            throw new UnauthorizedAccessException("Candidate does not own this CV");
+        }
+
+        if (cvEvidenceAttachmentRepository == null) {
+            return;
+        }
+
+        CVEvidenceAttachment att = cvEvidenceAttachmentRepository.findByCvIdAndId(cvId, attachmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("EvidenceAttachment", "id", attachmentId));
+
+        try {
+            Files.deleteIfExists(documents.path(att.getStorageKey()));
+        } catch (Exception ignored) {}
+
+        cvEvidenceAttachmentRepository.delete(att);
+
+        // Also remove attachment metadata from latest draft structuredJsonContent
+        List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+        if (!versions.isEmpty() && versions.get(0).getStructuredJsonContent() != null) {
+            CVVersion targetVersion = versions.get(0);
+            try {
+                Map<String, Object> struct = objectMapper.readValue(targetVersion.getStructuredJsonContent(), new TypeReference<>() {});
+                String listKey = "CERTIFICATION".equals(att.getItemType()) ? "certifications" : "languages";
+                if (struct.get(listKey) instanceof List<?> items) {
+                    for (Object it : items) {
+                        if (it instanceof Map<?, ?> itemMap && att.getItemId().equals(String.valueOf(itemMap.get("id")))) {
+                            ((Map<String, Object>) itemMap).put("attachment", null);
+                            break;
+                        }
+                    }
+                    targetVersion.setStructuredJsonContent(objectMapper.writeValueAsString(struct));
+                    cvVersionRepository.save(targetVersion);
+                }
+            } catch (Exception ignored) {}
+        }
     }
 
     private Map<String, Object> markLineageOnMap(Map<String, Object> map) {

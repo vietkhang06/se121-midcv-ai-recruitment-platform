@@ -139,4 +139,37 @@ public class CVController {
         List<CVVersionSummaryResponse> response = cvService.getCVVersions(currentUser, id);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @PostMapping(value = "/{id}/attachments", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<CVEvidenceAttachmentResponse>> uploadAttachment(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam("itemType") String itemType,
+            @RequestParam("itemId") String itemId) {
+        CVEvidenceAttachmentResponse response = cvService.uploadEvidenceAttachment(currentUser, id, file, itemType, itemId);
+        return new ResponseEntity<>(ApiResponse.success("Evidence attachment uploaded successfully", response), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/{id}/attachments/{attachmentId}")
+    public ResponseEntity<byte[]> previewAttachment(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @PathVariable UUID attachmentId) {
+        DownloadResult result = cvService.getEvidenceAttachmentFile(currentUser, id, attachmentId);
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + result.filename() + "\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType(result.contentType()))
+                .body(result.data());
+    }
+
+    @DeleteMapping("/{id}/attachments/{attachmentId}")
+    public ResponseEntity<ApiResponse<Void>> deleteAttachment(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @PathVariable UUID attachmentId) {
+        cvService.deleteEvidenceAttachment(currentUser, id, attachmentId);
+        return ResponseEntity.ok(ApiResponse.success("Evidence attachment deleted successfully", null));
+    }
 }
+
