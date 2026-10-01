@@ -163,9 +163,9 @@ public class TextReader {
         String pageMethod = "pdf-text";
         boolean ocrOnPage = false;
 
-        // Scanned page fallback: if page contains insufficient embedded text (< 35
+        // Scanned page fallback: if page contains insufficient embedded text (< 30
         // non-whitespace chars)
-        if (pageText.replaceAll("\\s", "").length() < 35) {
+        if (pageText.replaceAll("\\s", "").length() < 30) {
           Path tempImage = Files.createTempFile("midcv-page-", ".png");
           try {
             var box = pdf.getPage(i).getCropBox();
