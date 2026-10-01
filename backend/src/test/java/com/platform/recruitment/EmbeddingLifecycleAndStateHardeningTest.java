@@ -243,7 +243,7 @@ public class EmbeddingLifecycleAndStateHardeningTest {
         UUID job = UUID.randomUUID();
         UUID worker = UUID.randomUUID();
 
-        when(jdbcTemplate.update(contains("state='SUCCEEDED',step='DONE',progress=100"), eq(job), eq(worker)))
+        when(jdbcTemplate.update(contains("state='SUCCEEDED',step='SUCCEEDED',progress=100"), eq(job), eq(worker)))
                 .thenReturn(1);
 
         JobQueue queue = new JobQueue(jdbcTemplate, events, transactionManager);

@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { fetchCandidateProfile, saveCandidateProfile } from '@/lib/api';
-import { Industry, CandidateProfile } from '@/types';
+import { fetchCandidateProfile, saveCandidateProfile, confirmCandidateCV, fetchCandidateCVs } from '@/lib/api';
+import { Industry, CandidateProfile, CV } from '@/types';
 import {
   User,
   ShieldCheck,
@@ -28,18 +28,66 @@ export default function CandidateProfilePage() {
   const { t, locale } = useLanguage();
   
   const [profile, setProfile] = useState<CandidateProfile | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [newSkill, setNewSkill] = useState<string>('');
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'profile'>('profile');
+  const [activeCvId, setActiveCvId] = useState<string | null>(null);
+  const [cvStatus, setCvStatus] = useState<string>('DRAFT');
+  const [isConfirming, setIsConfirming] = useState<boolean>(false);
+  const [confirmedSuccess, setConfirmedSuccess] = useState<boolean>(false);
+
+  const loadProfile = () => {
+    setIsLoading(true);
+    setLoadError(null);
+    fetchCandidateProfile()
+      .then((data) => {
+        setProfile(data);
+        setLoadError(null);
+      })
+      .catch((err: any) => {
+        setLoadError(err.message || 'Không thể tải hồ sơ ứng viên.');
+      })
+      .finally(() => setIsLoading(false));
+
+    fetchCandidateCVs()
+      .then((cvs) => {
+        if (cvs && cvs.length > 0) {
+          const defaultCv = cvs.find((c) => c.isDefault) || cvs[0];
+          setActiveCvId(defaultCv.id);
+          setCvStatus(defaultCv.status || 'DRAFT');
+        }
+      })
+      .catch(() => {});
+  };
 
   useEffect(() => {
-    fetchCandidateProfile().then(setProfile);
+    loadProfile();
   }, []);
 
-  if (!profile) {
+  if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center text-slate-500">
         <p className="text-sm">{locale === 'vi' ? 'Đang tải hồ sơ ứng viên midCV...' : 'Loading midCV candidate profile...'}</p>
+      </div>
+    );
+  }
+
+  if (loadError || !profile) {
+    return (
+      <div className="max-w-xl mx-auto px-4 py-20 text-center">
+        <div className="p-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-2xl space-y-4">
+          <p className="text-sm font-semibold text-red-600 dark:text-red-400">
+            {loadError || (locale === 'vi' ? 'Không thể tải dữ liệu hồ sơ.' : 'Unable to load profile data.')}
+          </p>
+          <button
+            onClick={loadProfile}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition"
+          >
+            {locale === 'vi' ? 'Thử lại' : 'Retry'}
+          </button>
+        </div>
       </div>
     );
   }
@@ -49,6 +97,23 @@ export default function CandidateProfilePage() {
     await saveCandidateProfile(profile);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
+  };
+
+  const handleConfirmProfile = async () => {
+    if (!activeCvId) return;
+    setIsConfirming(true);
+    try {
+      const res = await confirmCandidateCV(activeCvId);
+      if (res && res.status === 'CONFIRMED') {
+        setCvStatus('CONFIRMED');
+        setConfirmedSuccess(true);
+        setTimeout(() => setConfirmedSuccess(false), 5000);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Không thể xác nhận hồ sơ.');
+    } finally {
+      setIsConfirming(false);
+    }
   };
 
   const handleAddSkill = () => {
@@ -530,15 +595,55 @@ export default function CandidateProfilePage() {
                 </div>
               </div>
 
-              {/* Save Button */}
-              <div className="pt-4 border-t border-slate-100 dark:border-[#1E293B] flex justify-end">
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 rounded-lg text-xs font-semibold text-white bg-[#111C38] dark:bg-[#2563EB] hover:bg-[#133E34] dark:hover:bg-[#1D4ED8] transition flex items-center gap-2 shadow-xs"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>{locale === 'vi' ? 'Lưu Hồ Sơ Cá Nhân' : 'Save Personal Profile'}</span>
-                </button>
+              {/* Save & Confirm Buttons */}
+              <div className="pt-4 border-t border-slate-100 dark:border-[#1E293B] flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-mono font-semibold flex items-center gap-1.5 ${
+                    cvStatus === 'CONFIRMED'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                      : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${cvStatus === 'CONFIRMED' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
+                    <span>{cvStatus === 'CONFIRMED' ? (locale === 'vi' ? 'TRẠNG THÁI: ĐÃ XÁC NHẬN (CONFIRMED)' : 'STATUS: CONFIRMED') : (locale === 'vi' ? 'TRẠNG THÁI: BẢN THẢO (DRAFT)' : 'STATUS: DRAFT')}</span>
+                  </span>
+                  {confirmedSuccess && (
+                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                      {locale === 'vi' ? '✓ Hồ sơ đã được xác nhận thành công!' : '✓ Profile confirmed successfully!'}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-[#1E293B] hover:bg-slate-50 dark:hover:bg-[#1E293B] transition flex items-center gap-2"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{locale === 'vi' ? 'Lưu Bản Thảo' : 'Save Draft'}</span>
+                  </button>
+
+                  {activeCvId && (
+                    <button
+                      type="button"
+                      onClick={handleConfirmProfile}
+                      disabled={isConfirming || cvStatus === 'CONFIRMED'}
+                      className={`px-6 py-2.5 rounded-lg text-xs font-semibold text-white transition flex items-center gap-2 shadow-xs ${
+                        cvStatus === 'CONFIRMED'
+                          ? 'bg-emerald-600/70 cursor-default'
+                          : 'bg-emerald-600 hover:bg-emerald-700 active:scale-95'
+                      }`}
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>
+                        {isConfirming
+                          ? (locale === 'vi' ? 'Đang xác nhận...' : 'Confirming...')
+                          : cvStatus === 'CONFIRMED'
+                          ? (locale === 'vi' ? 'Hồ Sơ Đã Xác Nhận' : 'Profile Confirmed')
+                          : (locale === 'vi' ? 'Xác Nhận Hồ Sơ' : 'Confirm Profile')}
+                      </span>
+                    </button>
+                  )}
+                </div>
               </div>
 
             </form>

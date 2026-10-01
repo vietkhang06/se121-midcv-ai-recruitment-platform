@@ -6,6 +6,7 @@ import { CV } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { fetchCandidateCVs, saveCandidateCV, deleteCandidateCV } from '@/lib/api';
 import { CVUploadModal } from '@/components/cv/CVUploadModal';
+import { CVExtractionReviewModal } from '@/components/cv/CVExtractionReviewModal';
 import { EmptyState } from '@/components/common/EmptyState';
 import {
   FolderOpen,
@@ -18,7 +19,8 @@ import {
   Clock,
   Sparkles,
   ExternalLink,
-  Edit3
+  Edit3,
+  Eye
 } from 'lucide-react';
 
 export default function CVLibraryPage() {
@@ -28,6 +30,7 @@ export default function CVLibraryPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
   const [selectedCvForHistory, setSelectedCvForHistory] = useState<CV | null>(null);
+  const [selectedCvForReview, setSelectedCvForReview] = useState<CV | null>(null);
 
   const loadCVs = () => {
     setIsLoading(true);
@@ -159,12 +162,22 @@ export default function CVLibraryPage() {
 
                 {/* Card Actions Footer */}
                 <div className="pt-5 mt-4 border-t border-slate-100 dark:border-[#1E293B] flex items-center justify-between gap-2">
+                  <button
+                    onClick={() => setSelectedCvForReview(cv)}
+                    title="Chi Tiết Trích Xuất, Raw Text, JSON & Bằng Chứng"
+                    className="py-2 px-3 rounded-xl text-center text-xs font-semibold border border-blue-200 dark:border-blue-900/60 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Trích Xuất & Evidence</span>
+                  </button>
+
                   <Link
                     href={`/candidate/cvs/builder?edit=${cv.id}`}
-                    className="flex-1 py-2 px-3 rounded-xl text-center text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition"
+                    className="py-2 px-3 rounded-xl text-center text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition"
                   >
                     {t('common.edit', 'Chỉnh Sửa')}
                   </Link>
+
                   <button
                     onClick={() => handleExport(cv)}
                     title="Export / Download PDF"
@@ -217,10 +230,25 @@ export default function CVLibraryPage() {
         <CVUploadModal
           isOpen={true}
           onClose={() => setIsUploadModalOpen(false)}
+          onUploadSuccess={(newCv) => {
+            setIsUploadModalOpen(false);
+            loadCVs();
+            setSelectedCvForReview(newCv);
+          }}
           onSuccess={() => {
             setIsUploadModalOpen(false);
-            fetchCandidateCVs().then(setCvList);
+            loadCVs();
           }}
+        />
+      )}
+
+      {/* CV Extraction & Evidence Review Modal */}
+      {selectedCvForReview && (
+        <CVExtractionReviewModal
+          isOpen={true}
+          cvId={selectedCvForReview.id}
+          onClose={() => setSelectedCvForReview(null)}
+          onCvUpdated={loadCVs}
         />
       )}
 

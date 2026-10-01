@@ -19,12 +19,23 @@ public class CVController {
 
     private final CVService cvService;
 
-    @PostMapping
+    @PostMapping(consumes = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<CVResponse>> createCV(
             @AuthenticationPrincipal User currentUser,
             @Valid @RequestBody CreateCVRequest request) {
         CVResponse response = cvService.createCV(currentUser, request);
         return new ResponseEntity<>(ApiResponse.success("CV created successfully", response), HttpStatus.CREATED);
+    }
+
+    @PostMapping(consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<CVUploadAsyncResponse>> uploadCVMultipart(
+            @AuthenticationPrincipal User currentUser,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "title", required = false) String title,
+            @RequestParam(value = "targetIndustry", required = false) String targetIndustry,
+            @RequestParam(value = "isDefault", required = false, defaultValue = "false") Boolean isDefault) {
+        CVUploadAsyncResponse response = cvService.uploadCVAsync(currentUser, file, title, targetIndustry, isDefault);
+        return new ResponseEntity<>(ApiResponse.success("CV upload accepted for asynchronous processing", response), HttpStatus.ACCEPTED);
     }
 
     @GetMapping
@@ -34,14 +45,22 @@ public class CVController {
     }
 
     @PostMapping(value = "/upload", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<CVResponse>> uploadCV(
+    public ResponseEntity<ApiResponse<CVUploadAsyncResponse>> uploadCV(
             @AuthenticationPrincipal User currentUser,
             @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "targetIndustry", required = false) String targetIndustry,
             @RequestParam(value = "isDefault", required = false, defaultValue = "false") Boolean isDefault) {
-        CVResponse response = cvService.uploadCV(currentUser, file, title, targetIndustry, isDefault);
-        return new ResponseEntity<>(ApiResponse.success("CV uploaded successfully", response), HttpStatus.CREATED);
+        CVUploadAsyncResponse response = cvService.uploadCVAsync(currentUser, file, title, targetIndustry, isDefault);
+        return new ResponseEntity<>(ApiResponse.success("CV upload accepted for asynchronous processing", response), HttpStatus.ACCEPTED);
+    }
+
+    @GetMapping("/{id}/processing-status")
+    public ResponseEntity<ApiResponse<CVProcessingStatusResponse>> getProcessingStatus(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        CVProcessingStatusResponse response = cvService.getProcessingStatus(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/{id}")
@@ -52,11 +71,72 @@ public class CVController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/{id}/review")
+    public ResponseEntity<ApiResponse<CVReviewResponse>> getCVReview(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        CVReviewResponse response = cvService.getCVReview(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/{id}/download/{format}")
+    public ResponseEntity<byte[]> downloadCV(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @PathVariable String format) {
+        DownloadResult result = cvService.downloadCV(currentUser, id, format);
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + result.filename() + "\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType(result.contentType()))
+                .body(result.data());
+    }
+
+    @PostMapping("/{id}/retry")
+    public ResponseEntity<ApiResponse<CVReviewResponse>> retryCV(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        CVReviewResponse response = cvService.retryCVExtraction(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success("CV extraction re-triggered successfully", response));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteCV(
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID id) {
         cvService.deleteCV(currentUser, id);
         return ResponseEntity.ok(ApiResponse.success("CV deleted successfully", null));
+    }
+
+    @GetMapping("/{id}/draft")
+    public ResponseEntity<ApiResponse<CVDraftResponse>> getCVDraft(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        CVDraftResponse response = cvService.getCVDraft(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PutMapping("/{id}/draft")
+    public ResponseEntity<ApiResponse<CVDraftResponse>> updateCVDraft(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @RequestBody UpdateCVDraftRequest request) {
+        CVDraftResponse response = cvService.updateCVDraft(currentUser, id, request);
+        return ResponseEntity.ok(ApiResponse.success("CV draft updated successfully", response));
+    }
+
+    @PostMapping("/{id}/confirm")
+    public ResponseEntity<ApiResponse<CVConfirmResponse>> confirmCV(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        CVConfirmResponse response = cvService.confirmCV(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success("CV profile confirmed successfully", response));
+    }
+
+    @GetMapping("/{id}/versions")
+    public ResponseEntity<ApiResponse<List<CVVersionSummaryResponse>>> getCVVersions(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        List<CVVersionSummaryResponse> response = cvService.getCVVersions(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

@@ -8,7 +8,9 @@ import {
   Company,
   CandidateRankingItem,
   MatchInspectionData,
-  Industry
+  Industry,
+  CVReviewData,
+  CVProcessingStatus
 } from '@/types';
 import {
   ApiClient,
@@ -319,6 +321,93 @@ export class BenchmarkFixtureClient implements ApiClient {
 
   async deleteCandidateCV(_cvId: string): Promise<void> {
     return;
+  }
+
+  async fetchCVProcessingStatus(cvId: string): Promise<CVProcessingStatus> {
+    return {
+      cvId,
+      jobId: `job-${cvId}`,
+      status: 'COMPLETED',
+      stage: 'NEEDS_REVIEW',
+      progress: 100,
+      message: 'Sẵn sàng để bạn kiểm tra',
+      retryable: false,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  async fetchCVReview(cvId: string): Promise<CVReviewData> {
+    return {
+      cvId,
+      title: 'Benchmark Candidate CV',
+      fileName: 'benchmark_cv.pdf',
+      fileType: 'application/pdf',
+      fileSize: 10240,
+      status: 'READY',
+      extractionMethod: 'PDFPLUMBER_LAYOUT',
+      rawText: 'Nguyễn Văn A\nKỹ sư phần mềm Java/Python...',
+      structured: {
+        schema_version: '2.0.0',
+        full_name: 'Nguyễn Văn A',
+        headline: 'Senior Full Stack Engineer',
+        skills: ['Java', 'Spring Boot', 'Python', 'PostgreSQL']
+      },
+      evidences: [],
+      unverifiedFacts: [],
+      warnings: [],
+      pages: []
+    };
+  }
+
+  async downloadCVFile(_cvId: string, _format: string, _defaultFilename: string): Promise<void> {
+    // No-op for test benchmark fixture client
+  }
+
+  async retryCVExtraction(cvId: string): Promise<CVReviewData> {
+    return this.fetchCVReview(cvId);
+  }
+
+  async fetchCVDraft(cvId: string): Promise<any> {
+    return {
+      cv_id: cvId,
+      profile_id: 'cand-prof-01',
+      version_id: 'ver-01',
+      version_number: 1,
+      title: 'Resume Nguyen Van A',
+      status: 'DRAFT',
+      skills: [{ name: 'Java', origin: 'CV_EXTRACTED', verified: true }],
+      work_experience: [{ company: 'Tech Corp', position: 'Backend Dev', origin: 'CV_EXTRACTED' }]
+    };
+  }
+
+  async updateCVDraft(cvId: string, draftData: any): Promise<any> {
+    return {
+      cv_id: cvId,
+      ...draftData,
+      status: 'DRAFT'
+    };
+  }
+
+  async confirmCandidateCV(cvId: string): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }> {
+    return {
+      cv_id: cvId,
+      profile_id: 'cand-prof-01',
+      status: 'CONFIRMED',
+      confirmed_at: new Date().toISOString()
+    };
+  }
+
+  async fetchCVVersions(cvId: string): Promise<any[]> {
+    return [
+      {
+        version_id: 'ver-01',
+        version_number: 1,
+        title: 'Resume Nguyen Van A v1.0',
+        status: 'CONFIRMED',
+        confirmed_at: new Date().toISOString(),
+        created_at: new Date().toISOString()
+      }
+    ];
   }
 
   async fetchCandidateApplications(): Promise<Application[]> {

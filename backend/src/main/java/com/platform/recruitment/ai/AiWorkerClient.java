@@ -71,4 +71,85 @@ public class AiWorkerClient {
             return fallback;
         }
     }
+
+    public Map<String, Object> extractCv(UUID cvId, UUID versionId, byte[] fileBytes, String fileType, String rawText) {
+        String correlationId = UUID.randomUUID().toString();
+        Map<String, Object> body = new HashMap<>();
+        body.put("cv_id", cvId != null ? cvId.toString() : UUID.randomUUID().toString());
+        body.put("cv_version_id", versionId != null ? versionId.toString() : UUID.randomUUID().toString());
+        if (fileBytes != null && fileBytes.length > 0) {
+            body.put("file_base64", java.util.Base64.getEncoder().encodeToString(fileBytes));
+        }
+        if (fileType != null) {
+            body.put("file_type", fileType);
+        }
+        if (rawText != null && !rawText.isBlank()) {
+            body.put("raw_text", rawText);
+        }
+        body.put("correlation_id", correlationId);
+
+        try {
+            return restClient.post()
+                    .uri("/extract-cv")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (Exception ex) {
+            log.error("Failed to call AI Worker /extract-cv: {}", ex.getMessage());
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "AI Worker extract-cv failed: " + ex.getMessage());
+        }
+    }
+
+    public Map<String, Object> extractDocument(byte[] fileBytes, String fileName, String fileType, String rawText) {
+        String correlationId = UUID.randomUUID().toString();
+        Map<String, Object> body = new HashMap<>();
+        if (fileBytes != null && fileBytes.length > 0) {
+            body.put("file_base64", java.util.Base64.getEncoder().encodeToString(fileBytes));
+        }
+        if (fileName != null) {
+            body.put("file_name", fileName);
+        }
+        if (fileType != null) {
+            body.put("file_type", fileType);
+        }
+        if (rawText != null && !rawText.isBlank()) {
+            body.put("raw_text", rawText);
+        }
+        body.put("correlation_id", correlationId);
+
+        try {
+            return restClient.post()
+                    .uri("/extract-document")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (Exception ex) {
+            log.error("Failed to call AI Worker /extract-document: {}", ex.getMessage());
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "AI Worker extract-document failed: " + ex.getMessage());
+        }
+    }
+
+    public Map<String, Object> structureCv(String rawText, UUID documentVersionId, String correlationId) {
+        String cid = correlationId != null ? correlationId : UUID.randomUUID().toString();
+        Map<String, Object> body = new HashMap<>();
+        body.put("rawText", rawText);
+        if (documentVersionId != null) {
+            body.put("documentVersionId", documentVersionId.toString());
+        }
+        body.put("correlationId", cid);
+
+        try {
+            return restClient.post()
+                    .uri("/structure-cv")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (Exception ex) {
+            log.error("Failed to call AI Worker /structure-cv: {}", ex.getMessage());
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "AI Worker structure-cv failed: " + ex.getMessage());
+        }
+    }
 }

@@ -91,6 +91,8 @@ export interface CVVersion {
   versionNumber: number;
   summaryText?: string;
   title?: string;
+  status?: string;
+  confirmedAt?: string;
   createdAt: string;
   sections: CVSection[];
 }
@@ -102,6 +104,7 @@ export interface CV {
   targetRole?: string;
   creationPath: 'UPLOAD' | 'BUILDER';
   isDefault: boolean;
+  status?: string;
   currentVersionNumber: number;
   rawText?: string;
   updatedAt: string;
@@ -270,3 +273,59 @@ export interface QuickScreeningDetail {
   jobs: any[];
 }
 
+export interface CVEvidenceItem {
+  field_path: string;
+  verbatim_value: any;
+  quote: string;
+  source_page?: number;
+  page_number?: number;
+  start_char?: number;
+  end_char?: number;
+  extraction_method?: string;
+  method?: string;
+  confidence?: number;
+  is_verified?: boolean;
+}
+
+export interface PageSegmentItem {
+  page_number: number;
+  text: string;
+  raw_text?: string;
+  method: string;
+  used_ocr: boolean;
+  start_char: number;
+  end_char: number;
+  ocr_confidence?: number;
+  warnings?: string[];
+}
+
+export interface CVReviewData {
+  cvId: string;
+  versionId?: string;
+  title: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
+  status: string;
+  extractionMethod?: string;
+  rawText?: string;
+  structured?: Record<string, any>;
+  evidences?: CVEvidenceItem[];
+  unverifiedFacts?: Record<string, any>[];
+  warnings?: string[];
+  pages?: PageSegmentItem[];
+  createdAt?: string;
+}
+
+export interface CVProcessingStatus {
+  cvId: string;
+  jobId: string;
+  status: 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CONFIRMED' | string;
+  stage: string;
+  progress: number;
+  message: string;
+  retryable: boolean;
+  errorCode?: string;
+  correlationId?: string;
+  updatedAt?: string;
+}

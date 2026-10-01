@@ -14,6 +14,7 @@ import lombok.*;
 @AllArgsConstructor
 public class CandidateProfile extends BaseEntity {
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;

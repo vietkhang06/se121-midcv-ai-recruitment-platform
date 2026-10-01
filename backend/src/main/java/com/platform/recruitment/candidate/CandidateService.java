@@ -13,16 +13,26 @@ public class CandidateService {
     private final CandidateProfileRepository candidateProfileRepository;
     private final CandidateTargetIndustryRepository candidateTargetIndustryRepository;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CandidateProfile getMyProfile(User candidateUser) {
         CandidateProfile profile = candidateProfileRepository.findByUserId(candidateUser.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+                .orElseGet(() -> {
+                    String defaultName = candidateUser.getEmail() != null ? candidateUser.getEmail().split("@")[0] : "Candidate";
+                    CandidateProfile newProfile = CandidateProfile.builder()
+                            .user(candidateUser)
+                            .fullName(defaultName)
+                            .targetIndustry("Technology")
+                            .build();
+                    return candidateProfileRepository.save(newProfile);
+                });
         
         java.util.List<CandidateTargetIndustry> industries = candidateTargetIndustryRepository.findByCandidateId(profile.getId());
         java.util.List<String> industryNames = industries.stream()
                 .map(CandidateTargetIndustry::getIndustryName)
                 .toList();
-        profile.setTargetIndustries(industryNames);
+        profile.setTargetIndustries(industryNames.isEmpty() && profile.getTargetIndustry() != null
+                ? java.util.List.of(profile.getTargetIndustry())
+                : industryNames);
         return profile;
     }
 

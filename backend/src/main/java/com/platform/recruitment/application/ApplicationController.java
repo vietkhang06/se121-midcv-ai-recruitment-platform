@@ -41,4 +41,30 @@ public class ApplicationController {
         List<ApplicationResponse> response = applicationService.getApplicationsForJob(currentUser, jobId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @GetMapping("/recruiter/jobs/{jobId}/applications/ranked")
+    public ResponseEntity<ApiResponse<List<ApplicationResponse>>> getRankedJobApplications(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID jobId,
+            @RequestParam(required = false) java.math.BigDecimal minScore) {
+        List<ApplicationResponse> response = applicationService.getRankedApplicationsForJob(currentUser, jobId, minScore);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PutMapping("/recruiter/applications/{applicationId}/status")
+    public ResponseEntity<ApiResponse<ApplicationResponse>> updateApplicationStatus(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID applicationId,
+            @Valid @RequestBody UpdateApplicationStatusRequest request) {
+        ApplicationResponse response = applicationService.updateApplicationStatus(currentUser, applicationId, request);
+        return ResponseEntity.ok(ApiResponse.success("Application status updated successfully", response));
+    }
+
+    @GetMapping("/recruiter/applications/{applicationId}/audit-logs")
+    public ResponseEntity<ApiResponse<List<ApplicationAuditLogResponse>>> getApplicationAuditLogs(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID applicationId) {
+        List<ApplicationAuditLogResponse> response = applicationService.getApplicationAuditLogs(currentUser, applicationId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }

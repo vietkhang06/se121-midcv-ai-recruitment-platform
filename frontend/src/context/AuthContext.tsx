@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Industry, AuthState } from '@/types';
-import { loginAccount, registerCandidateAccount, registerRecruiterAccount } from '@/lib/api';
+import { loginAccount, registerCandidateAccount, registerRecruiterAccount, isJwtExpired } from '@/lib/api';
 
 interface QuickOnboardingData {
   age?: number;
@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedUser = localStorage.getItem('auth_user');
     const storedToken = localStorage.getItem('auth_token');
 
-    if (storedUser && storedToken) {
+    if (storedUser && storedToken && !isJwtExpired(storedToken)) {
       try {
         const parsed = JSON.parse(storedUser);
         setUser(parsed);
@@ -70,9 +70,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } else {
       // Clean default state is strictly ANONYMOUS
+      localStorage.removeItem('auth_user');
+      localStorage.removeItem('auth_token');
       setUser(null);
       setAuthState('ANONYMOUS');
     }
+
+    // 3. Listen for session expired events
+    const handleSessionExpired = () => {
+      localStorage.removeItem('auth_user');
+      localStorage.removeItem('auth_token');
+      setUser(null);
+      setAuthState('ANONYMOUS');
+    };
+    window.addEventListener('midcv:session_expired', handleSessionExpired);
+    return () => window.removeEventListener('midcv:session_expired', handleSessionExpired);
   }, []);
 
   const setFirstVisitChoice = (choice: 'CANDIDATE' | 'RECRUITER' | 'SKIP', data?: QuickOnboardingData) => {

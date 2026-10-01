@@ -9,12 +9,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.security.MessageDigest;
 import java.util.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 @Service
 public class Documents {
   private final JdbcTemplate jdbc;
@@ -31,14 +33,27 @@ public class Documents {
     this.jdbc = jdbc;
     this.queue = queue;
     this.events = events;
-    directory = Path.of(path).toAbsolutePath().normalize();
-    Files.createDirectories(directory);
+    this.directory = Path.of(path).toAbsolutePath().normalize();
+    try {
+      Files.createDirectories(this.directory);
+      if (!Files.isWritable(this.directory)) {
+        log.warn("Storage root directory is not marked writable: {}", this.directory);
+      }
+    } catch (IOException e) {
+      log.error("Failed to initialize storage directory at {}: {}", this.directory, e.getMessage());
+      throw new IOException("Failed to initialize storage directory at " + this.directory + ": " + e.getMessage(), e);
+    }
   }
 
   public Path path(String key) {
-    if (!key.matches("[a-f0-9-]{36}\\.[a-z0-9]+"))
-      throw new IllegalStateException("INVALID_STORAGE_KEY");
-    return directory.resolve(key);
+    if (key == null || !key.matches("^[a-f0-9\\-]{36}\\.[a-z0-9]+$")) {
+      throw new CustomException(ErrorCode.INVALID_FILE, "INVALID_STORAGE_KEY: Khóa lưu trữ tệp không hợp lệ.");
+    }
+    Path resolved = directory.resolve(key).normalize();
+    if (!resolved.startsWith(directory)) {
+      throw new SecurityException("PATH_TRAVERSAL_DETECTED: Phát hiện truy cập đường dẫn không hợp lệ.");
+    }
+    return resolved;
   }
 
   public UUID createDocument(UUID owner, String kind, String title) {
@@ -123,8 +138,40 @@ public class Documents {
     int version = next(doc);
     UUID id = UUID.randomUUID();
     String key = id + "." + ext;
+
+    // 1. Ensure storage root exists and is writable
+    try {
+      Files.createDirectories(this.directory);
+      if (!Files.isWritable(this.directory)) {
+        throw new IOException("Storage directory is not writable: " + this.directory);
+      }
+    } catch (IOException ioEx) {
+      log.error("Storage directory check/creation failed: {}", this.directory, ioEx);
+      throw new CustomException(ErrorCode.FILE_STORAGE_FAILED, "Thư mục lưu trữ không sẵn sàng để ghi. Vui lòng thử lại.");
+    }
+
     Path target = path(key);
-    Files.write(target, bytes, StandardOpenOption.CREATE_NEW);
+    Path tempFile = null;
+    try {
+      tempFile = Files.createTempFile(this.directory, "upload_", ".tmp");
+      try (InputStream in = file.getInputStream();
+           OutputStream out = Files.newOutputStream(tempFile, StandardOpenOption.WRITE)) {
+        in.transferTo(out);
+      }
+      Files.move(tempFile, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+    } catch (Exception ex) {
+      log.error("Failed to write uploaded file to storage: target={}", target, ex);
+      if (tempFile != null) {
+        try {
+          Files.deleteIfExists(tempFile);
+        } catch (IOException ignored) {}
+      }
+      try {
+        Files.deleteIfExists(target);
+      } catch (IOException ignored) {}
+      throw new CustomException(ErrorCode.FILE_STORAGE_FAILED, "Không thể ghi tệp tin lên hệ thống lưu trữ. Vui lòng thử lại.");
+    }
+
     if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
       org.springframework.transaction.support.TransactionSynchronizationManager
           .registerSynchronization(
@@ -194,6 +241,7 @@ public class Documents {
     return switch (ext) {
       case "pdf" -> "application/pdf";
       case "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      case "doc" -> "application/msword";
       case "png" -> "image/png";
       case "jpg", "jpeg" -> "image/jpeg";
       case "webp" -> "image/webp";
@@ -202,12 +250,13 @@ public class Documents {
   }
 
   private void validateMagic(byte[] b, String ext) {
-    if (!Set.of("pdf", "docx", "txt", "md", "png", "jpg", "jpeg", "webp").contains(ext))
-      throw new CustomException(ErrorCode.INVALID_FILE, "UNSUPPORTED_FILE_TYPE: Chỉ hỗ trợ PDF, DOCX, TXT, MD, PNG, JPG và WEBP.");
+    if (!Set.of("pdf", "docx", "doc", "txt", "md", "png", "jpg", "jpeg", "webp").contains(ext))
+      throw new CustomException(ErrorCode.INVALID_FILE, "UNSUPPORTED_FILE_TYPE: Chỉ hỗ trợ PDF, DOCX, DOC, TXT, MD, PNG, JPG và WEBP.");
     boolean valid =
         switch (ext) {
           case "pdf" -> starts(b, "%PDF-");
           case "docx" -> b.length > 4 && b[0] == 80 && b[1] == 75;
+          case "doc" -> b.length > 8 && (b[0] & 255) == 0xD0 && (b[1] & 255) == 0xCF && (b[2] & 255) == 0x11 && (b[3] & 255) == 0xE0;
           case "png" ->
               b.length > 8 && (b[0] & 255) == 137 && b[1] == 80 && b[2] == 78 && b[3] == 71;
           case "jpg", "jpeg" -> b.length > 3 && (b[0] & 255) == 255 && (b[1] & 255) == 216;

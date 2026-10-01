@@ -3,3 +3,31 @@
 
 # Java compiled files
 *.class
+
+# Storage uploads
+uploads/
+backend/uploads/
+
+# Frontend test and build artifacts
+frontend/test-results/
+frontend/playwright-report/
+frontend/.next/
+frontend/out/
+
+# Python cache and environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+**/*.py[cod]
+**/__pycache__/**
+.pytest_cache/
+ai-worker/**/__pycache__/
+ai-worker/.pytest_cache/
+ai-worker/test-output/
+.env*
+!.env.example
+ai-worker/.env
+ai-worker/.env.*
+!ai-worker/.env.example
+

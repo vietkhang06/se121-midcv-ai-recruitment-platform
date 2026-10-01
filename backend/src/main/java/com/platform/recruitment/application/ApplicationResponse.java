@@ -21,6 +21,8 @@ public class ApplicationResponse {
     private String candidateName;
     private UUID appliedCvId;
     private ApplicationStatus status;
+    private java.math.BigDecimal matchScore;
+    private String matchStatus;
     private ZonedDateTime appliedAt;
     private SnapshotInfo snapshot;
 

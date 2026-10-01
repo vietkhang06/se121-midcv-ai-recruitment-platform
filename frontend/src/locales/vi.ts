@@ -160,7 +160,16 @@ export const vi = {
     confirmSave: "Xác Nhận & Lưu Thư Viện CV",
     failedTitle: "Phân Tích Thất Bại",
     failedDesc: "Định dạng tệp tin hoặc nội dung văn bản không thể nhận diện. Vui lòng kiểm tra lại file.",
-    retry: "Thử Lại (Retry)"
+    retry: "Thử Lại (Retry)",
+    errors: {
+      invalidFileType: "Định dạng tệp không được hỗ trợ. Vui lòng tải lên PDF, DOCX, DOC hoặc ảnh PNG/JPG.",
+      fileTooLarge: "Dung lượng tệp vượt quá giới hạn tối đa 10MB.",
+      fileStorageFailed: "Hệ thống không thể lưu trữ tệp CV lúc này. Vui lòng thử lại.",
+      cvTextExtractionFailed: "Không thể trích xuất nội dung văn bản từ tệp CV đã tải lên.",
+      cvStructuringFailed: "Không thể chuẩn hóa cấu trúc dữ liệu CV bằng AI. Vui lòng thử lại.",
+      cvProcessingFailed: "Quá trình xử lý CV gặp sự cố kỹ thuật. Vui lòng thử lại.",
+      generic: "Đã xảy ra lỗi trong quá trình xử lý CV. Vui lòng thử lại sau."
+    }
   },
   quickApply: {
     badge: "midCV® APPLICATION NODE",
