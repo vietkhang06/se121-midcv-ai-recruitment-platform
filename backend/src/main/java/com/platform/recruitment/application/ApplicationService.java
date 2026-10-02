@@ -285,6 +285,23 @@ public class ApplicationService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public ApplicationResponse getApplicationById(User recruiterUser, UUID applicationId) {
+        RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
+
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Application", "id", applicationId));
+
+        if (recruiter.getCompany() == null
+                || !application.getJob().getCompany().getId().equals(recruiter.getCompany().getId())) {
+            throw new UnauthorizedAccessException("Recruiter does not have permission to view this application");
+        }
+
+        ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(application.getId()).orElse(null);
+        return mapToResponse(application, snap);
+    }
+
     public ApplicationResponse mapToResponse(Application app, ApplicationCVSnapshot snap) {
         ApplicationResponse.SnapshotInfo snapshotInfo = null;
         if (snap != null) {
@@ -305,12 +322,29 @@ public class ApplicationService {
             }
         }
 
+        String candidateEmail = null;
+        String candidatePhone = null;
+        String candidateHeadline = null;
+        String candidateGithubUrl = null;
+        if (app.getCandidate() != null) {
+            candidatePhone = app.getCandidate().getPhone();
+            candidateHeadline = app.getCandidate().getHeadline();
+            candidateGithubUrl = app.getCandidate().getGithubUrl();
+            if (app.getCandidate().getUser() != null) {
+                candidateEmail = app.getCandidate().getUser().getEmail();
+            }
+        }
+
         return ApplicationResponse.builder()
                 .id(app.getId())
                 .jobId(app.getJob().getId())
                 .jobTitle(app.getJob().getTitle())
                 .candidateId(app.getCandidate().getId())
                 .candidateName(app.getCandidate().getFullName())
+                .candidateEmail(candidateEmail)
+                .candidatePhone(candidatePhone)
+                .candidateHeadline(candidateHeadline)
+                .candidateGithubUrl(candidateGithubUrl)
                 .appliedCvId(app.getAppliedCv() != null ? app.getAppliedCv().getId() : null)
                 .status(app.getStatus())
                 .matchScore(matchScore)

@@ -151,15 +151,35 @@ export interface Application {
   appliedCvTitle: string;
   appliedCvVersion: number;
   candidateName?: string;
+  candidateEmail?: string;
+  candidatePhone?: string;
+  candidateHeadline?: string;
   status: ApplicationStatus;
   appliedDate: string;
   expectedSalary?: number;
   noticePeriodDays?: number;
   githubUrl?: string;
   portfolioUrl?: string;
+  matchScore?: number;
+  matchStatus?: string;
+  snapshot?: {
+    cvTitle?: string;
+    rawTextSnapshot?: string;
+    snapshotCreatedAt?: string;
+  };
   candidateAnswers?: Record<string, string>;
   candidateNotes?: string;
   candidateProfile?: CandidateProfile;
+}
+
+export interface ApplicationAuditLogItem {
+  id: string;
+  applicationId: string;
+  recruiterUserId: string;
+  previousStatus: ApplicationStatus;
+  newStatus: ApplicationStatus;
+  decisionNote?: string;
+  createdAt: string;
 }
 
 export interface SkillMatchResultItem {

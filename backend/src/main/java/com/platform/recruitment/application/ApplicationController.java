@@ -51,6 +51,14 @@ public class ApplicationController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/recruiter/applications/{applicationId}")
+    public ResponseEntity<ApiResponse<ApplicationResponse>> getApplicationById(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID applicationId) {
+        ApplicationResponse response = applicationService.getApplicationById(currentUser, applicationId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @PutMapping("/recruiter/applications/{applicationId}/status")
     public ResponseEntity<ApiResponse<ApplicationResponse>> updateApplicationStatus(
             @AuthenticationPrincipal User currentUser,

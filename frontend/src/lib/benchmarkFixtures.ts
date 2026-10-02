@@ -3,6 +3,8 @@ import {
   CV,
   CandidateProfile,
   Application,
+  ApplicationStatus,
+  ApplicationAuditLogItem,
   User,
   RecruiterProfile,
   Company,
@@ -454,6 +456,42 @@ export class BenchmarkFixtureClient implements ApiClient {
 
   async fetchJobApplications(jobId: string): Promise<Application[]> {
     return SEED_APPLICATIONS.filter(a => a.job?.id === jobId);
+  }
+
+  async fetchApplicationById(applicationId: string): Promise<Application | null> {
+    return SEED_APPLICATIONS.find(a => a.id === applicationId) || null;
+  }
+
+  async updateApplicationStatus(applicationId: string, status: ApplicationStatus, _decisionNote?: string): Promise<Application> {
+    const app = SEED_APPLICATIONS.find(a => a.id === applicationId);
+    if (!app) {
+      return {
+        id: applicationId,
+        job: SEED_JOBS[0],
+        appliedCvId: 'cv-1',
+        appliedCvTitle: 'CV Default',
+        appliedCvVersion: 1,
+        candidateName: 'Ứng viên',
+        status,
+        appliedDate: new Date().toISOString().split('T')[0]
+      };
+    }
+    app.status = status;
+    return { ...app };
+  }
+
+  async fetchApplicationAuditLogs(applicationId: string): Promise<ApplicationAuditLogItem[]> {
+    return [
+      {
+        id: `audit-${applicationId}-1`,
+        applicationId,
+        recruiterUserId: 'usr-recruiter-01',
+        previousStatus: 'SUBMITTED',
+        newStatus: 'SHORTLISTED',
+        decisionNote: 'Hồ sơ phù hợp với yêu cầu kỹ năng',
+        createdAt: new Date().toISOString()
+      }
+    ];
   }
 
   async fetchRecruiterProfile(): Promise<RecruiterProfile> {

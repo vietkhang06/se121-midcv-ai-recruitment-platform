@@ -161,19 +161,19 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                       {locale === 'vi' ? 'Đánh giá đa chiều dựa trên mô hình đối sánh ngữ nghĩa và năng lực kỹ thuật' : 'Multidimensional evaluation based on semantic matching and technical skills'}
                     </p>
                   </div>
-                  <span className="text-xs font-semibold text-[#00B14F] dark:text-[#00B14F] bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-full">
+                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-full">
                     {locale === 'vi' ? 'Ứng viên dẫn đầu (Spotlight)' : 'Top Candidate (Spotlight)'}
                   </span>
                 </div>
 
-                {/* Candidate Dark Forest Banner */}
+                {/* Candidate Spotlight Banner */}
                 <div className="bg-gradient-to-r from-[#0F2A52] via-[#1E3A5F] to-[#0F2A52] border border-blue-900/30 rounded-2xl p-6 sm:p-7 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-5">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-white/10 border-2 border-[#00B14F] flex items-center justify-center font-serif text-xl font-bold text-white shadow-inner">
+                    <div className="w-14 h-14 rounded-full bg-white/10 border-2 border-blue-400 flex items-center justify-center font-bold text-xl text-white shadow-inner">
                       {topCandidate.candidateName.charAt(0)}
                     </div>
                     <div>
-                      <h3 className="text-2xl font-serif font-bold text-white tracking-wide">
+                      <h3 className="text-2xl font-bold text-white tracking-tight">
                         {topCandidate.candidateName}
                       </h3>
                       <p className="text-xs text-blue-200/90 font-medium">
@@ -183,12 +183,12 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="px-3.5 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-[#00B14F] font-bold text-xs tracking-wider uppercase">
+                    <span className="px-3.5 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs tracking-wider uppercase font-mono">
                       {topCandidate.overallMatchScore.toFixed(1)}% MATCH
                     </span>
                     <Link
                       href={`/recruiter/applications/${topCandidate.applicationId}`}
-                      className="px-4 py-2 rounded-xl bg-[#00B14F] text-white hover:bg-[#009643] font-bold text-xs shadow-md shadow-emerald-500/20 transition active:scale-95"
+                      className="px-4 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-bold text-xs shadow-md shadow-blue-500/20 transition active:scale-95"
                     >
                       {locale === 'vi' ? 'Xem Hồ Sơ & Đánh Giá Chi Tiết' : 'View Profile & Full Evaluation'}
                     </Link>
@@ -232,18 +232,18 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                           <div className="space-y-2 text-slate-600 dark:text-slate-300">
                             <p>{locale === 'vi' ? 'Số năm kinh nghiệm liên quan:' : 'Relevant experience years:'} <strong className="text-slate-900 dark:text-white">{topCandidate.relevantExperienceYears} {locale === 'vi' ? 'năm' : 'years'}</strong></p>
                             <p>{locale === 'vi' ? 'Điểm tương quan hồ sơ gốc (Core Match):' : 'Core JD-CV Match score:'} <strong className="text-slate-900 dark:text-white">{topCandidate.coreJdCvScore.toFixed(1)}%</strong></p>
-                            <p>{locale === 'vi' ? 'Trạng thái nộp đơn:' : 'Application status:'} <span className="font-semibold text-[#00B14F]">{topCandidate.status}</span></p>
+                            <p>{locale === 'vi' ? 'Trạng thái nộp đơn:' : 'Application status:'} <span className="font-semibold text-emerald-600 dark:text-emerald-400">{topCandidate.status}</span></p>
                             <p className="text-slate-400">{locale === 'vi' ? 'Thời gian ứng tuyển:' : 'Applied on:'} {new Date(topCandidate.appliedDate).toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-US')}</p>
                           </div>
                         )}
                       </div>
                     </div>
 
-                    {/* Dark Forest GitHub Activity Analytics Card */}
-                    <div className="bg-gradient-to-br from-[#0F172A] to-[#1E293B] border border-[#1F4A40] rounded-2xl p-6 text-white shadow-md space-y-4">
-                      <div className="flex items-center justify-between border-b border-[#1F4A40] pb-3">
-                        <span className="text-xs font-bold uppercase tracking-wider text-[#00B14F] flex items-center gap-1.5">
-                          <GitBranch className="w-4 h-4 text-[#00B14F]" />
+                    {/* GitHub Activity Analytics Card */}
+                    <div className="bg-gradient-to-br from-[#0F172A] to-[#1E293B] border border-slate-700 rounded-2xl p-6 text-white shadow-md space-y-4">
+                      <div className="flex items-center justify-between border-b border-slate-700/80 pb-3">
+                        <span className="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+                          <GitBranch className="w-4 h-4 text-blue-400" />
                           <span>GitHub Activity Analytics</span>
                         </span>
                         <span className="text-[11px] font-mono text-emerald-300/80">
@@ -316,7 +316,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                                 <span className="font-bold text-slate-900 dark:text-white">{skill.skillName}</span>
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
                                   skill.status === 'MATCH'
-                                    ? 'text-[#00B14F] bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800'
+                                    ? 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800'
                                     : skill.status === 'PARTIAL'
                                     ? 'text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800'
                                     : 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800'
@@ -327,7 +327,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                               <div className="w-full h-2 bg-slate-100 dark:bg-[#0B1329] rounded-full overflow-hidden">
                                 <div
                                   className={`h-full rounded-full ${
-                                    skill.status === 'MATCH' ? 'bg-[#00B14F]' : skill.status === 'PARTIAL' ? 'bg-amber-500' : 'bg-rose-400'
+                                    skill.status === 'MATCH' ? 'bg-emerald-500' : skill.status === 'PARTIAL' ? 'bg-amber-500' : 'bg-rose-400'
                                   }`}
                                   style={{ width: skill.status === 'MATCH' ? '100%' : skill.status === 'PARTIAL' ? '50%' : '15%' }}
                                 />
@@ -355,7 +355,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                                 </div>
                               </div>
                             ) : (
-                              <p className="text-[#00B14F] font-semibold">
+                              <p className="text-emerald-600 dark:text-emerald-400 font-semibold">
                                 {locale === 'vi' ? 'Đã đáp ứng đầy đủ tất cả kỹ năng yêu cầu của bài đăng tuyển!' : 'All required skills for this job opening are fully met!'}
                               </p>
                             )}

@@ -3,6 +3,8 @@ import {
   CV,
   CandidateProfile,
   Application,
+  ApplicationStatus,
+  ApplicationAuditLogItem,
   User,
   RecruiterProfile,
   Company,
@@ -271,6 +273,9 @@ export interface ApiClient {
   fetchCandidateApplications(): Promise<Application[]>;
   submitApplication(app: Application): Promise<Application>;
   fetchJobApplications(jobId: string): Promise<Application[]>;
+  fetchApplicationById(applicationId: string): Promise<Application | null>;
+  updateApplicationStatus(applicationId: string, status: ApplicationStatus, decisionNote?: string): Promise<Application>;
+  fetchApplicationAuditLogs(applicationId: string): Promise<ApplicationAuditLogItem[]>;
   fetchRecruiterProfile(): Promise<RecruiterProfile>;
   fetchRecruiterCompany(): Promise<Company>;
   saveCompanyProfile(company: Company): Promise<Company>;
@@ -737,8 +742,148 @@ export class RealApiClient implements ApiClient {
       appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
       appliedCvVersion: 1,
       candidateName: app.candidateName || '',
+      candidateEmail: app.candidateEmail,
+      candidatePhone: app.candidatePhone,
+      candidateHeadline: app.candidateHeadline,
       status: app.status || 'SUBMITTED',
-      appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : ''
+      matchScore: app.matchScore != null ? Number(app.matchScore) : undefined,
+      matchStatus: app.matchStatus,
+      appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
+      snapshot: app.snapshot ? {
+        cvTitle: app.snapshot.cvTitle,
+        rawTextSnapshot: app.snapshot.rawTextSnapshot,
+        snapshotCreatedAt: app.snapshot.snapshotCreatedAt ? String(app.snapshot.snapshotCreatedAt) : undefined
+      } : undefined
+    }));
+  }
+
+  async fetchApplicationById(applicationId: string): Promise<Application | null> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('GET', `/api/v1/recruiter/applications/${applicationId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
+    }
+
+    const json: any = await apiRequest(`/api/v1/recruiter/applications/${applicationId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const app = json?.data;
+    if (!app) return null;
+
+    return {
+      id: String(app.id),
+      job: {
+        id: String(app.jobId),
+        title: app.jobTitle || '',
+        companyName: '',
+        companyVerified: true,
+        industry: 'Technology',
+        employmentType: 'FULL_TIME',
+        seniority: '',
+        location: '',
+        salaryMin: 0,
+        salaryMax: 0,
+        publishedDate: '',
+        description: '',
+        requirements: [],
+        status: 'PUBLISHED'
+      },
+      appliedCvId: String(app.appliedCvId || ''),
+      appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
+      appliedCvVersion: 1,
+      candidateName: app.candidateName || '',
+      candidateEmail: app.candidateEmail,
+      candidatePhone: app.candidatePhone,
+      candidateHeadline: app.candidateHeadline,
+      githubUrl: app.candidateGithubUrl,
+      status: app.status || 'SUBMITTED',
+      matchScore: app.matchScore != null ? Number(app.matchScore) : undefined,
+      matchStatus: app.matchStatus,
+      appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
+      snapshot: app.snapshot ? {
+        cvTitle: app.snapshot.cvTitle,
+        rawTextSnapshot: app.snapshot.rawTextSnapshot,
+        snapshotCreatedAt: app.snapshot.snapshotCreatedAt ? String(app.snapshot.snapshotCreatedAt) : undefined
+      } : undefined
+    };
+  }
+
+  async updateApplicationStatus(applicationId: string, status: ApplicationStatus, decisionNote?: string): Promise<Application> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('PUT', `/api/v1/recruiter/applications/${applicationId}/status`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
+    }
+
+    const json: any = await apiRequest(`/api/v1/recruiter/applications/${applicationId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        status,
+        decisionNote: decisionNote || ''
+      })
+    });
+
+    const app = json?.data;
+    return {
+      id: String(app.id),
+      job: {
+        id: String(app.jobId),
+        title: app.jobTitle || '',
+        companyName: '',
+        companyVerified: true,
+        industry: 'Technology',
+        employmentType: 'FULL_TIME',
+        seniority: '',
+        location: '',
+        salaryMin: 0,
+        salaryMax: 0,
+        publishedDate: '',
+        description: '',
+        requirements: [],
+        status: 'PUBLISHED'
+      },
+      appliedCvId: String(app.appliedCvId || ''),
+      appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
+      appliedCvVersion: 1,
+      candidateName: app.candidateName || '',
+      candidateEmail: app.candidateEmail,
+      candidatePhone: app.candidatePhone,
+      candidateHeadline: app.candidateHeadline,
+      githubUrl: app.candidateGithubUrl,
+      status: app.status || status,
+      matchScore: app.matchScore != null ? Number(app.matchScore) : undefined,
+      matchStatus: app.matchStatus,
+      appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
+      snapshot: app.snapshot ? {
+        cvTitle: app.snapshot.cvTitle,
+        rawTextSnapshot: app.snapshot.rawTextSnapshot,
+        snapshotCreatedAt: app.snapshot.snapshotCreatedAt ? String(app.snapshot.snapshotCreatedAt) : undefined
+      } : undefined
+    };
+  }
+
+  async fetchApplicationAuditLogs(applicationId: string): Promise<ApplicationAuditLogItem[]> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('GET', `/api/v1/recruiter/applications/${applicationId}/audit-logs`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
+    }
+
+    const json: any = await apiRequest(`/api/v1/recruiter/applications/${applicationId}/audit-logs`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const rawList: any[] = Array.isArray(json) ? json : (json?.data ?? []);
+    return rawList.map((item: any) => ({
+      id: String(item.id),
+      applicationId: String(item.applicationId),
+      recruiterUserId: String(item.recruiterUserId),
+      previousStatus: item.previousStatus as ApplicationStatus,
+      newStatus: item.newStatus as ApplicationStatus,
+      decisionNote: item.decisionNote || '',
+      createdAt: item.createdAt ? String(item.createdAt) : ''
     }));
   }
 
@@ -1171,6 +1316,10 @@ export const fetchRecruiterJobs = () => currentApiClient.fetchRecruiterJobs();
 export const saveJob = (job: Job) => currentApiClient.saveJob(job);
 export const publishJob = (jobId: string) => currentApiClient.publishJob(jobId);
 export const closeJob = (jobId: string) => currentApiClient.closeJob(jobId);
+export const fetchApplicationById = (applicationId: string) => currentApiClient.fetchApplicationById(applicationId);
+export const updateApplicationStatus = (applicationId: string, status: ApplicationStatus, decisionNote?: string) =>
+  currentApiClient.updateApplicationStatus(applicationId, status, decisionNote);
+export const fetchApplicationAuditLogs = (applicationId: string) => currentApiClient.fetchApplicationAuditLogs(applicationId);
 export const fetchCandidateRankings = (jobId: string) => currentApiClient.fetchCandidateRankings(jobId);
 export const fetchMatchInspection = (applicationId: string) => currentApiClient.fetchMatchInspection(applicationId);
 export const checkEmailAvailability = (email: string) => currentApiClient.checkEmailAvailability(email);
