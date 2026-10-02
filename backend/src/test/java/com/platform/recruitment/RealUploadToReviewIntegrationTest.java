@@ -317,6 +317,9 @@ public class RealUploadToReviewIntegrationTest {
                     .filter(c -> c.getId().equals(id) && c.getCandidate().getId().equals(candidateId))
                     .findFirst();
         }
+        @Override public long countByCandidateId(UUID candidateId) {
+            return findByCandidateId(candidateId).size();
+        }
         @Override public boolean existsById(UUID id) { return store.containsKey(id); }
         @Override public long count() { return store.size(); }
         @Override public void deleteById(UUID id) { store.remove(id); }

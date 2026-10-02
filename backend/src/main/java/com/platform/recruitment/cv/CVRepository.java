@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface CVRepository extends JpaRepository<CV, UUID> {
     List<CV> findByCandidateId(UUID candidateId);
     Optional<CV> findByIdAndCandidateId(UUID id, UUID candidateId);
+    long countByCandidateId(UUID candidateId);
 }

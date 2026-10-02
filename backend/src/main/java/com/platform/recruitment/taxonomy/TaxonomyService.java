@@ -491,4 +491,74 @@ public class TaxonomyService {
   public int aliasCount() {
     return exactAliasMap.size();
   }
+
+  public Map<String, Object> listSkillsForAdmin(String query, Boolean active, int page, int size) {
+    if (jdbc == null) return Map.of("content", List.of(), "totalElements", 0L);
+    StringBuilder sql = new StringBuilder("SELECT id, canonical_name, normalized_name, category, description, source, version, active FROM taxonomy_skills WHERE 1=1 ");
+    List<Object> params = new ArrayList<>();
+    if (query != null && !query.isBlank()) {
+      sql.append("AND (LOWER(canonical_name) LIKE ? OR LOWER(normalized_name) LIKE ? OR LOWER(category) LIKE ?) ");
+      String q = "%" + query.trim().toLowerCase() + "%";
+      params.add(q);
+      params.add(q);
+      params.add(q);
+    }
+    if (active != null) {
+      sql.append("AND active = ? ");
+      params.add(active);
+    }
+
+    String countSql = "SELECT COUNT(*) FROM (" + sql.toString() + ") AS c";
+    Long total = jdbc.queryForObject(countSql, Long.class, params.toArray());
+
+    sql.append("ORDER BY canonical_name ASC LIMIT ? OFFSET ?");
+    params.add(size);
+    params.add(page * size);
+
+    List<TaxonomySkill> skills = jdbc.query(sql.toString(), (rs, rowNum) -> new TaxonomySkill(
+        rs.getObject("id", UUID.class),
+        rs.getString("canonical_name"),
+        rs.getString("normalized_name"),
+        rs.getString("category"),
+        rs.getString("description"),
+        rs.getString("source"),
+        rs.getString("version"),
+        rs.getBoolean("active")
+    ), params.toArray());
+
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("content", skills);
+    result.put("totalElements", total != null ? total : 0L);
+    result.put("page", page);
+    result.put("size", size);
+    return result;
+  }
+
+  public synchronized UUID createSkill(String canonicalName, String category, String description, List<String> aliases) {
+    if (jdbc == null) return UUID.randomUUID();
+    String norm = normalizeKey(canonicalName);
+    UUID id = UUID.randomUUID();
+    jdbc.update("INSERT INTO taxonomy_skills(id, canonical_name, normalized_name, category, description, source, version, active) VALUES (?, ?, ?, ?, ?, 'ADMIN', 'v1', true)",
+        id, canonicalName.trim(), norm, category.trim(), description != null ? description.trim() : null);
+    if (aliases != null) {
+      for (String a : aliases) {
+        if (a != null && !a.isBlank()) {
+          jdbc.update("INSERT INTO taxonomy_aliases(id, skill_id, alias, normalized_alias, source, active) VALUES (?, ?, ?, ?, 'ADMIN', true) ON CONFLICT DO NOTHING",
+              UUID.randomUUID(), id, a.trim(), normalizeKey(a));
+        }
+      }
+    }
+    refresh();
+    return id;
+  }
+
+  public synchronized boolean toggleSkillActive(UUID skillId) {
+    if (jdbc == null) return false;
+    Boolean current = jdbc.queryForObject("SELECT active FROM taxonomy_skills WHERE id = ?", Boolean.class, skillId);
+    boolean next = current == null || !current;
+    jdbc.update("UPDATE taxonomy_skills SET active = ?, updated_at = now() WHERE id = ?", next, skillId);
+    jdbc.update("UPDATE taxonomy_aliases SET active = ? WHERE skill_id = ?", next, skillId);
+    refresh();
+    return next;
+  }
 }
