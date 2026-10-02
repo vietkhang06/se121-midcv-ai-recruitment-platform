@@ -6,8 +6,11 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Briefcase,
+  GitBranch,
+  BarChart3,
+  Building2,
+  User,
   PlusCircle,
-  ShieldCheck,
   Globe,
   Menu,
   X,
@@ -56,6 +59,45 @@ export const RecruiterNavbar: React.FC = () => {
     );
   };
 
+  const navItems = [
+    {
+      href: '/recruiter',
+      label: t('recruiterNav.dashboard', 'Tổng quan'),
+      icon: LayoutDashboard,
+      active: pathname === '/recruiter',
+    },
+    {
+      href: '/recruiter/jobs',
+      label: t('recruiterNav.jobs', 'Tin tuyển dụng'),
+      icon: Briefcase,
+      active: isActive('/recruiter/jobs'),
+    },
+    {
+      href: '/recruiter/pipeline',
+      label: t('recruiterNav.pipeline', 'Quy trình tuyển dụng'),
+      icon: GitBranch,
+      active: isActive('/recruiter/pipeline'),
+    },
+    {
+      href: '/recruiter/analytics',
+      label: t('recruiterNav.analytics', 'Phân tích & Báo cáo'),
+      icon: BarChart3,
+      active: isActive('/recruiter/analytics'),
+    },
+    {
+      href: '/recruiter/company',
+      label: t('recruiterNav.company', 'Doanh nghiệp'),
+      icon: Building2,
+      active: isActive('/recruiter/company'),
+    },
+    {
+      href: '/recruiter/profile',
+      label: t('recruiterNav.profile', 'Hồ sơ HR'),
+      icon: User,
+      active: isActive('/recruiter/profile'),
+    },
+  ];
+
   return (
     <>
       <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-md border-b border-[#E2E8F0] dark:border-[#1E293B] text-[#1E3A5F] dark:text-[#D6E4E1] transition-colors">
@@ -63,56 +105,29 @@ export const RecruiterNavbar: React.FC = () => {
           <div className="flex items-center gap-2.5 shrink-0">
             <BrandLogo href="/recruiter" size="md" />
 
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#FEF3C7] dark:bg-[#FACC15]/15 text-[#B45309] dark:text-[#FACC15] border border-[#FACC15]/40 font-sans tracking-wide whitespace-nowrap">
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#EFF6FF] dark:bg-[#1E3A5F]/40 text-[#2563EB] dark:text-[#3B82F6] border border-[#2563EB]/20 font-sans tracking-wide whitespace-nowrap">
               HR Portal
             </span>
           </div>
 
-          <nav className="hidden lg:flex items-center gap-1 xl:gap-2 text-xs font-semibold shrink-0">
-            <Link
-              href="/recruiter"
-              className={`px-2.5 xl:px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                pathname === '/recruiter'
-                  ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold'
-                  : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4" />
-
-              <span>
-                {t('recruiterNav.dashboard', 'HR Dashboard')}
-              </span>
-            </Link>
-
-            <Link
-              href="/recruiter/jobs"
-              className={`px-2.5 xl:px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                isActive('/recruiter/jobs')
-                  ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold'
-                  : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'
-              }`}
-            >
-              <Briefcase className="w-4 h-4" />
-
-              <span>
-                {t('recruiterNav.jobs', 'Quản lý Bài đăng')}
-              </span>
-            </Link>
-
-            <Link
-              href="/recruiter/company"
-              className={`px-2.5 xl:px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                isActive('/recruiter/company')
-                  ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold'
-                  : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4" />
-
-              <span>
-                {t('recruiterNav.company', 'Doanh nghiệp')}
-              </span>
-            </Link>
+          <nav className="hidden xl:flex items-center gap-1 text-xs font-semibold shrink-0">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`px-2.5 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                    item.active
+                      ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold shadow-2xs'
+                      : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-2.5 xl:gap-3 shrink-0">
@@ -240,67 +255,32 @@ export const RecruiterNavbar: React.FC = () => {
             </div>
 
             <nav className="flex flex-col space-y-1">
-              <Link
-                href="/recruiter"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${
-                  pathname === '/recruiter'
-                    ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold'
-                    : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'
-                }`}
-              >
-                <LayoutDashboard className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
-
-                <span>
-                  {t('recruiterNav.dashboard', 'HR Dashboard')}
-                </span>
-              </Link>
-
-              <Link
-                href="/recruiter/jobs"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${
-                  isActive('/recruiter/jobs')
-                    ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold'
-                    : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'
-                }`}
-              >
-                <Briefcase className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
-
-                <span>
-                  {t('recruiterNav.jobs', 'Quản lý Bài đăng')}
-                </span>
-              </Link>
-
-              <Link
-                href="/recruiter/company"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${
-                  isActive('/recruiter/company')
-                    ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold'
-                    : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'
-                }`}
-              >
-                <ShieldCheck className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
-
-                <span>
-                  {t('recruiterNav.company', 'Doanh nghiệp')}
-                </span>
-              </Link>
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${
+                      item.active
+                        ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold'
+                        : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
 
               <Link
                 href="/recruiter/jobs/new"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-xs"
+                className="flex items-center gap-3 px-3 py-2.5 mt-2 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-xs"
               >
                 <PlusCircle className="w-4 h-4 text-white" />
-
-                <span>
-                  {t(
-                    'recruiterNav.createJob',
-                    'Tạo Bài tuyển dụng'
-                  )}
-                </span>
+                <span>{t('recruiterNav.createJob', 'Tạo Tin Tuyển Dụng')}</span>
               </Link>
             </nav>
 

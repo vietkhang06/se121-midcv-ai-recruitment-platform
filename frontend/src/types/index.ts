@@ -134,6 +134,16 @@ export interface CandidateProfile {
 }
 
 
+export type ApplicationStatus =
+  | 'SUBMITTED'
+  | 'REVIEWED'
+  | 'MATCHED'
+  | 'SHORTLISTED'
+  | 'INTERVIEWING'
+  | 'HIRED'
+  | 'REJECTED'
+  | 'UNDER_REVIEW';
+
 export interface Application {
   id: string;
   job: Job;
@@ -141,7 +151,7 @@ export interface Application {
   appliedCvTitle: string;
   appliedCvVersion: number;
   candidateName?: string;
-  status: 'SUBMITTED' | 'UNDER_REVIEW' | 'SHORTLISTED' | 'REJECTED';
+  status: ApplicationStatus;
   appliedDate: string;
   expectedSalary?: number;
   noticePeriodDays?: number;
@@ -204,7 +214,7 @@ export interface CandidateRankingItem {
   requiredSkillsMissingNames: string[];
   relevantExperienceYears: number;
   appliedDate: string;
-  status: 'SUBMITTED' | 'UNDER_REVIEW' | 'SHORTLISTED' | 'REJECTED';
+  status: ApplicationStatus;
   gitHubConnected: boolean;
 }
 

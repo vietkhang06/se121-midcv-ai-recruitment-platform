@@ -9,8 +9,12 @@ export default function RecruiterLayout({
 }) {
   return (
     <RoleGuard allowedRoles={['RECRUITER']}>
-      <RecruiterNavbar />
-      {children}
+      <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col transition-colors">
+        <RecruiterNavbar />
+        <div className="flex-1 w-full">
+          {children}
+        </div>
+      </div>
     </RoleGuard>
   );
 }
