@@ -56,8 +56,8 @@ export default function CompanyProfilePage() {
   const publishedJobsCount = jobs.filter(j => j.status === 'PUBLISHED').length;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-16">
-      <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 w-full">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-16 w-full min-w-0">
+      <main className="flex-1 w-full max-w-4xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Recruiter Header */}
         <RecruiterPageHeader
           title={t('companyPages.title', 'Hồ Sơ Doanh Nghiệp & Trạng Thái Xác Minh')}

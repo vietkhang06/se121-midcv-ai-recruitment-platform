@@ -48,8 +48,8 @@ export default function RecruiterProfilePage() {
   const companyName = profile?.company?.name || 'Doanh nghiệp MidCV';
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-20">
-      <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 w-full">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-20 w-full min-w-0">
+      <main className="flex-1 w-full max-w-4xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <RecruiterPageHeader
           title={locale === 'vi' ? 'Hồ Sơ Nhà Tuyển Dụng' : 'Recruiter Account Profile'}
           subtitle={locale === 'vi' ? 'Thông tin định danh quản trị viên tuyển dụng và quyền hạn doanh nghiệp' : 'Manage your recruiter credentials, company association, and account security'}

@@ -130,8 +130,8 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col py-8 transition-colors pb-20">
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 w-full">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col py-8 transition-colors pb-20 w-full min-w-0">
+      <main className="flex-1 w-full max-w-7xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         {/* Header Section */}
         <div className="border-b border-slate-200 dark:border-slate-800 pb-5 space-y-3">
           <Link

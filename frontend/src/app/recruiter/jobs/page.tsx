@@ -118,7 +118,7 @@ export default function RecruiterJobsListPage() {
   const closedCount = jobs.filter((j) => j.status === 'CLOSED').length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 w-full">
+    <div className="w-full max-w-7xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Header */}
       <RecruiterPageHeader
         categoryTag="REQUISITION MANAGEMENT"
@@ -136,7 +136,7 @@ export default function RecruiterJobsListPage() {
       />
 
       {/* Filter and Search Controls */}
-      <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl p-4 shadow-xs space-y-4">
+      <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl p-4 shadow-xs space-y-4 w-full min-w-0">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-[#94A3B8]" />
@@ -149,7 +149,7 @@ export default function RecruiterJobsListPage() {
             />
           </div>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0 min-w-0">
             {[
               { id: 'ALL', label: locale === 'vi' ? 'Tất cả' : 'All', count: jobs.length },
               { id: 'PUBLISHED', label: locale === 'vi' ? 'Đang tuyển' : 'Published', count: publishedCount },

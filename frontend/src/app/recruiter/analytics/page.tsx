@@ -71,8 +71,8 @@ export default function RecruiterAnalyticsPage() {
   const highMatchCount = scoredApps.filter(a => (a.matchScore || 0) >= 80).length;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-20">
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 w-full">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-20 w-full min-w-0">
+      <main className="flex-1 w-full max-w-7xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Recruiter Header */}
         <RecruiterPageHeader
           title={locale === 'vi' ? 'Phân Tích & Hiệu Suất Tuyển Dụng' : 'Recruitment Analytics & Insights'}
@@ -81,7 +81,7 @@ export default function RecruiterAnalyticsPage() {
         />
 
         {/* 4 Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full min-w-0">
           <MetricCard
             label={locale === 'vi' ? 'Tổng lượt ứng tuyển' : 'Total Applications'}
             value={totalApps}

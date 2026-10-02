@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Job, Company, Application } from '@/types';
-import { fetchRecruiterJobs, fetchRecruiterCompany, getAuthUser, fetchJobApplications } from '@/lib/api';
+import { fetchRecruiterJobs, fetchRecruiterCompany, fetchJobApplications } from '@/lib/api';
 import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
 import { MetricCard } from '@/components/recruiter/MetricCard';
 import { CompanyVerificationBanner } from '@/components/recruiter/CompanyVerificationBanner';
@@ -16,25 +16,20 @@ import {
   FileText,
   PlusCircle,
   ArrowRight,
-  Sparkles,
   AlertCircle,
-  CheckCircle2,
   ChevronRight,
-  Layers,
-  Award,
-  ExternalLink
+  Award
 } from 'lucide-react';
 
 export default function HRDashboardPage() {
-  const { t, locale } = useLanguage();
+  const { locale } = useLanguage();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const user = getAuthUser();
 
-  const loadDashboardData = () => {
+  const loadDashboardData = useCallback(() => {
     setIsLoading(true);
     setFetchError(null);
 
@@ -59,17 +54,18 @@ export default function HRDashboardPage() {
         setFetchError(err.message || (locale === 'vi' ? 'Không thể tải dữ liệu tuyển dụng.' : 'Unable to load recruitment data.'));
       })
       .finally(() => setIsLoading(false));
-  };
+  }, [locale]);
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    const timer = setTimeout(() => {
+      loadDashboardData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadDashboardData]);
 
   const publishedJobs = jobs.filter((j) => j.status === 'PUBLISHED');
   const draftJobs = jobs.filter((j) => j.status === 'DRAFT');
-  const closedJobs = jobs.filter((j) => j.status === 'CLOSED');
   const submittedApps = applications.filter((a) => a.status === 'SUBMITTED');
-  const inPipelineApps = applications.filter((a) => a.status !== 'REJECTED' && a.status !== 'HIRED');
 
   // Sorted recent jobs and applications
   const recentJobs = [...jobs].slice(0, 5);
@@ -90,7 +86,7 @@ export default function HRDashboardPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 w-full">
+    <div className="w-full max-w-7xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Page Header */}
       <RecruiterPageHeader
         categoryTag="RECRUITER WORKSPACE"
@@ -102,15 +98,6 @@ export default function HRDashboardPage() {
         }
         companyName={company?.name}
         isCompanyVerified={company?.verificationStatus === 'VERIFIED'}
-        actions={
-          <Link
-            href="/recruiter/jobs/new"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm transition active:scale-95 cursor-pointer shrink-0"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>{t('recruiterNav.createJob', 'Tạo Tin Tuyển Dụng Mới')}</span>
-          </Link>
-        }
       />
 
       {/* Verification Status Banner if unverified */}
@@ -123,7 +110,7 @@ export default function HRDashboardPage() {
       )}
 
       {/* KPI Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full min-w-0">
         <MetricCard
           label={locale === 'vi' ? 'Tin Đang Tuyển' : 'Active Postings'}
           value={publishedJobs.length}
@@ -167,20 +154,20 @@ export default function HRDashboardPage() {
             <span>{locale === 'vi' ? 'Việc Cần Xử Lý Ngay' : 'Pending Action Items'}</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 w-full min-w-0">
             {submittedApps.length > 0 && (
-              <div className="p-3.5 rounded-xl bg-white dark:bg-[#0B1329] border border-[#E2E8F0] dark:border-[#1E293B] shadow-2xs flex items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <div className="text-xs font-bold text-[#0F2A52] dark:text-white">
+              <div className="p-3.5 rounded-xl bg-white dark:bg-[#0B1329] border border-[#E2E8F0] dark:border-[#1E293B] shadow-2xs flex items-center justify-between gap-3 min-w-0">
+                <div className="space-y-0.5 min-w-0">
+                  <div className="text-xs font-bold text-[#0F2A52] dark:text-white truncate">
                     {submittedApps.length} {locale === 'vi' ? 'hồ sơ mới nộp' : 'new applications'}
                   </div>
-                  <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8]">
+                  <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] truncate">
                     {locale === 'vi' ? 'Cần xem xét đối sánh và xếp hạng' : 'Need review & score inspection'}
                   </p>
                 </div>
                 <Link
                   href="/recruiter/pipeline"
-                  className="p-1.5 rounded-lg bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] hover:bg-[#DBEAFE] transition"
+                  className="p-1.5 rounded-lg bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] hover:bg-[#DBEAFE] transition shrink-0"
                   title={locale === 'vi' ? 'Đến quy trình' : 'Go to pipeline'}
                 >
                   <ArrowRight className="w-4 h-4" />
@@ -189,18 +176,18 @@ export default function HRDashboardPage() {
             )}
 
             {draftJobs.length > 0 && (
-              <div className="p-3.5 rounded-xl bg-white dark:bg-[#0B1329] border border-[#E2E8F0] dark:border-[#1E293B] shadow-2xs flex items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <div className="text-xs font-bold text-[#0F2A52] dark:text-white">
+              <div className="p-3.5 rounded-xl bg-white dark:bg-[#0B1329] border border-[#E2E8F0] dark:border-[#1E293B] shadow-2xs flex items-center justify-between gap-3 min-w-0">
+                <div className="space-y-0.5 min-w-0">
+                  <div className="text-xs font-bold text-[#0F2A52] dark:text-white truncate">
                     {draftJobs.length} {locale === 'vi' ? 'bài tuyển dụng nháp' : 'draft job postings'}
                   </div>
-                  <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8]">
+                  <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] truncate">
                     {locale === 'vi' ? 'Hoàn thiện rubric và xuất bản' : 'Complete rubric & publish'}
                   </p>
                 </div>
                 <Link
                   href="/recruiter/jobs"
-                  className="p-1.5 rounded-lg bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] hover:bg-[#DBEAFE] transition"
+                  className="p-1.5 rounded-lg bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] hover:bg-[#DBEAFE] transition shrink-0"
                   title={locale === 'vi' ? 'Quản lý tin' : 'Manage jobs'}
                 >
                   <ArrowRight className="w-4 h-4" />
@@ -209,18 +196,18 @@ export default function HRDashboardPage() {
             )}
 
             {company && company.verificationStatus !== 'VERIFIED' && (
-              <div className="p-3.5 rounded-xl bg-white dark:bg-[#0B1329] border border-[#E2E8F0] dark:border-[#1E293B] shadow-2xs flex items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <div className="text-xs font-bold text-[#F59E0B] dark:text-[#FACC15]">
+              <div className="p-3.5 rounded-xl bg-white dark:bg-[#0B1329] border border-[#E2E8F0] dark:border-[#1E293B] shadow-2xs flex items-center justify-between gap-3 min-w-0">
+                <div className="space-y-0.5 min-w-0">
+                  <div className="text-xs font-bold text-[#F59E0B] dark:text-[#FACC15] truncate">
                     {locale === 'vi' ? 'Chưa xác minh doanh nghiệp' : 'Pending Company Verification'}
                   </div>
-                  <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8]">
+                  <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] truncate">
                     {locale === 'vi' ? 'Cần xác minh để xuất bản tin công khai' : 'Verification required to publish'}
                   </p>
                 </div>
                 <Link
                   href="/recruiter/company"
-                  className="p-1.5 rounded-lg bg-[#FEF3C7] dark:bg-[#FACC15]/20 text-[#B45309] dark:text-[#FACC15] hover:bg-[#FDE68A] transition"
+                  className="p-1.5 rounded-lg bg-[#FEF3C7] dark:bg-[#FACC15]/20 text-[#B45309] dark:text-[#FACC15] hover:bg-[#FDE68A] transition shrink-0"
                   title={locale === 'vi' ? 'Hồ sơ công ty' : 'Company profile'}
                 >
                   <ArrowRight className="w-4 h-4" />
@@ -232,9 +219,9 @@ export default function HRDashboardPage() {
       )}
 
       {/* Main Content Grid: Recent Jobs + Recent Applications */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full min-w-0">
         {/* Left Column: Recent Jobs (2 cols wide) */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-4 min-w-0">
           <div className="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#1E293B] pb-3">
             <div className="flex items-center gap-2">
               <Briefcase className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
@@ -280,8 +267,8 @@ export default function HRDashboardPage() {
                     key={job.id}
                     className="p-4 rounded-2xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#3B82F6] shadow-xs transition space-y-3"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="space-y-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-w-0">
+                      <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
@@ -304,7 +291,7 @@ export default function HRDashboardPage() {
                         </div>
                         <Link
                           href={`/recruiter/jobs/${job.id}`}
-                          className="text-sm font-bold text-[#0F2A52] dark:text-white hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition block"
+                          className="text-sm font-bold text-[#0F2A52] dark:text-white hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition block truncate"
                         >
                           {job.title}
                         </Link>
@@ -313,14 +300,14 @@ export default function HRDashboardPage() {
                       <div className="flex items-center gap-2 shrink-0">
                         <Link
                           href={`/recruiter/jobs/${job.id}/applications`}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#F8FAFC] dark:bg-[#13233F] hover:bg-[#EFF6FF] dark:hover:bg-[#18294E] text-[#1E3A5F] dark:text-[#D6E4E1] border border-[#E2E8F0] dark:border-[#1E293B] transition flex items-center gap-1.5"
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#F8FAFC] dark:bg-[#13233F] hover:bg-[#EFF6FF] dark:hover:bg-[#18294E] text-[#1E3A5F] dark:text-[#D6E4E1] border border-[#E2E8F0] dark:border-[#1E293B] transition flex items-center gap-1.5 shrink-0"
                         >
                           <Users className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#3B82F6]" />
                           <span>{jobAppCount} {locale === 'vi' ? 'ứng tuyển' : 'applicants'}</span>
                         </Link>
                         <Link
                           href={`/recruiter/jobs/${job.id}/ranking`}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] hover:bg-[#DBEAFE] border border-[#2563EB]/20 transition flex items-center gap-1.5"
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] hover:bg-[#DBEAFE] border border-[#2563EB]/20 transition flex items-center gap-1.5 shrink-0"
                         >
                           <Award className="w-3.5 h-3.5" />
                           <span>AI Ranking</span>
@@ -335,7 +322,7 @@ export default function HRDashboardPage() {
         </div>
 
         {/* Right Column: Recent Applications */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           <div className="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#1E293B] pb-3">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-[#00B14F] dark:text-[#10B981]" />

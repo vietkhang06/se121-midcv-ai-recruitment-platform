@@ -62,8 +62,8 @@ export default function HRJobDetailPage({ params }: { params: Promise<{ id: stri
   const preferredSkills = (job.requirements || []).filter(r => r.requirementType === 'PREFERRED');
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-16">
-      <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 w-full">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-16 w-full min-w-0">
+      <main className="flex-1 w-full max-w-5xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <Link href="/recruiter/jobs" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition">
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>{locale === 'vi' ? 'Quay lại Quản lý bài đăng' : 'Back to Job Postings'}</span>

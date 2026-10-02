@@ -65,7 +65,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
   if (loading) {
     return (
-      <div className={`p-5 rounded-2xl border ${styles.border} ${styles.bg} shadow-xs animate-pulse space-y-3`}>
+      <div className={`p-5 rounded-2xl border ${styles.border} ${styles.bg} shadow-xs animate-pulse space-y-3 min-w-0 w-full`}>
         <div className="flex items-center justify-between">
           <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
           <div className="h-9 w-9 bg-slate-200 dark:bg-slate-700 rounded-xl" />
@@ -81,9 +81,9 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <Component
       onClick={onClick}
-      className={`p-5 rounded-2xl border ${styles.border} ${styles.bg} shadow-xs text-left transition-all ${
+      className={`p-5 rounded-2xl border ${styles.border} ${styles.bg} shadow-xs text-left transition-all min-w-0 w-full ${
         onClick
-          ? 'cursor-pointer hover:border-[#2563EB] dark:hover:border-[#3B82F6] hover:shadow-md active:scale-[0.99] w-full'
+          ? 'cursor-pointer hover:border-[#2563EB] dark:hover:border-[#3B82F6] hover:shadow-md active:scale-[0.99]'
           : ''
       }`}
     >

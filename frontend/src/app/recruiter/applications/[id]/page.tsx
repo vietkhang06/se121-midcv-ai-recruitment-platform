@@ -159,8 +159,8 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
   const totalSkillsCount = data?.requiredSkillsStatus?.length || 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors pb-20">
-      <main className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 w-full">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors pb-20 w-full min-w-0">
+      <main className="flex-1 w-full max-w-6xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Top Back Navigation */}
         <div className="flex items-center justify-between">
           <Link

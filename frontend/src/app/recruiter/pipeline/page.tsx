@@ -81,8 +81,8 @@ export default function RecruiterPipelinePage() {
     : allApplications.filter(a => a.job?.id === selectedJobId);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-20">
-      <main className="flex-1 max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 w-full">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-20 w-full min-w-0">
+      <main className="flex-1 w-full max-w-[1440px] min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Recruiter Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
           <RecruiterPageHeader
@@ -120,7 +120,7 @@ export default function RecruiterPipelinePage() {
             description={locale === 'vi' ? 'Vị trí tuyển dụng được chọn chưa nhận được đơn ứng tuyển nào.' : 'The selected job opening has no applicants yet.'}
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start overflow-x-auto pb-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start overflow-x-auto pb-4 w-full min-w-0">
             {PIPELINE_COLUMNS.map(col => {
               const colApps = filteredApps.filter(a => a.status === col.status);
               return (
