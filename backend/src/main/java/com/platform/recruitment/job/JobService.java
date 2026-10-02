@@ -90,6 +90,63 @@ public class JobService {
         return mapToResponse(publishedJob);
     }
 
+    @Transactional
+    public JobResponse closeJob(User recruiterUser, UUID jobId) {
+        RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
+
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
+
+        // Ownership check
+        if (!job.getCompany().getId().equals(recruiter.getCompany().getId())) {
+            throw new UnauthorizedAccessException("Recruiter does not own this job posting");
+        }
+
+        job.setStatus(JobStatus.CLOSED);
+        Job closedJob = jobRepository.save(job);
+        return mapToResponse(closedJob);
+    }
+
+    @Transactional
+    public JobResponse updateJob(User recruiterUser, UUID jobId, CreateJobRequest request) {
+        RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
+
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
+
+        // Ownership check
+        if (!job.getCompany().getId().equals(recruiter.getCompany().getId())) {
+            throw new UnauthorizedAccessException("Recruiter does not own this job posting");
+        }
+
+        job.setTitle(request.getTitle());
+        job.setIndustry(request.getIndustry());
+        job.setSeniority(request.getSeniority());
+        job.setMinSalary(request.getMinSalary());
+        job.setMaxSalary(request.getMaxSalary());
+        job.setLocation(request.getLocation());
+        job.setEmploymentType(request.getEmploymentType());
+        job.setDescription(request.getDescription());
+
+        if (request.getRequirements() != null) {
+            job.getRequirements().clear();
+            for (CreateJobRequest.RequirementItem item : request.getRequirements()) {
+                JobRequirement req = JobRequirement.builder()
+                        .job(job)
+                        .skillName(item.getSkillName())
+                        .requirementType(item.getType() != null ? item.getType() : RequirementType.REQUIRED)
+                        .minYearsExp(item.getMinYearsExp() != null ? item.getMinYearsExp() : 0)
+                        .build();
+                job.getRequirements().add(req);
+            }
+        }
+
+        Job updatedJob = jobRepository.save(job);
+        return mapToResponse(updatedJob);
+    }
+
     @Transactional(readOnly = true)
     public JobResponse getJobById(UUID jobId) {
         Job job = jobRepository.findById(jobId)

@@ -52,4 +52,21 @@ public class JobController {
         JobResponse response = jobService.publishJob(currentUser, id);
         return ResponseEntity.ok(ApiResponse.success("Job published successfully", response));
     }
+
+    @PostMapping("/jobs/{id}/close")
+    public ResponseEntity<ApiResponse<JobResponse>> closeJob(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        JobResponse response = jobService.closeJob(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success("Job closed successfully", response));
+    }
+
+    @PutMapping("/jobs/{id}")
+    public ResponseEntity<ApiResponse<JobResponse>> updateJob(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @Valid @RequestBody CreateJobRequest request) {
+        JobResponse response = jobService.updateJob(currentUser, id, request);
+        return ResponseEntity.ok(ApiResponse.success("Job updated successfully", response));
+    }
 }

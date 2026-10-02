@@ -277,6 +277,7 @@ export interface ApiClient {
   fetchRecruiterJobs(): Promise<Job[]>;
   saveJob(job: Job): Promise<Job>;
   publishJob(jobId: string): Promise<Job | null>;
+  closeJob(jobId: string): Promise<Job | null>;
   fetchCandidateRankings(jobId: string): Promise<CandidateRankingItem[]>;
   fetchMatchInspection(applicationId: string): Promise<MatchInspectionData | null>;
   checkEmailAvailability(email: string): Promise<{ exists: boolean; status: 'AVAILABLE' | 'ALREADY_EXISTS' }>;
@@ -885,6 +886,22 @@ export class RealApiClient implements ApiClient {
     return mapBackendJobToFrontend(json.data);
   }
 
+  async closeJob(jobId: string): Promise<Job | null> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('POST', `/api/v1/jobs/${jobId}/close`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
+    }
+
+    const json: any = await apiRequest(`/api/v1/jobs/${jobId}/close`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    return mapBackendJobToFrontend(json.data);
+  }
+
   async fetchCandidateRankings(jobId: string): Promise<CandidateRankingItem[]> {
     const token = getAuthToken();
     if (!token) {
@@ -1153,6 +1170,7 @@ export const saveCompanyProfile = (company: Company) => currentApiClient.saveCom
 export const fetchRecruiterJobs = () => currentApiClient.fetchRecruiterJobs();
 export const saveJob = (job: Job) => currentApiClient.saveJob(job);
 export const publishJob = (jobId: string) => currentApiClient.publishJob(jobId);
+export const closeJob = (jobId: string) => currentApiClient.closeJob(jobId);
 export const fetchCandidateRankings = (jobId: string) => currentApiClient.fetchCandidateRankings(jobId);
 export const fetchMatchInspection = (applicationId: string) => currentApiClient.fetchMatchInspection(applicationId);
 export const checkEmailAvailability = (email: string) => currentApiClient.checkEmailAvailability(email);

@@ -481,6 +481,11 @@ export class BenchmarkFixtureClient implements ApiClient {
     return job ? { ...job, status: 'PUBLISHED' } : null;
   }
 
+  async closeJob(jobId: string): Promise<Job | null> {
+    const job = SEED_JOBS.find(j => j.id === jobId);
+    return job ? { ...job, status: 'CLOSED' } : null;
+  }
+
   async fetchCandidateRankings(_jobId: string): Promise<CandidateRankingItem[]> {
     return [...SEED_RANKINGS_JOB_01];
   }
