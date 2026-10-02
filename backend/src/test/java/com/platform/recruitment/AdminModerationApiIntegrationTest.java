@@ -303,4 +303,25 @@ public class AdminModerationApiIntegrationTest {
 
         verify(adminAuditLogService, times(2)).log(any(), any(), eq("TAXONOMY_SKILL"), eq(newSkillId), any(), any(), any(), eq("127.0.0.1"), any());
     }
+
+    @Test
+    @DisplayName("Company Suspension Cascades: Suspending verified company also marks its published jobs as SUSPENDED")
+    void testCompanySuspension_CascadesJobSuspension() {
+        testCompany.setVerificationStatus(CompanyVerification.VERIFIED);
+        when(companyRepository.findById(testCompany.getId())).thenReturn(Optional.of(testCompany));
+        when(companyRepository.save(any(Company.class))).thenAnswer(i -> i.getArgument(0));
+        when(jobRepository.findByCompanyId(testCompany.getId())).thenReturn(List.of(testJob));
+
+        CompanyReviewRequest req = CompanyReviewRequest.builder()
+                .status(CompanyVerification.SUSPENDED)
+                .reason("Legal violation detected")
+                .build();
+
+        adminService.transitionCompanyVerification(adminUser, testCompany.getId(), req, "127.0.0.1");
+
+        assertEquals(CompanyVerification.SUSPENDED, testCompany.getVerificationStatus());
+        assertEquals(JobStatus.SUSPENDED, testJob.getStatus());
+        assertEquals("Doanh nghiệp bị tạm đình chỉ hoạt động", testJob.getModerationReason());
+        verify(jobRepository, times(1)).save(testJob);
+    }
 }

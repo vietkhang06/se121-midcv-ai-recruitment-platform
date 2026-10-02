@@ -1,7 +1,9 @@
 package com.platform.recruitment.company;
 
+import com.platform.recruitment.admin.service.AdminAuditLogService;
+import com.platform.recruitment.common.CustomException;
+import com.platform.recruitment.common.ErrorCode;
 import com.platform.recruitment.common.ResourceNotFoundException;
-import com.platform.recruitment.common.UnauthorizedAccessException;
 import com.platform.recruitment.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,7 @@ public class CompanyService {
 
     private final CompanyRepository companyRepository;
     private final RecruiterProfileRepository recruiterProfileRepository;
+    private final AdminAuditLogService adminAuditLogService;
 
     @Transactional(readOnly = true)
     public Company getMyCompany(User recruiterUser) {
@@ -35,6 +38,52 @@ public class CompanyService {
 
         company.setVerificationStatus(newStatus);
         return companyRepository.save(company);
+    }
+
+    @Transactional
+    public Company submitVerification(User recruiterUser, String ipAddress) {
+        RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
+
+        Company company = recruiter.getCompany();
+        if (company == null) {
+            throw new ResourceNotFoundException("Company not linked to recruiter profile");
+        }
+
+        if (company.getName() == null || company.getName().trim().isBlank()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Tên doanh nghiệp là bắt buộc khi nộp thẩm định.");
+        }
+        if (company.getTaxCode() == null || company.getTaxCode().trim().isBlank()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Mã số thuế là bắt buộc khi nộp thẩm định.");
+        }
+
+        CompanyVerification currentStatus = company.getVerificationStatus();
+        if (currentStatus == CompanyVerification.VERIFIED) {
+            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION, "Doanh nghiệp đã được xác minh thành công.");
+        }
+        if (currentStatus == CompanyVerification.UNDER_REVIEW) {
+            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION, "Hồ sơ đang trong quá trình thẩm định.");
+        }
+
+        company.setVerificationStatus(CompanyVerification.PENDING);
+        company.setReviewNotes(null);
+        company.setReviewedBy(null);
+        company.setReviewedAt(null);
+        Company saved = companyRepository.save(company);
+
+        adminAuditLogService.log(
+                recruiterUser,
+                "RECRUITER_SUBMIT_VERIFICATION",
+                "COMPANY",
+                saved.getId(),
+                currentStatus.name(),
+                CompanyVerification.PENDING.name(),
+                "Nhà tuyển dụng gửi hồ sơ yêu cầu thẩm định doanh nghiệp",
+                ipAddress,
+                null
+        );
+
+        return saved;
     }
 
     @Transactional

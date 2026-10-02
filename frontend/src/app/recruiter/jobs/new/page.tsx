@@ -543,12 +543,23 @@ export default function CreateJobPage() {
 
             <button
               type="button"
-              disabled={isSubmitting}
+              disabled={isSubmitting || company?.verificationStatus !== 'VERIFIED'}
               onClick={() => handleSubmit('PUBLISHED')}
-              className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              title={
+                company?.verificationStatus !== 'VERIFIED'
+                  ? 'Chỉ doanh nghiệp Đã Xác Minh (VERIFIED) mới được quyền xuất bản tin'
+                  : undefined
+              }
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="w-4 h-4" />
-              <span>{isSubmitting ? 'Đang xuất bản...' : 'Xuất Bản Tin (Publish)'}</span>
+              <span>
+                {isSubmitting
+                  ? 'Đang xuất bản...'
+                  : company?.verificationStatus !== 'VERIFIED'
+                  ? 'Xuất Bản (Chờ xác minh)'
+                  : 'Xuất Bản Tin (Publish)'}
+              </span>
             </button>
           </div>
         </div>

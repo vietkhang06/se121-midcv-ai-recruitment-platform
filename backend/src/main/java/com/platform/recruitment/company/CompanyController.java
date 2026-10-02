@@ -31,6 +31,14 @@ public class CompanyController {
         return ResponseEntity.ok(ApiResponse.success("Company profile updated successfully", company));
     }
 
+    @PostMapping("/recruiter/company/submit-verification")
+    public ResponseEntity<ApiResponse<Company>> submitVerification(
+            @AuthenticationPrincipal User currentUser,
+            jakarta.servlet.http.HttpServletRequest request) {
+        Company company = companyService.submitVerification(currentUser, request.getRemoteAddr());
+        return ResponseEntity.ok(ApiResponse.success("Yêu cầu thẩm định doanh nghiệp đã được gửi đến ban quản trị", company));
+    }
+
     @PutMapping("/admin/companies/{id}/verification")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Company>> updateVerificationStatus(

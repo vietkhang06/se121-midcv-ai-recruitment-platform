@@ -169,6 +169,18 @@ public class AdminService {
 
         Company savedCompany = companyRepository.save(company);
 
+        // If company is suspended, cascade suspension to all its published jobs to protect candidates
+        if (targetStatus == CompanyVerification.SUSPENDED) {
+            jobRepository.findByCompanyId(companyId).forEach(job -> {
+                if (job.getStatus() == JobStatus.PUBLISHED) {
+                    job.setStatus(JobStatus.SUSPENDED);
+                    job.setModerationReason("Doanh nghiệp bị tạm đình chỉ hoạt động");
+                    job.setSuspendedAt(ZonedDateTime.now());
+                    jobRepository.save(job);
+                }
+            });
+        }
+
         // Immutable Audit Log
         adminAuditLogService.log(
                 admin,
