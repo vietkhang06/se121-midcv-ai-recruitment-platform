@@ -6,7 +6,7 @@ export type EmploymentType = 'FULL_TIME' | 'PART_TIME' | 'REMOTE' | 'HYBRID';
 
 export type RequirementType = 'REQUIRED' | 'PREFERRED';
 
-export type CompanyVerificationState = 'PENDING' | 'VERIFIED' | 'REJECTED';
+export type CompanyVerificationState = 'PENDING' | 'UNDER_REVIEW' | 'CHANGES_REQUESTED' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
 
 export type GitHubActivitySignal = 'HIGH' | 'MODERATE' | 'LOW' | 'LIMITED_OBSERVABLE_ACTIVITY';
 
@@ -400,3 +400,141 @@ export interface CVProcessingStatus {
   correlationId?: string;
   updatedAt?: string;
 }
+
+export interface AdminDashboardStats {
+  totalUsers: number;
+  candidatesCount: number;
+  recruitersCount: number;
+  activeUsersCount: number;
+  suspendedUsersCount: number;
+  companiesPendingCount: number;
+  companiesUnderReviewCount: number;
+  companiesVerifiedCount: number;
+  companiesRejectedCount: number;
+  companiesSuspendedCount: number;
+  activeJobsCount: number;
+  suspendedJobsCount: number;
+  pendingReportsCount: number;
+  recentAuditLogs: AdminAuditLogDto[];
+  aiStatus: {
+    provider?: string;
+    ollamaModel?: string;
+    cloudModel?: string;
+    hasCloudApiKey?: boolean;
+  };
+}
+
+export type CompanyReviewAction = 'START_REVIEW' | 'VERIFY' | 'REQUEST_CHANGES' | 'REJECT' | 'SUSPEND' | 'RESTORE';
+export type ReportStatus = 'PENDING' | 'RESOLVED' | 'DISMISSED';
+export type ReportTargetType = 'JOB' | 'COMPANY' | 'CANDIDATE' | 'RECRUITER';
+
+export interface CompanyAdminDto {
+  id: string;
+  name: string;
+  taxCode?: string;
+  website?: string;
+  size?: string;
+  industry?: string;
+  location?: string;
+  description?: string;
+  verificationStatus: CompanyVerificationState;
+  reviewedById?: string;
+  reviewedByEmail?: string;
+  reviewedAt?: string;
+  reviewNotes?: string;
+  version?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  recruiterEmail?: string;
+  recruiterName?: string;
+  recruiterPhone?: string;
+  activeJobsCount?: number;
+}
+
+export interface UserAdminDto {
+  id: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+  accountStatus?: 'ACTIVE' | 'SUSPENDED';
+  emailVerified: boolean;
+  fullName?: string;
+  phone?: string;
+  createdAt?: string;
+  targetIndustry?: string;
+  headline?: string;
+  githubUrl?: string;
+  cvCount?: number;
+  applicationCount?: number;
+  companyId?: string;
+  companyName?: string;
+  companyVerificationStatus?: string;
+}
+
+export interface JobAdminDto {
+  id: string;
+  companyId: string;
+  companyName: string;
+  companyVerificationStatus: string;
+  title: string;
+  industry: string;
+  seniority: string;
+  status: 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'SUSPENDED';
+  minSalary?: number;
+  maxSalary?: number;
+  location?: string;
+  jobType?: string;
+  experienceLevel?: string;
+  employmentType?: string;
+  description: string;
+  moderationReason?: string;
+  suspendedAt?: string;
+  createdAt: string;
+}
+
+export interface ReportAdminDto {
+  id: string;
+  reporterId?: string;
+  reporterEmail?: string;
+  targetType: 'JOB' | 'COMPANY' | 'CANDIDATE' | 'RECRUITER';
+  targetId: string;
+  targetTitle?: string;
+  reason: string;
+  details?: string;
+  status: 'PENDING' | 'RESOLVED' | 'DISMISSED';
+  resolutionNotes?: string;
+  resolvedById?: string;
+  resolvedByEmail?: string;
+  resolvedAt?: string;
+  createdAt: string;
+}
+
+export interface AdminAuditLogDto {
+  id: string;
+  adminId: string;
+  adminEmail: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  previousState?: string;
+  newState?: string;
+  reason?: string;
+  ipAddress?: string;
+  correlationId?: string;
+  createdAt: string;
+}
+
+export interface TaxonomySkillAdminDto {
+  id: string;
+  canonicalName: string;
+  name?: string;
+  normalizedName: string;
+  normalizedKey?: string;
+  category: string;
+  description?: string;
+  source: string;
+  active: boolean;
+  aliases?: string[];
+}
+
+

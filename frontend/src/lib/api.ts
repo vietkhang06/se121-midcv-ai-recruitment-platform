@@ -17,7 +17,14 @@ import {
   QuickScreeningRun,
   QuickScreeningDetail,
   CVReviewData,
-  CVProcessingStatus
+  CVProcessingStatus,
+  AdminDashboardStats,
+  CompanyAdminDto,
+  UserAdminDto,
+  JobAdminDto,
+  ReportAdminDto,
+  AdminAuditLogDto,
+  TaxonomySkillAdminDto
 } from '@/types';
 
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -1375,3 +1382,364 @@ export async function rematchScreening(screeningId: string): Promise<{ jobId: st
     method: 'POST'
   });
 }
+
+// ============================================================
+// 9. CENTRAL ADMIN PORTAL API CLIENTS
+// ============================================================
+
+export async function fetchAdminDashboardStats(): Promise<AdminDashboardStats> {
+  const res = await apiRequest<{ data: AdminDashboardStats }>('/api/v1/admin/dashboard');
+  return (res as any).data || res;
+}
+
+export async function fetchAdminCompanies(params: {
+  query?: string;
+  status?: string;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: CompanyAdminDto[]; totalElements: number; totalPages: number }> {
+  const queryParts: string[] = [];
+  if (params.query) queryParts.push(`query=${encodeURIComponent(params.query)}`);
+  if (params.status && params.status !== 'ALL') queryParts.push(`status=${params.status}`);
+  if (params.page != null) queryParts.push(`page=${params.page}`);
+  if (params.size != null) queryParts.push(`size=${params.size}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<any>(`/api/v1/admin/companies${qs}`);
+  return res.data || res;
+}
+
+export async function fetchAdminCompanyDetail(id: string): Promise<CompanyAdminDto> {
+  const res = await apiRequest<any>(`/api/v1/admin/companies/${id}`);
+  return res.data || res;
+}
+
+export async function transitionCompanyVerification(id: string, body: {
+  status: string;
+  reason?: string;
+  version?: number;
+}): Promise<CompanyAdminDto> {
+  const res = await apiRequest<any>(`/api/v1/admin/companies/${id}/transition`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return res.data || res;
+}
+
+export async function fetchAdminCandidates(params: {
+  query?: string;
+  isActive?: boolean;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: UserAdminDto[]; totalElements: number; totalPages: number }> {
+  const queryParts: string[] = [];
+  if (params.query) queryParts.push(`query=${encodeURIComponent(params.query)}`);
+  if (params.isActive != null) queryParts.push(`isActive=${params.isActive}`);
+  if (params.page != null) queryParts.push(`page=${params.page}`);
+  if (params.size != null) queryParts.push(`size=${params.size}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<any>(`/api/v1/admin/candidates${qs}`);
+  return res.data || res;
+}
+
+export async function fetchAdminRecruiters(params: {
+  query?: string;
+  isActive?: boolean;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: UserAdminDto[]; totalElements: number; totalPages: number }> {
+  const queryParts: string[] = [];
+  if (params.query) queryParts.push(`query=${encodeURIComponent(params.query)}`);
+  if (params.isActive != null) queryParts.push(`isActive=${params.isActive}`);
+  if (params.page != null) queryParts.push(`page=${params.page}`);
+  if (params.size != null) queryParts.push(`size=${params.size}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<any>(`/api/v1/admin/recruiters${qs}`);
+  return res.data || res;
+}
+
+export async function suspendUser(id: string, reason: string): Promise<void> {
+  await apiRequest(`/api/v1/admin/users/${id}/suspend`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function reactivateUser(id: string, reason?: string): Promise<void> {
+  await apiRequest(`/api/v1/admin/users/${id}/reactivate`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function fetchAdminJobs(params: {
+  query?: string;
+  status?: string;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: JobAdminDto[]; totalElements: number; totalPages: number }> {
+  const queryParts: string[] = [];
+  if (params.query) queryParts.push(`query=${encodeURIComponent(params.query)}`);
+  if (params.status && params.status !== 'ALL') queryParts.push(`status=${params.status}`);
+  if (params.page != null) queryParts.push(`page=${params.page}`);
+  if (params.size != null) queryParts.push(`size=${params.size}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<any>(`/api/v1/admin/jobs${qs}`);
+  return res.data || res;
+}
+
+export async function suspendJob(id: string, reason: string): Promise<void> {
+  await apiRequest(`/api/v1/admin/jobs/${id}/suspend`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function restoreJob(id: string): Promise<void> {
+  await apiRequest(`/api/v1/admin/jobs/${id}/restore`, {
+    method: 'POST',
+  });
+}
+
+export async function fetchAdminReports(params: {
+  status?: string;
+  targetType?: string;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: ReportAdminDto[]; totalElements: number; totalPages: number }> {
+  const queryParts: string[] = [];
+  if (params.status && params.status !== 'ALL') queryParts.push(`status=${params.status}`);
+  if (params.targetType && params.targetType !== 'ALL') queryParts.push(`targetType=${params.targetType}`);
+  if (params.page != null) queryParts.push(`page=${params.page}`);
+  if (params.size != null) queryParts.push(`size=${params.size}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<any>(`/api/v1/admin/reports${qs}`);
+  return res.data || res;
+}
+
+export async function resolveReport(id: string, resolutionNotes?: string): Promise<void> {
+  await apiRequest(`/api/v1/admin/reports/${id}/resolve`, {
+    method: 'POST',
+    body: JSON.stringify({ resolutionNotes }),
+  });
+}
+
+export async function dismissReport(id: string, resolutionNotes?: string): Promise<void> {
+  await apiRequest(`/api/v1/admin/reports/${id}/dismiss`, {
+    method: 'POST',
+    body: JSON.stringify({ resolutionNotes }),
+  });
+}
+
+export async function fetchAdminTaxonomySkills(params: {
+  query?: string;
+  active?: boolean;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: TaxonomySkillAdminDto[]; totalElements: number; page: number; size: number }> {
+  const queryParts: string[] = [];
+  if (params.query) queryParts.push(`query=${encodeURIComponent(params.query)}`);
+  if (params.active != null) queryParts.push(`active=${params.active}`);
+  if (params.page != null) queryParts.push(`page=${params.page}`);
+  if (params.size != null) queryParts.push(`size=${params.size}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<any>(`/api/v1/admin/taxonomy/skills${qs}`);
+  return res.data || res;
+}
+
+export async function createAdminTaxonomySkill(body: {
+  canonicalName: string;
+  category: string;
+  description?: string;
+  aliases?: string[];
+}): Promise<string> {
+  const res = await apiRequest<any>('/api/v1/admin/taxonomy/skills', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return res.data || res;
+}
+
+export async function toggleAdminTaxonomySkill(id: string): Promise<boolean> {
+  const res = await apiRequest<any>(`/api/v1/admin/taxonomy/skills/${id}/toggle`, {
+    method: 'PUT',
+  });
+  return res.data || res;
+}
+
+export async function fetchAdminAuditLogs(params: {
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: AdminAuditLogDto[]; totalElements: number; totalPages: number }> {
+  const queryParts: string[] = [];
+  if (params.page != null) queryParts.push(`page=${params.page}`);
+  if (params.size != null) queryParts.push(`size=${params.size}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<any>(`/api/v1/admin/audit-logs${qs}`);
+  return res.data || res;
+}
+
+export const adminApi = {
+  getDashboardStats: fetchAdminDashboardStats,
+  getCompanies: async (params?: { query?: string; search?: string; status?: string; page?: number; size?: number }) => {
+    return fetchAdminCompanies({
+      query: params?.query || params?.search,
+      status: params?.status,
+      page: params?.page,
+      size: params?.size,
+    });
+  },
+  getCompanyDetail: fetchAdminCompanyDetail,
+  transitionCompanyVerification: async (
+    id: string,
+    data: { action?: string; notes?: string; status?: string; reason?: string; version?: number }
+  ) => {
+    let targetStatus = data.status;
+    let targetReason = data.reason || data.notes;
+
+    if (data.action) {
+      switch (data.action) {
+        case 'START_REVIEW':
+          targetStatus = 'UNDER_REVIEW';
+          break;
+        case 'VERIFY':
+          targetStatus = 'VERIFIED';
+          break;
+        case 'REQUEST_CHANGES':
+          targetStatus = 'CHANGES_REQUESTED';
+          break;
+        case 'REJECT':
+          targetStatus = 'REJECTED';
+          break;
+        case 'SUSPEND':
+          targetStatus = 'SUSPENDED';
+          break;
+        case 'RESTORE':
+          targetStatus = 'VERIFIED';
+          break;
+        default:
+          targetStatus = data.action;
+      }
+    }
+
+    return transitionCompanyVerification(id, {
+      status: targetStatus || 'UNDER_REVIEW',
+      reason: targetReason,
+      version: data.version,
+    });
+  },
+  getUsers: async (params?: {
+    role?: string;
+    status?: string;
+    search?: string;
+    query?: string;
+    page?: number;
+    size?: number;
+  }) => {
+    const q = params?.query || params?.search;
+    const isActive = params?.status === 'ACTIVE' ? true : params?.status === 'SUSPENDED' ? false : undefined;
+
+    if (params?.role === 'CANDIDATE') {
+      const res = await fetchAdminCandidates({ query: q, isActive, page: params?.page, size: params?.size });
+      return {
+        ...res,
+        content: res.content.map((u) => ({
+          ...u,
+          accountStatus: (u.isActive ? 'ACTIVE' : 'SUSPENDED') as 'ACTIVE' | 'SUSPENDED',
+        })),
+      };
+    } else if (params?.role === 'RECRUITER') {
+      const res = await fetchAdminRecruiters({ query: q, isActive, page: params?.page, size: params?.size });
+      return {
+        ...res,
+        content: res.content.map((u) => ({
+          ...u,
+          accountStatus: (u.isActive ? 'ACTIVE' : 'SUSPENDED') as 'ACTIVE' | 'SUSPENDED',
+        })),
+      };
+    } else {
+      // Both or ALL
+      const [candRes, recRes] = await Promise.all([
+        fetchAdminCandidates({ query: q, isActive, page: params?.page || 0, size: params?.size || 10 }),
+        fetchAdminRecruiters({ query: q, isActive, page: params?.page || 0, size: params?.size || 10 }),
+      ]);
+      const combined = [...candRes.content, ...recRes.content].map((u) => ({
+        ...u,
+        accountStatus: (u.isActive ? 'ACTIVE' : 'SUSPENDED') as 'ACTIVE' | 'SUSPENDED',
+      }));
+      return {
+        content: combined,
+        totalElements: candRes.totalElements + recRes.totalElements,
+        totalPages: Math.max(candRes.totalPages, recRes.totalPages),
+      };
+    }
+  },
+  moderateUser: async (id: string, data: { action: 'SUSPEND' | 'REACTIVATE'; reason?: string }) => {
+    if (data.action === 'SUSPEND') {
+      return suspendUser(id, data.reason || 'Đình chỉ bởi quản trị viên');
+    } else {
+      return reactivateUser(id, data.reason);
+    }
+  },
+  getJobs: async (params?: { query?: string; search?: string; status?: string; page?: number; size?: number }) => {
+    return fetchAdminJobs({
+      query: params?.query || params?.search,
+      status: params?.status,
+      page: params?.page,
+      size: params?.size,
+    });
+  },
+  moderateJob: async (id: string, data: { action: 'SUSPEND' | 'RESTORE'; reason?: string }) => {
+    if (data.action === 'SUSPEND') {
+      return suspendJob(id, data.reason || 'Đình chỉ bởi quản trị viên');
+    } else {
+      return restoreJob(id);
+    }
+  },
+  getReports: async (params?: {
+    status?: string;
+    targetType?: string;
+    page?: number;
+    size?: number;
+  }) => {
+    return fetchAdminReports(params);
+  },
+  resolveReport: async (id: string, data: { action: 'RESOLVE' | 'DISMISS'; resolutionNotes?: string }) => {
+    if (data.action === 'RESOLVE') {
+      return resolveReport(id, data.resolutionNotes);
+    } else {
+      return dismissReport(id, data.resolutionNotes);
+    }
+  },
+  getTaxonomySkills: async (params?: { search?: string; query?: string; activeOnly?: boolean; active?: boolean; page?: number; size?: number }) => {
+    const res = await fetchAdminTaxonomySkills({
+      query: params?.query || params?.search,
+      active: params?.activeOnly ?? params?.active,
+      page: params?.page,
+      size: params?.size,
+    });
+    return {
+      content: res.content.map((s) => ({
+        ...s,
+        name: s.canonicalName,
+        normalizedKey: s.normalizedName,
+      })),
+      totalElements: res.totalElements,
+      totalPages: Math.ceil((res.totalElements || 1) / (params?.size || 15)),
+    };
+  },
+  createTaxonomySkill: async (data: { name: string; category: string; description?: string }) => {
+    return createAdminTaxonomySkill({
+      canonicalName: data.name,
+      category: data.category,
+      description: data.description,
+    });
+  },
+  toggleTaxonomySkillActive: async (id: string) => {
+    return toggleAdminTaxonomySkill(id);
+  },
+  getAuditLogs: async (params?: { targetType?: string; page?: number; size?: number }) => {
+    return fetchAdminAuditLogs(params);
+  },
+};
+
+
