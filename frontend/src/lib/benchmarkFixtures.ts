@@ -29,6 +29,7 @@ import {
 export const SEED_COMPANY: Company = {
   id: 'comp-fpt-01',
   name: 'FPT Software Corporation',
+  taxCode: '0108877665',
   industry: 'Technology',
   website: 'https://fpt-software.com',
   companySize: '500-1000 nhân viên',

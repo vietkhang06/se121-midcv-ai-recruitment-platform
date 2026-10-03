@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Company, Job } from '@/types';
-import { fetchRecruiterProfile, saveCompanyProfile, submitCompanyVerification, fetchRecruiterJobs } from '@/lib/api';
+import { fetchRecruiterCompany, saveCompanyProfile, submitCompanyVerification, fetchRecruiterJobs } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
 import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
 import { CompanyVerificationBanner } from '@/components/recruiter/CompanyVerificationBanner';
@@ -16,18 +16,45 @@ export default function CompanyProfilePage() {
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
   const [isSubmittingVerification, setIsSubmittingVerification] = useState<boolean>(false);
   const [verificationFeedback, setVerificationFeedback] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadData = React.useCallback(() => {
+    setLoadError(null);
     Promise.all([
-      fetchRecruiterProfile().then((p) => p.company),
+      fetchRecruiterCompany(),
       fetchRecruiterJobs()
     ])
       .then(([comp, jobList]) => {
         setCompany(comp);
-        setJobs(jobList);
+        setJobs(jobList || []);
       })
-      .catch(console.error);
+      .catch((err: any) => {
+        setLoadError(err?.message || 'Không thể tải thông tin doanh nghiệp.');
+      });
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  if (loadError && !company) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center p-12">
+        <div className="text-center text-slate-500 dark:text-slate-400 max-w-md space-y-4">
+          <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
+          <h2 className="text-base font-bold text-slate-900 dark:text-white">Không thể tải thông tin doanh nghiệp</h2>
+          <p className="text-xs text-rose-600 dark:text-rose-400">{loadError}</p>
+          <button
+            type="button"
+            onClick={loadData}
+            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition cursor-pointer"
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!company) {
     return (
