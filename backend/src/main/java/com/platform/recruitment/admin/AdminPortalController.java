@@ -41,54 +41,7 @@ public class AdminPortalController {
     }
 
     // ==========================================
-    // 2. COMPANY VERIFICATION QUEUE & DECISION
-    // ==========================================
-    @GetMapping("/companies")
-    public ResponseEntity<ApiResponse<Page<CompanyAdminDto>>> listCompanies(
-            @RequestParam(required = false) String query,
-            @RequestParam(required = false) CompanyVerification status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<CompanyAdminDto> result = adminService.listCompanies(query, status, pageable);
-        return ResponseEntity.ok(ApiResponse.success(result));
-    }
-
-    @GetMapping("/companies/{id}")
-    public ResponseEntity<ApiResponse<CompanyAdminDto>> getCompanyDetail(@PathVariable UUID id) {
-        CompanyAdminDto company = adminService.getCompanyDetail(id);
-        return ResponseEntity.ok(ApiResponse.success(company));
-    }
-
-    @PostMapping("/companies/{id}/transition")
-    public ResponseEntity<ApiResponse<CompanyAdminDto>> transitionCompanyVerification(
-            @AuthenticationPrincipal User adminUser,
-            @PathVariable UUID id,
-            @Valid @RequestBody CompanyReviewRequest request,
-            HttpServletRequest servletRequest) {
-        String ipAddress = servletRequest.getRemoteAddr();
-        CompanyAdminDto updated = adminService.transitionCompanyVerification(adminUser, id, request, ipAddress);
-        return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái thẩm định thành công", updated));
-    }
-
-    // Backward compatibility for PUT /api/v1/admin/companies/{id}/verification
-    @PutMapping("/companies/{id}/verification")
-    public ResponseEntity<ApiResponse<CompanyAdminDto>> updateVerificationLegacy(
-            @AuthenticationPrincipal User adminUser,
-            @PathVariable UUID id,
-            @RequestParam CompanyVerification status,
-            @RequestParam(required = false) String reason,
-            HttpServletRequest servletRequest) {
-        CompanyReviewRequest req = CompanyReviewRequest.builder()
-                .status(status)
-                .reason(reason != null ? reason : "Cập nhật qua Admin API")
-                .build();
-        CompanyAdminDto updated = adminService.transitionCompanyVerification(adminUser, id, req, servletRequest.getRemoteAddr());
-        return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái thẩm định doanh nghiệp thành công", updated));
-    }
-
-    // ==========================================
-    // 3. CANDIDATE & RECRUITER MODERATION
+    // 2. CANDIDATE & RECRUITER MODERATION
     // ==========================================
     @GetMapping("/candidates")
     public ResponseEntity<ApiResponse<Page<UserAdminDto>>> listCandidates(

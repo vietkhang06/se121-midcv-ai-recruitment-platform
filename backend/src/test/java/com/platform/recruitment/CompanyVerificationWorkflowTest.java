@@ -63,12 +63,11 @@ public class CompanyVerificationWorkflowTest {
         when(recruiterProfileRepository.findByUserId(recruiterUser.getId())).thenReturn(Optional.of(recruiterProfile));
         when(companyRepository.save(any(Company.class))).thenAnswer(i -> i.getArgument(0));
 
-        Company submitted = companyService.submitVerification(recruiterUser, "192.168.1.1");
+        com.platform.recruitment.company.dto.CompanyResponse submitted = companyService.submitVerification(recruiterUser, "192.168.1.1");
 
         assertNotNull(submitted);
         assertEquals(CompanyVerification.PENDING, submitted.getVerificationStatus());
         assertNull(submitted.getReviewNotes());
-        assertNull(submitted.getReviewedBy());
         assertNull(submitted.getReviewedAt());
 
         verify(adminAuditLogService, times(1)).log(

@@ -4,12 +4,11 @@ import com.platform.recruitment.admin.service.AdminAuditLogService;
 import com.platform.recruitment.common.CustomException;
 import com.platform.recruitment.common.ErrorCode;
 import com.platform.recruitment.common.ResourceNotFoundException;
+import com.platform.recruitment.company.dto.CompanyResponse;
 import com.platform.recruitment.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -20,7 +19,13 @@ public class CompanyService {
     private final AdminAuditLogService adminAuditLogService;
 
     @Transactional(readOnly = true)
-    public Company getMyCompany(User recruiterUser) {
+    public CompanyResponse getMyCompany(User recruiterUser) {
+        Company company = getCompanyEntity(recruiterUser);
+        return CompanyResponse.fromEntity(company);
+    }
+
+    @Transactional(readOnly = true)
+    public Company getCompanyEntity(User recruiterUser) {
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 
@@ -32,16 +37,7 @@ public class CompanyService {
     }
 
     @Transactional
-    public Company updateVerificationStatus(UUID companyId, CompanyVerification newStatus) {
-        Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new ResourceNotFoundException("Company", "id", companyId));
-
-        company.setVerificationStatus(newStatus);
-        return companyRepository.save(company);
-    }
-
-    @Transactional
-    public Company submitVerification(User recruiterUser, String ipAddress) {
+    public CompanyResponse submitVerification(User recruiterUser, String ipAddress) {
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 
@@ -83,11 +79,11 @@ public class CompanyService {
                 null
         );
 
-        return saved;
+        return CompanyResponse.fromEntity(saved);
     }
 
     @Transactional
-    public Company updateMyCompany(User recruiterUser, Company updateData) {
+    public CompanyResponse updateMyCompany(User recruiterUser, Company updateData) {
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 
@@ -108,6 +104,7 @@ public class CompanyService {
         if (updateData.getIndustry() != null) company.setIndustry(updateData.getIndustry());
         if (updateData.getDescription() != null) company.setDescription(updateData.getDescription());
 
-        return companyRepository.save(company);
+        Company saved = companyRepository.save(company);
+        return CompanyResponse.fromEntity(saved);
     }
 }

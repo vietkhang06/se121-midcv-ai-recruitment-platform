@@ -48,6 +48,7 @@ public class AdminService {
     private final TaxonomyService taxonomyService;
     private final CVRepository cvRepository;
     private final ApplicationRepository applicationRepository;
+    private final com.platform.recruitment.company.service.CompanyVerificationService companyVerificationService;
 
     // ==========================================
     // 1. DASHBOARD AGGREGATED METRICS
@@ -113,113 +114,24 @@ public class AdminService {
     // ==========================================
     @Transactional(readOnly = true)
     public Page<CompanyAdminDto> listCompanies(String query, CompanyVerification status, Pageable pageable) {
-        Page<Company> companies;
-        if (query != null && !query.isBlank() && status != null) {
-            companies = companyRepository.findByNameContainingIgnoreCaseAndVerificationStatus(query.trim(), status, pageable);
-        } else if (query != null && !query.isBlank()) {
-            companies = companyRepository.findByNameContainingIgnoreCase(query.trim(), pageable);
-        } else if (status != null) {
-            companies = companyRepository.findByVerificationStatus(status, pageable);
-        } else {
-            companies = companyRepository.findAll(pageable);
-        }
-
-        return companies.map(this::mapToCompanyAdminDto);
+        return companyVerificationService.listCompanies(query, status, pageable);
     }
 
     @Transactional(readOnly = true)
     public CompanyAdminDto getCompanyDetail(UUID companyId) {
-        Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new ResourceNotFoundException("Company", "id", companyId));
-        return mapToCompanyAdminDto(company);
+        return companyVerificationService.getCompanyDetail(companyId);
     }
 
     @Transactional
     public CompanyAdminDto transitionCompanyVerification(User admin, UUID companyId, CompanyReviewRequest request, String ipAddress) {
-        CompanyVerification targetStatus = request.getStatus();
-        if (targetStatus == null) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Trạng thái thẩm định mới không được để trống.");
-        }
-
-        // Enforce mandatory reason for non-approved states
-        if ((targetStatus == CompanyVerification.CHANGES_REQUESTED ||
-             targetStatus == CompanyVerification.REJECTED ||
-             targetStatus == CompanyVerification.SUSPENDED) &&
-            (request.getReason() == null || request.getReason().trim().isBlank())) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR,
-                    "Bắt buộc phải nhập lý do khi yêu cầu sửa đổi, từ chối hoặc đình chỉ doanh nghiệp.");
-        }
-
-        Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new ResourceNotFoundException("Company", "id", companyId));
-
-        // Optimistic Locking validation
-        if (request.getVersion() != null && !request.getVersion().equals(company.getVersion())) {
-            throw new CustomException(ErrorCode.CONCURRENT_MODIFICATION,
-                    "Hồ sơ doanh nghiệp đã được cập nhật bởi một quản trị viên khác. Vui lòng làm mới dữ liệu.");
-        }
-
-        CompanyVerification currentStatus = company.getVerificationStatus();
-        validateCompanyStateTransition(currentStatus, targetStatus);
-
-        company.setVerificationStatus(targetStatus);
-        company.setReviewedBy(admin);
-        company.setReviewedAt(ZonedDateTime.now());
-        company.setReviewNotes(request.getReason() != null ? request.getReason().trim() : null);
-
-        Company savedCompany = companyRepository.save(company);
-
-        // If company is suspended, cascade suspension to all its published jobs to protect candidates
-        if (targetStatus == CompanyVerification.SUSPENDED) {
-            jobRepository.findByCompanyId(companyId).forEach(job -> {
-                if (job.getStatus() == JobStatus.PUBLISHED) {
-                    job.setStatus(JobStatus.SUSPENDED);
-                    job.setModerationReason("Doanh nghiệp bị tạm đình chỉ hoạt động");
-                    job.setSuspendedAt(ZonedDateTime.now());
-                    jobRepository.save(job);
-                }
-            });
-        }
-
-        // Immutable Audit Log
-        adminAuditLogService.log(
+        return companyVerificationService.transitionVerification(
                 admin,
-                "COMPANY_VERIFICATION_" + targetStatus.name(),
-                "COMPANY",
-                savedCompany.getId(),
-                currentStatus.name(),
-                targetStatus.name(),
+                companyId,
+                request.getStatus(),
                 request.getReason(),
-                ipAddress,
-                null
+                request.getVersion(),
+                ipAddress
         );
-
-        return mapToCompanyAdminDto(savedCompany);
-    }
-
-    private void validateCompanyStateTransition(CompanyVerification current, CompanyVerification target) {
-        if (current == target) {
-            return;
-        }
-
-        boolean valid = switch (current) {
-            case PENDING -> target == CompanyVerification.UNDER_REVIEW ||
-                            target == CompanyVerification.VERIFIED ||
-                            target == CompanyVerification.REJECTED;
-            case UNDER_REVIEW -> target == CompanyVerification.VERIFIED ||
-                                 target == CompanyVerification.CHANGES_REQUESTED ||
-                                 target == CompanyVerification.REJECTED;
-            case CHANGES_REQUESTED -> target == CompanyVerification.UNDER_REVIEW ||
-                                      target == CompanyVerification.REJECTED;
-            case VERIFIED -> target == CompanyVerification.SUSPENDED;
-            case SUSPENDED -> target == CompanyVerification.VERIFIED;
-            case REJECTED -> target == CompanyVerification.UNDER_REVIEW;
-        };
-
-        if (!valid) {
-            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION,
-                    String.format("Không thể chuyển đổi trạng thái doanh nghiệp từ '%s' sang '%s'.", current, target));
-        }
     }
 
     // ==========================================
@@ -543,31 +455,6 @@ public class AdminService {
     // ==========================================
     // HELPERS & MAPPERS
     // ==========================================
-    private CompanyAdminDto mapToCompanyAdminDto(Company company) {
-        Optional<RecruiterProfile> recruiterOpt = recruiterProfileRepository.findTopByCompanyId(company.getId());
-        return CompanyAdminDto.builder()
-                .id(company.getId())
-                .name(company.getName())
-                .taxCode(company.getTaxCode())
-                .website(company.getWebsite())
-                .size(company.getSize())
-                .industry(company.getIndustry())
-                .description(company.getDescription())
-                .verificationStatus(company.getVerificationStatus())
-                .reviewedById(company.getReviewedBy() != null ? company.getReviewedBy().getId() : null)
-                .reviewedByEmail(company.getReviewedBy() != null ? company.getReviewedBy().getEmail() : null)
-                .reviewedAt(company.getReviewedAt())
-                .reviewNotes(company.getReviewNotes())
-                .version(company.getVersion())
-                .createdAt(company.getCreatedAt())
-                .updatedAt(company.getUpdatedAt())
-                .recruiterEmail(recruiterOpt.map(r -> r.getUser().getEmail()).orElse(null))
-                .recruiterName(recruiterOpt.map(RecruiterProfile::getFullName).orElse(null))
-                .recruiterPhone(recruiterOpt.map(RecruiterProfile::getPhone).orElse(null))
-                .activeJobsCount(jobRepository.findByCompanyId(company.getId()).stream().filter(j -> j.getStatus() == JobStatus.PUBLISHED).count())
-                .build();
-    }
-
     private JobAdminDto mapToJobAdminDto(Job job) {
         return JobAdminDto.builder()
                 .id(job.getId())

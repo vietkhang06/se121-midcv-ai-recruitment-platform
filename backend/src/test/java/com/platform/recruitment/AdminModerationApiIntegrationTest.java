@@ -57,6 +57,8 @@ public class AdminModerationApiIntegrationTest {
     @InjectMocks
     private AdminService adminService;
 
+    private com.platform.recruitment.company.service.CompanyVerificationService companyVerificationService;
+
     private User adminUser;
     private User recruiterUser;
     private User candidateUser;
@@ -66,6 +68,15 @@ public class AdminModerationApiIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        companyVerificationService = new com.platform.recruitment.company.service.CompanyVerificationService(
+                companyRepository, recruiterProfileRepository, jobRepository, adminAuditLogService);
+        adminService = new AdminService(
+                userRepository, candidateProfileRepository, recruiterProfileRepository,
+                companyRepository, jobRepository, systemReportRepository,
+                adminAuditLogRepository, adminAuditLogService, aiClient,
+                taxonomyService, cvRepository, applicationRepository,
+                companyVerificationService);
+
         adminUser = User.builder().email("admin@midcv.io").role(Role.ADMIN).isActive(true).build();
         adminUser.setId(UUID.randomUUID());
 
