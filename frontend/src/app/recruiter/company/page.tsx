@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { Company, Job } from '@/types';
-import { fetchRecruiterProfile, saveCompanyProfile, fetchRecruiterJobs } from '@/lib/api';
+import { fetchRecruiterProfile, saveCompanyProfile, submitCompanyVerification, fetchRecruiterJobs } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
 import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
 import { CompanyVerificationBanner } from '@/components/recruiter/CompanyVerificationBanner';
-import { Building2, Globe, Mail, Phone, Users, ShieldCheck, Save, CheckCircle2, Briefcase, FileText } from 'lucide-react';
+import { Building2, Globe, Mail, Phone, Users, ShieldCheck, Save, CheckCircle2, Briefcase, FileText, Send, AlertCircle } from 'lucide-react';
 
 export default function CompanyProfilePage() {
   const { t, locale } = useLanguage();
@@ -14,6 +14,8 @@ export default function CompanyProfilePage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
+  const [isSubmittingVerification, setIsSubmittingVerification] = useState<boolean>(false);
+  const [verificationFeedback, setVerificationFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -53,7 +55,33 @@ export default function CompanyProfilePage() {
     }
   };
 
+  const handleSubmitVerification = async () => {
+    if (!company.name?.trim()) {
+      alert('Tên doanh nghiệp là bắt buộc khi nộp thẩm định.');
+      return;
+    }
+    if (!company.taxCode?.trim()) {
+      alert('Mã số thuế là bắt buộc khi nộp thẩm định.');
+      return;
+    }
+
+    setIsSubmittingVerification(true);
+    setVerificationFeedback(null);
+    try {
+      await saveCompanyProfile(company);
+      const updated = await submitCompanyVerification();
+      setCompany(updated);
+      setVerificationFeedback('Hồ sơ thẩm định doanh nghiệp đã được gửi đến Ban Quản Trị thành công!');
+      setTimeout(() => setVerificationFeedback(null), 5000);
+    } catch (err: any) {
+      alert(err?.response?.data?.message || err?.message || 'Lỗi khi gửi yêu cầu thẩm định doanh nghiệp');
+    } finally {
+      setIsSubmittingVerification(false);
+    }
+  };
+
   const publishedJobsCount = jobs.filter(j => j.status === 'PUBLISHED').length;
+  const canSubmitVerification = company.verificationStatus !== 'VERIFIED' && company.verificationStatus !== 'UNDER_REVIEW';
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-16 w-full min-w-0">
@@ -80,6 +108,14 @@ export default function CompanyProfilePage() {
           </div>
         )}
 
+        {/* Verification Submission Success Alert */}
+        {verificationFeedback && (
+          <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/60 text-blue-800 dark:text-blue-300 text-sm flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+            <span>{verificationFeedback}</span>
+          </div>
+        )}
+
         {/* Company Quick Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
@@ -91,8 +127,8 @@ export default function CompanyProfilePage() {
             <span className="text-xl font-bold text-blue-600 dark:text-blue-400 font-mono">{publishedJobsCount} / {jobs.length}</span>
           </div>
           <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
-            <span className="text-xs text-slate-500 dark:text-slate-400 block mb-1 font-mono">Ngành nghề chính</span>
-            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{company.industry || 'Technology'}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 block mb-1 font-mono">Mã số thuế</span>
+            <span className="text-sm font-semibold font-mono text-slate-800 dark:text-slate-200">{company.taxCode || 'Chưa cập nhật'}</span>
           </div>
         </div>
 
@@ -115,6 +151,20 @@ export default function CompanyProfilePage() {
                 value={company.name ?? ''}
                 onChange={(e) => setCompany({ ...company, name: e.target.value })}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0B1329] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                {locale === 'vi' ? 'Mã số thuế doanh nghiệp (Tax Code)' : 'Tax Code'} *
+              </label>
+              <input
+                type="text"
+                value={company.taxCode ?? ''}
+                onChange={(e) => setCompany({ ...company, taxCode: e.target.value })}
+                placeholder="0108877665"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0B1329] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                 required
               />
             </div>
@@ -182,7 +232,27 @@ export default function CompanyProfilePage() {
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+            {canSubmitVerification ? (
+              <button
+                type="button"
+                onClick={handleSubmitVerification}
+                disabled={isSubmittingVerification || isSaving}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs transition active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                <Send className="w-4 h-4" />
+                <span>
+                  {isSubmittingVerification
+                    ? (locale === 'vi' ? 'Đang gửi...' : 'Submitting...')
+                    : company.verificationStatus === 'CHANGES_REQUESTED'
+                    ? (locale === 'vi' ? 'Nộp lại Thẩm định (Resubmit)' : 'Resubmit Verification')
+                    : (locale === 'vi' ? 'Gửi Yêu Cầu Thẩm Định Doanh Nghiệp' : 'Submit for Verification')}
+                </span>
+              </button>
+            ) : (
+              <div />
+            )}
+
             <button
               type="submit"
               disabled={isSaving}

@@ -287,6 +287,7 @@ export interface ApiClient {
   fetchRecruiterProfile(): Promise<RecruiterProfile>;
   fetchRecruiterCompany(): Promise<Company>;
   saveCompanyProfile(company: Company): Promise<Company>;
+  submitCompanyVerification(): Promise<Company>;
   fetchRecruiterJobs(): Promise<Job[]>;
   saveJob(job: Job): Promise<Job>;
   publishJob(jobId: string): Promise<Job | null>;
@@ -930,12 +931,13 @@ export class RealApiClient implements ApiClient {
     return {
       id: String(c.id),
       name: c.name || '',
+      taxCode: c.taxCode || '',
       industry: (c.industry || 'Technology') as Industry,
       website: c.website || '',
       companySize: c.size || '',
       contactEmail: getAuthUser()?.email || '',
       verificationStatus: c.verificationStatus || 'PENDING',
-      verificationReason: c.verificationStatus === 'VERIFIED' ? 'Doanh nghiệp đã được xác thực.' : undefined
+      verificationReason: c.verificationReason || c.reviewNotes || (c.verificationStatus === 'VERIFIED' ? 'Doanh nghiệp đã được xác thực.' : undefined)
     };
   }
 
@@ -953,6 +955,7 @@ export class RealApiClient implements ApiClient {
       },
       body: JSON.stringify({
         name: company.name,
+        taxCode: company.taxCode,
         industry: company.industry,
         website: company.website,
         size: company.companySize,
@@ -965,7 +968,36 @@ export class RealApiClient implements ApiClient {
       ...company,
       id: String(c?.id || company.id),
       name: c?.name || company.name,
-      verificationStatus: c?.verificationStatus || company.verificationStatus
+      taxCode: c?.taxCode || company.taxCode,
+      verificationStatus: c?.verificationStatus || company.verificationStatus,
+      verificationReason: c?.verificationReason || c?.reviewNotes || company.verificationReason
+    };
+  }
+
+  async submitCompanyVerification(): Promise<Company> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('POST', '/api/v1/recruiter/company/submit-verification', 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
+    }
+
+    const json: any = await apiRequest('/api/v1/recruiter/company/submit-verification', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const c = json?.data;
+    return {
+      id: String(c?.id || ''),
+      name: c?.name || '',
+      taxCode: c?.taxCode || '',
+      industry: (c?.industry || 'Technology') as Industry,
+      website: c?.website || '',
+      companySize: c?.size || '',
+      contactEmail: getAuthUser()?.email || '',
+      verificationStatus: c?.verificationStatus || 'PENDING',
+      verificationReason: c?.verificationReason || c?.reviewNotes || undefined
     };
   }
 
@@ -1320,6 +1352,7 @@ export const fetchJobApplications = (jobId: string) => currentApiClient.fetchJob
 export const fetchRecruiterProfile = () => currentApiClient.fetchRecruiterProfile();
 export const fetchRecruiterCompany = () => currentApiClient.fetchRecruiterCompany();
 export const saveCompanyProfile = (company: Company) => currentApiClient.saveCompanyProfile(company);
+export const submitCompanyVerification = () => currentApiClient.submitCompanyVerification();
 export const fetchRecruiterJobs = () => currentApiClient.fetchRecruiterJobs();
 export const saveJob = (job: Job) => currentApiClient.saveJob(job);
 export const publishJob = (jobId: string) => currentApiClient.publishJob(jobId);

@@ -506,6 +506,10 @@ export class BenchmarkFixtureClient implements ApiClient {
     return { ...company };
   }
 
+  async submitCompanyVerification(): Promise<Company> {
+    return { ...SEED_COMPANY, verificationStatus: 'PENDING' };
+  }
+
   async fetchRecruiterJobs(): Promise<Job[]> {
     return [...SEED_JOBS];
   }

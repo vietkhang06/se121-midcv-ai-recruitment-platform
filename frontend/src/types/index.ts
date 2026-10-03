@@ -29,6 +29,7 @@ export interface User {
 export interface Company {
   id: string;
   name: string;
+  taxCode?: string;
   industry: Industry;
   website: string;
   companySize: string;
