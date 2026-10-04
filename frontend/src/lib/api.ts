@@ -268,6 +268,11 @@ export interface ApiClient {
   deleteCandidateCV(cvId: string): Promise<void>;
   fetchCVReview(cvId: string): Promise<CVReviewData>;
   fetchCVProcessingStatus(cvId: string): Promise<CVProcessingStatus>;
+  subscribeCVProcessingEvents?(
+    identifier: { cvId?: string; jobId?: string },
+    onEvent: (event: any) => void,
+    onError?: (err: any) => void
+  ): () => void;
   downloadCVFile(cvId: string, format: string, defaultFilename: string): Promise<void>;
   retryCVExtraction(cvId: string): Promise<CVReviewData>;
   fetchCVDraft(cvId: string): Promise<any>;
@@ -520,6 +525,44 @@ export class RealApiClient implements ApiClient {
       headers: { Authorization: `Bearer ${token}` }
     });
     return json.data;
+  }
+
+  subscribeCVProcessingEvents(
+    identifier: { cvId?: string; jobId?: string },
+    onEvent: (event: any) => void,
+    onError?: (err: any) => void
+  ): () => void {
+    const token = getAuthToken();
+    const endpoint = identifier.jobId
+      ? `/api/v1/candidate/cvs/processing/${identifier.jobId}/events`
+      : `/api/v1/candidate/cvs/${identifier.cvId}/events`;
+    const fullUrl = `${BASE_URL}${endpoint}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource(fullUrl);
+
+      eventSource.addEventListener('cv-processing-progress', (e: MessageEvent) => {
+        try {
+          const data = JSON.parse(e.data);
+          onEvent(data);
+        } catch (err) {
+          console.error('Failed to parse SSE event data', err);
+        }
+      });
+
+      eventSource.onerror = (err) => {
+        if (onError) onError(err);
+      };
+    } catch (e) {
+      if (onError) onError(e);
+    }
+
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
   }
 
   async downloadCVFile(cvId: string, format: string, defaultFilename: string): Promise<void> {
@@ -1355,6 +1398,11 @@ export const uploadCandidateCV = (file: File, title?: string, targetIndustry?: s
 export const deleteCandidateCV = (cvId: string) => currentApiClient.deleteCandidateCV(cvId);
 export const fetchCVReview = (cvId: string) => currentApiClient.fetchCVReview(cvId);
 export const fetchCVProcessingStatus = (cvId: string) => currentApiClient.fetchCVProcessingStatus(cvId);
+export const subscribeCVProcessingEvents = (
+  identifier: { cvId?: string; jobId?: string },
+  onEvent: (event: any) => void,
+  onError?: (err: any) => void
+) => (currentApiClient.subscribeCVProcessingEvents ? currentApiClient.subscribeCVProcessingEvents(identifier, onEvent, onError) : () => {});
 export const downloadCVFile = (cvId: string, format: string, defaultFilename: string) => currentApiClient.downloadCVFile(cvId, format, defaultFilename);
 export const retryCVExtraction = (cvId: string) => currentApiClient.retryCVExtraction(cvId);
 export const fetchCVDraft = (cvId: string) => currentApiClient.fetchCVDraft(cvId);

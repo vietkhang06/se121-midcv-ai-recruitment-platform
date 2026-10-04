@@ -18,6 +18,7 @@ import java.util.UUID;
 public class CVController {
 
     private final CVService cvService;
+    private final CvProcessingSseService cvProcessingSseService;
 
     @PostMapping(consumes = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<CVResponse>> createCV(
@@ -67,6 +68,20 @@ public class CVController {
             @PathVariable UUID id) {
         CVProcessingStatusResponse response = cvService.getProcessingStatus(currentUser, id);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping(value = "/processing/{jobId}/events", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamJobEvents(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID jobId) {
+        return cvProcessingSseService.subscribe(jobId, currentUser);
+    }
+
+    @GetMapping(value = "/{id}/events", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamCvEvents(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        return cvProcessingSseService.subscribeByCvId(id, currentUser);
     }
 
     @GetMapping("/{id}")
