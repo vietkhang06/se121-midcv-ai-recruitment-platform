@@ -68,6 +68,116 @@ const normalizeExternalUrl = (url?: string | null): string | undefined => {
   return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 };
 
+type ProvenanceValue<T = unknown> = {
+  value: T;
+  origin?: string | null;
+};
+
+const isProvenanceValue = (
+  input: unknown
+): input is ProvenanceValue<unknown> => {
+  if (input === null || typeof input !== 'object' || Array.isArray(input)) {
+    return false;
+  }
+
+  const record = input as Record<string, unknown>;
+
+  return (
+    Object.prototype.hasOwnProperty.call(record, 'value') &&
+    Object.prototype.hasOwnProperty.call(record, 'origin')
+  );
+};
+
+const unwrapProvenanceDeep = (input: unknown): any => {
+  if (Array.isArray(input)) {
+    return input.map(unwrapProvenanceDeep);
+  }
+
+  if (isProvenanceValue(input)) {
+    return unwrapProvenanceDeep(input.value);
+  }
+
+  if (input !== null && typeof input === 'object') {
+    const result: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(
+      input as Record<string, unknown>
+    )) {
+      result[key] = unwrapProvenanceDeep(value);
+    }
+
+    return result;
+  }
+
+  return input;
+};
+
+const normalizeReviewResponse = (
+  review: CVReviewData
+): CVReviewData => {
+  return {
+    ...review,
+    structured: unwrapProvenanceDeep(review.structured)
+  };
+};
+
+const isProcessingStatus = (status?: string | null): boolean => {
+  return status === 'PROCESSING' || status === 'PENDING';
+};
+
+const isCompletedStatus = (status?: string | null): boolean => {
+  return (
+    status === 'READY' ||
+    status === 'EXTRACTED' ||
+    status === 'CONFIRMED'
+  );
+};
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const isValidUuid = (value: unknown): value is string => {
+  return typeof value === 'string' && UUID_PATTERN.test(value);
+};
+
+const createStableItemId = (): string => {
+  return crypto.randomUUID();
+};
+
+const normalizeDraftEvidenceItemIds = (
+  sourceDraft: CVDraftData
+): CVDraftData => {
+  return {
+    ...sourceDraft,
+    certifications: (sourceDraft.certifications || []).map((item: any) => {
+      if (typeof item === 'string') {
+        return {
+          id: createStableItemId(),
+          name: item
+        };
+      }
+
+      return {
+        ...item,
+        id: isValidUuid(item?.id) ? item.id : createStableItemId()
+      };
+    }),
+    languages: (sourceDraft.languages || []).map((item: any) => {
+      if (typeof item === 'string') {
+        return {
+          id: createStableItemId(),
+          language: item
+        };
+      }
+
+      return {
+        ...item,
+        id: isValidUuid(item?.id) ? item.id : createStableItemId()
+      };
+    })
+  };
+};
+
 export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = ({
   cvId,
   isOpen,
@@ -103,49 +213,115 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
     }
   }, [isOpen, cvId]);
 
+  const waitForReviewCompletion = async (
+    initialReview: CVReviewData
+  ): Promise<CVReviewData> => {
+    let review = normalizeReviewResponse(initialReview);
+
+    if (isCompletedStatus(review.status) || review.status === 'FAILED') {
+      return review;
+    }
+
+    const pollingDeadline = Date.now() + 270_000;
+    let lastPollingError: unknown = null;
+
+    while (Date.now() < pollingDeadline) {
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 2_000);
+      });
+
+      try {
+        const response = await fetchCVReview(cvId);
+        review = normalizeReviewResponse(response);
+        lastPollingError = null;
+
+        if (isCompletedStatus(review.status) || review.status === 'FAILED') {
+          return review;
+        }
+      } catch (error) {
+        lastPollingError = error;
+        console.warn('[CV_REVIEW_POLL_FAILED]', { cvId, error });
+      }
+    }
+
+    if (lastPollingError instanceof Error) {
+      throw new Error(
+        `Không thể cập nhật trạng thái xử lý CV: ${lastPollingError.message}`
+      );
+    }
+
+    throw new Error(
+      'Quá thời gian chờ phân tích CV. Tiến trình có thể vẫn đang chạy; vui lòng tải lại trạng thái trước khi thử lại.'
+    );
+  };
+
   const loadReviewAndDraft = async () => {
     setIsLoading(true);
     setErrorMessage(null);
+
     try {
-      let review = await fetchCVReview(cvId);
-      if (review && (review.status === 'PROCESSING' || (!review.rawText && review.status !== 'FAILED'))) {
-        for (let i = 0; i < 15; i++) {
-          await new Promise((r) => setTimeout(r, 1500));
-          try {
-            const nextReview = await fetchCVReview(cvId);
-            if (nextReview && (nextReview.status === 'READY' || nextReview.status === 'EXTRACTED' || nextReview.rawText)) {
-              review = nextReview;
-              break;
-            }
-          } catch (_) { }
-        }
-      }
+      const initialResponse = await fetchCVReview(cvId);
+      const review = await waitForReviewCompletion(initialResponse);
+
       setData(review);
 
-      // Load candidate draft
+      if (review.status === 'FAILED') {
+        const reviewWithError = review as CVReviewData & {
+          errorMessage?: string;
+        };
+
+        setErrorMessage(
+          reviewWithError.errorMessage ||
+          'Quá trình trích xuất CV đã thất bại.'
+        );
+        return;
+      }
+
       try {
-        const draftRes = await fetchCVDraft(cvId);
-        if (draftRes) {
-          const formattedDraft = initializeDraftFromResponse(draftRes, review);
+        const rawDraftResponse = await fetchCVDraft(cvId);
+        const normalizedDraftResponse = unwrapProvenanceDeep(rawDraftResponse);
+
+        if (normalizedDraftResponse) {
+          const formattedDraft = initializeDraftFromResponse(
+            normalizedDraftResponse,
+            review
+          );
+
           setDraft(formattedDraft);
-          setInitialDraftSnapshot(JSON.parse(JSON.stringify(formattedDraft)));
-        }
-      } catch (draftErr) {
-        console.warn('Could not load existing draft, fallback to review extraction', draftErr);
-        if (review) {
+          setInitialDraftSnapshot(structuredClone(formattedDraft));
+        } else {
           const fallbackDraft = initializeDraftFromReview(review);
           setDraft(fallbackDraft);
-          setInitialDraftSnapshot(JSON.parse(JSON.stringify(fallbackDraft)));
+          setInitialDraftSnapshot(structuredClone(fallbackDraft));
         }
+      } catch (draftError) {
+        console.warn('[CV_DRAFT_LOAD_FAILED]', { cvId, error: draftError });
+
+        const fallbackDraft = initializeDraftFromReview(review);
+        setDraft(fallbackDraft);
+        setInitialDraftSnapshot(structuredClone(fallbackDraft));
       }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Không thể tải kết quả trích xuất CV.');
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Không thể tải kết quả trích xuất CV.';
+
+      setErrorMessage(message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const initializeDraftFromResponse = (draftRes: any, review: CVReviewData | null): CVDraftData => {
+  const initializeDraftFromResponse = (
+    draftResponse: any,
+    reviewResponse: CVReviewData | null
+  ): CVDraftData => {
+    const draftRes = unwrapProvenanceDeep(draftResponse);
+    const review = reviewResponse
+      ? normalizeReviewResponse(reviewResponse)
+      : null;
+
     return {
       cv_id: cvId,
       profile_id: draftRes.profile_id,
@@ -203,7 +379,10 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
     };
   };
 
-  const initializeDraftFromReview = (review: CVReviewData): CVDraftData => {
+  const initializeDraftFromReview = (
+    reviewResponse: CVReviewData
+  ): CVDraftData => {
+    const review = normalizeReviewResponse(reviewResponse);
     const structured = review.structured || {};
     const personalInfo = structured.personalInfo || structured.personal_info || {};
     return {
@@ -248,14 +427,28 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
   };
 
   const handleRetry = async () => {
+    if (isRetrying || isProcessingStatus(data?.status)) {
+      return;
+    }
+
     setIsRetrying(true);
     setErrorMessage(null);
+
     try {
-      const refreshed = await retryCVExtraction(cvId);
-      setData(refreshed);
-      if (onCvUpdated) onCvUpdated();
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Không thể thử lại trích xuất CV.');
+      await retryCVExtraction(cvId);
+
+      await loadReviewAndDraft();
+
+      if (onCvUpdated) {
+        onCvUpdated();
+      }
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Không thể thử lại trích xuất CV.';
+
+      setErrorMessage(message);
     } finally {
       setIsRetrying(false);
     }
@@ -295,10 +488,11 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
     if (!draft) return;
     setIsSavingDraft(true);
     try {
-      const res = await updateCVDraft(cvId, draft);
+      const preparedDraft = normalizeDraftEvidenceItemIds(draft);
+      const res = await updateCVDraft(cvId, preparedDraft);
       const updated = initializeDraftFromResponse(res, data);
       setDraft(updated);
-      setInitialDraftSnapshot(JSON.parse(JSON.stringify(updated)));
+      setInitialDraftSnapshot(structuredClone(updated));
       setHasUnsavedChanges(false);
       setSaveSuccessNotice('Đã lưu bản nháp thành công!');
       setTimeout(() => setSaveSuccessNotice(null), 3000);
@@ -342,7 +536,8 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
     setIsConfirming(true);
     try {
       if (draft) {
-        await updateCVDraft(cvId, draft);
+        const preparedDraft = normalizeDraftEvidenceItemIds(draft);
+        await updateCVDraft(cvId, preparedDraft);
       }
       await confirmCandidateCV(cvId);
       setShowConfirmModal(false);
@@ -395,15 +590,14 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                 </h2>
                 {currentProfile?.status && (
                   <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase tracking-wider ${
-                      currentProfile.status === 'CONFIRMED'
-                        ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800'
-                        : currentProfile.status === 'READY'
-                          ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-800'
-                          : currentProfile.status === 'FAILED'
-                            ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-800'
-                            : 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-800'
-                    }`}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase tracking-wider ${currentProfile.status === 'CONFIRMED'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800'
+                      : currentProfile.status === 'READY'
+                        ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-800'
+                        : currentProfile.status === 'FAILED'
+                          ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-800'
+                          : 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-800'
+                      }`}
                   >
                     {currentProfile.status === 'CONFIRMED' ? 'ĐÃ XÁC NHẬN' : currentProfile.status}
                   </span>
@@ -476,12 +670,20 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
             <button
               onClick={handleRetry}
-              disabled={isRetrying || isEditing}
+              disabled={
+                isRetrying ||
+                isEditing ||
+                isProcessingStatus(data?.status)
+              }
               title="Thử lại trích xuất CV"
               className="px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#18294E] transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRetrying ? 'animate-spin' : ''}`} />
-              <span className="hidden md:inline">Trích xuất lại</span>
+              <span className="hidden md:inline">
+                {isRetrying || isProcessingStatus(data?.status)
+                  ? 'Đang phân tích...'
+                  : 'Trích xuất lại'}
+              </span>
             </button>
 
             <button
@@ -498,11 +700,10 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
           <div className="flex items-center gap-1 overflow-x-auto py-1">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
-                activeTab === 'overview'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#18294E]'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${activeTab === 'overview'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#18294E]'
+                }`}
             >
               <BookOpen className="w-3.5 h-3.5" />
               <span>{isEditing ? 'Biên Tập Hồ Sơ (Draft)' : 'Hồ Sơ Cấu Trúc'}</span>
@@ -510,11 +711,10 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
             <button
               onClick={() => setActiveTab('raw_text')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
-                activeTab === 'raw_text'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#18294E]'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${activeTab === 'raw_text'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#18294E]'
+                }`}
             >
               <FileText className="w-3.5 h-3.5" />
               <span>Văn Bản Thô ({data?.rawText ? `${data.rawText.length} ký tự` : '0'})</span>
@@ -522,11 +722,10 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
             <button
               onClick={() => setActiveTab('evidence')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
-                activeTab === 'evidence'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#18294E]'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${activeTab === 'evidence'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#18294E]'
+                }`}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>Bằng Chứng Đối Chiếu ({evidences.length})</span>
@@ -534,11 +733,10 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
             <button
               onClick={() => setActiveTab('json')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
-                activeTab === 'json'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#18294E]'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${activeTab === 'json'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#18294E]'
+                }`}
             >
               <Code className="w-3.5 h-3.5" />
               <span>JSON Trích Xuất AI</span>
@@ -546,11 +744,10 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
             <button
               onClick={() => setActiveTab('warnings')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
-                activeTab === 'warnings'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#18294E]'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${activeTab === 'warnings'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#18294E]'
+                }`}
             >
               <AlertTriangle className="w-3.5 h-3.5" />
               <span>Cảnh Báo & Audit ({warnings.length + unverifiedFacts.length})</span>
@@ -884,11 +1081,10 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                             return (
                               <span
                                 key={idx}
-                                className={`px-3 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 ${
-                                  isCustom
-                                    ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800'
-                                    : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/40'
-                                }`}
+                                className={`px-3 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 ${isCustom
+                                  ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                                  : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/40'
+                                  }`}
                               >
                                 <span>{skillName}</span>
                                 {isCustom && (
@@ -1673,7 +1869,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                             const newCerts = [
                               ...certifications,
                               {
-                                id: `cert_${Date.now()}`,
+                                id: createStableItemId(),
                                 name: '',
                                 issuer: '',
                                 issueDate: '',
@@ -1694,7 +1890,12 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                     {certifications.length > 0 ? (
                       <div className="space-y-3">
                         {certifications.map((c: any, idx: number) => {
-                          const certId = c.id || `cert_${idx}`;
+                          const certId =
+                            typeof c === 'object' && isValidUuid(c?.id)
+                              ? c.id
+                              : null;
+                          const canUploadEvidence =
+                            certId !== null && !hasUnsavedChanges;
                           const certName = typeof c === 'string' ? c : c.name;
                           const certIssuer = typeof c === 'object' ? c.issuer : null;
 
@@ -1730,14 +1931,20 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
                                   {/* Evidence Attachment Control in View Mode */}
                                   <div className="pt-2 border-t border-slate-100 dark:border-[#1E293B]">
-                                    <EvidenceAttachmentControl
-                                      cvId={cvId}
-                                      itemType="CERTIFICATION"
-                                      itemId={certId}
-                                      attachment={c.attachment}
-                                      isEditable={false}
-                                      onAttachmentChange={() => {}}
-                                    />
+                                    {certId ? (
+                                      <EvidenceAttachmentControl
+                                        cvId={cvId}
+                                        itemType="CERTIFICATION"
+                                        itemId={certId}
+                                        attachment={c.attachment}
+                                        isEditable={false}
+                                        onAttachmentChange={() => { }}
+                                      />
+                                    ) : (
+                                      <p className="text-[11px] text-slate-400">
+                                        Chứng chỉ chưa có mã lưu trữ hợp lệ nên chưa thể xem minh chứng.
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
                               ) : (
@@ -1827,18 +2034,24 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
                                   {/* Evidence Attachment Control in Edit Mode */}
                                   <div className="pt-2 border-t border-slate-200 dark:border-[#1E293B]">
-                                    <EvidenceAttachmentControl
-                                      cvId={cvId}
-                                      itemType="CERTIFICATION"
-                                      itemId={certId}
-                                      attachment={c.attachment}
-                                      isEditable={true}
-                                      onAttachmentChange={(updatedAttachment: CVEvidenceAttachmentItem | null) => {
-                                        const copy = [...certifications];
-                                        copy[idx] = { ...copy[idx], attachment: updatedAttachment };
-                                        markDraftDirty({ ...draft!, certifications: copy });
-                                      }}
-                                    />
+                                    {canUploadEvidence && certId ? (
+                                      <EvidenceAttachmentControl
+                                        cvId={cvId}
+                                        itemType="CERTIFICATION"
+                                        itemId={certId}
+                                        attachment={c.attachment}
+                                        isEditable={true}
+                                        onAttachmentChange={(updatedAttachment: CVEvidenceAttachmentItem | null) => {
+                                          const copy = [...certifications];
+                                          copy[idx] = { ...copy[idx], attachment: updatedAttachment };
+                                          markDraftDirty({ ...draft!, certifications: copy });
+                                        }}
+                                      />
+                                    ) : (
+                                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+                                        Vui lòng lưu bản nháp để hệ thống ghi nhận chứng chỉ trước khi tải minh chứng.
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               )}
@@ -1866,7 +2079,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                             const newLangs = [
                               ...languages,
                               {
-                                id: `lang_${Date.now()}`,
+                                id: createStableItemId(),
                                 language: '',
                                 proficiency: 'Thành thạo (Professional)'
                               }
@@ -1884,7 +2097,12 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                     {languages.length > 0 ? (
                       <div className="space-y-3">
                         {languages.map((l: any, idx: number) => {
-                          const langId = l.id || `lang_${idx}`;
+                          const langId =
+                            typeof l === 'object' && isValidUuid(l?.id)
+                              ? l.id
+                              : null;
+                          const canUploadEvidence =
+                            langId !== null && !hasUnsavedChanges;
                           const langName = typeof l === 'string' ? l : l.language || l.name;
                           const prof = typeof l === 'object' ? l.proficiency || l.proficiencyLevel || l.proficiency_level : null;
 
@@ -1908,14 +2126,20 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
                                   {/* Evidence Attachment Control in View Mode */}
                                   <div className="pt-2 border-t border-slate-100 dark:border-[#1E293B]">
-                                    <EvidenceAttachmentControl
-                                      cvId={cvId}
-                                      itemType="LANGUAGE"
-                                      itemId={langId}
-                                      attachment={l.attachment}
-                                      isEditable={false}
-                                      onAttachmentChange={() => {}}
-                                    />
+                                    {langId ? (
+                                      <EvidenceAttachmentControl
+                                        cvId={cvId}
+                                        itemType="LANGUAGE"
+                                        itemId={langId}
+                                        attachment={l.attachment}
+                                        isEditable={false}
+                                        onAttachmentChange={() => { }}
+                                      />
+                                    ) : (
+                                      <p className="text-[11px] text-slate-400">
+                                        Ngoại ngữ chưa có mã lưu trữ hợp lệ nên chưa thể xem minh chứng.
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
                               ) : (
@@ -1973,18 +2197,24 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
                                   {/* Evidence Attachment Control in Edit Mode */}
                                   <div className="pt-2 border-t border-slate-200 dark:border-[#1E293B]">
-                                    <EvidenceAttachmentControl
-                                      cvId={cvId}
-                                      itemType="LANGUAGE"
-                                      itemId={langId}
-                                      attachment={l.attachment}
-                                      isEditable={true}
-                                      onAttachmentChange={(updatedAttachment: CVEvidenceAttachmentItem | null) => {
-                                        const copy = [...languages];
-                                        copy[idx] = { ...copy[idx], attachment: updatedAttachment };
-                                        markDraftDirty({ ...draft!, languages: copy });
-                                      }}
-                                    />
+                                    {canUploadEvidence && langId ? (
+                                      <EvidenceAttachmentControl
+                                        cvId={cvId}
+                                        itemType="LANGUAGE"
+                                        itemId={langId}
+                                        attachment={l.attachment}
+                                        isEditable={true}
+                                        onAttachmentChange={(updatedAttachment: CVEvidenceAttachmentItem | null) => {
+                                          const copy = [...languages];
+                                          copy[idx] = { ...copy[idx], attachment: updatedAttachment };
+                                          markDraftDirty({ ...draft!, languages: copy });
+                                        }}
+                                      />
+                                    ) : (
+                                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+                                        Vui lòng lưu bản nháp để hệ thống ghi nhận ngoại ngữ trước khi tải minh chứng.
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               )}
@@ -2104,11 +2334,10 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                             </span>
                             <div className="flex items-center gap-2">
                               <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase ${
-                                  p.used_ocr
-                                    ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
-                                    : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
-                                }`}
+                                className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase ${p.used_ocr
+                                  ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+                                  : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                                  }`}
                               >
                                 {p.method}
                               </span>
