@@ -18,6 +18,8 @@ public class MatchInspectionResponse {
     private UUID applicationId;
     private String jobTitle;
     private String candidateName;
+    private String algorithmVersion;
+    private String calculationStatus;
     private BigDecimal overallScore;
     private BigDecimal coreScore;
     private BigDecimal githubScore;
@@ -46,7 +48,13 @@ public class MatchInspectionResponse {
     public static class FactorItem {
         private String factorName;
         private BigDecimal score;
+        private BigDecimal weight;
+        private BigDecimal configuredWeight;
+        private BigDecimal effectiveWeight;
+        private BigDecimal weightedContribution;
         private String status;
+        private String calculationMethod;
+        private String algorithmVersion;
         private String explanation;
         private String evidence;
     }

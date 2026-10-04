@@ -20,9 +20,10 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
 @RestController
 @RequestMapping("/api/v1/matching")
-@RequiredArgsConstructor
 public class MatchingController {
 
     private final MatchingEngineService matchingEngineService;
@@ -31,6 +32,29 @@ public class MatchingController {
     private final RecruiterProfileRepository recruiterProfileRepository;
     private final ApplicationRepository applicationRepository;
     private final com.platform.recruitment.suspension.SuspensionGuard suspensionGuard;
+
+    @Autowired
+    public MatchingController(MatchingEngineService matchingEngineService,
+                              CandidateRankingService candidateRankingService,
+                              JobRepository jobRepository,
+                              RecruiterProfileRepository recruiterProfileRepository,
+                              ApplicationRepository applicationRepository,
+                              @org.springframework.lang.Nullable com.platform.recruitment.suspension.SuspensionGuard suspensionGuard) {
+        this.matchingEngineService = matchingEngineService;
+        this.candidateRankingService = candidateRankingService;
+        this.jobRepository = jobRepository;
+        this.recruiterProfileRepository = recruiterProfileRepository;
+        this.applicationRepository = applicationRepository;
+        this.suspensionGuard = suspensionGuard;
+    }
+
+    public MatchingController(MatchingEngineService matchingEngineService,
+                              CandidateRankingService candidateRankingService,
+                              JobRepository jobRepository,
+                              RecruiterProfileRepository recruiterProfileRepository,
+                              ApplicationRepository applicationRepository) {
+        this(matchingEngineService, candidateRankingService, jobRepository, recruiterProfileRepository, applicationRepository, null);
+    }
 
     @PostMapping("/jobs/{jobId}/candidates/{candidateId}")
     public ResponseEntity<ApiResponse<MatchScoreResponse>> calculateMatchScore(

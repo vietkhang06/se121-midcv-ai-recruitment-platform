@@ -194,8 +194,14 @@ export interface SkillMatchResultItem {
 
 export interface MatchFactorItem {
   factorName: string; // Skill, Experience, Education, Project, Semantic, GitHub
-  score: number;
-  status: 'HIGH' | 'MODERATE' | 'LOW';
+  score: number | null;
+  weight?: number;
+  configuredWeight?: number;
+  effectiveWeight?: number;
+  weightedContribution?: number;
+  status: 'AVAILABLE' | 'NOT_AVAILABLE' | 'NOT_COMPUTED' | 'HIGH' | 'MODERATE' | 'LOW' | string;
+  calculationMethod?: string;
+  algorithmVersion?: string;
   explanation: string;
   evidence?: string;
 }
@@ -245,9 +251,11 @@ export interface MatchInspectionData {
   applicationId: string;
   jobTitle: string;
   candidateName: string;
-  overallScore: number;
-  coreScore: number;
-  githubScore?: number;
+  algorithmVersion?: string;
+  calculationStatus?: string;
+  overallScore: number | null;
+  coreScore: number | null;
+  githubScore?: number | null;
   githubScoreActive: boolean;
   requiredSkillsStatus: SkillMatchResultItem[];
   preferredSkillsStatus: SkillMatchResultItem[];

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { MatchInspectionData } from '@/types';
-import { Award, CheckCircle2, AlertCircle, Sparkles, GitBranch, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Sparkles, GitBranch, ShieldCheck, HelpCircle, Calculator, FileCheck, Layers } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface ScoreBreakdownCardProps {
@@ -14,19 +14,43 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
 
   return (
     <div className="space-y-6 font-sans">
+      {/* Algorithm Version & Transparency Header Banner */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-xl text-xs">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          <span className="font-semibold text-slate-700 dark:text-slate-200">
+            {locale === 'vi' ? 'Mô hình Đánh giá Minh bạch:' : 'Explainable Audit Model:'}
+          </span>
+          <span className="font-mono px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold text-[11px]">
+            {data.algorithmVersion || 'v2.0 Grounded'}
+          </span>
+          {data.calculationStatus && (
+            <span className="font-mono px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-semibold text-[10px]">
+              {data.calculationStatus}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[11px]">
+          <Layers className="w-3.5 h-3.5" />
+          <span>{locale === 'vi' ? 'Không dùng điểm giả • Dynamic Re-weighting' : 'Zero Fake Fallbacks • Dynamic Re-weighting'}</span>
+        </div>
+      </div>
+
       {/* 3-Tier Official Scores Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {/* Overall Score */}
         <div className="bg-[#111C38] border border-[#1E293B] rounded-2xl p-6 text-white shadow-xs relative overflow-hidden space-y-2">
           <span className="text-xs font-bold text-[#3B82F6] uppercase tracking-wider block font-mono">Overall Match Score</span>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-extrabold text-white font-mono">{data.overallScore.toFixed(1)}%</span>
+            <span className="text-4xl font-extrabold text-white font-mono">
+              {data.overallScore !== null && data.overallScore !== undefined ? `${data.overallScore.toFixed(1)}%` : 'N/A'}
+            </span>
             <span className="text-xs text-blue-200/80 font-medium">/ 100%</span>
           </div>
           <p className="text-[11px] text-slate-300">
             {data.githubScoreActive
               ? (locale === 'vi' ? 'Kết hợp: Core Score (85%) + GitHub Supporting (15%)' : 'Combined: Core Score (85%) + GitHub Supporting (15%)')
-              : (locale === 'vi' ? 'Dự phòng: Core JD-CV Score (100%)' : 'Fallback: Core JD-CV Score (100%)')}
+              : (locale === 'vi' ? 'Dự phòng minh bạch: Core JD-CV Score (100% không phạt)' : 'Transparent Fallback: Core JD-CV Score (100% zero penalty)')}
           </p>
         </div>
 
@@ -34,7 +58,9 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
         <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 shadow-xs space-y-2 transition-colors">
           <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block font-mono">Core JD-CV Score</span>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-slate-900 dark:text-white font-mono">{data.coreScore.toFixed(1)}%</span>
+            <span className="text-3xl font-bold text-slate-900 dark:text-white font-mono">
+              {data.coreScore !== null && data.coreScore !== undefined ? `${data.coreScore.toFixed(1)}%` : 'N/A'}
+            </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
             {locale === 'vi' ? 'Đánh giá trực tiếp CV so với yêu cầu JD (Primary Evidence)' : 'Direct evaluation of CV against JD requirements (Primary Evidence)'}
@@ -48,10 +74,12 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
             <span>GitHub Supporting Score</span>
           </span>
           <div className="flex items-baseline gap-2">
-            {data.githubScoreActive && data.githubScore !== undefined ? (
+            {data.githubScoreActive && data.githubScore !== null && data.githubScore !== undefined ? (
               <span className="text-3xl font-bold text-slate-900 dark:text-white font-mono">{data.githubScore.toFixed(1)}%</span>
             ) : (
-              <span className="text-sm font-semibold text-slate-400 dark:text-slate-500 italic">Not connected / Non-technical</span>
+              <span className="text-sm font-semibold text-slate-400 dark:text-slate-500 italic">
+                {locale === 'vi' ? 'Chưa thể đánh giá (Not Connected / Optional)' : 'Not Available (Not Connected / Optional)'}
+              </span>
             )}
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -101,8 +129,12 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                     {item.status === 'MATCH' ? 'MATCH ✓' : 'MISSING ✗'}
                   </span>
                 </div>
-                {item.evidenceText && (
+                {item.evidenceText ? (
                   <p className="text-[11px] text-slate-600 dark:text-slate-300">{item.evidenceText}</p>
+                ) : (
+                  <p className="text-[11px] text-slate-400 italic">
+                    {locale === 'vi' ? 'Không tìm thấy bằng chứng trong CV snapshot đã nộp.' : 'No evidence found in submitted CV snapshot.'}
+                  </p>
                 )}
               </div>
             ))}
@@ -128,7 +160,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-slate-900 dark:text-white font-mono">{item.skillName}</span>
                     <span className="text-[10px] px-2 py-0.5 rounded bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] text-slate-600 dark:text-slate-400 font-medium font-mono">
-                      {item.status === 'MATCH' ? '+ Point Bonus' : (locale === 'vi' ? 'Không cung cấp' : 'Not Provided')}
+                      {item.status === 'MATCH' ? '+ Point Bonus' : (locale === 'vi' ? 'Không tìm thấy' : 'Not Provided')}
                     </span>
                   </div>
                 </div>
@@ -138,28 +170,82 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
         )}
       </div>
 
-      {/* Match Factor Breakdown List */}
+      {/* Match Factor Breakdown List with Mathematical Explainability */}
       <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 shadow-xs space-y-4 transition-colors">
-        <h3 className="text-base font-bold font-editorial text-slate-900 dark:text-white border-b border-slate-100 dark:border-[#1E293B] pb-3 flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-500" />
-          <span>{locale === 'vi' ? 'Chi tiết Các Thành phần Trọng số (Match Factors Breakdown)' : 'Match Factors Breakdown'}</span>
-        </h3>
+        <div className="border-b border-slate-100 dark:border-[#1E293B] pb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-base font-bold font-editorial text-slate-900 dark:text-white flex items-center gap-2">
+            <Calculator className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span>{locale === 'vi' ? 'Chi tiết Thành phần & Tái dựng Điểm (Explainable Factor Breakdown)' : 'Explainable Match Factors Breakdown'}</span>
+          </h3>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+            {locale === 'vi' ? 'Công thức: Score = ∑(Score_i × EffectiveWeight_i)' : 'Formula: Score = ∑(Score_i × EffectiveWeight_i)'}
+          </span>
+        </div>
 
         <div className="space-y-3">
-          {data.matchFactors.map((factor, idx) => (
-            <div key={idx} className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] space-y-1.5 text-xs transition-colors">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-900 dark:text-white font-mono">{factor.factorName}</span>
-                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{factor.score.toFixed(1)}%</span>
+          {data.matchFactors.map((factor, idx) => {
+            const isNotAvailable = factor.status === 'NOT_AVAILABLE' || factor.score === null;
+            return (
+              <div key={idx} className="p-4 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] space-y-2 text-xs transition-colors">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900 dark:text-white font-mono text-sm">{factor.factorName}</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                      isNotAvailable
+                        ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                        : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                    }`}>
+                      {factor.status || (isNotAvailable ? 'NOT_AVAILABLE' : 'AVAILABLE')}
+                    </span>
+                    {factor.calculationMethod && (
+                      <span className="hidden sm:inline-block text-[10px] text-slate-500 dark:text-slate-400 font-mono bg-white dark:bg-[#111C38] px-1.5 py-0.5 rounded border border-slate-200 dark:border-[#1E293B]">
+                        {factor.calculationMethod}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Score & Weighted Contribution */}
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 block font-mono">Điểm thô / Normalized</span>
+                      {isNotAvailable ? (
+                        <span className="font-mono text-xs font-semibold text-slate-400 italic">Chưa có dữ liệu</span>
+                      ) : (
+                        <span className="font-mono font-bold text-slate-900 dark:text-white">{factor.score?.toFixed(1)}%</span>
+                      )}
+                    </div>
+                    {factor.weightedContribution !== undefined && (
+                      <div className="text-right pl-3 border-l border-slate-200 dark:border-[#1E293B]">
+                        <span className="text-[10px] text-slate-400 block font-mono">Đóng góp (+pts)</span>
+                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                          +{factor.weightedContribution.toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Weights info bar */}
+                {(factor.configuredWeight !== undefined || factor.effectiveWeight !== undefined) && (
+                  <div className="flex items-center gap-4 text-[11px] text-slate-500 dark:text-slate-400 font-mono bg-white dark:bg-[#111C38] px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#1E293B]">
+                    <span>Trọng số chuẩn: <strong>{((factor.configuredWeight ?? 0) * 100).toFixed(1)}%</strong></span>
+                    <span>•</span>
+                    <span className="text-blue-600 dark:text-blue-400">
+                      Trọng số hiệu dụng (Re-weighted): <strong>{((factor.effectiveWeight ?? 0) * 100).toFixed(1)}%</strong>
+                    </span>
+                  </div>
+                )}
+
+                <p className="text-slate-600 dark:text-slate-300">{factor.explanation}</p>
+                {factor.evidence && (
+                  <div className="text-[11px] text-slate-800 dark:text-slate-200 font-mono bg-white dark:bg-[#111C38] p-2.5 rounded-lg border border-slate-200 dark:border-[#1E293B] flex items-start gap-2">
+                    <FileCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                    <span><strong>Minh chứng đã lưu:</strong> {factor.evidence}</span>
+                  </div>
+                )}
               </div>
-              <p className="text-slate-600 dark:text-slate-300">{factor.explanation}</p>
-              {factor.evidence && (
-                <p className="text-[11px] text-slate-800 dark:text-slate-200 font-mono bg-white dark:bg-[#111C38] p-2 rounded-lg border border-slate-200 dark:border-[#1E293B]">
-                  {locale === 'vi' ? 'Minh chứng: ' : 'Evidence: '}{factor.evidence}
-                </p>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
