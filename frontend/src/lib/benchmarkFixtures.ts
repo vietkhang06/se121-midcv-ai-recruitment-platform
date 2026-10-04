@@ -3,6 +3,8 @@ import {
   CV,
   CandidateProfile,
   Application,
+  ApplicationStatus,
+  ApplicationAuditLogItem,
   User,
   RecruiterProfile,
   Company,
@@ -27,6 +29,7 @@ import {
 export const SEED_COMPANY: Company = {
   id: 'comp-fpt-01',
   name: 'FPT Software Corporation',
+  taxCode: '0108877665',
   industry: 'Technology',
   website: 'https://fpt-software.com',
   companySize: '500-1000 nhân viên',
@@ -410,6 +413,39 @@ export class BenchmarkFixtureClient implements ApiClient {
     ];
   }
 
+  async searchTaxonomySkills(query: string, limit?: number): Promise<any[]> {
+    const list = [
+      { id: 'sk-1', name: 'Java', normalizedName: 'java', category: 'Backend' },
+      { id: 'sk-2', name: 'Spring Boot', normalizedName: 'spring boot', category: 'Backend' },
+      { id: 'sk-3', name: 'React', normalizedName: 'react', category: 'Frontend' },
+      { id: 'sk-4', name: 'TypeScript', normalizedName: 'typescript', category: 'Frontend' },
+      { id: 'sk-5', name: 'Docker', normalizedName: 'docker', category: 'DevOps' },
+      { id: 'sk-6', name: 'PostgreSQL', normalizedName: 'postgresql', category: 'Database' }
+    ];
+    return list.filter(s => s.name.toLowerCase().includes(query.toLowerCase())).slice(0, limit || 10);
+  }
+
+  async uploadCVEvidence(cvId: string, file: File, itemType: string, itemId: string): Promise<any> {
+    return {
+      id: `att-${Date.now()}`,
+      fileName: file.name,
+      originalFileName: file.name,
+      fileSize: file.size,
+      contentType: file.type || 'application/pdf',
+      itemType,
+      itemId,
+      verificationStatus: 'UNVERIFIED',
+      uploadedAt: new Date().toISOString()
+    };
+  }
+
+  async deleteCVEvidence(cvId: string, attachmentId: string): Promise<void> {
+    return;
+  }
+
+  async downloadCVEvidence(cvId: string, attachmentId: string, fileName: string): Promise<void> {
+    return;
+  }
   async fetchCandidateApplications(): Promise<Application[]> {
     return [...SEED_APPLICATIONS];
   }
@@ -420,6 +456,42 @@ export class BenchmarkFixtureClient implements ApiClient {
 
   async fetchJobApplications(jobId: string): Promise<Application[]> {
     return SEED_APPLICATIONS.filter(a => a.job?.id === jobId);
+  }
+
+  async fetchApplicationById(applicationId: string): Promise<Application | null> {
+    return SEED_APPLICATIONS.find(a => a.id === applicationId) || null;
+  }
+
+  async updateApplicationStatus(applicationId: string, status: ApplicationStatus, _decisionNote?: string): Promise<Application> {
+    const app = SEED_APPLICATIONS.find(a => a.id === applicationId);
+    if (!app) {
+      return {
+        id: applicationId,
+        job: SEED_JOBS[0],
+        appliedCvId: 'cv-1',
+        appliedCvTitle: 'CV Default',
+        appliedCvVersion: 1,
+        candidateName: 'Ứng viên',
+        status,
+        appliedDate: new Date().toISOString().split('T')[0]
+      };
+    }
+    app.status = status;
+    return { ...app };
+  }
+
+  async fetchApplicationAuditLogs(applicationId: string): Promise<ApplicationAuditLogItem[]> {
+    return [
+      {
+        id: `audit-${applicationId}-1`,
+        applicationId,
+        recruiterUserId: 'usr-recruiter-01',
+        previousStatus: 'SUBMITTED',
+        newStatus: 'SHORTLISTED',
+        decisionNote: 'Hồ sơ phù hợp với yêu cầu kỹ năng',
+        createdAt: new Date().toISOString()
+      }
+    ];
   }
 
   async fetchRecruiterProfile(): Promise<RecruiterProfile> {
@@ -434,6 +506,10 @@ export class BenchmarkFixtureClient implements ApiClient {
     return { ...company };
   }
 
+  async submitCompanyVerification(): Promise<Company> {
+    return { ...SEED_COMPANY, verificationStatus: 'PENDING' };
+  }
+
   async fetchRecruiterJobs(): Promise<Job[]> {
     return [...SEED_JOBS];
   }
@@ -445,6 +521,11 @@ export class BenchmarkFixtureClient implements ApiClient {
   async publishJob(jobId: string): Promise<Job | null> {
     const job = SEED_JOBS.find(j => j.id === jobId);
     return job ? { ...job, status: 'PUBLISHED' } : null;
+  }
+
+  async closeJob(jobId: string): Promise<Job | null> {
+    const job = SEED_JOBS.find(j => j.id === jobId);
+    return job ? { ...job, status: 'CLOSED' } : null;
   }
 
   async fetchCandidateRankings(_jobId: string): Promise<CandidateRankingItem[]> {

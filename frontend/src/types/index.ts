@@ -6,7 +6,7 @@ export type EmploymentType = 'FULL_TIME' | 'PART_TIME' | 'REMOTE' | 'HYBRID';
 
 export type RequirementType = 'REQUIRED' | 'PREFERRED';
 
-export type CompanyVerificationState = 'PENDING' | 'VERIFIED' | 'REJECTED';
+export type CompanyVerificationState = 'PENDING' | 'UNDER_REVIEW' | 'CHANGES_REQUESTED' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
 
 export type GitHubActivitySignal = 'HIGH' | 'MODERATE' | 'LOW' | 'LIMITED_OBSERVABLE_ACTIVITY';
 
@@ -29,6 +29,7 @@ export interface User {
 export interface Company {
   id: string;
   name: string;
+  taxCode?: string;
   industry: Industry;
   website: string;
   companySize: string;
@@ -134,6 +135,16 @@ export interface CandidateProfile {
 }
 
 
+export type ApplicationStatus =
+  | 'SUBMITTED'
+  | 'REVIEWED'
+  | 'MATCHED'
+  | 'SHORTLISTED'
+  | 'INTERVIEWING'
+  | 'HIRED'
+  | 'REJECTED'
+  | 'UNDER_REVIEW';
+
 export interface Application {
   id: string;
   job: Job;
@@ -141,15 +152,35 @@ export interface Application {
   appliedCvTitle: string;
   appliedCvVersion: number;
   candidateName?: string;
-  status: 'SUBMITTED' | 'UNDER_REVIEW' | 'SHORTLISTED' | 'REJECTED';
+  candidateEmail?: string;
+  candidatePhone?: string;
+  candidateHeadline?: string;
+  status: ApplicationStatus;
   appliedDate: string;
   expectedSalary?: number;
   noticePeriodDays?: number;
   githubUrl?: string;
   portfolioUrl?: string;
+  matchScore?: number;
+  matchStatus?: string;
+  snapshot?: {
+    cvTitle?: string;
+    rawTextSnapshot?: string;
+    snapshotCreatedAt?: string;
+  };
   candidateAnswers?: Record<string, string>;
   candidateNotes?: string;
   candidateProfile?: CandidateProfile;
+}
+
+export interface ApplicationAuditLogItem {
+  id: string;
+  applicationId: string;
+  recruiterUserId: string;
+  previousStatus: ApplicationStatus;
+  newStatus: ApplicationStatus;
+  decisionNote?: string;
+  createdAt: string;
 }
 
 export interface SkillMatchResultItem {
@@ -204,7 +235,7 @@ export interface CandidateRankingItem {
   requiredSkillsMissingNames: string[];
   relevantExperienceYears: number;
   appliedDate: string;
-  status: 'SUBMITTED' | 'UNDER_REVIEW' | 'SHORTLISTED' | 'REJECTED';
+  status: ApplicationStatus;
   gitHubConnected: boolean;
 }
 
@@ -317,6 +348,47 @@ export interface CVReviewData {
   createdAt?: string;
 }
 
+export interface TaxonomySkillItem {
+  id: string;
+  canonicalName: string;
+  normalizedName: string;
+  category?: string;
+  description?: string;
+  isCustom?: boolean;
+}
+
+export interface CVEvidenceAttachmentItem {
+  attachmentId: string;
+  cvId: string;
+  itemType: 'CERTIFICATION' | 'LANGUAGE';
+  itemId: string;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  status: string;
+  previewUrl: string;
+  createdAt: string;
+}
+
+export interface CVDraftData {
+  cv_id: string;
+  profile_id?: string;
+  version_id?: string;
+  version_number?: number;
+  title?: string;
+  status?: string;
+  confirmed_at?: string;
+  personal_info?: Record<string, any>;
+  summary?: Record<string, any>;
+  skills?: Array<{ name: string; category?: string; level?: string; isCustom?: boolean; verified?: boolean; origin?: string }>;
+  work_experience?: Array<{ id?: string; company: string; role?: string; position?: string; start_date?: string; end_date?: string; is_current?: boolean; description?: string; technologies?: string[]; origin?: string }>;
+  projects?: Array<{ id?: string; name: string; role?: string; start_date?: string; end_date?: string; description?: string; techStack?: string[]; tech_stack?: string[]; origin?: string }>;
+  education?: Array<{ id?: string; institution: string; degree?: string; fieldOfStudy?: string; field_of_study?: string; startYear?: number; endYear?: number; gpa?: number; gpa_scale?: number; gpaScale?: number; gpa_display?: string; description?: string; origin?: string }>;
+  certifications?: Array<{ id?: string; name: string; issuer?: string; issueDate?: string; date?: string; credentialId?: string; credentialUrl?: string; attachment?: CVEvidenceAttachmentItem | null; origin?: string }>;
+  languages?: Array<{ id?: string; language: string; name?: string; proficiency?: string; proficiencyLevel?: string; score?: string; attachment?: CVEvidenceAttachmentItem | null; origin?: string }>;
+  links?: Record<string, any>;
+}
+
 export interface CVProcessingStatus {
   cvId: string;
   jobId: string;
@@ -329,3 +401,141 @@ export interface CVProcessingStatus {
   correlationId?: string;
   updatedAt?: string;
 }
+
+export interface AdminDashboardStats {
+  totalUsers: number;
+  candidatesCount: number;
+  recruitersCount: number;
+  activeUsersCount: number;
+  suspendedUsersCount: number;
+  companiesPendingCount: number;
+  companiesUnderReviewCount: number;
+  companiesVerifiedCount: number;
+  companiesRejectedCount: number;
+  companiesSuspendedCount: number;
+  activeJobsCount: number;
+  suspendedJobsCount: number;
+  pendingReportsCount: number;
+  recentAuditLogs: AdminAuditLogDto[];
+  aiStatus: {
+    provider?: string;
+    ollamaModel?: string;
+    cloudModel?: string;
+    hasCloudApiKey?: boolean;
+  };
+}
+
+export type CompanyReviewAction = 'START_REVIEW' | 'VERIFY' | 'REQUEST_CHANGES' | 'REJECT' | 'SUSPEND' | 'RESTORE';
+export type ReportStatus = 'PENDING' | 'RESOLVED' | 'DISMISSED';
+export type ReportTargetType = 'JOB' | 'COMPANY' | 'CANDIDATE' | 'RECRUITER';
+
+export interface CompanyAdminDto {
+  id: string;
+  name: string;
+  taxCode?: string;
+  website?: string;
+  size?: string;
+  industry?: string;
+  location?: string;
+  description?: string;
+  verificationStatus: CompanyVerificationState;
+  reviewedById?: string;
+  reviewedByEmail?: string;
+  reviewedAt?: string;
+  reviewNotes?: string;
+  version?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  recruiterEmail?: string;
+  recruiterName?: string;
+  recruiterPhone?: string;
+  activeJobsCount?: number;
+}
+
+export interface UserAdminDto {
+  id: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+  accountStatus?: 'ACTIVE' | 'SUSPENDED';
+  emailVerified: boolean;
+  fullName?: string;
+  phone?: string;
+  createdAt?: string;
+  targetIndustry?: string;
+  headline?: string;
+  githubUrl?: string;
+  cvCount?: number;
+  applicationCount?: number;
+  companyId?: string;
+  companyName?: string;
+  companyVerificationStatus?: string;
+}
+
+export interface JobAdminDto {
+  id: string;
+  companyId: string;
+  companyName: string;
+  companyVerificationStatus: string;
+  title: string;
+  industry: string;
+  seniority: string;
+  status: 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'SUSPENDED';
+  minSalary?: number;
+  maxSalary?: number;
+  location?: string;
+  jobType?: string;
+  experienceLevel?: string;
+  employmentType?: string;
+  description: string;
+  moderationReason?: string;
+  suspendedAt?: string;
+  createdAt: string;
+}
+
+export interface ReportAdminDto {
+  id: string;
+  reporterId?: string;
+  reporterEmail?: string;
+  targetType: 'JOB' | 'COMPANY' | 'CANDIDATE' | 'RECRUITER';
+  targetId: string;
+  targetTitle?: string;
+  reason: string;
+  details?: string;
+  status: 'PENDING' | 'RESOLVED' | 'DISMISSED';
+  resolutionNotes?: string;
+  resolvedById?: string;
+  resolvedByEmail?: string;
+  resolvedAt?: string;
+  createdAt: string;
+}
+
+export interface AdminAuditLogDto {
+  id: string;
+  adminId: string;
+  adminEmail: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  previousState?: string;
+  newState?: string;
+  reason?: string;
+  ipAddress?: string;
+  correlationId?: string;
+  createdAt: string;
+}
+
+export interface TaxonomySkillAdminDto {
+  id: string;
+  canonicalName: string;
+  name?: string;
+  normalizedName: string;
+  normalizedKey?: string;
+  category: string;
+  description?: string;
+  source: string;
+  active: boolean;
+  aliases?: string[];
+}
+
+

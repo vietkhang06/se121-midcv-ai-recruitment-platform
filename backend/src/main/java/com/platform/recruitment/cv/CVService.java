@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -40,6 +41,12 @@ public class CVService {
     private final AiWorkerClient aiWorkerClient;
     private final ObjectMapper objectMapper;
     private final org.springframework.transaction.support.TransactionTemplate tx;
+    @Autowired(required = false)
+    private CVEvidenceAttachmentRepository cvEvidenceAttachmentRepository;
+
+    public void setCvEvidenceAttachmentRepository(CVEvidenceAttachmentRepository cvEvidenceAttachmentRepository) {
+        this.cvEvidenceAttachmentRepository = cvEvidenceAttachmentRepository;
+    }
 
     @Autowired
     public CVService(
@@ -124,6 +131,10 @@ public class CVService {
         return mapToResponse(savedCv);
     }
 
+    public static final java.util.Set<String> ALLOWED_CV_SORT_FIELDS = java.util.Set.of(
+            "createdAt", "title", "targetIndustry", "versionNumber", "updatedAt"
+    );
+
     @Transactional(readOnly = true)
     public List<CVResponse> getCandidateCVs(User candidateUser) {
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
@@ -132,6 +143,23 @@ public class CVService {
         return cvRepository.findByCandidateId(candidate.getId()).stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public com.platform.recruitment.common.PageResponse<CVResponse> getCandidateCVs(
+            User candidateUser, int page, int size, String sort, String direction) {
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        org.springframework.data.domain.Pageable pageable =
+                com.platform.recruitment.common.PaginationUtils.createPageable(
+                        page, size, sort, direction, ALLOWED_CV_SORT_FIELDS, "createdAt");
+
+        org.springframework.data.domain.Page<CV> cvPage = cvRepository.findByCandidateId(candidate.getId(), pageable);
+        List<CVResponse> content = cvPage.getContent().stream().map(this::mapToResponse).toList();
+        String sortField = (sort == null || sort.isBlank()) ? "createdAt" : sort;
+        String sortDir = (direction == null || direction.isBlank()) ? "desc" : direction.toLowerCase();
+        return com.platform.recruitment.common.PageResponse.of(cvPage, content, sortField, sortDir);
     }
 
     @Transactional(readOnly = true)
@@ -458,7 +486,10 @@ public class CVService {
             version.setRawTextContent(finalExtractedText);
             version.setStatus("DRAFT");
             try {
-                version.setStructuredJsonContent(objectMapper.writeValueAsString(aiResult));
+                String rawJson = objectMapper.writeValueAsString(aiResult);
+                version.setRawStructuredContent(rawJson);
+                Map<String, Object> initialDraft = buildCanonicalDraftFromRaw(aiResult, cv, version.getId());
+                version.setStructuredJsonContent(objectMapper.writeValueAsString(initialDraft));
             } catch (Exception ignored) {}
             cvVersionRepository.save(version);
 
@@ -472,7 +503,10 @@ public class CVService {
                             .build());
                 } catch (Exception ignored) {}
             }
-            if (aiResult.get("experiences") instanceof List<?> expList && !expList.isEmpty()) {
+            Object expObj = aiResult.get("experience");
+            if (expObj == null) expObj = aiResult.get("experiences");
+            if (expObj == null) expObj = aiResult.get("work_experience");
+            if (expObj instanceof List<?> expList && !expList.isEmpty()) {
                 try {
                     cvSectionRepository.save(CVSection.builder()
                             .cvVersion(version)
@@ -481,7 +515,9 @@ public class CVService {
                             .build());
                 } catch (Exception ignored) {}
             }
-            if (aiResult.get("educations") instanceof List<?> eduList && !eduList.isEmpty()) {
+            Object eduObj = aiResult.get("education");
+            if (eduObj == null) eduObj = aiResult.get("educations");
+            if (eduObj instanceof List<?> eduList && !eduList.isEmpty()) {
                 try {
                     cvSectionRepository.save(CVSection.builder()
                             .cvVersion(version)
@@ -1070,6 +1106,19 @@ public class CVService {
             throw new UnauthorizedAccessException("Candidate does not own this CV");
         }
 
+        if (cvEvidenceAttachmentRepository != null) {
+            try {
+                cvEvidenceAttachmentRepository.findByCvId(cvId).forEach(att -> {
+                    try {
+                        Files.deleteIfExists(documents.path(att.getStorageKey()));
+                    } catch (Exception ignored) {}
+                });
+                cvEvidenceAttachmentRepository.deleteByCvId(cvId);
+            } catch (Exception ex) {
+                log.warn("Failed to clean up evidence attachments for CV {}: {}", cvId, ex.getMessage());
+            }
+        }
+
         cvRepository.delete(cv);
         jdbcTemplate.update("UPDATE documents SET archived=true WHERE id=? AND owner_id=?", cvId, candidateUser.getId());
     }
@@ -1092,8 +1141,9 @@ public class CVService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CVDraftResponse getCVDraft(User candidateUser, UUID cvId) {
+        String correlationId = UUID.randomUUID().toString();
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
 
@@ -1114,18 +1164,33 @@ public class CVService {
                     .rawTextContent(cv.getRawText())
                     .status("DRAFT")
                     .build();
-            version = cvVersionRepository.save(version);
+            CVVersion savedVer = cvVersionRepository.save(version);
+            if (savedVer != null) {
+                version = savedVer;
+            }
         } else {
             version = versions.get(0);
         }
 
-        Map<String, Object> rawStructured = new LinkedHashMap<>();
+        Map<String, Object> structured = null;
+        boolean hasExistingCanonicalDraft = false;
+
         if (version.getStructuredJsonContent() != null && !version.getStructuredJsonContent().isBlank()) {
             try {
-                rawStructured = objectMapper.readValue(version.getStructuredJsonContent(), new TypeReference<>() {});
+                structured = objectMapper.readValue(version.getStructuredJsonContent(), new TypeReference<>() {});
+                if ("2.0".equals(structured.get("schema_version")) || structured.containsKey("personal_info")) {
+                    hasExistingCanonicalDraft = true;
+                }
             } catch (Exception e) {
                 log.warn("Failed to parse structuredJsonContent for version {}", version.getId());
             }
+        }
+
+        Map<String, Object> rawStructured = new LinkedHashMap<>();
+        if (version.getRawStructuredContent() != null && !version.getRawStructuredContent().isBlank()) {
+            try {
+                rawStructured = objectMapper.readValue(version.getRawStructuredContent(), new TypeReference<>() {});
+            } catch (Exception ignored) {}
         }
 
         if (rawStructured.isEmpty()) {
@@ -1140,15 +1205,58 @@ public class CVService {
             }
         }
 
-        Map<String, Object> personalInfo = extractPersonalInfoWithLineage(rawStructured, candidate, cv);
-        Map<String, Object> summary = extractSummaryWithLineage(rawStructured, cv);
-        List<Map<String, Object>> skills = extractSkillsWithLineage(rawStructured, version.getId());
-        List<Map<String, Object>> experiences = extractExperienceWithLineage(rawStructured, version.getId());
-        List<Map<String, Object>> projects = extractProjectsWithLineage(rawStructured);
-        List<Map<String, Object>> education = extractEducationWithLineage(rawStructured, version.getId());
-        List<Map<String, Object>> certifications = extractCertificationsWithLineage(rawStructured);
-        List<Map<String, Object>> languages = extractLanguagesWithLineage(rawStructured);
-        Map<String, Object> links = extractLinksWithLineage(rawStructured, personalInfo);
+        if (!hasExistingCanonicalDraft) {
+            log.info("CV_DRAFT_INITIALIZATION_STARTED correlation_id={} cv_id={} version_id={} profile_id={}",
+                    correlationId, cvId, version.getId(), candidate.getId());
+
+            Map<String, Object> sourceForDraft = !rawStructured.isEmpty() ? rawStructured : (structured != null ? structured : Collections.emptyMap());
+            Map<String, Object> canonicalDraft = buildCanonicalDraftFromRaw(sourceForDraft, cv, version.getId());
+
+            try {
+                version.setStructuredJsonContent(objectMapper.writeValueAsString(canonicalDraft));
+                if (version.getRawStructuredContent() == null || version.getRawStructuredContent().isBlank()) {
+                    if (!rawStructured.isEmpty()) {
+                        version.setRawStructuredContent(objectMapper.writeValueAsString(rawStructured));
+                    }
+                }
+                CVVersion savedVer = cvVersionRepository.save(version);
+                if (savedVer != null) {
+                    version = savedVer;
+                }
+            } catch (Exception e) {
+                log.error("Failed to save initialized canonical draft for version {}: {}", version.getId(), e.getMessage());
+            }
+
+            structured = canonicalDraft;
+            log.info("CV_DRAFT_INITIALIZED correlation_id={} cv_id={} version_id={}",
+                    correlationId, cvId, version.getId());
+        } else {
+            log.info("CV_DRAFT_ALREADY_EXISTS correlation_id={} cv_id={} version_id={}",
+                    correlationId, cvId, version.getId());
+        }
+
+        Map<String, Object> personalInfo = (structured.get("personal_info") instanceof Map<?, ?> m)
+                ? (Map<String, Object>) m : extractPersonalInfoWithLineage(structured, cv);
+        Map<String, Object> summary = (structured.get("summary") instanceof Map<?, ?> m)
+                ? (Map<String, Object>) m : extractSummaryWithLineage(structured, cv);
+        List<Map<String, Object>> skills = (structured.get("skills") instanceof List<?> l)
+                ? (List<Map<String, Object>>) l : Collections.emptyList();
+        List<Map<String, Object>> experiences = (structured.get("work_experience") instanceof List<?> l)
+                ? (List<Map<String, Object>>) l : Collections.emptyList();
+        List<Map<String, Object>> projects = (structured.get("projects") instanceof List<?> l)
+                ? (List<Map<String, Object>>) l : Collections.emptyList();
+        List<Map<String, Object>> education = (structured.get("education") instanceof List<?> l)
+                ? (List<Map<String, Object>>) l : Collections.emptyList();
+        List<Map<String, Object>> certifications = (structured.get("certifications") instanceof List<?> l)
+                ? (List<Map<String, Object>>) l : Collections.emptyList();
+        List<Map<String, Object>> languages = (structured.get("languages") instanceof List<?> l)
+                ? (List<Map<String, Object>>) l : Collections.emptyList();
+        Map<String, Object> links = (structured.get("links") instanceof Map<?, ?> m)
+                ? (Map<String, Object>) m : extractLinksWithLineage(structured, personalInfo);
+
+        // Refresh attachment info in certifications and languages
+        refreshAttachmentLinks(certifications, cvId, "CERTIFICATION");
+        refreshAttachmentLinks(languages, cvId, "LANGUAGE");
 
         return CVDraftResponse.builder()
                 .cvId(cv.getId())
@@ -1167,7 +1275,7 @@ public class CVService {
                 .certifications(certifications)
                 .languages(languages)
                 .links(links)
-                .rawStructured(rawStructured)
+                .rawStructured(!rawStructured.isEmpty() ? rawStructured : structured)
                 .createdAt(version.getCreatedAt() != null ? version.getCreatedAt() : cv.getCreatedAt())
                 .updatedAt(version.getUpdatedAt() != null ? version.getUpdatedAt() : cv.getUpdatedAt())
                 .build();
@@ -1175,6 +1283,7 @@ public class CVService {
 
     @Transactional
     public CVDraftResponse updateCVDraft(User candidateUser, UUID cvId, UpdateCVDraftRequest request) {
+        String correlationId = UUID.randomUUID().toString();
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
 
@@ -1197,6 +1306,8 @@ public class CVService {
                     .versionNumber(newVersionNum)
                     .title(cv.getTitle() + " v" + newVersionNum + ".0 (Draft)")
                     .rawTextContent(latestConfirmed.getRawTextContent())
+                    .rawStructuredContent(latestConfirmed.getRawStructuredContent())
+                    .structuredJsonContent(latestConfirmed.getStructuredJsonContent())
                     .status("DRAFT")
                     .build();
             targetVersion = cvVersionRepository.save(targetVersion);
@@ -1215,12 +1326,18 @@ public class CVService {
             targetVersion = cvVersionRepository.save(targetVersion);
         }
 
-        Map<String, Object> updatedStructured = new LinkedHashMap<>();
+        Map<String, Object> existingDraft = new LinkedHashMap<>();
         if (targetVersion.getStructuredJsonContent() != null && !targetVersion.getStructuredJsonContent().isBlank()) {
             try {
-                updatedStructured = objectMapper.readValue(targetVersion.getStructuredJsonContent(), new TypeReference<>() {});
+                existingDraft = objectMapper.readValue(targetVersion.getStructuredJsonContent(), new TypeReference<>() {});
             } catch (Exception ignored) {}
         }
+        if (!"2.0".equals(existingDraft.get("schema_version")) && !existingDraft.containsKey("personal_info")) {
+            existingDraft = buildCanonicalDraftFromRaw(existingDraft, cv, targetVersion.getId());
+        }
+
+        Map<String, Object> updatedStructured = new LinkedHashMap<>(existingDraft);
+        updatedStructured.put("schema_version", "2.0");
 
         if (request.getTitle() != null && !request.getTitle().isBlank()) {
             targetVersion.setTitle(request.getTitle());
@@ -1229,28 +1346,44 @@ public class CVService {
         }
 
         if (request.getPersonalInfo() != null) {
-            updatedStructured.put("personal_info", markLineageOnMap(request.getPersonalInfo()));
+            Map<String, Object> oldPersonal = (existingDraft.get("personal_info") instanceof Map<?, ?> m)
+                    ? (Map<String, Object>) m : Collections.emptyMap();
+            updatedStructured.put("personal_info", computePersonalInfoProvenance(request.getPersonalInfo(), oldPersonal));
         }
         if (request.getSummary() != null) {
-            updatedStructured.put("summary", markLineageOnMap(request.getSummary()));
+            Map<String, Object> oldSummary = (existingDraft.get("summary") instanceof Map<?, ?> m)
+                    ? (Map<String, Object>) m : Collections.emptyMap();
+            updatedStructured.put("summary", computeSummaryProvenance(request.getSummary(), oldSummary));
         }
         if (request.getSkills() != null) {
-            updatedStructured.put("skills", markLineageOnList(request.getSkills()));
+            List<Map<String, Object>> oldSkills = (existingDraft.get("skills") instanceof List<?> l)
+                    ? (List<Map<String, Object>>) l : Collections.emptyList();
+            updatedStructured.put("skills", computeSkillsProvenance(request.getSkills(), oldSkills));
         }
         if (request.getWorkExperience() != null) {
-            updatedStructured.put("work_experience", markLineageOnList(request.getWorkExperience()));
+            List<Map<String, Object>> oldExp = (existingDraft.get("work_experience") instanceof List<?> l)
+                    ? (List<Map<String, Object>>) l : Collections.emptyList();
+            updatedStructured.put("work_experience", computeNestedListProvenance(request.getWorkExperience(), oldExp, cvId, "EXPERIENCE"));
         }
         if (request.getProjects() != null) {
-            updatedStructured.put("projects", markLineageOnList(request.getProjects()));
+            List<Map<String, Object>> oldProj = (existingDraft.get("projects") instanceof List<?> l)
+                    ? (List<Map<String, Object>>) l : Collections.emptyList();
+            updatedStructured.put("projects", computeNestedListProvenance(request.getProjects(), oldProj, cvId, "PROJECT"));
         }
         if (request.getEducation() != null) {
-            updatedStructured.put("education", markLineageOnList(request.getEducation()));
+            List<Map<String, Object>> oldEdu = (existingDraft.get("education") instanceof List<?> l)
+                    ? (List<Map<String, Object>>) l : Collections.emptyList();
+            updatedStructured.put("education", computeEducationProvenance(request.getEducation(), oldEdu));
         }
         if (request.getCertifications() != null) {
-            updatedStructured.put("certifications", markLineageOnList(request.getCertifications()));
+            List<Map<String, Object>> oldCerts = (existingDraft.get("certifications") instanceof List<?> l)
+                    ? (List<Map<String, Object>>) l : Collections.emptyList();
+            updatedStructured.put("certifications", computeNestedListProvenance(request.getCertifications(), oldCerts, cvId, "CERTIFICATION"));
         }
         if (request.getLanguages() != null) {
-            updatedStructured.put("languages", markLineageOnList(request.getLanguages()));
+            List<Map<String, Object>> oldLangs = (existingDraft.get("languages") instanceof List<?> l)
+                    ? (List<Map<String, Object>>) l : Collections.emptyList();
+            updatedStructured.put("languages", computeNestedListProvenance(request.getLanguages(), oldLangs, cvId, "LANGUAGE"));
         }
         if (request.getLinks() != null) {
             updatedStructured.put("links", markLineageOnMap(request.getLinks()));
@@ -1266,12 +1399,15 @@ public class CVService {
         }
 
         cvVersionRepository.save(targetVersion);
+        log.info("CV_DRAFT_UPDATED correlation_id={} cv_id={} version_id={}",
+                correlationId, cvId, targetVersion.getId());
 
         return getCVDraft(candidateUser, cvId);
     }
 
     @Transactional
     public CVConfirmResponse confirmCV(User candidateUser, UUID cvId) {
+        String correlationId = UUID.randomUUID().toString();
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
 
@@ -1305,6 +1441,9 @@ public class CVService {
         cv.setStatus("CONFIRMED");
         cvRepository.save(cv);
 
+        log.info("CV_DRAFT_CONFIRMED correlation_id={} cv_id={} version_id={}",
+                correlationId, cvId, targetVersion.getId());
+
         return CVConfirmResponse.builder()
                 .cvId(cv.getId())
                 .profileId(candidate.getId())
@@ -1337,27 +1476,421 @@ public class CVService {
                 .toList();
     }
 
-    private Map<String, Object> extractPersonalInfoWithLineage(Map<String, Object> structured, CandidateProfile profile, CV cv) {
+    public Map<String, Object> buildCanonicalDraftFromRaw(Map<String, Object> rawStructured, CV cv, UUID versionId) {
+        Map<String, Object> draft = new LinkedHashMap<>();
+        draft.put("schema_version", "2.0");
+
+        Map<String, Object> personalInfo = extractPersonalInfoWithLineage(rawStructured, cv);
+        Map<String, Object> summary = extractSummaryWithLineage(rawStructured, cv);
+        List<Map<String, Object>> skills = extractSkillsWithLineage(rawStructured, versionId);
+        List<Map<String, Object>> experiences = extractExperienceWithLineage(rawStructured, versionId);
+        List<Map<String, Object>> projects = extractProjectsWithLineage(rawStructured);
+        List<Map<String, Object>> education = extractEducationWithLineage(rawStructured, versionId);
+        List<Map<String, Object>> certifications = extractCertificationsWithLineage(rawStructured, cv != null ? cv.getId() : null);
+        List<Map<String, Object>> languages = extractLanguagesWithLineage(rawStructured, cv != null ? cv.getId() : null);
+        Map<String, Object> links = extractLinksWithLineage(rawStructured, personalInfo);
+
+        draft.put("personal_info", personalInfo);
+        draft.put("summary", summary);
+        draft.put("skills", skills);
+        draft.put("work_experience", experiences);
+        draft.put("projects", projects);
+        draft.put("education", education);
+        draft.put("certifications", certifications);
+        draft.put("languages", languages);
+        draft.put("links", links);
+
+        return draft;
+    }
+
+    private Map<String, Object> computePersonalInfoProvenance(Map<String, Object> incoming, Map<String, Object> oldPersonal) {
+        Map<String, Object> result = new LinkedHashMap<>(oldPersonal);
+
+        String[] keys = {"fullName", "full_name", "headline", "email", "phone", "address", "location",
+                "githubUrl", "github_url", "linkedinUrl", "linkedin_url", "portfolioUrl", "portfolio_url"};
+
+        for (String key : keys) {
+            if (incoming.containsKey(key)) {
+                Object inValObj = incoming.get(key);
+                String newVal = "";
+                if (inValObj instanceof Map<?, ?> m && m.containsKey("value")) {
+                    newVal = m.get("value") != null ? m.get("value").toString() : "";
+                } else if (inValObj != null) {
+                    newVal = inValObj.toString();
+                }
+
+                String oldVal = "";
+                String oldOrigin = "CV_EXTRACTED";
+                Object oldValObj = oldPersonal.get(key);
+                if (oldValObj instanceof Map<?, ?> m) {
+                    if (m.containsKey("value")) {
+                        oldVal = m.get("value") != null ? m.get("value").toString() : "";
+                    }
+                    if (m.containsKey("origin")) {
+                        oldOrigin = m.get("origin") != null ? m.get("origin").toString() : "CV_EXTRACTED";
+                    }
+                } else if (oldValObj != null) {
+                    oldVal = oldValObj.toString();
+                }
+
+                String finalOrigin;
+                if (newVal.trim().equals(oldVal.trim())) {
+                    finalOrigin = oldOrigin;
+                } else {
+                    if (oldVal.isBlank() && !newVal.isBlank()) {
+                        finalOrigin = "USER_ADDED";
+                    } else {
+                        finalOrigin = "USER_EDITED";
+                    }
+                }
+
+                Map<String, Object> field = new LinkedHashMap<>();
+                field.put("value", newVal);
+                field.put("origin", finalOrigin);
+
+                result.put(key, field);
+
+                // Sync canonical pair aliases
+                if ("fullName".equals(key)) result.put("full_name", field);
+                else if ("full_name".equals(key)) result.put("fullName", field);
+                else if ("address".equals(key)) result.put("location", field);
+                else if ("location".equals(key)) result.put("address", field);
+                else if ("githubUrl".equals(key)) result.put("github_url", field);
+                else if ("github_url".equals(key)) result.put("githubUrl", field);
+                else if ("linkedinUrl".equals(key)) result.put("linkedin_url", field);
+                else if ("linkedin_url".equals(key)) result.put("linkedinUrl", field);
+                else if ("portfolioUrl".equals(key)) result.put("portfolio_url", field);
+                else if ("portfolio_url".equals(key)) result.put("portfolioUrl", field);
+            }
+        }
+
+        return result;
+    }
+
+    private Map<String, Object> computeSummaryProvenance(Map<String, Object> incoming, Map<String, Object> oldSummary) {
+        String newVal = "";
+        Object cObj = incoming.get("content");
+        if (cObj == null) cObj = incoming.get("summary");
+        if (cObj == null) cObj = incoming.get("value");
+        if (cObj instanceof Map<?, ?> m && m.containsKey("value")) {
+            newVal = m.get("value") != null ? m.get("value").toString() : "";
+        } else if (cObj != null) {
+            newVal = cObj.toString();
+        }
+        newVal = sanitizeRichText(newVal);
+
+        String oldVal = "";
+        String oldOrigin = "CV_EXTRACTED";
+        Object oldCObj = oldSummary.get("content");
+        if (oldCObj == null) oldCObj = oldSummary.get("summary");
+        if (oldCObj instanceof Map<?, ?> m) {
+            if (m.containsKey("value")) {
+                oldVal = m.get("value") != null ? m.get("value").toString() : "";
+            }
+            if (m.containsKey("origin")) {
+                oldOrigin = m.get("origin") != null ? m.get("origin").toString() : "CV_EXTRACTED";
+            }
+        } else if (oldCObj != null) {
+            oldVal = oldCObj.toString();
+        }
+
+        String finalOrigin;
+        if (newVal.trim().equals(oldVal.trim())) {
+            finalOrigin = oldOrigin;
+        } else {
+            finalOrigin = oldVal.isBlank() ? "USER_ADDED" : "USER_EDITED";
+        }
+
+        Map<String, Object> field = new LinkedHashMap<>();
+        field.put("value", newVal);
+        field.put("origin", finalOrigin);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("content", field);
+        result.put("summary", field);
+        return result;
+    }
+
+    private List<Map<String, Object>> computeNestedListProvenance(
+            List<Map<String, Object>> incoming,
+            List<Map<String, Object>> oldList,
+            UUID cvId,
+            String itemType) {
+
+        Map<String, Map<String, Object>> oldById = new HashMap<>();
+        if (oldList != null) {
+            for (Map<String, Object> item : oldList) {
+                if (item.get("id") != null) {
+                    oldById.put(item.get("id").toString().trim(), item);
+                }
+            }
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> item : incoming) {
+            Map<String, Object> copy = new LinkedHashMap<>(item);
+            String itemId = copy.get("id") != null ? copy.get("id").toString().trim() : null;
+            boolean isUuid = false;
+            if (itemId != null) {
+                try {
+                    UUID.fromString(itemId);
+                    isUuid = true;
+                } catch (IllegalArgumentException ignored) {}
+            }
+
+            if (isUuid && oldById.containsKey(itemId)) {
+                Map<String, Object> oldItem = oldById.get(itemId);
+                boolean changed = hasItemContentChanged(copy, oldItem);
+                if (changed) {
+                    copy.put("origin", "USER_EDITED");
+                } else {
+                    copy.put("origin", oldItem.get("origin") != null ? oldItem.get("origin") : "CV_EXTRACTED");
+                }
+                if (oldItem.containsKey("attachment") && !copy.containsKey("attachment")) {
+                    copy.put("attachment", oldItem.get("attachment"));
+                }
+            } else {
+                String newId = isUuid ? itemId : UUID.randomUUID().toString();
+                copy.put("id", newId);
+                copy.put("origin", "USER_ADDED");
+            }
+
+            if (copy.get("description") != null) {
+                copy.put("description", sanitizeRichText(copy.get("description").toString()));
+            }
+
+            result.add(copy);
+        }
+
+        return result;
+    }
+
+    private List<Map<String, Object>> computeEducationProvenance(
+            List<Map<String, Object>> incoming,
+            List<Map<String, Object>> oldList) {
+
+        Map<String, Map<String, Object>> oldById = new HashMap<>();
+        if (oldList != null) {
+            for (Map<String, Object> item : oldList) {
+                if (item.get("id") != null) {
+                    oldById.put(item.get("id").toString().trim(), item);
+                }
+            }
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> edu : incoming) {
+            Map<String, Object> copy = new LinkedHashMap<>(edu);
+            String itemId = copy.get("id") != null ? copy.get("id").toString().trim() : null;
+            boolean isUuid = false;
+            if (itemId != null) {
+                try {
+                    UUID.fromString(itemId);
+                    isUuid = true;
+                } catch (IllegalArgumentException ignored) {}
+            }
+
+            if (isUuid && oldById.containsKey(itemId)) {
+                Map<String, Object> oldItem = oldById.get(itemId);
+                boolean changed = hasItemContentChanged(copy, oldItem);
+                if (changed) {
+                    copy.put("origin", "USER_EDITED");
+                } else {
+                    copy.put("origin", oldItem.get("origin") != null ? oldItem.get("origin") : "CV_EXTRACTED");
+                }
+            } else {
+                String newId = isUuid ? itemId : UUID.randomUUID().toString();
+                copy.put("id", newId);
+                copy.put("origin", "USER_ADDED");
+            }
+
+            // GPA normalization and validation
+            Object gpaVal = copy.get("gpa");
+            Object scaleVal = copy.get("gpa_scale");
+            if (scaleVal == null) scaleVal = copy.get("gpaScale");
+
+            if (gpaVal != null && !gpaVal.toString().isBlank()) {
+                try {
+                    double gpa = Double.parseDouble(gpaVal.toString().trim());
+                    if (gpa < 0.0) {
+                        throw new CustomException(ErrorCode.VALIDATION_ERROR, "GPA không được là số âm.");
+                    }
+                    copy.put("gpa", gpa);
+                    if (scaleVal != null && !scaleVal.toString().isBlank()) {
+                        double scale = Double.parseDouble(scaleVal.toString().trim());
+                        if (gpa > scale) {
+                            throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                                    "GPA (" + gpa + ") không được lớn hơn thang điểm (" + scale + ").");
+                        }
+                        copy.put("gpa_scale", scale);
+                        Object explicitDisplay = copy.get("gpa_display");
+                        if (explicitDisplay == null) explicitDisplay = copy.get("gpaDisplay");
+                        if (explicitDisplay != null && !explicitDisplay.toString().isBlank()) {
+                            copy.put("gpa_display", explicitDisplay.toString());
+                        } else {
+                            String scaleFmt = (scale == 4.0 || scale == 10.0) ? String.format(Locale.ROOT, "%.1f", scale) : String.valueOf(scale);
+                            copy.put("gpa_display", gpa + "/" + scaleFmt);
+                        }
+                    } else {
+                        copy.put("gpa_scale", null);
+                        Object explicitDisplay = copy.get("gpa_display");
+                        if (explicitDisplay == null) explicitDisplay = copy.get("gpaDisplay");
+                        copy.put("gpa_display", explicitDisplay != null ? explicitDisplay.toString() : String.valueOf(gpa));
+                    }
+                } catch (NumberFormatException nfe) {
+                    throw new CustomException(ErrorCode.VALIDATION_ERROR, "GPA không hợp lệ: " + gpaVal);
+                }
+            } else {
+                copy.put("gpa", null);
+                copy.put("gpa_scale", null);
+                copy.put("gpa_display", null);
+            }
+
+            if (copy.get("description") != null) {
+                copy.put("description", sanitizeRichText(copy.get("description").toString()));
+            }
+
+            result.add(copy);
+        }
+
+        return result;
+    }
+
+    private List<Map<String, Object>> computeSkillsProvenance(
+            List<Map<String, Object>> incoming,
+            List<Map<String, Object>> oldSkills) {
+
+        Set<String> oldSkillNames = new HashSet<>();
+        if (oldSkills != null) {
+            for (Map<String, Object> s : oldSkills) {
+                if (s.get("name") != null) {
+                    oldSkillNames.add(s.get("name").toString().trim().toLowerCase(Locale.ROOT));
+                }
+            }
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> s : incoming) {
+            Map<String, Object> copy = new LinkedHashMap<>(s);
+            String name = copy.get("name") != null ? copy.get("name").toString().trim() : "";
+            if (!name.isBlank() && oldSkillNames.contains(name.toLowerCase(Locale.ROOT))) {
+                if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+            } else {
+                copy.put("origin", "USER_ADDED");
+            }
+            if (!copy.containsKey("verified")) {
+                copy.put("verified", false);
+            }
+            result.add(copy);
+        }
+
+        return result;
+    }
+
+    private boolean hasItemContentChanged(Map<String, Object> newItem, Map<String, Object> oldItem) {
+        String[] fields = {"name", "company", "role", "position", "start_date", "startDate",
+                "end_date", "endDate", "is_current", "description", "technologies", "techStack",
+                "institution", "degree", "field_of_study", "fieldOfStudy", "gpa", "gpa_scale", "gpaScale",
+                "issuer", "issue_date", "issueDate", "language", "proficiency"};
+
+        for (String f : fields) {
+            if (newItem.containsKey(f)) {
+                String nVal = newItem.get(f) != null ? newItem.get(f).toString().trim() : "";
+                String oVal = oldItem.get(f) != null ? oldItem.get(f).toString().trim() : "";
+                if (!nVal.equals(oVal)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private Map<String, Object> extractPersonalInfoWithLineage(Map<String, Object> structured, CV cv) {
         Map<String, Object> personal = new LinkedHashMap<>();
         Object pObj = structured.get("personal_info");
+        if (pObj == null) pObj = structured.get("personalInfo");
         Map<?, ?> pMap = (pObj instanceof Map<?, ?>) ? (Map<?, ?>) pObj : Collections.emptyMap();
 
-        addProvenanceField(personal, "full_name", pMap.get("full_name"), profile.getFullName() != null ? profile.getFullName() : cv.getTitle());
-        addProvenanceField(personal, "email", pMap.get("email"), profile.getUser() != null ? profile.getUser().getEmail() : null);
-        addProvenanceField(personal, "phone", pMap.get("phone"), profile.getPhone());
-        addProvenanceField(personal, "location", pMap.get("location"), null);
-        addProvenanceField(personal, "github_url", pMap.get("github_url"), profile.getGithubUrl());
-        addProvenanceField(personal, "linkedin_url", pMap.get("linkedin_url"), null);
-        addProvenanceField(personal, "portfolio_url", pMap.get("portfolio_url"), profile.getPortfolioUrl());
+        Object nameVal = pMap.get("fullName");
+        if (nameVal == null) nameVal = pMap.get("full_name");
+        if (nameVal == null) nameVal = structured.get("fullName");
+        if (nameVal == null) nameVal = structured.get("full_name");
+        if (nameVal == null) nameVal = structured.get("name");
+        addProvenanceField(personal, "full_name", nameVal, null);
+        addProvenanceField(personal, "fullName", nameVal, null);
+
+        Object headlineVal = pMap.get("headline");
+        if (headlineVal == null) headlineVal = pMap.get("title");
+        if (headlineVal == null) headlineVal = pMap.get("targetRole");
+        if (headlineVal == null) headlineVal = structured.get("headline");
+        if (headlineVal == null) headlineVal = structured.get("targetRole");
+        addProvenanceField(personal, "headline", headlineVal, null);
+
+        Object emailVal = pMap.get("email");
+        if (emailVal == null) emailVal = structured.get("email");
+        addProvenanceField(personal, "email", emailVal, null);
+
+        Object phoneVal = pMap.get("phone");
+        if (phoneVal == null) phoneVal = structured.get("phone");
+        addProvenanceField(personal, "phone", phoneVal, null);
+
+        Object locVal = pMap.get("address");
+        if (locVal == null) locVal = pMap.get("location");
+        if (locVal == null) locVal = structured.get("address");
+        if (locVal == null) locVal = structured.get("location");
+        addProvenanceField(personal, "location", locVal, null);
+        addProvenanceField(personal, "address", locVal, null);
+
+        Object gitVal = pMap.get("githubUrl");
+        if (gitVal == null) gitVal = pMap.get("github_url");
+        if (gitVal == null) gitVal = structured.get("githubUrl");
+        if (gitVal == null) gitVal = structured.get("github_url");
+        addProvenanceField(personal, "github_url", gitVal, null);
+        addProvenanceField(personal, "githubUrl", gitVal, null);
+
+        Object inVal = pMap.get("linkedinUrl");
+        if (inVal == null) inVal = pMap.get("linkedin_url");
+        if (inVal == null) inVal = structured.get("linkedinUrl");
+        if (inVal == null) inVal = structured.get("linkedin_url");
+        addProvenanceField(personal, "linkedin_url", inVal, null);
+        addProvenanceField(personal, "linkedinUrl", inVal, null);
+
+        Object portVal = pMap.get("portfolioUrl");
+        if (portVal == null) portVal = pMap.get("portfolio_url");
+        if (portVal == null) portVal = structured.get("portfolioUrl");
+        if (portVal == null) portVal = structured.get("portfolio_url");
+        addProvenanceField(personal, "portfolio_url", portVal, null);
+        addProvenanceField(personal, "portfolioUrl", portVal, null);
+
         return personal;
     }
 
     private Map<String, Object> extractSummaryWithLineage(Map<String, Object> structured, CV cv) {
         Map<String, Object> summary = new LinkedHashMap<>();
-        Object sumVal = structured.get("professional_summary");
-        if (sumVal == null) sumVal = structured.get("summary");
-        if (sumVal == null) sumVal = cv.getRawText();
-        addProvenanceField(summary, "summary", sumVal, "Hồ sơ ứng viên.");
+        Object sumVal = structured.get("summary");
+        if (sumVal == null) sumVal = structured.get("professional_summary");
+        if (sumVal == null) sumVal = structured.get("professionalSummary");
+        if (sumVal instanceof Map<?, ?> m && m.containsKey("content")) {
+            Object inner = m.get("content");
+            if (inner instanceof Map<?, ?> innerMap && innerMap.containsKey("value")) {
+                sumVal = innerMap.get("value");
+            } else {
+                sumVal = inner;
+            }
+        } else if (sumVal instanceof Map<?, ?> m && m.containsKey("summary")) {
+            Object inner = m.get("summary");
+            if (inner instanceof Map<?, ?> innerMap && innerMap.containsKey("value")) {
+                sumVal = innerMap.get("value");
+            } else {
+                sumVal = inner;
+            }
+        }
+        String content = sumVal != null ? sumVal.toString() : "";
+        Map<String, Object> contentField = new LinkedHashMap<>();
+        contentField.put("value", content);
+        contentField.put("origin", !content.isBlank() ? "CV_EXTRACTED" : "USER_ADDED");
+        summary.put("content", contentField);
+        summary.put("summary", contentField);
         return summary;
     }
 
@@ -1367,8 +1900,9 @@ public class CVService {
             target.put(key, m);
         } else {
             Map<String, Object> field = new LinkedHashMap<>();
-            field.put("value", chosen != null ? chosen : "");
-            field.put("origin", extractedVal != null ? "CV_EXTRACTED" : "USER_ADDED");
+            String valStr = chosen != null ? chosen.toString() : "";
+            field.put("value", valStr);
+            field.put("origin", (extractedVal != null && !valStr.isBlank()) ? "CV_EXTRACTED" : "USER_ADDED");
             target.put(key, field);
         }
     }
@@ -1380,6 +1914,7 @@ public class CVService {
                 if (obj instanceof Map<?, ?> m) {
                     Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) m);
                     if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+                    if (!copy.containsKey("verified")) copy.put("verified", false);
                     result.add(copy);
                 } else if (obj != null) {
                     Map<String, Object> s = new LinkedHashMap<>();
@@ -1413,14 +1948,38 @@ public class CVService {
     private List<Map<String, Object>> extractExperienceWithLineage(Map<String, Object> structured, UUID versionId) {
         List<Map<String, Object>> result = new ArrayList<>();
         Object expObj = structured.get("work_experience");
+        if (expObj == null) expObj = structured.get("experience");
         if (expObj == null) expObj = structured.get("experiences");
+        if (expObj == null) expObj = structured.get("workExperience");
         if (expObj instanceof List<?> list) {
-            int idx = 1;
             for (Object obj : list) {
                 if (obj instanceof Map<?, ?> m) {
                     Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) m);
-                    if (!copy.containsKey("id")) copy.put("id", "exp_" + idx++);
+                    ensureValidUuidId(copy, null, "EXPERIENCE");
                     if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+
+                    Object pos = copy.get("position");
+                    Object role = copy.get("role");
+                    if (role == null && pos != null) copy.put("role", pos);
+                    if (pos == null && role != null) copy.put("position", role);
+
+                    Object sDate = copy.get("startDate");
+                    Object sDateSnake = copy.get("start_date");
+                    if (sDateSnake == null && sDate != null) copy.put("start_date", sDate);
+                    if (sDate == null && sDateSnake != null) copy.put("startDate", sDateSnake);
+
+                    Object eDate = copy.get("endDate");
+                    Object eDateSnake = copy.get("end_date");
+                    if (eDateSnake == null && eDate != null) copy.put("end_date", eDate);
+                    if (eDate == null && eDateSnake != null) copy.put("endDate", eDateSnake);
+
+                    if (copy.get("is_current") == null) {
+                        copy.put("is_current", eDate == null && eDateSnake == null);
+                    }
+
+                    if (copy.get("description") != null) {
+                        copy.put("description", sanitizeRichText(copy.get("description").toString()));
+                    }
                     result.add(copy);
                 }
             }
@@ -1431,12 +1990,14 @@ public class CVService {
     private List<Map<String, Object>> extractProjectsWithLineage(Map<String, Object> structured) {
         List<Map<String, Object>> result = new ArrayList<>();
         if (structured.get("projects") instanceof List<?> list) {
-            int idx = 1;
             for (Object obj : list) {
                 if (obj instanceof Map<?, ?> m) {
                     Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) m);
-                    if (!copy.containsKey("id")) copy.put("id", "proj_" + idx++);
+                    ensureValidUuidId(copy, null, "PROJECT");
                     if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+                    if (copy.get("description") != null) {
+                        copy.put("description", sanitizeRichText(copy.get("description").toString()));
+                    }
                     result.add(copy);
                 }
             }
@@ -1449,12 +2010,66 @@ public class CVService {
         Object eduObj = structured.get("education");
         if (eduObj == null) eduObj = structured.get("educations");
         if (eduObj instanceof List<?> list) {
-            int idx = 1;
             for (Object obj : list) {
                 if (obj instanceof Map<?, ?> m) {
                     Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) m);
-                    if (!copy.containsKey("id")) copy.put("id", "edu_" + idx++);
+                    ensureValidUuidId(copy, null, "EDUCATION");
                     if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+
+                    Object fos = copy.get("fieldOfStudy");
+                    Object fosSnake = copy.get("field_of_study");
+                    if (fosSnake == null && fos != null) copy.put("field_of_study", fos);
+                    if (fos == null && fosSnake != null) copy.put("fieldOfStudy", fosSnake);
+
+                    Object sDate = copy.get("startDate");
+                    Object sDateSnake = copy.get("start_date");
+                    if (sDateSnake == null && sDate != null) copy.put("start_date", sDate);
+                    if (sDate == null && sDateSnake != null) copy.put("startDate", sDateSnake);
+
+                    Object eDate = copy.get("endDate");
+                    Object eDateSnake = copy.get("end_date");
+                    if (eDateSnake == null && eDate != null) copy.put("end_date", eDate);
+                    if (eDate == null && eDateSnake != null) copy.put("endDate", eDateSnake);
+
+                    // GPA normalization & preservation
+                    Object gpa = copy.get("gpa");
+                    Object scale = copy.get("gpa_scale");
+                    if (scale == null) scale = copy.get("gpaScale");
+
+                    if (gpa != null && !gpa.toString().isBlank()) {
+                        try {
+                            double gpaNum = Double.parseDouble(gpa.toString().trim());
+                            copy.put("gpa", gpaNum);
+                            if (scale != null && !scale.toString().isBlank()) {
+                                double scaleNum = Double.parseDouble(scale.toString().trim());
+                                copy.put("gpa_scale", scaleNum);
+                                Object explicitDisplay = copy.get("gpa_display");
+                                if (explicitDisplay == null) explicitDisplay = copy.get("gpaDisplay");
+                                if (explicitDisplay != null && !explicitDisplay.toString().isBlank()) {
+                                    copy.put("gpa_display", explicitDisplay.toString());
+                                } else {
+                                    String scaleFmt = (scaleNum == 4.0 || scaleNum == 10.0) ? String.format(Locale.ROOT, "%.1f", scaleNum) : String.valueOf(scaleNum);
+                                    copy.put("gpa_display", gpaNum + "/" + scaleFmt);
+                                }
+                            } else {
+                                copy.put("gpa_scale", null);
+                                Object explicitDisplay = copy.get("gpa_display");
+                                if (explicitDisplay == null) explicitDisplay = copy.get("gpaDisplay");
+                                copy.put("gpa_display", explicitDisplay != null ? explicitDisplay.toString() : String.valueOf(gpaNum));
+                            }
+                        } catch (NumberFormatException ignored) {
+                            copy.put("gpa_display", String.valueOf(gpa));
+                        }
+                    } else {
+                        copy.put("gpa", null);
+                        copy.put("gpa_scale", null);
+                        copy.put("gpa_display", null);
+                    }
+
+                    if (copy.get("description") != null) {
+                        copy.put("description", sanitizeRichText(copy.get("description").toString()));
+                    }
+
                     result.add(copy);
                 }
             }
@@ -1462,21 +2077,26 @@ public class CVService {
         return result;
     }
 
-    private List<Map<String, Object>> extractCertificationsWithLineage(Map<String, Object> structured) {
+    private List<Map<String, Object>> extractCertificationsWithLineage(Map<String, Object> structured, UUID cvId) {
         List<Map<String, Object>> result = new ArrayList<>();
         if (structured.get("certifications") instanceof List<?> list) {
-            int idx = 1;
             for (Object obj : list) {
                 if (obj instanceof Map<?, ?> m) {
                     Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) m);
-                    if (!copy.containsKey("id")) copy.put("id", "cert_" + idx++);
+                    ensureValidUuidId(copy, cvId, "CERTIFICATION");
                     if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+                    String itemId = String.valueOf(copy.get("id"));
+                    Map<String, Object> attInfo = findAttachmentInfo(cvId, "CERTIFICATION", itemId);
+                    copy.put("attachment", attInfo);
                     result.add(copy);
                 } else if (obj != null) {
                     Map<String, Object> c = new LinkedHashMap<>();
-                    c.put("id", "cert_" + idx++);
+                    String certId = UUID.randomUUID().toString();
+                    c.put("id", certId);
                     c.put("name", String.valueOf(obj));
                     c.put("origin", "CV_EXTRACTED");
+                    Map<String, Object> attInfo = findAttachmentInfo(cvId, "CERTIFICATION", certId);
+                    c.put("attachment", attInfo);
                     result.add(c);
                 }
             }
@@ -1484,26 +2104,44 @@ public class CVService {
         return result;
     }
 
-    private List<Map<String, Object>> extractLanguagesWithLineage(Map<String, Object> structured) {
+    private List<Map<String, Object>> extractLanguagesWithLineage(Map<String, Object> structured, UUID cvId) {
         List<Map<String, Object>> result = new ArrayList<>();
         if (structured.get("languages") instanceof List<?> list) {
-            int idx = 1;
             for (Object obj : list) {
                 if (obj instanceof Map<?, ?> m) {
                     Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) m);
-                    if (!copy.containsKey("id")) copy.put("id", "lang_" + idx++);
+                    ensureValidUuidId(copy, cvId, "LANGUAGE");
                     if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+                    Object langName = copy.get("language");
+                    if (langName == null) langName = copy.get("name");
+                    copy.put("name", langName);
+                    copy.put("language", langName);
+                    String itemId = String.valueOf(copy.get("id"));
+                    Map<String, Object> attInfo = findAttachmentInfo(cvId, "LANGUAGE", itemId);
+                    copy.put("attachment", attInfo);
                     result.add(copy);
                 } else if (obj != null) {
                     Map<String, Object> l = new LinkedHashMap<>();
-                    l.put("id", "lang_" + idx++);
+                    String langId = UUID.randomUUID().toString();
+                    l.put("id", langId);
                     l.put("name", String.valueOf(obj));
+                    l.put("language", String.valueOf(obj));
                     l.put("origin", "CV_EXTRACTED");
+                    Map<String, Object> attInfo = findAttachmentInfo(cvId, "LANGUAGE", langId);
+                    l.put("attachment", attInfo);
                     result.add(l);
                 }
             }
         }
         return result;
+    }
+
+    private List<Map<String, Object>> extractCertificationsWithLineage(Map<String, Object> structured) {
+        return extractCertificationsWithLineage(structured, null);
+    }
+
+    private List<Map<String, Object>> extractLanguagesWithLineage(Map<String, Object> structured) {
+        return extractLanguagesWithLineage(structured, null);
     }
 
     private Map<String, Object> extractLinksWithLineage(Map<String, Object> structured, Map<String, Object> personalInfo) {
@@ -1512,6 +2150,364 @@ public class CVService {
         if (personalInfo.containsKey("linkedin_url")) links.put("linkedin_url", personalInfo.get("linkedin_url"));
         if (personalInfo.containsKey("portfolio_url")) links.put("portfolio_url", personalInfo.get("portfolio_url"));
         return links;
+    }
+
+    private void ensureValidUuidId(Map<String, Object> item, UUID cvId, String itemType) {
+        Object idObj = item.get("id");
+        boolean validUuid = false;
+        if (idObj != null && !idObj.toString().isBlank()) {
+            try {
+                UUID.fromString(idObj.toString().trim());
+                validUuid = true;
+            } catch (IllegalArgumentException ignored) {
+                validUuid = false;
+            }
+        }
+        if (!validUuid) {
+            String newUuid = UUID.randomUUID().toString();
+            String oldId = idObj != null ? idObj.toString().trim() : null;
+            item.put("id", newUuid);
+
+            // Remap legacy attachment if exists (e.g. cert_1, lang_1)
+            if (oldId != null && cvId != null && cvEvidenceAttachmentRepository != null && itemType != null) {
+                try {
+                    cvEvidenceAttachmentRepository.findByCvIdAndItemTypeAndItemId(cvId, itemType, oldId)
+                            .ifPresent(att -> {
+                                att.setItemId(newUuid);
+                                cvEvidenceAttachmentRepository.save(att);
+                            });
+                } catch (Exception ex) {
+                    log.warn("Failed to remap legacy attachment ID {} to {}: {}", oldId, newUuid, ex.getMessage());
+                }
+            }
+        }
+    }
+
+    private void refreshAttachmentLinks(List<Map<String, Object>> items, UUID cvId, String itemType) {
+        if (items == null || cvId == null) return;
+        for (Map<String, Object> item : items) {
+            Object idObj = item.get("id");
+            if (idObj != null) {
+                Map<String, Object> attInfo = findAttachmentInfo(cvId, itemType, idObj.toString());
+                item.put("attachment", attInfo);
+            }
+        }
+    }
+
+    private Map<String, Object> findAttachmentInfo(UUID cvId, String itemType, String itemId) {
+        if (cvEvidenceAttachmentRepository == null || cvId == null || itemId == null) return null;
+        try {
+            return cvEvidenceAttachmentRepository.findByCvIdAndItemTypeAndItemId(cvId, itemType, itemId)
+                    .map(att -> {
+                        Map<String, Object> m = new LinkedHashMap<>();
+                        m.put("id", att.getId().toString());
+                        m.put("file_name", att.getFileName());
+                        m.put("file_size", att.getFileSize());
+                        m.put("file_type", att.getFileType());
+                        m.put("status", att.getStatus());
+                        m.put("preview_url", "/api/v1/candidate/cvs/" + cvId + "/attachments/" + att.getId());
+                        return m;
+                    }).orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public String sanitizeRichText(String html) {
+        if (html == null) return null;
+        String s = html.trim();
+        if (s.isEmpty()) return "";
+        return s.replaceAll("(?i)<script[\\s\\S]*?</script>", "")
+                .replaceAll("(?i)<style[\\s\\S]*?</style>", "")
+                .replaceAll("(?i)<iframe[\\s\\S]*?</iframe>", "")
+                .replaceAll("(?i)<object[\\s\\S]*?</object>", "")
+                .replaceAll("(?i)<embed[\\s\\S]*?>", "")
+                .replaceAll("(?i)javascript:", "")
+                .replaceAll("(?i)\\s*on\\w+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)", "");
+    }
+
+    private void validateAttachmentMagic(byte[] b, String ext) {
+        boolean valid = switch (ext) {
+            case "pdf" -> b.length >= 4 && b[0] == '%' && b[1] == 'P' && b[2] == 'D' && b[3] == 'F';
+            case "png" -> b.length >= 8 && (b[0] & 0xFF) == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47;
+            case "jpg", "jpeg" -> b.length >= 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8;
+            default -> false;
+        };
+        if (!valid) {
+            throw new CustomException(ErrorCode.INVALID_FILE, "UNSUPPORTED_FILE_TYPE: Nội dung tệp không khớp định dạng " + ext);
+        }
+    }
+
+    @Transactional
+    public CVEvidenceAttachmentResponse uploadEvidenceAttachment(
+            User candidateUser,
+            UUID cvId,
+            org.springframework.web.multipart.MultipartFile file,
+            String itemType,
+            String itemId) {
+
+        String correlationId = UUID.randomUUID().toString();
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        CV cv = cvRepository.findById(cvId)
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
+
+        if (!cv.getCandidate().getId().equals(candidate.getId())) {
+            throw new UnauthorizedAccessException("Candidate does not own this CV");
+        }
+
+        String type = itemType != null ? itemType.toUpperCase(Locale.ROOT).trim() : "";
+        if (!"CERTIFICATION".equals(type) && !"LANGUAGE".equals(type)) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "itemType must be CERTIFICATION or LANGUAGE");
+        }
+        if (itemId == null || itemId.isBlank()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "itemId is required");
+        }
+        try {
+            UUID.fromString(itemId.trim());
+        } catch (IllegalArgumentException ex) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Mã mục đính kèm (itemId) không hợp lệ, phải là định dạng UUID: " + itemId);
+        }
+
+        List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+        CVVersion targetVersion = versions.isEmpty() ? null : versions.get(0);
+        if (targetVersion == null) {
+            throw new ResourceNotFoundException("CVVersion", "cvId", cvId);
+        }
+
+        // Validate that the item exists in the current version's draft
+        boolean itemExists = false;
+        if (targetVersion.getStructuredJsonContent() != null && !targetVersion.getStructuredJsonContent().isBlank()) {
+            try {
+                Map<String, Object> struct = objectMapper.readValue(targetVersion.getStructuredJsonContent(), new TypeReference<>() {});
+                String listKey = "CERTIFICATION".equals(type) ? "certifications" : "languages";
+                if (struct.get(listKey) instanceof List<?> items) {
+                    for (Object it : items) {
+                        if (it instanceof Map<?, ?> itemMap && itemId.equals(String.valueOf(itemMap.get("id")))) {
+                            itemExists = true;
+                            break;
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                log.warn("Failed to check item existence in structuredJsonContent: {}", ex.getMessage());
+            }
+        }
+        if (!itemExists) {
+            throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND,
+                    "Không tìm thấy mục " + type + " có ID " + itemId + " trong hồ sơ CV.");
+        }
+
+        if (file == null || file.isEmpty() || file.getSize() == 0) {
+            throw new CustomException(ErrorCode.INVALID_FILE, "FILE_EMPTY: Chưa chọn tệp hoặc tệp rỗng (0 bytes).");
+        }
+        if (file.getSize() > 10L * 1024 * 1024) {
+            throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED, "FILE_TOO_LARGE: Tệp vượt quá giới hạn 10 MB.");
+        }
+
+        String originalFileName = Optional.ofNullable(file.getOriginalFilename()).orElse("attachment");
+        String sanitizedFileName = originalFileName.replaceAll("[\\\\/:*?\"<>|\\r\\n]", "_");
+        if (sanitizedFileName.length() > 200) {
+            sanitizedFileName = sanitizedFileName.substring(sanitizedFileName.length() - 200);
+        }
+
+        String ext = sanitizedFileName.contains(".")
+                ? sanitizedFileName.substring(sanitizedFileName.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT)
+                : "";
+        if (!List.of("pdf", "png", "jpg", "jpeg").contains(ext)) {
+            throw new CustomException(ErrorCode.INVALID_FILE, "UNSUPPORTED_FILE_TYPE: Chỉ hỗ trợ định dạng PDF, PNG, JPG, JPEG.");
+        }
+
+        byte[] bytes;
+        try {
+            bytes = file.getBytes();
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể đọc nội dung tệp tin.");
+        }
+
+        validateAttachmentMagic(bytes, ext);
+
+        log.info("ATTACHMENT_UPLOAD_STARTED correlation_id={} cv_id={} item_type={} item_id={}",
+                correlationId, cvId, type, itemId);
+
+        UUID attachmentId = UUID.randomUUID();
+        String storageKey = attachmentId + "." + ext;
+        Path targetPath = documents.path(storageKey);
+
+        try {
+            Files.write(targetPath, bytes, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+        } catch (IOException e) {
+            log.error("ATTACHMENT_UPLOAD_FAILED correlation_id={} cv_id={} error_code=FILE_STORAGE_FAILED",
+                    correlationId, cvId);
+            throw new CustomException(ErrorCode.FILE_STORAGE_FAILED, "Không thể lưu tệp minh chứng: " + e.getMessage());
+        }
+
+        if (cvEvidenceAttachmentRepository != null) {
+            cvEvidenceAttachmentRepository.findByCvIdAndItemTypeAndItemId(cvId, type, itemId).ifPresent(old -> {
+                try {
+                    Files.deleteIfExists(documents.path(old.getStorageKey()));
+                } catch (Exception ignored) {}
+                cvEvidenceAttachmentRepository.delete(old);
+            });
+        }
+
+        String contentType = (file.getContentType() != null && !file.getContentType().isBlank())
+                ? file.getContentType()
+                : ("pdf".equals(ext) ? "application/pdf" : ("png".equals(ext) ? "image/png" : "image/jpeg"));
+
+        CVEvidenceAttachment attachment = CVEvidenceAttachment.builder()
+                .candidate(candidate)
+                .cv(cv)
+                .cvVersion(targetVersion)
+                .itemType(type)
+                .itemId(itemId)
+                .fileName(sanitizedFileName)
+                .storageKey(storageKey)
+                .fileType(contentType)
+                .fileSize((int) file.getSize())
+                .status("UNVERIFIED")
+                .build();
+        attachment.setId(attachmentId);
+
+        if (cvEvidenceAttachmentRepository != null) {
+            try {
+                attachment = cvEvidenceAttachmentRepository.save(attachment);
+            } catch (Exception dbErr) {
+                try {
+                    Files.deleteIfExists(targetPath);
+                } catch (Exception ignored) {}
+                log.error("ATTACHMENT_UPLOAD_FAILED correlation_id={} cv_id={} error_code=INTERNAL_SERVER_ERROR: {}",
+                        correlationId, cvId, dbErr.getMessage());
+                throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể lưu thông tin tệp minh chứng vào cơ sở dữ liệu.");
+            }
+        }
+
+        // Sync into targetVersion.structuredJsonContent
+        if (targetVersion.getStructuredJsonContent() != null && !targetVersion.getStructuredJsonContent().isBlank()) {
+            try {
+                Map<String, Object> struct = objectMapper.readValue(targetVersion.getStructuredJsonContent(), new TypeReference<>() {});
+                String listKey = "CERTIFICATION".equals(type) ? "certifications" : "languages";
+                if (struct.get(listKey) instanceof List<?> items) {
+                    for (Object it : items) {
+                        if (it instanceof Map<?, ?> itemMap && itemId.equals(String.valueOf(itemMap.get("id")))) {
+                            Map<String, Object> writable = (Map<String, Object>) itemMap;
+                            Map<String, Object> attMap = new LinkedHashMap<>();
+                            attMap.put("id", attachmentId.toString());
+                            attMap.put("file_name", sanitizedFileName);
+                            attMap.put("file_size", (int) file.getSize());
+                            attMap.put("file_type", contentType);
+                            attMap.put("status", "UNVERIFIED");
+                            attMap.put("preview_url", "/api/v1/candidate/cvs/" + cvId + "/attachments/" + attachmentId);
+                            writable.put("attachment", attMap);
+                            break;
+                        }
+                    }
+                    targetVersion.setStructuredJsonContent(objectMapper.writeValueAsString(struct));
+                    cvVersionRepository.save(targetVersion);
+                }
+            } catch (Exception ex) {
+                log.warn("Failed to update structuredJsonContent with attachment: {}", ex.getMessage());
+            }
+        }
+
+        log.info("ATTACHMENT_UPLOAD_COMPLETED correlation_id={} cv_id={} attachment_id={}",
+                correlationId, cvId, attachmentId);
+
+        return CVEvidenceAttachmentResponse.builder()
+                .attachmentId(attachmentId)
+                .cvId(cvId)
+                .itemType(type)
+                .itemId(itemId)
+                .fileName(sanitizedFileName)
+                .fileSize((int) file.getSize())
+                .fileType(contentType)
+                .status("UNVERIFIED")
+                .previewUrl("/api/v1/candidate/cvs/" + cvId + "/attachments/" + attachmentId)
+                .createdAt(attachment.getCreatedAt() != null ? attachment.getCreatedAt() : java.time.ZonedDateTime.now())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public DownloadResult getEvidenceAttachmentFile(User currentUser, UUID cvId, UUID attachmentId) {
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(currentUser.getId()).orElse(null);
+        CV cv = cvRepository.findById(cvId)
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
+
+        boolean isOwner = candidate != null && cv.getCandidate().getId().equals(candidate.getId());
+        if (!isOwner) {
+            boolean isAuthorizedStaff = currentUser.getRole() != null &&
+                    (currentUser.getRole() == com.platform.recruitment.user.Role.HR
+                            || currentUser.getRole() == com.platform.recruitment.user.Role.ADMIN);
+            if (!isAuthorizedStaff) {
+                throw new UnauthorizedAccessException("Bạn không có quyền truy cập minh chứng này.");
+            }
+        }
+
+        if (cvEvidenceAttachmentRepository == null) {
+            throw new ResourceNotFoundException("EvidenceAttachment", "id", attachmentId);
+        }
+
+        CVEvidenceAttachment att = cvEvidenceAttachmentRepository.findByCvIdAndId(cvId, attachmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("EvidenceAttachment", "id", attachmentId));
+
+        Path path = documents.path(att.getStorageKey());
+        if (!Files.exists(path)) {
+            throw new ResourceNotFoundException("Tệp tin minh chứng không tồn tại trên hệ thống lưu trữ.");
+        }
+
+        try {
+            byte[] data = Files.readAllBytes(path);
+            return new DownloadResult(data, att.getFileName(), att.getFileType());
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể đọc tệp minh chứng từ lưu trữ.");
+        }
+    }
+
+    @Transactional
+    public void deleteEvidenceAttachment(User candidateUser, UUID cvId, UUID attachmentId) {
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        CV cv = cvRepository.findById(cvId)
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
+
+        if (!cv.getCandidate().getId().equals(candidate.getId())) {
+            throw new UnauthorizedAccessException("Candidate does not own this CV");
+        }
+
+        if (cvEvidenceAttachmentRepository == null) {
+            return;
+        }
+
+        CVEvidenceAttachment att = cvEvidenceAttachmentRepository.findByCvIdAndId(cvId, attachmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("EvidenceAttachment", "id", attachmentId));
+
+        try {
+            Files.deleteIfExists(documents.path(att.getStorageKey()));
+        } catch (Exception ignored) {}
+
+        cvEvidenceAttachmentRepository.delete(att);
+
+        // Also remove attachment metadata from latest draft structuredJsonContent
+        List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+        if (!versions.isEmpty() && versions.get(0).getStructuredJsonContent() != null) {
+            CVVersion targetVersion = versions.get(0);
+            try {
+                Map<String, Object> struct = objectMapper.readValue(targetVersion.getStructuredJsonContent(), new TypeReference<>() {});
+                String listKey = "CERTIFICATION".equals(att.getItemType()) ? "certifications" : "languages";
+                if (struct.get(listKey) instanceof List<?> items) {
+                    for (Object it : items) {
+                        if (it instanceof Map<?, ?> itemMap && att.getItemId().equals(String.valueOf(itemMap.get("id")))) {
+                            ((Map<String, Object>) itemMap).put("attachment", null);
+                            break;
+                        }
+                    }
+                    targetVersion.setStructuredJsonContent(objectMapper.writeValueAsString(struct));
+                    cvVersionRepository.save(targetVersion);
+                }
+            } catch (Exception ignored) {}
+        }
     }
 
     private Map<String, Object> markLineageOnMap(Map<String, Object> map) {

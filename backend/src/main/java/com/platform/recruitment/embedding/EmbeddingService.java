@@ -16,9 +16,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class EmbeddingService {
 
-    public static final String DEFAULT_MODEL_PROVIDER = "OPENAI";
-    public static final String DEFAULT_MODEL_NAME = "text-embedding-3-small";
-    public static final int EXPECTED_DIMENSION = 1536;
+    public static final String DEFAULT_MODEL_PROVIDER = "LOCAL_OLLAMA";
+    public static final String DEFAULT_MODEL_NAME = "bge-m3";
+    public static final int EXPECTED_DIMENSION = 1024;
 
     private final EmbeddingRepository embeddingRepository;
 
@@ -37,7 +37,7 @@ public class EmbeddingService {
             return embeddingRepository.save(current);
         }
 
-        // Generate 1536-dimensional vector
+        // Generate 1024-dimensional vector
         Embedding embedding = Embedding.builder()
                 .entityType(entityType)
                 .entityId(entityId)
@@ -52,7 +52,7 @@ public class EmbeddingService {
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Invalid embedding dimension: " + embedding.getDimension());
         }
 
-        log.info("Persisting 1536-dim vector embedding into centralized 'embeddings' table for entityType: {}, entityId: {}", entityType, entityId);
+        log.info("Persisting 1024-dim vector embedding into centralized 'embeddings' table for entityType: {}, entityId: {}", entityType, entityId);
         return embeddingRepository.save(embedding);
     }
 }

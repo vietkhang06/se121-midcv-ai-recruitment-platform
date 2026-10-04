@@ -35,6 +35,9 @@ class ExtractedEducation(BaseModel):
     field_of_study: Optional[str] = None
     start_year: Optional[int] = None
     end_year: Optional[int] = None
+    gpa: Optional[float] = None
+    gpa_scale: Optional[float] = None
+    gpa_display: Optional[str] = None
 
 class ExtractedProject(BaseModel):
     name: str

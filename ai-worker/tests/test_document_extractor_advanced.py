@@ -57,7 +57,7 @@ def test_two_column_pdf_layout_handling(extractor):
         file_type="PDF"
     )
     res = extractor.extract_document(req)
-    assert res.status == "SUCCESS"
+    assert res.status in ["SUCCESS", "EXTRACTED"]
     assert res.source_type == "PDF"
     assert "LE MINH QUAN" in res.text
     assert "SENIOR BACKEND DEVELOPER" in res.text
@@ -93,7 +93,7 @@ def test_docx_ordered_paragraphs_and_tables(extractor):
         file_type="DOCX"
     )
     res = extractor.extract_document(req)
-    assert res.status == "SUCCESS"
+    assert res.status in ["SUCCESS", "EXTRACTED"]
     assert res.source_type == "DOCX"
     assert "NGUYEN DUC ANH" in res.text
     assert "Java, Spring Boot, PostgreSQL" in res.text

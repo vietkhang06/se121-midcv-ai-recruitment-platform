@@ -20,14 +20,16 @@ import org.springframework.stereotype.Service;
 /**
  * Robust document processing and text extraction service (Phase 2).
  *
- * <p>Supports:
+ * <p>
+ * Supports:
  * <ul>
- *   <li>Text-based and scanned PDF (page-level extraction and tracing)</li>
- *   <li>Word documents (.docx via Apache POI)</li>
- *   <li>Plain text and Markdown (.txt, .md)</li>
- *   <li>Images (.png, .jpg, .jpeg, .webp via Tesseract OCR)</li>
+ * <li>Text-based and scanned PDF (page-level extraction and tracing)</li>
+ * <li>Word documents (.docx via Apache POI)</li>
+ * <li>Plain text and Markdown (.txt, .md)</li>
+ * <li>Images (.png, .jpg, .jpeg, .webp via Tesseract OCR)</li>
  * </ul>
- * Enforces defensive validation, explicit error classification, and no fabricated metadata.
+ * Enforces defensive validation, explicit error classification, and no
+ * fabricated metadata.
  */
 @Service
 public class TextReader {
@@ -39,11 +41,10 @@ public class TextReader {
   public record PageSegment(
       Integer pageNumber, // 1-indexed for PDF; null when format is unpaged (DOCX, TXT, images)
       String text,
-      String method,      // "pdf-text", "pdf+ocr", "docx", "text", "ocr"
+      String method, // "pdf-text", "pdf+ocr", "docx", "text", "ocr"
       boolean ocrUsed,
       int startChar,
-      int endChar
-  ) {
+      int endChar) {
     // Backward-compatible constructor for existing callers and tests
     public PageSegment(Integer pageNumber, String text, String method, boolean ocrUsed) {
       this(pageNumber, text, method, ocrUsed, 0, text != null ? text.length() : 0);
@@ -53,18 +54,18 @@ public class TextReader {
   public record Extracted(
       String text,
       String method,
-      Integer pageCount,  // Actual page count for paginated docs (PDF); null when unpaged
+      Integer pageCount, // Actual page count for paginated docs (PDF); null when unpaged
       boolean ocrUsed,
       boolean truncated,
-      List<PageSegment> pages
-  ) {
+      List<PageSegment> pages) {
     // Backward-compatible constructor for existing callers and tests
     public Extracted(String text, String method) {
       this(text, method, null, method != null && method.contains("ocr"), false, List.of());
     }
 
     public Optional<PageSegment> findPageForSnippet(String snippet) {
-      if (snippet == null || snippet.isBlank() || pages == null) return Optional.empty();
+      if (snippet == null || snippet.isBlank() || pages == null)
+        return Optional.empty();
       String clean = snippet.trim();
       for (PageSegment page : pages) {
         if (page.text() != null && page.text().contains(clean)) {
@@ -89,8 +90,7 @@ public class TextReader {
             null, // Unpaged format: pageCount is null
             false,
             false,
-            List.of(new PageSegment(null, res.text(), "text", false, 0, res.text().length()))
-        );
+            List.of(new PageSegment(null, res.text(), "text", false, 0, res.text().length())));
       }
 
       if (ext.equals("docx")) {
@@ -105,8 +105,7 @@ public class TextReader {
               null, // DOCX is flow-based: pageCount is null
               false,
               false,
-              List.of(new PageSegment(null, res.text(), "docx", false, 0, res.text().length()))
-          );
+              List.of(new PageSegment(null, res.text(), "docx", false, 0, res.text().length())));
         }
       }
 
@@ -123,8 +122,7 @@ public class TextReader {
             null, // Single standalone image: pageCount is null
             true,
             false,
-            List.of(new PageSegment(null, res.text(), "ocr", true, 0, res.text().length()))
-        );
+            List.of(new PageSegment(null, res.text(), "ocr", true, 0, res.text().length())));
       }
 
       throw new CustomException(ErrorCode.INVALID_FILE, "Định dạng tệp không được hỗ trợ.");
@@ -141,10 +139,10 @@ public class TextReader {
     try (var pdf = Loader.loadPDF(file.toFile())) {
       int totalPages = pdf.getNumberOfPages();
       if (totalPages > MAX_PDF_PAGES) {
-        throw new CustomException(ErrorCode.VALIDATION_ERROR, "PDF vượt quá 30 trang.");
+        throw new CustomException(ErrorCode.VALIDATION_ERROR, "PDF vượt quá 5 trang.");
       }
 
-      long deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(5);
+      long deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(4);
       StringBuilder out = new StringBuilder();
       PDFTextStripper stripper = new PDFTextStripper();
       stripper.setSortByPosition(true);
@@ -156,7 +154,7 @@ public class TextReader {
       for (int i = 0; i < totalPages; i++) {
         if (System.nanoTime() > deadline) {
           throw new CustomException(
-              ErrorCode.INTERNAL_SERVER_ERROR, "Đọc tài liệu vượt 5 phút; vui lòng chia nhỏ tệp.");
+              ErrorCode.INTERNAL_SERVER_ERROR, "Đọc tài liệu vượt 4 phút; vui lòng chia nhỏ tệp.");
         }
 
         stripper.setStartPage(i + 1);
@@ -165,8 +163,9 @@ public class TextReader {
         String pageMethod = "pdf-text";
         boolean ocrOnPage = false;
 
-        // Scanned page fallback: if page contains insufficient embedded text (< 35 non-whitespace chars)
-        if (pageText.replaceAll("\\s", "").length() < 35) {
+        // Scanned page fallback: if page contains insufficient embedded text (< 30
+        // non-whitespace chars)
+        if (pageText.replaceAll("\\s", "").length() < 30) {
           Path tempImage = Files.createTempFile("midcv-page-", ".png");
           try {
             var box = pdf.getPage(i).getCropBox();
@@ -180,7 +179,8 @@ public class TextReader {
             ocrOnPage = true;
             anyOcr = true;
           } catch (Exception ex) {
-            if (pageText.isBlank()) throw ex;
+            if (pageText.isBlank())
+              throw ex;
           } finally {
             Files.deleteIfExists(tempImage);
           }
@@ -204,8 +204,7 @@ public class TextReader {
           totalPages,
           anyOcr,
           false,
-          Collections.unmodifiableList(segments)
-      );
+          Collections.unmodifiableList(segments));
     }
   }
 
@@ -252,19 +251,18 @@ public class TextReader {
   }
 
   private void validateMagic(byte[] b, String ext) {
-    boolean valid =
-        switch (ext) {
-          case "pdf" -> starts(b, "%PDF-");
-          case "docx" -> b.length >= 4 && b[0] == 0x50 && b[1] == 0x4B; // PK (ZIP)
-          case "png" ->
-              b.length >= 8 && (b[0] & 0xFF) == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47;
-          case "jpg", "jpeg" -> b.length >= 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8;
-          case "webp" ->
-              starts(b, "RIFF")
-                  && b.length >= 12
-                  && new String(b, 8, 4, StandardCharsets.US_ASCII).equals("WEBP");
-          default -> true; // txt, md have no fixed binary signature
-        };
+    boolean valid = switch (ext) {
+      case "pdf" -> starts(b, "%PDF-");
+      case "docx" -> b.length >= 4 && b[0] == 0x50 && b[1] == 0x4B; // PK (ZIP)
+      case "png" ->
+        b.length >= 8 && (b[0] & 0xFF) == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47;
+      case "jpg", "jpeg" -> b.length >= 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8;
+      case "webp" ->
+        starts(b, "RIFF")
+            && b.length >= 12
+            && new String(b, 8, 4, StandardCharsets.US_ASCII).equals("WEBP");
+      default -> true; // txt, md have no fixed binary signature
+    };
     if (!valid) {
       throw new CustomException(ErrorCode.INVALID_FILE, "Nội dung tệp không khớp phần mở rộng.");
     }
@@ -276,8 +274,10 @@ public class TextReader {
   }
 
   private BufferedImage toGrayscale(BufferedImage src) {
-    if (src == null) return null;
-    if (src.getType() == BufferedImage.TYPE_BYTE_GRAY) return src;
+    if (src == null)
+      return null;
+    if (src.getType() == BufferedImage.TYPE_BYTE_GRAY)
+      return src;
     BufferedImage gray = new BufferedImage(src.getWidth(), src.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
     Graphics2D g = gray.createGraphics();
     try {
@@ -299,34 +299,74 @@ public class TextReader {
     return new Extracted(text, method);
   }
 
+  private String resolveTesseractCommand() {
+    String envCmd = System.getenv("TESSERACT_CMD");
+    if (envCmd != null && !envCmd.isBlank()) {
+      Path p = Path.of(envCmd.trim().replace("\"", ""));
+      if (Files.isRegularFile(p)) {
+        return p.toString();
+      }
+    }
+    String os = System.getProperty("os.name", "").toLowerCase();
+    if (os.contains("win")) {
+      Path standardWin = Path.of("C:\\Program Files\\Tesseract-OCR\\tesseract.exe");
+      if (Files.isRegularFile(standardWin)) {
+        return standardWin.toString();
+      }
+    }
+    return "tesseract";
+  }
+
+  private String resolveTessdataPrefix() {
+    String envPrefix = System.getenv("TESSDATA_PREFIX");
+    if (envPrefix != null && !envPrefix.isBlank()) {
+      Path p = Path.of(envPrefix.trim().replace("\"", ""));
+      if (Files.isDirectory(p)) {
+        return p.toString();
+      }
+    }
+    String localAppData = System.getenv("LOCALAPPDATA");
+    if (localAppData != null && !localAppData.isBlank()) {
+      Path userTessdata = Path.of(localAppData, "Tesseract-OCR", "tessdata");
+      if (Files.isDirectory(userTessdata)) {
+        return userTessdata.toString();
+      }
+    }
+    return null;
+  }
+
   private String ocr(Path input) throws Exception {
     Path dir = Files.createTempDirectory("midcv-ocr-");
     Path out = dir.resolve("result.txt"), err = dir.resolve("stderr.log");
     try {
       Process process;
+      String tesseractBin = resolveTesseractCommand();
+      String tessdataPrefix = resolveTessdataPrefix();
       try {
-        process =
-            new ProcessBuilder(
-                    "tesseract", input.toString(), "stdout", "-l", "eng+vie", "--psm", "3")
-                .redirectOutput(out.toFile())
-                .redirectError(err.toFile())
-                .start();
+        ProcessBuilder pb = new ProcessBuilder(
+            tesseractBin, input.toString(), "stdout", "-l", "eng+vie", "--psm", "3")
+            .redirectOutput(out.toFile())
+            .redirectError(err.toFile());
+        if (tessdataPrefix != null && !tessdataPrefix.isBlank()) {
+          pb.environment().put("TESSDATA_PREFIX", tessdataPrefix);
+        }
+        process = pb.start();
       } catch (java.io.IOException e) {
         throw new CustomException(
-            ErrorCode.INTERNAL_SERVER_ERROR,
+            ErrorCode.SERVICE_UNAVAILABLE,
             "Worker chưa có Tesseract và bộ ngôn ngữ eng/vie. Không thể đọc ảnh hoặc PDF scan.");
       }
 
       if (!process.waitFor(90, TimeUnit.SECONDS)) {
         process.destroyForcibly();
-        throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Nhận dạng một trang vượt quá 90 giây.");
+        throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE, "Nhận dạng một trang vượt quá 90 giây.");
       }
 
       String diagnostics = Files.readString(err);
       if (diagnostics.contains("Failed loading language")
           || diagnostics.contains("Error opening data file")) {
         throw new CustomException(
-            ErrorCode.INTERNAL_SERVER_ERROR,
+            ErrorCode.SERVICE_UNAVAILABLE,
             "Tesseract thiếu bộ ngôn ngữ eng hoặc vie; không chấp nhận kết quả OCR thiếu ngôn ngữ.");
       }
 
@@ -349,7 +389,8 @@ public class TextReader {
         for (Path p : paths.sorted(Comparator.reverseOrder()).toList()) {
           try {
             Files.deleteIfExists(p);
-          } catch (IOException ignored) {}
+          } catch (IOException ignored) {
+          }
         }
       }
     }

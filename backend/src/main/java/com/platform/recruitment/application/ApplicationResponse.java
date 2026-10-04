@@ -24,6 +24,10 @@ public class ApplicationResponse {
     private java.math.BigDecimal matchScore;
     private String matchStatus;
     private ZonedDateTime appliedAt;
+    private String candidateEmail;
+    private String candidatePhone;
+    private String candidateHeadline;
+    private String candidateGithubUrl;
     private SnapshotInfo snapshot;
 
     @Data

@@ -212,7 +212,7 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
                 "https://api.openai.com/v1", "", "gpt-4o-mini", "LOCAL_OLLAMA", "bge-m3"
         ));
 
-        mockMvc.perform(get("/api/admin/ai-settings")
+        mockMvc.perform(get("/api/v1/admin/ai-settings")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -220,9 +220,9 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     }
 
     @Test
-    @DisplayName("Filter Chain: HR calling /api/admin/ai-settings is blocked at HTTP filter level (HTTP 403)")
+    @DisplayName("Filter Chain: HR calling /api/v1/admin/ai-settings is blocked at HTTP filter level (HTTP 403)")
     void testAdminEndpoint_CalledByHr_BlockedByFilterChain() throws Exception {
-        mockMvc.perform(get("/api/admin/ai-settings")
+        mockMvc.perform(get("/api/v1/admin/ai-settings")
                         .header("Authorization", "Bearer " + hrTokenA)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden());
@@ -232,9 +232,9 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     }
 
     @Test
-    @DisplayName("Filter Chain: Candidate calling /api/admin/ai-settings is blocked (HTTP 403)")
+    @DisplayName("Filter Chain: Candidate calling /api/v1/admin/ai-settings is blocked (HTTP 403)")
     void testAdminEndpoint_CalledByCandidate_Blocked() throws Exception {
-        mockMvc.perform(get("/api/admin/ai-settings")
+        mockMvc.perform(get("/api/v1/admin/ai-settings")
                         .header("Authorization", "Bearer " + candToken1)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden());
@@ -243,9 +243,9 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     }
 
     @Test
-    @DisplayName("Filter Chain: Unauthenticated request to /api/admin/ai-settings is blocked (HTTP 403)")
+    @DisplayName("Filter Chain: Unauthenticated request to /api/v1/admin/ai-settings is blocked (HTTP 403)")
     void testAdminEndpoint_Unauthenticated_Blocked() throws Exception {
-        mockMvc.perform(get("/api/admin/ai-settings")
+        mockMvc.perform(get("/api/v1/admin/ai-settings")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden());
     }
@@ -283,7 +283,7 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
 
         setupTokenMock(spoofedAdminToken, nullRoleUserId, "ADMIN", nullRoleUser);
 
-        mockMvc.perform(get("/api/admin/ai-settings")
+        mockMvc.perform(get("/api/v1/admin/ai-settings")
                         .header("Authorization", "Bearer " + spoofedAdminToken)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden());
@@ -301,7 +301,7 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
 
         setupTokenMock(inactiveAdminToken, inactiveUserId, "ADMIN", inactiveUser);
 
-        mockMvc.perform(get("/api/admin/ai-settings")
+        mockMvc.perform(get("/api/v1/admin/ai-settings")
                         .header("Authorization", "Bearer " + inactiveAdminToken)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden());
@@ -316,7 +316,7 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     @Test
     @DisplayName("Multi-Tenant: HR Company B cannot access Company A's job applications (HTTP 403)")
     void testMultiTenant_HrCompanyB_CannotAccess_CompanyA_Applications() throws Exception {
-        when(applicationService.getApplicationsForJob(any(User.class), eq(jobA.getId())))
+        when(applicationService.getApplicationsForJob(any(User.class), eq(jobA.getId()), anyInt(), anyInt(), any(), any()))
                 .thenThrow(new UnauthorizedAccessException("Recruiter does not own the company for this job posting"));
 
         mockMvc.perform(get("/api/v1/recruiter/jobs/" + jobA.getId() + "/applications")
@@ -329,14 +329,26 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     @Test
     @DisplayName("Multi-Tenant: HR Company A CAN access Company A's job applications (HTTP 200)")
     void testMultiTenant_HrCompanyA_CanAccess_CompanyA_Applications() throws Exception {
-        when(applicationService.getApplicationsForJob(any(User.class), eq(jobA.getId())))
-                .thenReturn(Collections.singletonList(ApplicationResponse.builder().id(appCand1JobA.getId()).jobId(jobA.getId()).build()));
+        com.platform.recruitment.common.PageResponse<ApplicationResponse> mockPage =
+                com.platform.recruitment.common.PageResponse.<ApplicationResponse>builder()
+                        .content(Collections.singletonList(ApplicationResponse.builder().id(appCand1JobA.getId()).jobId(jobA.getId()).build()))
+                        .page(0)
+                        .size(20)
+                        .totalElements(1)
+                        .totalPages(1)
+                        .first(true)
+                        .last(true)
+                        .sort(new com.platform.recruitment.common.PageResponse.SortInfo("createdAt", "desc"))
+                        .build();
+
+        when(applicationService.getApplicationsForJob(any(User.class), eq(jobA.getId()), anyInt(), anyInt(), any(), any()))
+                .thenReturn(mockPage);
 
         mockMvc.perform(get("/api/v1/recruiter/jobs/" + jobA.getId() + "/applications")
                         .header("Authorization", "Bearer " + hrTokenA)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].jobId").value(jobA.getId().toString()));
+                .andExpect(jsonPath("$.data.content[0].jobId").value(jobA.getId().toString()));
     }
 
     @Test

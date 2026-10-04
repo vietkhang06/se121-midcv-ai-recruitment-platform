@@ -57,16 +57,16 @@ class SemanticMatchingService:
         self,
         primary_base_url: Optional[str] = None,
         primary_api_key: Optional[str] = None,
-        primary_embedding_model: str = "text-embedding-3-small",
+        primary_embedding_model: Optional[str] = None,
         ollama_base_url: Optional[str] = None,
         ollama_model: Optional[str] = None,
         timeout: float = 30.0
     ):
         self.primary_base_url = (primary_base_url or settings.LLM_PRIMARY_BASE_URL).rstrip("/")
         self.primary_api_key = primary_api_key or settings.LLM_PRIMARY_API_KEY
-        self.primary_embedding_model = primary_embedding_model
+        self.primary_embedding_model = primary_embedding_model or settings.EMBEDDING_MODEL
         self.ollama_base_url = (ollama_base_url or settings.OLLAMA_BASE_URL).rstrip("/")
-        self.ollama_model = ollama_model or settings.OLLAMA_EMBEDDING_MODEL
+        self.ollama_model = ollama_model or settings.EMBEDDING_MODEL
         self.timeout = httpx.Timeout(1.0, connect=0.2)
 
     def compare_semantic(self, request: SemanticCompareRequest) -> SemanticCompareResponse:

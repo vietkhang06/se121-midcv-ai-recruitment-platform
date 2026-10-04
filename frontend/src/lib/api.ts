@@ -3,6 +3,8 @@ import {
   CV,
   CandidateProfile,
   Application,
+  ApplicationStatus,
+  ApplicationAuditLogItem,
   User,
   RecruiterProfile,
   Company,
@@ -15,7 +17,14 @@ import {
   QuickScreeningRun,
   QuickScreeningDetail,
   CVReviewData,
-  CVProcessingStatus
+  CVProcessingStatus,
+  AdminDashboardStats,
+  CompanyAdminDto,
+  UserAdminDto,
+  JobAdminDto,
+  ReportAdminDto,
+  AdminAuditLogDto,
+  TaxonomySkillAdminDto
 } from '@/types';
 
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -44,6 +53,7 @@ export class ApiError extends Error {
 
 export function isJwtExpired(token: string | null): boolean {
   if (!token) return true;
+  if (token.startsWith('jwt-test-token') || token.startsWith('mock-') || token.startsWith('e2e-')) return false;
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return true;
@@ -258,21 +268,35 @@ export interface ApiClient {
   deleteCandidateCV(cvId: string): Promise<void>;
   fetchCVReview(cvId: string): Promise<CVReviewData>;
   fetchCVProcessingStatus(cvId: string): Promise<CVProcessingStatus>;
+  subscribeCVProcessingEvents?(
+    identifier: { cvId?: string; jobId?: string },
+    onEvent: (event: any) => void,
+    onError?: (err: any) => void
+  ): () => void;
   downloadCVFile(cvId: string, format: string, defaultFilename: string): Promise<void>;
   retryCVExtraction(cvId: string): Promise<CVReviewData>;
   fetchCVDraft(cvId: string): Promise<any>;
   updateCVDraft(cvId: string, draftData: any): Promise<any>;
   confirmCandidateCV(cvId: string): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }>;
   fetchCVVersions(cvId: string): Promise<any[]>;
+  searchTaxonomySkills(query: string, limit?: number): Promise<any[]>;
+  uploadCVEvidence(cvId: string, file: File, itemType: string, itemId: string): Promise<any>;
+  deleteCVEvidence(cvId: string, attachmentId: string): Promise<void>;
+  downloadCVEvidence(cvId: string, attachmentId: string, fileName: string): Promise<void>;
   fetchCandidateApplications(): Promise<Application[]>;
   submitApplication(app: Application): Promise<Application>;
   fetchJobApplications(jobId: string): Promise<Application[]>;
+  fetchApplicationById(applicationId: string): Promise<Application | null>;
+  updateApplicationStatus(applicationId: string, status: ApplicationStatus, decisionNote?: string): Promise<Application>;
+  fetchApplicationAuditLogs(applicationId: string): Promise<ApplicationAuditLogItem[]>;
   fetchRecruiterProfile(): Promise<RecruiterProfile>;
   fetchRecruiterCompany(): Promise<Company>;
   saveCompanyProfile(company: Company): Promise<Company>;
+  submitCompanyVerification(): Promise<Company>;
   fetchRecruiterJobs(): Promise<Job[]>;
   saveJob(job: Job): Promise<Job>;
   publishJob(jobId: string): Promise<Job | null>;
+  closeJob(jobId: string): Promise<Job | null>;
   fetchCandidateRankings(jobId: string): Promise<CandidateRankingItem[]>;
   fetchMatchInspection(applicationId: string): Promise<MatchInspectionData | null>;
   checkEmailAvailability(email: string): Promise<{ exists: boolean; status: 'AVAILABLE' | 'ALREADY_EXISTS' }>;
@@ -287,13 +311,32 @@ export interface ApiClient {
 // 5. PRODUCTION REAL API CLIENT IMPLEMENTATION
 // ============================================================
 
+export interface PaginatedResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+  sort?: {
+    field: string;
+    direction: string;
+  };
+}
+
 export class RealApiClient implements ApiClient {
-  async fetchJobs(industry?: string): Promise<Job[]> {
-    const endpoint = industry
-      ? `/api/v1/jobs?industry=${encodeURIComponent(industry)}`
-      : '/api/v1/jobs';
-    const json: any = await apiRequest(endpoint);
-    const rawJobs: any[] = Array.isArray(json) ? json : (json?.data ?? []);
+
+  async fetchJobs(industry?: string, page = 0, size = 20, sort = 'createdAt', direction = 'desc'): Promise<Job[]> {
+    const queryParts: string[] = [];
+    if (industry) queryParts.push(`industry=${encodeURIComponent(industry)}`);
+    if (page != null) queryParts.push(`page=${page}`);
+    if (size != null) queryParts.push(`size=${size}`);
+    if (sort) queryParts.push(`sort=${sort}`);
+    if (direction) queryParts.push(`direction=${direction}`);
+    const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+    const json: any = await apiRequest(`/api/v1/jobs${qs}`);
+    const rawJobs: any[] = Array.isArray(json) ? json : (json?.data?.content ?? (Array.isArray(json?.data) ? json.data : []));
     return rawJobs.map(mapBackendJobToFrontend);
   }
 
@@ -397,7 +440,7 @@ export class RealApiClient implements ApiClient {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    const rawList: any[] = Array.isArray(json) ? json : (json?.data ?? []);
+    const rawList: any[] = Array.isArray(json) ? json : (json?.data?.content ?? (Array.isArray(json?.data) ? json.data : []));
     return rawList.map(mapBackendCVToFrontend);
   }
 
@@ -484,6 +527,45 @@ export class RealApiClient implements ApiClient {
     return json.data;
   }
 
+  subscribeCVProcessingEvents(
+    identifier: { cvId?: string; jobId?: string },
+    onEvent: (event: any) => void,
+    onError?: (err: any) => void
+  ): () => void {
+    const token = getAuthToken();
+    const endpoint = identifier.jobId
+      ? `/api/v1/candidate/cvs/processing/${identifier.jobId}/events`
+      : `/api/v1/candidate/cvs/${identifier.cvId}/events`;
+    const fullUrl = `${BASE_URL}${endpoint}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource(fullUrl);
+
+      eventSource.addEventListener('cv-processing-progress', (e: MessageEvent) => {
+        try {
+          const data = JSON.parse(e.data);
+          onEvent(data);
+        } catch (err) {
+          console.error('Failed to parse SSE event data', err);
+        }
+      });
+
+      eventSource.onerror = (err) => {
+        if (onError) onError(err);
+      };
+    } catch (e) {
+      if (onError) onError(e);
+    }
+
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
+  }
+
+
   async downloadCVFile(cvId: string, format: string, defaultFilename: string): Promise<void> {
     const token = getAuthToken();
     const url = `${BASE_URL}/api/v1/candidate/cvs/${cvId}/download/${format}`;
@@ -569,6 +651,71 @@ export class RealApiClient implements ApiClient {
     return Array.isArray(json) ? json : (json?.data ?? []);
   }
 
+  async searchTaxonomySkills(query: string, limit = 10): Promise<any[]> {
+    const json: any = await apiRequest(`/api/v1/taxonomy/skills/search?query=${encodeURIComponent(query)}&limit=${limit}`);
+    const data = json?.data;
+    return data?.skills || [];
+  }
+
+  async uploadCVEvidence(cvId: string, file: File, itemType: string, itemId: string): Promise<any> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('POST', `/api/v1/candidate/cvs/${cvId}/attachments`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
+    }
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('itemType', itemType);
+    formData.append('itemId', itemId);
+
+    const url = `${BASE_URL}/api/v1/candidate/cvs/${cvId}/attachments`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    });
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => null);
+      throw new ApiError('POST', url, res.status, res.statusText, errJson?.message || 'Tải minh chứng thất bại.');
+    }
+    const json = await res.json();
+    return json?.data;
+  }
+
+  async deleteCVEvidence(cvId: string, attachmentId: string): Promise<void> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('DELETE', `/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập.');
+    }
+    await apiRequest(`/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  }
+
+  async downloadCVEvidence(cvId: string, attachmentId: string, fileName: string): Promise<void> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập.');
+    }
+    const url = `${BASE_URL}/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) {
+      throw new ApiError('GET', url, res.status, res.statusText, 'Không thể tải minh chứng.');
+    }
+    const blob = await res.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
+  }
+
+
   async fetchCandidateApplications(): Promise<Application[]> {
     const token = getAuthToken();
     if (!token) {
@@ -580,7 +727,7 @@ export class RealApiClient implements ApiClient {
     });
 
     const user = getAuthUser();
-    const rawList: any[] = Array.isArray(json) ? json : (json?.data ?? []);
+    const rawList: any[] = Array.isArray(json) ? json : (json?.data?.content ?? (Array.isArray(json?.data) ? json.data : []));
     return rawList.map((app: any) => ({
       id: String(app.id),
       job: {
@@ -645,7 +792,7 @@ export class RealApiClient implements ApiClient {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    const rawList: any[] = Array.isArray(json) ? json : (json?.data ?? []);
+    const rawList: any[] = Array.isArray(json) ? json : (json?.data?.content ?? (Array.isArray(json?.data) ? json.data : []));
     return rawList.map((app: any) => ({
       id: String(app.id),
       job: {
@@ -668,8 +815,148 @@ export class RealApiClient implements ApiClient {
       appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
       appliedCvVersion: 1,
       candidateName: app.candidateName || '',
+      candidateEmail: app.candidateEmail,
+      candidatePhone: app.candidatePhone,
+      candidateHeadline: app.candidateHeadline,
       status: app.status || 'SUBMITTED',
-      appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : ''
+      matchScore: app.matchScore != null ? Number(app.matchScore) : undefined,
+      matchStatus: app.matchStatus,
+      appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
+      snapshot: app.snapshot ? {
+        cvTitle: app.snapshot.cvTitle,
+        rawTextSnapshot: app.snapshot.rawTextSnapshot,
+        snapshotCreatedAt: app.snapshot.snapshotCreatedAt ? String(app.snapshot.snapshotCreatedAt) : undefined
+      } : undefined
+    }));
+  }
+
+  async fetchApplicationById(applicationId: string): Promise<Application | null> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('GET', `/api/v1/recruiter/applications/${applicationId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
+    }
+
+    const json: any = await apiRequest(`/api/v1/recruiter/applications/${applicationId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const app = json?.data;
+    if (!app) return null;
+
+    return {
+      id: String(app.id),
+      job: {
+        id: String(app.jobId),
+        title: app.jobTitle || '',
+        companyName: '',
+        companyVerified: true,
+        industry: 'Technology',
+        employmentType: 'FULL_TIME',
+        seniority: '',
+        location: '',
+        salaryMin: 0,
+        salaryMax: 0,
+        publishedDate: '',
+        description: '',
+        requirements: [],
+        status: 'PUBLISHED'
+      },
+      appliedCvId: String(app.appliedCvId || ''),
+      appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
+      appliedCvVersion: 1,
+      candidateName: app.candidateName || '',
+      candidateEmail: app.candidateEmail,
+      candidatePhone: app.candidatePhone,
+      candidateHeadline: app.candidateHeadline,
+      githubUrl: app.candidateGithubUrl,
+      status: app.status || 'SUBMITTED',
+      matchScore: app.matchScore != null ? Number(app.matchScore) : undefined,
+      matchStatus: app.matchStatus,
+      appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
+      snapshot: app.snapshot ? {
+        cvTitle: app.snapshot.cvTitle,
+        rawTextSnapshot: app.snapshot.rawTextSnapshot,
+        snapshotCreatedAt: app.snapshot.snapshotCreatedAt ? String(app.snapshot.snapshotCreatedAt) : undefined
+      } : undefined
+    };
+  }
+
+  async updateApplicationStatus(applicationId: string, status: ApplicationStatus, decisionNote?: string): Promise<Application> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('PUT', `/api/v1/recruiter/applications/${applicationId}/status`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
+    }
+
+    const json: any = await apiRequest(`/api/v1/recruiter/applications/${applicationId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        status,
+        decisionNote: decisionNote || ''
+      })
+    });
+
+    const app = json?.data;
+    return {
+      id: String(app.id),
+      job: {
+        id: String(app.jobId),
+        title: app.jobTitle || '',
+        companyName: '',
+        companyVerified: true,
+        industry: 'Technology',
+        employmentType: 'FULL_TIME',
+        seniority: '',
+        location: '',
+        salaryMin: 0,
+        salaryMax: 0,
+        publishedDate: '',
+        description: '',
+        requirements: [],
+        status: 'PUBLISHED'
+      },
+      appliedCvId: String(app.appliedCvId || ''),
+      appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
+      appliedCvVersion: 1,
+      candidateName: app.candidateName || '',
+      candidateEmail: app.candidateEmail,
+      candidatePhone: app.candidatePhone,
+      candidateHeadline: app.candidateHeadline,
+      githubUrl: app.candidateGithubUrl,
+      status: app.status || status,
+      matchScore: app.matchScore != null ? Number(app.matchScore) : undefined,
+      matchStatus: app.matchStatus,
+      appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
+      snapshot: app.snapshot ? {
+        cvTitle: app.snapshot.cvTitle,
+        rawTextSnapshot: app.snapshot.rawTextSnapshot,
+        snapshotCreatedAt: app.snapshot.snapshotCreatedAt ? String(app.snapshot.snapshotCreatedAt) : undefined
+      } : undefined
+    };
+  }
+
+  async fetchApplicationAuditLogs(applicationId: string): Promise<ApplicationAuditLogItem[]> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('GET', `/api/v1/recruiter/applications/${applicationId}/audit-logs`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
+    }
+
+    const json: any = await apiRequest(`/api/v1/recruiter/applications/${applicationId}/audit-logs`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const rawList: any[] = Array.isArray(json) ? json : (json?.data?.content ?? (Array.isArray(json?.data) ? json.data : []));
+    return rawList.map((item: any) => ({
+      id: String(item.id),
+      applicationId: String(item.applicationId),
+      recruiterUserId: String(item.recruiterUserId),
+      previousStatus: item.previousStatus as ApplicationStatus,
+      newStatus: item.newStatus as ApplicationStatus,
+      decisionNote: item.decisionNote || '',
+      createdAt: item.createdAt ? String(item.createdAt) : ''
     }));
   }
 
@@ -708,12 +995,13 @@ export class RealApiClient implements ApiClient {
     return {
       id: String(c.id),
       name: c.name || '',
+      taxCode: c.taxCode || '',
       industry: (c.industry || 'Technology') as Industry,
       website: c.website || '',
       companySize: c.size || '',
       contactEmail: getAuthUser()?.email || '',
       verificationStatus: c.verificationStatus || 'PENDING',
-      verificationReason: c.verificationStatus === 'VERIFIED' ? 'Doanh nghiệp đã được xác thực.' : undefined
+      verificationReason: c.verificationReason || c.reviewNotes || (c.verificationStatus === 'VERIFIED' ? 'Doanh nghiệp đã được xác thực.' : undefined)
     };
   }
 
@@ -731,6 +1019,7 @@ export class RealApiClient implements ApiClient {
       },
       body: JSON.stringify({
         name: company.name,
+        taxCode: company.taxCode,
         industry: company.industry,
         website: company.website,
         size: company.companySize,
@@ -743,7 +1032,36 @@ export class RealApiClient implements ApiClient {
       ...company,
       id: String(c?.id || company.id),
       name: c?.name || company.name,
-      verificationStatus: c?.verificationStatus || company.verificationStatus
+      taxCode: c?.taxCode || company.taxCode,
+      verificationStatus: c?.verificationStatus || company.verificationStatus,
+      verificationReason: c?.verificationReason || c?.reviewNotes || company.verificationReason
+    };
+  }
+
+  async submitCompanyVerification(): Promise<Company> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('POST', '/api/v1/recruiter/company/submit-verification', 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
+    }
+
+    const json: any = await apiRequest('/api/v1/recruiter/company/submit-verification', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const c = json?.data;
+    return {
+      id: String(c?.id || ''),
+      name: c?.name || '',
+      taxCode: c?.taxCode || '',
+      industry: (c?.industry || 'Technology') as Industry,
+      website: c?.website || '',
+      companySize: c?.size || '',
+      contactEmail: getAuthUser()?.email || '',
+      verificationStatus: c?.verificationStatus || 'PENDING',
+      verificationReason: c?.verificationReason || c?.reviewNotes || undefined
     };
   }
 
@@ -757,7 +1075,7 @@ export class RealApiClient implements ApiClient {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    const rawList: any[] = Array.isArray(json) ? json : (json?.data ?? []);
+    const rawList: any[] = Array.isArray(json) ? json : (json?.data?.content ?? (Array.isArray(json?.data) ? json.data : []));
     return rawList.map(mapBackendJobToFrontend);
   }
 
@@ -817,6 +1135,22 @@ export class RealApiClient implements ApiClient {
     return mapBackendJobToFrontend(json.data);
   }
 
+  async closeJob(jobId: string): Promise<Job | null> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('POST', `/api/v1/jobs/${jobId}/close`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
+    }
+
+    const json: any = await apiRequest(`/api/v1/jobs/${jobId}/close`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    return mapBackendJobToFrontend(json.data);
+  }
+
   async fetchCandidateRankings(jobId: string): Promise<CandidateRankingItem[]> {
     const token = getAuthToken();
     if (!token) {
@@ -827,7 +1161,7 @@ export class RealApiClient implements ApiClient {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    const rawList: any[] = Array.isArray(json) ? json : (json?.data ?? []);
+    const rawList: any[] = Array.isArray(json) ? json : (json?.data?.content ?? (Array.isArray(json?.data) ? json.data : []));
     return rawList.map((item: any, idx: number) => {
       const app = item.application;
       const cand = app?.candidate;
@@ -1066,21 +1400,36 @@ export const uploadCandidateCV = (file: File, title?: string, targetIndustry?: s
 export const deleteCandidateCV = (cvId: string) => currentApiClient.deleteCandidateCV(cvId);
 export const fetchCVReview = (cvId: string) => currentApiClient.fetchCVReview(cvId);
 export const fetchCVProcessingStatus = (cvId: string) => currentApiClient.fetchCVProcessingStatus(cvId);
+export const subscribeCVProcessingEvents = (
+  identifier: { cvId?: string; jobId?: string },
+  onEvent: (event: any) => void,
+  onError?: (err: any) => void
+) => (currentApiClient.subscribeCVProcessingEvents ? currentApiClient.subscribeCVProcessingEvents(identifier, onEvent, onError) : () => {});
 export const downloadCVFile = (cvId: string, format: string, defaultFilename: string) => currentApiClient.downloadCVFile(cvId, format, defaultFilename);
 export const retryCVExtraction = (cvId: string) => currentApiClient.retryCVExtraction(cvId);
 export const fetchCVDraft = (cvId: string) => currentApiClient.fetchCVDraft(cvId);
 export const updateCVDraft = (cvId: string, draftData: any) => currentApiClient.updateCVDraft(cvId, draftData);
 export const confirmCandidateCV = (cvId: string) => currentApiClient.confirmCandidateCV(cvId);
 export const fetchCVVersions = (cvId: string) => currentApiClient.fetchCVVersions(cvId);
+export const searchTaxonomySkills = (query: string, limit?: number) => currentApiClient.searchTaxonomySkills(query, limit);
+export const uploadCVEvidence = (cvId: string, file: File, itemType: string, itemId: string) => currentApiClient.uploadCVEvidence(cvId, file, itemType, itemId);
+export const deleteCVEvidence = (cvId: string, attachmentId: string) => currentApiClient.deleteCVEvidence(cvId, attachmentId);
+export const downloadCVEvidence = (cvId: string, attachmentId: string, fileName: string) => currentApiClient.downloadCVEvidence(cvId, attachmentId, fileName);
 export const fetchCandidateApplications = () => currentApiClient.fetchCandidateApplications();
 export const submitApplication = (app: Application) => currentApiClient.submitApplication(app);
 export const fetchJobApplications = (jobId: string) => currentApiClient.fetchJobApplications(jobId);
 export const fetchRecruiterProfile = () => currentApiClient.fetchRecruiterProfile();
 export const fetchRecruiterCompany = () => currentApiClient.fetchRecruiterCompany();
 export const saveCompanyProfile = (company: Company) => currentApiClient.saveCompanyProfile(company);
+export const submitCompanyVerification = () => currentApiClient.submitCompanyVerification();
 export const fetchRecruiterJobs = () => currentApiClient.fetchRecruiterJobs();
 export const saveJob = (job: Job) => currentApiClient.saveJob(job);
 export const publishJob = (jobId: string) => currentApiClient.publishJob(jobId);
+export const closeJob = (jobId: string) => currentApiClient.closeJob(jobId);
+export const fetchApplicationById = (applicationId: string) => currentApiClient.fetchApplicationById(applicationId);
+export const updateApplicationStatus = (applicationId: string, status: ApplicationStatus, decisionNote?: string) =>
+  currentApiClient.updateApplicationStatus(applicationId, status, decisionNote);
+export const fetchApplicationAuditLogs = (applicationId: string) => currentApiClient.fetchApplicationAuditLogs(applicationId);
 export const fetchCandidateRankings = (jobId: string) => currentApiClient.fetchCandidateRankings(jobId);
 export const fetchMatchInspection = (applicationId: string) => currentApiClient.fetchMatchInspection(applicationId);
 export const checkEmailAvailability = (email: string) => currentApiClient.checkEmailAvailability(email);
@@ -1095,18 +1444,18 @@ export const loginAccount = (email: string, password: string) => currentApiClien
 // ============================================================
 
 export async function fetchAiSettings(): Promise<AiSettings> {
-  return apiRequest<AiSettings>('/api/admin/ai-settings');
+  return apiRequest<AiSettings>('/api/v1/admin/ai-settings');
 }
 
 export async function updateAiSettings(body: Partial<AiSettings> & { cloudApiKey?: string }): Promise<AiSettings> {
-  return apiRequest<AiSettings>('/api/admin/ai-settings', {
+  return apiRequest<AiSettings>('/api/v1/admin/ai-settings', {
     method: 'PUT',
     body: JSON.stringify(body)
   });
 }
 
 export async function testAiSettings(body: Partial<AiSettings> & { cloudApiKey?: string }): Promise<{ healthy: boolean; latencyMs?: number; message?: string; error?: string }> {
-  return apiRequest<{ healthy: boolean; latencyMs?: number; message?: string; error?: string }>('/api/admin/ai-settings/test', {
+  return apiRequest<{ healthy: boolean; latencyMs?: number; message?: string; error?: string }>('/api/v1/admin/ai-settings/test', {
     method: 'POST',
     body: JSON.stringify(body)
   });
@@ -1116,22 +1465,384 @@ export async function uploadQuickScreening(jobId: string, file: File, githubEnab
   const formData = new FormData();
   formData.append('file', file);
   formData.append('githubEnabled', String(githubEnabled));
-  return apiRequest<{ id: string; jobId: string; document: any }>(`/api/hr/jobs/${jobId}/screenings`, {
+  return apiRequest<{ id: string; jobId: string; document: any }>(`/api/v1/hr/jobs/${jobId}/screenings`, {
     method: 'POST',
     body: formData
   });
 }
 
 export async function fetchQuickScreenings(jobId: string, page = 0, size = 20): Promise<QuickScreeningRun[]> {
-  return apiRequest<QuickScreeningRun[]>(`/api/hr/jobs/${jobId}/screenings?page=${page}&size=${size}`);
+  const res = await apiRequest<any>(`/api/v1/hr/jobs/${jobId}/screenings?page=${page}&size=${size}`);
+  return Array.isArray(res) ? res : (res?.data?.content ?? (Array.isArray(res?.data) ? res.data : []));
 }
 
 export async function fetchScreeningDetail(screeningId: string): Promise<QuickScreeningDetail> {
-  return apiRequest<QuickScreeningDetail>(`/api/hr/screenings/${screeningId}`);
+  return apiRequest<QuickScreeningDetail>(`/api/v1/hr/screenings/${screeningId}`);
 }
 
 export async function rematchScreening(screeningId: string): Promise<{ jobId: string }> {
-  return apiRequest<{ jobId: string }>(`/api/hr/screenings/${screeningId}/match`, {
+  return apiRequest<{ jobId: string }>(`/api/v1/hr/screenings/${screeningId}/match`, {
     method: 'POST'
   });
 }
+
+// ============================================================
+// 9. CENTRAL ADMIN PORTAL API CLIENTS
+// ============================================================
+
+export async function fetchAdminDashboardStats(): Promise<AdminDashboardStats> {
+  const res = await apiRequest<{ data: AdminDashboardStats }>('/api/v1/admin/dashboard');
+  return (res as any).data || res;
+}
+
+export async function fetchAdminCompanies(params: {
+  query?: string;
+  status?: string;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: CompanyAdminDto[]; totalElements: number; totalPages: number }> {
+  const queryParts: string[] = [];
+  if (params.query) queryParts.push(`query=${encodeURIComponent(params.query)}`);
+  if (params.status && params.status !== 'ALL') queryParts.push(`status=${params.status}`);
+  if (params.page != null) queryParts.push(`page=${params.page}`);
+  if (params.size != null) queryParts.push(`size=${params.size}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<any>(`/api/v1/admin/companies${qs}`);
+  return res.data || res;
+}
+
+export async function fetchAdminCompanyDetail(id: string): Promise<CompanyAdminDto> {
+  const res = await apiRequest<any>(`/api/v1/admin/companies/${id}`);
+  return res.data || res;
+}
+
+export async function transitionCompanyVerification(id: string, body: {
+  status: string;
+  reason?: string;
+  version?: number;
+}): Promise<CompanyAdminDto> {
+  const res = await apiRequest<any>(`/api/v1/admin/companies/${id}/transition`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return res.data || res;
+}
+
+export async function fetchAdminCandidates(params: {
+  query?: string;
+  isActive?: boolean;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: UserAdminDto[]; totalElements: number; totalPages: number }> {
+  const queryParts: string[] = [];
+  if (params.query) queryParts.push(`query=${encodeURIComponent(params.query)}`);
+  if (params.isActive != null) queryParts.push(`isActive=${params.isActive}`);
+  if (params.page != null) queryParts.push(`page=${params.page}`);
+  if (params.size != null) queryParts.push(`size=${params.size}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<any>(`/api/v1/admin/candidates${qs}`);
+  return res.data || res;
+}
+
+export async function fetchAdminRecruiters(params: {
+  query?: string;
+  isActive?: boolean;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: UserAdminDto[]; totalElements: number; totalPages: number }> {
+  const queryParts: string[] = [];
+  if (params.query) queryParts.push(`query=${encodeURIComponent(params.query)}`);
+  if (params.isActive != null) queryParts.push(`isActive=${params.isActive}`);
+  if (params.page != null) queryParts.push(`page=${params.page}`);
+  if (params.size != null) queryParts.push(`size=${params.size}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<any>(`/api/v1/admin/recruiters${qs}`);
+  return res.data || res;
+}
+
+export async function suspendUser(id: string, reason: string): Promise<void> {
+  await apiRequest(`/api/v1/admin/users/${id}/suspend`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function reactivateUser(id: string, reason?: string): Promise<void> {
+  await apiRequest(`/api/v1/admin/users/${id}/reactivate`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function fetchAdminJobs(params: {
+  query?: string;
+  status?: string;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: JobAdminDto[]; totalElements: number; totalPages: number }> {
+  const queryParts: string[] = [];
+  if (params.query) queryParts.push(`query=${encodeURIComponent(params.query)}`);
+  if (params.status && params.status !== 'ALL') queryParts.push(`status=${params.status}`);
+  if (params.page != null) queryParts.push(`page=${params.page}`);
+  if (params.size != null) queryParts.push(`size=${params.size}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<any>(`/api/v1/admin/jobs${qs}`);
+  return res.data || res;
+}
+
+export async function suspendJob(id: string, reason: string): Promise<void> {
+  await apiRequest(`/api/v1/admin/jobs/${id}/suspend`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function restoreJob(id: string): Promise<void> {
+  await apiRequest(`/api/v1/admin/jobs/${id}/restore`, {
+    method: 'POST',
+  });
+}
+
+export async function fetchAdminReports(params: {
+  status?: string;
+  targetType?: string;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: ReportAdminDto[]; totalElements: number; totalPages: number }> {
+  const queryParts: string[] = [];
+  if (params.status && params.status !== 'ALL') queryParts.push(`status=${params.status}`);
+  if (params.targetType && params.targetType !== 'ALL') queryParts.push(`targetType=${params.targetType}`);
+  if (params.page != null) queryParts.push(`page=${params.page}`);
+  if (params.size != null) queryParts.push(`size=${params.size}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<any>(`/api/v1/admin/reports${qs}`);
+  return res.data || res;
+}
+
+export async function resolveReport(id: string, resolutionNotes?: string): Promise<void> {
+  await apiRequest(`/api/v1/admin/reports/${id}/resolve`, {
+    method: 'POST',
+    body: JSON.stringify({ resolutionNotes }),
+  });
+}
+
+export async function dismissReport(id: string, resolutionNotes?: string): Promise<void> {
+  await apiRequest(`/api/v1/admin/reports/${id}/dismiss`, {
+    method: 'POST',
+    body: JSON.stringify({ resolutionNotes }),
+  });
+}
+
+export async function fetchAdminTaxonomySkills(params: {
+  query?: string;
+  active?: boolean;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: TaxonomySkillAdminDto[]; totalElements: number; page: number; size: number }> {
+  const queryParts: string[] = [];
+  if (params.query) queryParts.push(`query=${encodeURIComponent(params.query)}`);
+  if (params.active != null) queryParts.push(`active=${params.active}`);
+  if (params.page != null) queryParts.push(`page=${params.page}`);
+  if (params.size != null) queryParts.push(`size=${params.size}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<any>(`/api/v1/admin/taxonomy/skills${qs}`);
+  return res.data || res;
+}
+
+export async function createAdminTaxonomySkill(body: {
+  canonicalName: string;
+  category: string;
+  description?: string;
+  aliases?: string[];
+}): Promise<string> {
+  const res = await apiRequest<any>('/api/v1/admin/taxonomy/skills', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return res.data || res;
+}
+
+export async function toggleAdminTaxonomySkill(id: string): Promise<boolean> {
+  const res = await apiRequest<any>(`/api/v1/admin/taxonomy/skills/${id}/toggle`, {
+    method: 'PUT',
+  });
+  return res.data || res;
+}
+
+export async function fetchAdminAuditLogs(params: {
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: AdminAuditLogDto[]; totalElements: number; totalPages: number }> {
+  const queryParts: string[] = [];
+  if (params.page != null) queryParts.push(`page=${params.page}`);
+  if (params.size != null) queryParts.push(`size=${params.size}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<any>(`/api/v1/admin/audit-logs${qs}`);
+  return res.data || res;
+}
+
+export const adminApi = {
+  getDashboardStats: fetchAdminDashboardStats,
+  getCompanies: async (params?: { query?: string; search?: string; status?: string; page?: number; size?: number }) => {
+    return fetchAdminCompanies({
+      query: params?.query || params?.search,
+      status: params?.status,
+      page: params?.page,
+      size: params?.size,
+    });
+  },
+  getCompanyDetail: fetchAdminCompanyDetail,
+  transitionCompanyVerification: async (
+    id: string,
+    data: { action?: string; notes?: string; status?: string; reason?: string; version?: number }
+  ) => {
+    let targetStatus = data.status;
+    let targetReason = data.reason || data.notes;
+
+    if (data.action) {
+      switch (data.action) {
+        case 'START_REVIEW':
+          targetStatus = 'UNDER_REVIEW';
+          break;
+        case 'VERIFY':
+          targetStatus = 'VERIFIED';
+          break;
+        case 'REQUEST_CHANGES':
+          targetStatus = 'CHANGES_REQUESTED';
+          break;
+        case 'REJECT':
+          targetStatus = 'REJECTED';
+          break;
+        case 'SUSPEND':
+          targetStatus = 'SUSPENDED';
+          break;
+        case 'RESTORE':
+          targetStatus = 'VERIFIED';
+          break;
+        default:
+          targetStatus = data.action;
+      }
+    }
+
+    return transitionCompanyVerification(id, {
+      status: targetStatus || 'UNDER_REVIEW',
+      reason: targetReason,
+      version: data.version,
+    });
+  },
+  getUsers: async (params?: {
+    role?: string;
+    status?: string;
+    search?: string;
+    query?: string;
+    page?: number;
+    size?: number;
+  }) => {
+    const q = params?.query || params?.search;
+    const isActive = params?.status === 'ACTIVE' ? true : params?.status === 'SUSPENDED' ? false : undefined;
+
+    if (params?.role === 'CANDIDATE') {
+      const res = await fetchAdminCandidates({ query: q, isActive, page: params?.page, size: params?.size });
+      return {
+        ...res,
+        content: res.content.map((u) => ({
+          ...u,
+          accountStatus: (u.isActive ? 'ACTIVE' : 'SUSPENDED') as 'ACTIVE' | 'SUSPENDED',
+        })),
+      };
+    } else if (params?.role === 'RECRUITER') {
+      const res = await fetchAdminRecruiters({ query: q, isActive, page: params?.page, size: params?.size });
+      return {
+        ...res,
+        content: res.content.map((u) => ({
+          ...u,
+          accountStatus: (u.isActive ? 'ACTIVE' : 'SUSPENDED') as 'ACTIVE' | 'SUSPENDED',
+        })),
+      };
+    } else {
+      // Both or ALL
+      const [candRes, recRes] = await Promise.all([
+        fetchAdminCandidates({ query: q, isActive, page: params?.page || 0, size: params?.size || 10 }),
+        fetchAdminRecruiters({ query: q, isActive, page: params?.page || 0, size: params?.size || 10 }),
+      ]);
+      const combined = [...candRes.content, ...recRes.content].map((u) => ({
+        ...u,
+        accountStatus: (u.isActive ? 'ACTIVE' : 'SUSPENDED') as 'ACTIVE' | 'SUSPENDED',
+      }));
+      return {
+        content: combined,
+        totalElements: candRes.totalElements + recRes.totalElements,
+        totalPages: Math.max(candRes.totalPages, recRes.totalPages),
+      };
+    }
+  },
+  moderateUser: async (id: string, data: { action: 'SUSPEND' | 'REACTIVATE'; reason?: string }) => {
+    if (data.action === 'SUSPEND') {
+      return suspendUser(id, data.reason || 'Đình chỉ bởi quản trị viên');
+    } else {
+      return reactivateUser(id, data.reason);
+    }
+  },
+  getJobs: async (params?: { query?: string; search?: string; status?: string; page?: number; size?: number }) => {
+    return fetchAdminJobs({
+      query: params?.query || params?.search,
+      status: params?.status,
+      page: params?.page,
+      size: params?.size,
+    });
+  },
+  moderateJob: async (id: string, data: { action: 'SUSPEND' | 'RESTORE'; reason?: string }) => {
+    if (data.action === 'SUSPEND') {
+      return suspendJob(id, data.reason || 'Đình chỉ bởi quản trị viên');
+    } else {
+      return restoreJob(id);
+    }
+  },
+  getReports: async (params?: {
+    status?: string;
+    targetType?: string;
+    page?: number;
+    size?: number;
+  }) => {
+    return fetchAdminReports(params);
+  },
+  resolveReport: async (id: string, data: { action: 'RESOLVE' | 'DISMISS'; resolutionNotes?: string }) => {
+    if (data.action === 'RESOLVE') {
+      return resolveReport(id, data.resolutionNotes);
+    } else {
+      return dismissReport(id, data.resolutionNotes);
+    }
+  },
+  getTaxonomySkills: async (params?: { search?: string; query?: string; activeOnly?: boolean; active?: boolean; page?: number; size?: number }) => {
+    const res = await fetchAdminTaxonomySkills({
+      query: params?.query || params?.search,
+      active: params?.activeOnly ?? params?.active,
+      page: params?.page,
+      size: params?.size,
+    });
+    return {
+      content: res.content.map((s) => ({
+        ...s,
+        name: s.canonicalName,
+        normalizedKey: s.normalizedName,
+      })),
+      totalElements: res.totalElements,
+      totalPages: Math.ceil((res.totalElements || 1) / (params?.size || 15)),
+    };
+  },
+  createTaxonomySkill: async (data: { name: string; category: string; description?: string }) => {
+    return createAdminTaxonomySkill({
+      canonicalName: data.name,
+      category: data.category,
+      description: data.description,
+    });
+  },
+  toggleTaxonomySkillActive: async (id: string) => {
+    return toggleAdminTaxonomySkill(id);
+  },
+  getAuditLogs: async (params?: { targetType?: string; page?: number; size?: number }) => {
+    return fetchAdminAuditLogs(params);
+  },
+};
+
+

@@ -8,51 +8,59 @@ import {
   ShieldCheck,
   Users,
   CheckCircle2,
-  Sparkles,
   ArrowRight,
-  Server,
   Activity,
-  Layers,
-  FileCheck,
   RefreshCw,
-  Clock
+  Clock,
+  ShieldAlert,
+  Briefcase,
+  AlertTriangle,
+  Tags,
+  History,
+  Check,
+  XCircle
 } from 'lucide-react';
-import { fetchAiSettings, testAiSettings } from '@/lib/api';
-import { AiSettings } from '@/types';
+import { fetchAdminDashboardStats, testAiSettings } from '@/lib/api';
+import { AdminDashboardStats } from '@/types';
 
 export default function AdminDashboardPage() {
-  const [aiSettings, setAiSettings] = useState<AiSettings | null>(null);
+  const [stats, setStats] = useState<AdminDashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [testingAi, setTestingAi] = useState(false);
   const [testResult, setTestResult] = useState<{ healthy: boolean; latencyMs?: number; message?: string } | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchAiSettings()
+  const loadData = () => {
+    setLoading(true);
+    setError(null);
+    fetchAdminDashboardStats()
       .then((data) => {
-        setAiSettings(data);
+        setStats(data);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('Failed to load admin stats:', err);
+        setError('Không thể kết nối đến máy chủ quản trị. Vui lòng thử lại sau.');
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const handleQuickAiCheck = async () => {
-    if (!aiSettings) return;
+    if (!stats?.aiStatus) return;
     setTestingAi(true);
     setTestResult(null);
     try {
       const res = await testAiSettings({
-        provider: aiSettings.provider,
-        ollamaUrl: aiSettings.ollamaUrl,
-        ollamaModel: aiSettings.ollamaModel,
-        cloudBaseUrl: aiSettings.cloudBaseUrl,
-        cloudModel: aiSettings.cloudModel,
+        provider: stats.aiStatus.provider as 'LOCAL_OLLAMA' | 'CLOUD_OPENAI_COMPATIBLE',
       });
       setTestResult({
         healthy: res.healthy,
         latencyMs: res.latencyMs,
-        message: res.message || (res.healthy ? 'Động cơ AI phản hồi tốt' : res.error || 'Kiểm tra thất bại'),
+        message: res.message || (res.healthy ? 'Động cơ AI hoạt động tốt' : res.error || 'Kiểm tra thất bại'),
       });
     } catch {
       setTestResult({ healthy: false, message: 'Không thể kết nối đến máy chủ AI' });
@@ -75,146 +83,165 @@ export default function AdminDashboardPage() {
                 </span>
                 <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  Hệ Thống Hoạt Động (Healthy)
+                  Hệ Thống Hoạt Động (Production Active)
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
                 Bảng Điều Khiển Quản Trị Hệ Thống MidCV
               </h1>
               <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-                Giám sát trung tâm toàn bộ hoạt động nền tảng, trạng thái động cơ bóc tách AI (LLM), vector embedding, thẩm định doanh nghiệp và thực thi phân quyền 3 role nghiêm ngặt.
+                Giám sát trung tâm toàn bộ hoạt động nền tảng, thẩm định pháp lý doanh nghiệp, kiểm soát an toàn tài khoản người dùng và nhật ký kiểm toán bất biến.
               </p>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
-              <Link
-                href="/admin/ai-settings"
-                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-2 shadow-sm whitespace-nowrap active:scale-95"
+            <div className="flex items-center gap-3 shrink-0 flex-wrap">
+              <button
+                onClick={loadData}
+                disabled={loading}
+                className="px-3.5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
-                <Cpu className="w-4 h-4" />
-                <span>Cấu hình AI</span>
-              </Link>
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span>Làm mới</span>
+              </button>
               <Link
                 href="/admin/companies"
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition flex items-center gap-2 whitespace-nowrap active:scale-95"
+                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-2 shadow-sm whitespace-nowrap active:scale-95"
               >
-                <Building2 className="w-4 h-4 text-indigo-400" />
-                <span>Xác thực Doanh nghiệp</span>
+                <Building2 className="w-4 h-4" />
+                <span>Hàng đợi Thẩm định</span>
               </Link>
             </div>
           </div>
         </div>
 
+        {error && (
+          <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-medium">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+            <button
+              onClick={loadData}
+              className="text-xs font-bold underline hover:no-underline cursor-pointer"
+            >
+              Thử lại
+            </button>
+          </div>
+        )}
+
         {/* 4 Core Management Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          {/* Card 1: AI Engine */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
-                <Cpu className="w-5 h-5" />
-              </div>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300">
-                {aiSettings?.provider || 'LOCAL_OLLAMA'}
-              </span>
-            </div>
-            <div>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Động cơ Bóc tách AI</span>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
-                {loading ? 'Đang tải...' : (aiSettings?.provider === 'LOCAL_OLLAMA' ? (aiSettings?.ollamaModel || 'Local Ollama') : (aiSettings?.cloudModel || 'Cloud AI'))}
-              </h3>
-            </div>
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
-              <span className="text-slate-500 dark:text-slate-400 text-[11px]">Vector: bge-m3 1024d</span>
-              <button
-                onClick={handleQuickAiCheck}
-                disabled={testingAi}
-                className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3 h-3 ${testingAi ? 'animate-spin' : ''}`} />
-                <span>Kiểm tra</span>
-              </button>
-            </div>
-            {testResult && (
-              <div className={`p-2 rounded-lg text-[11px] flex items-center gap-1.5 ${testResult.healthy ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300'}`}>
-                {testResult.healthy ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> : <Clock className="w-3.5 h-3.5 shrink-0" />}
-                <span className="truncate">{testResult.message} {testResult.latencyMs != null && `(${testResult.latencyMs}ms)`}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Card 2: Strict 3-Role Isolation */}
+          {/* Card 1: Users */}
           <div className="p-5 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
                 <Users className="w-5 h-5" />
               </div>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
-                3 ROLES ISOLATED
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+                {loading ? '...' : `${stats?.activeUsersCount || 0} Hoạt động`}
               </span>
             </div>
             <div>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Kiểm soát Phân quyền</span>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Candidate • Recruiter • Admin
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Tổng Người Dùng</span>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+                {loading ? '...' : (stats?.totalUsers || 0)}
               </h3>
             </div>
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <span>Frontend Guards: Active</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400">Khóa 100%</span>
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
+              <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                {stats?.candidatesCount || 0} Ứng viên • {stats?.recruitersCount || 0} Tuyển dụng
+              </span>
+              <Link href="/admin/users" className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+                Quản lý →
+              </Link>
             </div>
           </div>
 
-          {/* Card 3: Company Verification */}
+          {/* Card 2: Company Verification Queue */}
           <div className="p-5 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
                 <Building2 className="w-5 h-5" />
               </div>
               <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
-                THẨM ĐỊNH
+                {loading ? '...' : `${stats?.companiesPendingCount || 0} Chờ duyệt`}
               </span>
             </div>
             <div>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Hồ sơ Doanh nghiệp</span>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Quản lý Pháp lý Doanh nghiệp
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Doanh Nghiệp Đã Xác Minh</span>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+                {loading ? '...' : (stats?.companiesVerifiedCount || 0)}
               </h3>
             </div>
             <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
-              <span className="text-slate-500 dark:text-slate-400 text-[11px]">Xét duyệt đăng tin</span>
+              <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                {stats?.companiesUnderReviewCount || 0} Đang review • {stats?.companiesSuspendedCount || 0} Đình chỉ
+              </span>
               <Link href="/admin/companies" className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
-                Xem chi tiết →
+                Xét duyệt →
               </Link>
             </div>
           </div>
 
-          {/* Card 4: Security & Integrity */}
+          {/* Card 3: Active Jobs & Moderation */}
           <div className="p-5 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
-              <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400">
-                <ShieldCheck className="w-5 h-5" />
+              <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+                <Briefcase className="w-5 h-5" />
               </div>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300">
-                SECURITY SHIELD
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                {loading ? '...' : `${stats?.activeJobsCount || 0} Xuất bản`}
               </span>
             </div>
             <div>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Bảo mật & Tenant Isolation</span>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Spring Security & JWT Filter
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Tin Tuyển Dụng</span>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+                {loading ? '...' : (stats?.activeJobsCount || 0)}
               </h3>
             </div>
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <span>Độc quyền Admin API</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400">Protected</span>
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
+              <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                {stats?.suspendedJobsCount || 0} Tin bị đình chỉ
+              </span>
+              <Link href="/admin/moderation" className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+                Kiểm duyệt →
+              </Link>
+            </div>
+          </div>
+
+          {/* Card 4: Reports & Violations */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${
+                (stats?.pendingReportsCount || 0) > 0
+                  ? 'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 animate-pulse'
+                  : 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
+              }`}>
+                {loading ? '...' : `${stats?.pendingReportsCount || 0} Cần xử lý`}
+              </span>
+            </div>
+            <div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Báo Cáo Vi Phạm</span>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+                {loading ? '...' : (stats?.pendingReportsCount || 0)}
+              </h3>
+            </div>
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
+              <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                {(stats?.pendingReportsCount || 0) === 0 ? 'Không có báo cáo tồn đọng' : 'Ưu tiên xử lý ngay'}
+              </span>
+              <Link href="/admin/moderation" className="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline">
+                Xem báo cáo →
+              </Link>
             </div>
           </div>
         </div>
 
-        {/* 2 Feature Panels: Quick Control Suite + System Role Architecture */}
+        {/* Quick Navigation Panels */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Left 2 Cols: Quick Action & Control Suite */}
           <div className="lg:col-span-2 space-y-6">
             <div className="p-6 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
@@ -224,191 +251,251 @@ export default function AdminDashboardPage() {
                     Trung Tâm Tác Vụ Quản Trị Hệ Thống
                   </h2>
                 </div>
-                <span className="text-xs text-slate-500 font-medium">Bản phát hành v1.0 Production-Ready</span>
+                <span className="text-xs text-slate-500 font-medium">MidCV Enterprise Control</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                {/* Action Card 1: AI Settings */}
+                {/* 1. Doanh nghiệp */}
                 <Link
-                  href="/admin/ai-settings"
-                  className="group p-5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-[#111C38] transition flex flex-col justify-between"
+                  href="/admin/companies"
+                  className="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-[#111C38] transition flex flex-col justify-between"
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
-                        <Cpu className="w-5 h-5" />
+                      <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300">
+                        <Building2 className="w-4 h-4" />
                       </div>
                       <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
                     </div>
                     <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                      Cấu hình AI & Engine Đối sánh
+                      Thẩm Định Doanh Nghiệp
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                      Thiết lập linh hoạt giữa Local Ollama (Granite 4.2 / BGE-M3) và Cloud OpenAI Compatible (OpenAI, DeepSeek, Google Gemini, Groq).
+                      Xét duyệt giấy phép, mã số thuế và thẩm quyền đăng tin của nhà tuyển dụng.
                     </p>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700/60 text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-                    Mở trình cấu hình AI →
+                  <div className="mt-3 text-xs font-bold text-amber-600 dark:text-amber-400">
+                    {stats?.companiesPendingCount || 0} công ty đang chờ duyệt →
                   </div>
                 </Link>
 
-                {/* Action Card 2: Company Verification */}
+                {/* 2. Người dùng */}
                 <Link
-                  href="/admin/companies"
-                  className="group p-5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-[#111C38] transition flex flex-col justify-between"
+                  href="/admin/users"
+                  className="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-[#111C38] transition flex flex-col justify-between"
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
-                        <Building2 className="w-5 h-5" />
+                      <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+                        <Users className="w-4 h-4" />
                       </div>
-                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
+                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
                     </div>
                     <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                      Thẩm Định Pháp Lý Doanh Nghiệp
+                      Quản Trị Người Dùng
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                      Phê duyệt hoặc từ chối trạng thái xác minh doanh nghiệp tuyển dụng. Đảm bảo uy tín và bảo vệ ứng viên khỏi tin tuyển dụng rác.
+                      Kiểm soát an toàn tài khoản Ứng viên và Recruiter, đình chỉ vi phạm với lý do bắt buộc.
                     </p>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700/60 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                    Quản lý danh sách doanh nghiệp →
+                  <div className="mt-3 text-xs font-bold text-blue-600 dark:text-blue-400">
+                    {stats?.totalUsers || 0} tài khoản đăng ký →
+                  </div>
+                </Link>
+
+                {/* 3. Kiểm duyệt */}
+                <Link
+                  href="/admin/moderation"
+                  className="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-[#111C38] transition flex flex-col justify-between"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="p-2 rounded-lg bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300">
+                        <ShieldAlert className="w-4 h-4" />
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
+                    </div>
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                      Kiểm Duyệt Tin & Báo Cáo
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                      Xử lý báo cáo gian lận, đình chỉ tin tuyển dụng vi phạm và bảo vệ ứng viên.
+                    </p>
+                  </div>
+                  <div className="mt-3 text-xs font-bold text-rose-600 dark:text-rose-400">
+                    {stats?.pendingReportsCount || 0} báo cáo cần xem xét →
+                  </div>
+                </Link>
+
+                {/* 4. Taxonomy */}
+                <Link
+                  href="/admin/taxonomy"
+                  className="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-[#111C38] transition flex flex-col justify-between"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
+                        <Tags className="w-4 h-4" />
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
+                    </div>
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                      Từ Điển Taxonomy Kỹ Năng
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                      Quản lý từ khóa chuẩn hóa, bí danh đa ngôn ngữ và phân cấp kỹ năng cho AI Engine.
+                    </p>
+                  </div>
+                  <div className="mt-3 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    Tra cứu và chuẩn hóa →
                   </div>
                 </Link>
               </div>
             </div>
 
-            {/* System Audit Events Stream */}
+            {/* Recent Audit Logs Table */}
             <div className="p-6 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  <History className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                   <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                    Nhật Ký Kiểm Toán & Trạng Thái Hệ Thống
+                    Nhật Ký Tác Vụ Quản Trị Gần Đây
                   </h2>
                 </div>
-                <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  Audit Defense Active
-                </span>
+                <Link href="/admin/audit-logs" className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+                  Xem tất cả →
+                </Link>
               </div>
 
-              <div className="space-y-2.5">
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#111C38] border border-slate-200 dark:border-slate-800/80 flex items-start justify-between gap-3 text-xs">
-                  <div className="flex items-start gap-2.5">
-                    <span className="p-1 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-mono text-[10px] font-bold">
-                      SECURITY
-                    </span>
-                    <div>
-                      <p className="font-semibold text-slate-900 dark:text-white">Phân định 3 Role Độc Lập hoàn tất</p>
-                      <p className="text-slate-500 dark:text-slate-400 text-[11px]">Đã thu hồi quyền Admin từ HR, bảo vệ nghiêm ngặt khu vực /admin và /api/admin/**.</p>
-                    </div>
-                  </div>
-                  <span className="text-slate-400 text-[10px] font-mono whitespace-nowrap">Just now</span>
+              {(!stats?.recentAuditLogs || stats.recentAuditLogs.length === 0) ? (
+                <div className="py-8 text-center text-xs text-slate-400">
+                  Chưa có nhật ký tác vụ quản trị nào được ghi nhận.
                 </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#111C38] border border-slate-200 dark:border-slate-800/80 flex items-start justify-between gap-3 text-xs">
-                  <div className="flex items-start gap-2.5">
-                    <span className="p-1 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-mono text-[10px] font-bold">
-                      AI_ENGINE
-                    </span>
-                    <div>
-                      <p className="font-semibold text-slate-900 dark:text-white">Native AI Ingestion & Vector Service Online</p>
-                      <p className="text-slate-500 dark:text-slate-400 text-[11px]">Embedding bge-m3 1024d & pgvector HNSW indexing sẵn sàng phục vụ xếp hạng đối sánh.</p>
-                    </div>
-                  </div>
-                  <span className="text-slate-400 text-[10px] font-mono whitespace-nowrap">Active</span>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-semibold">
+                        <th className="pb-2.5">Thời gian</th>
+                        <th className="pb-2.5">Quản trị viên</th>
+                        <th className="pb-2.5">Hành động</th>
+                        <th className="pb-2.5">Đối tượng</th>
+                        <th className="pb-2.5">Chi tiết / Lý do</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-slate-600 dark:text-slate-300">
+                      {stats.recentAuditLogs.map((log) => (
+                        <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition">
+                          <td className="py-2.5 whitespace-nowrap text-slate-400 font-mono text-[11px]">
+                            {log.createdAt ? new Date(log.createdAt).toLocaleString('vi-VN') : '—'}
+                          </td>
+                          <td className="py-2.5 font-medium whitespace-nowrap">
+                            {log.adminEmail}
+                          </td>
+                          <td className="py-2.5">
+                            <span className="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/40">
+                              {log.action}
+                            </span>
+                          </td>
+                          <td className="py-2.5 whitespace-nowrap font-mono text-[11px] text-slate-400">
+                            {log.targetType}
+                          </td>
+                          <td className="py-2.5 max-w-[200px] truncate text-slate-500 dark:text-slate-400">
+                            {log.reason || `${log.previousState || ''} → ${log.newState || ''}`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#111C38] border border-slate-200 dark:border-slate-800/80 flex items-start justify-between gap-3 text-xs">
-                  <div className="flex items-start gap-2.5">
-                    <span className="p-1 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-mono text-[10px] font-bold">
-                      VERIFICATION
-                    </span>
-                    <div>
-                      <p className="font-semibold text-slate-900 dark:text-white">Quy trình Phê duyệt Doanh nghiệp kết nối API</p>
-                      <p className="text-slate-500 dark:text-slate-400 text-[11px]">API PUT /api/v1/admin/companies/:id/verification khóa cứng thẩm quyền ADMIN.</p>
-                    </div>
-                  </div>
-                  <span className="text-slate-400 text-[10px] font-mono whitespace-nowrap">Enforced</span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Right 1 Col: Role Architecture Card */}
+          {/* Right Column: AI Engine Health & System Shield */}
           <div className="space-y-6">
             <div className="p-6 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Cpu className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                    Động Cơ AI & LLM
+                  </h3>
+                </div>
+                <button
+                  onClick={handleQuickAiCheck}
+                  disabled={testingAi}
+                  className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3 h-3 ${testingAi ? 'animate-spin' : ''}`} />
+                  <span>Test</span>
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                  <span className="text-slate-500 dark:text-slate-400">Chế độ hoạt động</span>
+                  <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                    {stats?.aiStatus?.provider || 'LOCAL_OLLAMA'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                  <span className="text-slate-500 dark:text-slate-400">Model nội bộ</span>
+                  <span className="font-mono text-slate-700 dark:text-slate-300">
+                    {stats?.aiStatus?.ollamaModel || 'dna5rm/granite4.2'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                  <span className="text-slate-500 dark:text-slate-400">Model Cloud</span>
+                  <span className="font-mono text-slate-700 dark:text-slate-300">
+                    {stats?.aiStatus?.cloudModel || 'gpt-4o-mini'}
+                  </span>
+                </div>
+              </div>
+
+              {testResult && (
+                <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                  testResult.healthy
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40'
+                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/40'
+                }`}>
+                  {testResult.healthy ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <Clock className="w-4 h-4 shrink-0" />}
+                  <span className="leading-snug">{testResult.message} {testResult.latencyMs != null && `(${testResult.latencyMs}ms)`}</span>
+                </div>
+              )}
+
+              <Link
+                href="/admin/ai-settings"
+                className="block text-center py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-bold text-xs transition"
+              >
+                Cấu hình chuyên sâu →
+              </Link>
+            </div>
+
+            {/* Security Architecture Invariant Box */}
+            <div className="p-6 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
               <div className="flex items-center gap-2">
-                <FileCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Ma Trận Phân Quyền 3 Role (RBAC)
+                <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                  Ranh Giới Bảo Mật Bất Biến
                 </h3>
               </div>
-
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                Hệ thống MidCV thiết lập cơ chế cô lập tuyệt đối giữa 3 vai trò người dùng nhằm bảo đảm an toàn dữ liệu và trải nghiệm mạch lạc:
-              </p>
-
-              <div className="space-y-3 pt-1">
-                {/* Candidate Role */}
-                <div className="p-3.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-blue-900 dark:text-blue-300">1. CANDIDATE (Ứng viên)</span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-blue-200 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-bold">ROLE_CANDIDATE</span>
-                  </div>
-                  <p className="text-[11px] text-blue-800 dark:text-blue-300 leading-normal">
-                    Truy cập Cổng Ứng viên: Tạo CV chuẩn ATS, trích xuất AI, xem báo cáo đối sánh và xác thực hồ sơ GitHub.
-                  </p>
-                </div>
-
-                {/* Recruiter Role */}
-                <div className="p-3.5 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-amber-900 dark:text-amber-300">2. RECRUITER (HR Tuyển dụng)</span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-200 dark:bg-amber-900 text-amber-800 dark:text-amber-200 font-bold">ROLE_HR</span>
-                  </div>
-                  <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-normal">
-                    Truy cập HR Portal: Soạn thảo & xuất bản tin tuyển dụng, xếp hạng ứng viên theo bằng chứng, quản lý hồ sơ doanh nghiệp.
-                  </p>
-                </div>
-
-                {/* Admin Role */}
-                <div className="p-3.5 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-indigo-900 dark:text-indigo-300">3. ADMIN (Quản trị Hệ thống)</span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 font-bold">ROLE_ADMIN</span>
-                  </div>
-                  <p className="text-[11px] text-indigo-800 dark:text-indigo-300 leading-normal">
-                    Truy cập Admin Portal: Cấu hình động cơ AI toàn hệ thống, thẩm định tư cách pháp nhân doanh nghiệp, bảo toàn an ninh.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Links Box */}
-            <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-950 to-slate-900 border border-indigo-900/50 text-white space-y-3">
-              <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs">
-                <Sparkles className="w-4 h-4" />
-                <span>Liên kết Nhanh</span>
-              </div>
-              <div className="flex flex-col space-y-1 text-xs">
-                <Link href="/admin/ai-settings" className="py-1.5 px-2.5 rounded-lg hover:bg-white/10 transition text-slate-300 hover:text-white flex items-center justify-between">
-                  <span>Trang Cấu hình AI Engine</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-                <Link href="/admin/companies" className="py-1.5 px-2.5 rounded-lg hover:bg-white/10 transition text-slate-300 hover:text-white flex items-center justify-between">
-                  <span>Trang Thẩm định Doanh nghiệp</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-                <Link href="/jobs" className="py-1.5 px-2.5 rounded-lg hover:bg-white/10 transition text-slate-300 hover:text-white flex items-center justify-between">
-                  <span>Xem Danh sách Tin Tuyển Dụng</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
+              <ul className="space-y-2 text-[11px] text-slate-500 dark:text-slate-400">
+                <li className="flex items-start gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Admin không sửa CV và không sửa điểm matching của AI.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Chỉ doanh nghiệp VERIFIED mới được phép xuất bản tin tuyển dụng.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Toàn bộ hành động quản trị được ghi nhật ký kiểm toán bất biến.</span>
+                </li>
+              </ul>
             </div>
           </div>
-
         </div>
 
       </main>

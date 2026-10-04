@@ -12,7 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/admin/ai-settings")
+@RequestMapping("/api/v1/admin/ai-settings")
 public class AdminController {
   private final AiClient aiClient;
   private final Events events;

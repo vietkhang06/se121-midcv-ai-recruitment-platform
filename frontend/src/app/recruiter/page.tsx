@@ -1,49 +1,45 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Job, Company, Application } from '@/types';
-import { fetchRecruiterJobs, fetchRecruiterProfile, getAuthUser, fetchJobApplications } from '@/lib/api';
+import { fetchRecruiterJobs, fetchRecruiterCompany, fetchJobApplications } from '@/lib/api';
+import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
+import { MetricCard } from '@/components/recruiter/MetricCard';
 import { CompanyVerificationBanner } from '@/components/recruiter/CompanyVerificationBanner';
-import { useLanguage } from '@/context/LanguageContext';
 import { EmptyState } from '@/components/common/EmptyState';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   Briefcase,
   Users,
-  Calendar,
   Clock,
-  Plus,
+  FileText,
+  PlusCircle,
   ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
-  Sparkles,
+  AlertCircle,
   ChevronRight,
-  TrendingUp,
-  BarChart3,
-  Building2,
-  FileText
+  Award
 } from 'lucide-react';
 
 export default function HRDashboardPage() {
-  const { t, locale } = useLanguage();
+  const { locale } = useLanguage();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'console' | 'analytics'>('console');
-  const user = getAuthUser();
 
-  const loadDashboardData = () => {
+  const loadDashboardData = useCallback(() => {
     setIsLoading(true);
     setFetchError(null);
+
     Promise.all([
       fetchRecruiterJobs(),
-      fetchRecruiterProfile().catch(() => null),
+      fetchRecruiterCompany().catch(() => null),
     ])
-      .then(async ([recJobs, profile]) => {
+      .then(async ([recJobs, comp]) => {
         setJobs(recJobs);
-        if (profile?.company) setCompany(profile.company);
+        if (comp) setCompany(comp);
 
         if (recJobs.length > 0) {
           const appLists = await Promise.all(
@@ -55,341 +51,348 @@ export default function HRDashboardPage() {
         }
       })
       .catch((err) => {
-        setFetchError(err.message || (locale === 'vi' ? 'Lỗi khi tải dữ liệu nhà tuyển dụng.' : 'Error loading recruiter data.'));
+        setFetchError(err.message || (locale === 'vi' ? 'Không thể tải dữ liệu tuyển dụng.' : 'Unable to load recruitment data.'));
       })
       .finally(() => setIsLoading(false));
-  };
+  }, [locale]);
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    const timer = setTimeout(() => {
+      loadDashboardData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadDashboardData]);
 
   const publishedJobs = jobs.filter((j) => j.status === 'PUBLISHED');
   const draftJobs = jobs.filter((j) => j.status === 'DRAFT');
-  const recruiterName = user?.fullName || (locale === 'vi' ? 'Tuyển Dụng' : 'Recruiter');
+  const submittedApps = applications.filter((a) => a.status === 'SUBMITTED');
+
+  // Sorted recent jobs and applications
+  const recentJobs = [...jobs].slice(0, 5);
+  const recentApplications = [...applications].slice(0, 6);
+
+  if (fetchError && !isLoading && jobs.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <EmptyState
+          type="ERROR"
+          title={locale === 'vi' ? 'Lỗi kết nối máy chủ' : 'Server Connection Error'}
+          description={fetchError}
+          primaryCtaText={locale === 'vi' ? 'Thử lại' : 'Retry'}
+          onPrimaryCtaClick={loadDashboardData}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col py-8 transition-colors">
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 w-full">
-        
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1E293B] pb-4">
-          <div className="space-y-1">
-            <span className="text-[11px] font-mono font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-              RECRUITER PORTAL COMMAND CENTER
-            </span>
-            <h1 className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
-              {locale === 'vi' ? 'Dashboard Console — Tổng Quan Tuyển Dụng Doanh Nghiệp' : 'Recruiter Command Console — Enterprise Hiring Dashboard'}
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {company?.name || (locale === 'vi' ? 'Doanh nghiệp' : 'Enterprise')} Recruitment command center & telemetry
-            </p>
+    <div className="w-full max-w-7xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* Page Header */}
+      <RecruiterPageHeader
+        categoryTag="RECRUITER WORKSPACE"
+        title={locale === 'vi' ? 'Tổng Quan Tuyển Dụng Doanh Nghiệp' : 'Enterprise Recruitment Overview'}
+        subtitle={
+          company?.name
+            ? `${company.name} • ${locale === 'vi' ? 'Bảng điều khiển hoạt động tuyển dụng, phân tích ứng viên và telemetry đối sánh' : 'Hiring operations telemetry, candidate pipelines and matching metrics'}`
+            : (locale === 'vi' ? 'Bảng điều khiển hoạt động tuyển dụng và đối sánh năng lực kỹ thuật' : 'Hiring operations command center and technical matching vectors')
+        }
+        companyName={company?.name}
+        isCompanyVerified={company?.verificationStatus === 'VERIFIED'}
+      />
+
+      {/* Verification Status Banner if unverified */}
+      {company && (
+        <CompanyVerificationBanner
+          status={company.verificationStatus}
+          companyName={company.name}
+          reason={company.verificationReason}
+        />
+      )}
+
+      {/* KPI Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full min-w-0">
+        <MetricCard
+          label={locale === 'vi' ? 'Tin Đang Tuyển' : 'Active Postings'}
+          value={publishedJobs.length}
+          subtext={locale === 'vi' ? `Trên tổng số ${jobs.length} tin` : `Out of ${jobs.length} total jobs`}
+          icon={Briefcase}
+          variant="primary"
+          loading={isLoading}
+        />
+        <MetricCard
+          label={locale === 'vi' ? 'Tổng Hồ Sơ Ứng Tuyển' : 'Total Applications'}
+          value={applications.length}
+          subtext={locale === 'vi' ? 'Nhận qua các bài tuyển dụng' : 'Across all company postings'}
+          icon={Users}
+          variant="success"
+          loading={isLoading}
+        />
+        <MetricCard
+          label={locale === 'vi' ? 'Hồ Sơ Chờ Xử Lý' : 'Pending Review'}
+          value={submittedApps.length}
+          subtext={locale === 'vi' ? 'Cần đánh giá và sàng lọc' : 'Awaiting human decision'}
+          icon={Clock}
+          variant={submittedApps.length > 0 ? 'warning' : 'neutral'}
+          badge={submittedApps.length > 0 ? (locale === 'vi' ? 'Cần xem' : 'Action needed') : undefined}
+          loading={isLoading}
+        />
+        <MetricCard
+          label={locale === 'vi' ? 'Tin Đang Soạn' : 'Draft Requisitions'}
+          value={draftJobs.length}
+          subtext={locale === 'vi' ? 'Chưa xuất bản công khai' : 'Unpublished drafts'}
+          icon={FileText}
+          variant="neutral"
+          loading={isLoading}
+        />
+      </div>
+
+      {/* Action Items Block (Việc Cần Xử Lý) */}
+      {(submittedApps.length > 0 || draftJobs.length > 0 || company?.verificationStatus !== 'VERIFIED') && !isLoading && (
+        <div className="p-5 rounded-2xl bg-[#EFF6FF] dark:bg-[#111C38] border border-[#DBEAFE] dark:border-[#1E3A5F] space-y-3">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#1E3A5F] dark:text-[#93C5FD] uppercase tracking-wider font-mono">
+            <AlertCircle className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+            <span>{locale === 'vi' ? 'Việc Cần Xử Lý Ngay' : 'Pending Action Items'}</span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-lg p-1 text-xs font-medium shadow-xs">
-              <button
-                onClick={() => setActiveTab('console')}
-                className={`px-3 py-1.5 rounded-md transition cursor-pointer ${
-                  activeTab === 'console'
-                    ? 'bg-[#2563EB] text-white font-semibold shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                Dashboard Console
-              </button>
-              <button
-                onClick={() => setActiveTab('analytics')}
-                className={`px-3 py-1.5 rounded-md transition cursor-pointer ${
-                  activeTab === 'analytics'
-                    ? 'bg-[#2563EB] text-white font-semibold shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                Recruitment Telemetry
-              </button>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 w-full min-w-0">
+            {submittedApps.length > 0 && (
+              <div className="p-3.5 rounded-xl bg-white dark:bg-[#0B1329] border border-[#E2E8F0] dark:border-[#1E293B] shadow-2xs flex items-center justify-between gap-3 min-w-0">
+                <div className="space-y-0.5 min-w-0">
+                  <div className="text-xs font-bold text-[#0F2A52] dark:text-white truncate">
+                    {submittedApps.length} {locale === 'vi' ? 'hồ sơ mới nộp' : 'new applications'}
+                  </div>
+                  <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] truncate">
+                    {locale === 'vi' ? 'Cần xem xét đối sánh và xếp hạng' : 'Need review & score inspection'}
+                  </p>
+                </div>
+                <Link
+                  href="/recruiter/pipeline"
+                  className="p-1.5 rounded-lg bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] hover:bg-[#DBEAFE] transition shrink-0"
+                  title={locale === 'vi' ? 'Đến quy trình' : 'Go to pipeline'}
+                >
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            )}
 
-            <Link
-              href="/recruiter/jobs/new"
-              className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-xs flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4 text-white" />
-              <span>{t('recruiterNav.createJob', 'Tạo Bài Tuyển Dụng Mới')}</span>
-            </Link>
-          </div>
-        </div>
+            {draftJobs.length > 0 && (
+              <div className="p-3.5 rounded-xl bg-white dark:bg-[#0B1329] border border-[#E2E8F0] dark:border-[#1E293B] shadow-2xs flex items-center justify-between gap-3 min-w-0">
+                <div className="space-y-0.5 min-w-0">
+                  <div className="text-xs font-bold text-[#0F2A52] dark:text-white truncate">
+                    {draftJobs.length} {locale === 'vi' ? 'bài tuyển dụng nháp' : 'draft job postings'}
+                  </div>
+                  <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] truncate">
+                    {locale === 'vi' ? 'Hoàn thiện rubric và xuất bản' : 'Complete rubric & publish'}
+                  </p>
+                </div>
+                <Link
+                  href="/recruiter/jobs"
+                  className="p-1.5 rounded-lg bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] hover:bg-[#DBEAFE] transition shrink-0"
+                  title={locale === 'vi' ? 'Quản lý tin' : 'Manage jobs'}
+                >
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            )}
 
-        {/* Company Verification Banner */}
-        {company && (
-          <CompanyVerificationBanner
-            status={company.verificationStatus}
-            companyName={company.name}
-            reason={company.verificationReason}
-          />
-        )}
-
-        {/* Welcome Banner */}
-        <div className="bg-gradient-to-r from-[#0F2A52] via-[#1E3A5F] to-[#0F2A52] text-white rounded-2xl p-8 border border-blue-900/30 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <h2 suppressHydrationWarning className="text-2xl sm:text-3xl font-editorial font-normal text-white">
-              {locale === 'vi' ? 'Chào mừng trở lại, ' : 'Welcome back, '}{recruiterName}
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-200 font-light leading-relaxed">
-              {locale === 'vi' ? (
-                <>Hệ sinh thái <strong className="font-semibold text-white">mid<span className="text-[#00B14F]">CV</span><sup>®</sup></strong> đang đồng bộ các vị trí tuyển dụng với mô hình trích xuất thực thể và đối sánh vector chuẩn hóa.</>
-              ) : (
-                <>The <strong className="font-semibold text-white">mid<span className="text-[#00B14F]">CV</span><sup>®</sup></strong> ecosystem is syncing requisition vectors and candidate semantic pipelines.</>
-              )}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <Link
-              href="/recruiter/jobs/new"
-              className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#00B14F] hover:bg-[#009643] text-white transition shadow-sm flex items-center gap-1.5"
-            >
-              <span>{locale === 'vi' ? '+ Đăng Tin Tuyển Dụng' : '+ Post New Job'}</span>
-            </Link>
-            {jobs.length > 0 && (
-              <Link
-                href={`/recruiter/jobs/${jobs[0].id}/applications`}
-                className="px-4 py-2 rounded-lg text-xs font-medium border border-white/25 text-white hover:bg-white/10 transition"
-              >
-                {locale === 'vi' ? 'Duyệt Ứng Viên' : 'Review Candidates'}
-              </Link>
+            {company && company.verificationStatus !== 'VERIFIED' && (
+              <div className="p-3.5 rounded-xl bg-white dark:bg-[#0B1329] border border-[#E2E8F0] dark:border-[#1E293B] shadow-2xs flex items-center justify-between gap-3 min-w-0">
+                <div className="space-y-0.5 min-w-0">
+                  <div className="text-xs font-bold text-[#F59E0B] dark:text-[#FACC15] truncate">
+                    {locale === 'vi' ? 'Chưa xác minh doanh nghiệp' : 'Pending Company Verification'}
+                  </div>
+                  <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] truncate">
+                    {locale === 'vi' ? 'Cần xác minh để xuất bản tin công khai' : 'Verification required to publish'}
+                  </p>
+                </div>
+                <Link
+                  href="/recruiter/company"
+                  className="p-1.5 rounded-lg bg-[#FEF3C7] dark:bg-[#FACC15]/20 text-[#B45309] dark:text-[#FACC15] hover:bg-[#FDE68A] transition shrink-0"
+                  title={locale === 'vi' ? 'Hồ sơ công ty' : 'Company profile'}
+                >
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
             )}
           </div>
         </div>
+      )}
 
-        {isLoading ? (
-          <EmptyState
-            type="LOADING"
-            title="Đang tải dữ liệu tuyển dụng..."
-            description="Hệ thống đang kết nối cơ sở dữ liệu doanh nghiệp và trích xuất số liệu..."
-          />
-        ) : fetchError ? (
-          <EmptyState
-            type="ERROR"
-            title="Không thể tải dữ liệu tuyển dụng"
-            description={fetchError}
-            primaryCtaText="Thử lại"
-            onPrimaryCtaClick={loadDashboardData}
-          />
-        ) : activeTab === 'console' ? (
-          <>
-            {/* 4 KPI Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-                <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-                  ACTIVE JOB POSTINGS
-                </span>
-                <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
-                  {publishedJobs.length}
-                </div>
-                <div className="text-[11px] text-[#00B14F] dark:text-[#3B82F6] font-medium pt-1">
-                  {jobs.length} tổng số vị trí đã tạo
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-                <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-                  APPLICANTS RECEIVED
-                </span>
-                <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
-                  {applications.length}
-                </div>
-                <div className="text-[11px] text-[#00B14F] dark:text-[#3B82F6] font-medium pt-1">
-                  Xác thực danh tính thực tế
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-                <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-                  DRAFT JOBS
-                </span>
-                <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
-                  {draftJobs.length}
-                </div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
-                  Đang hoàn thiện mô tả JD
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-                <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-                  AI MATCH ENGINE
-                </span>
-                <div className="text-3xl font-editorial font-bold text-[#00B14F] dark:text-[#3B82F6]">
-                  Active
-                </div>
-                <div className="text-[11px] text-[#00B14F] dark:text-[#3B82F6] font-medium pt-1">
-                  NDCG@K chuẩn hóa
-                </div>
-              </div>
+      {/* Main Content Grid: Recent Jobs + Recent Applications */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full min-w-0">
+        {/* Left Column: Recent Jobs (2 cols wide) */}
+        <div className="lg:col-span-2 space-y-4 min-w-0">
+          <div className="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#1E293B] pb-3">
+            <div className="flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+              <h2 className="text-base font-bold text-[#0F2A52] dark:text-white">
+                {locale === 'vi' ? 'Tin Tuyển Dụng Gần Đây' : 'Recent Job Openings'}
+              </h2>
             </div>
-
-            {/* Active Sourcing Funnel Stage */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
-              <div className="text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wide">
-                Active Sourcing Funnel
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center pt-2">
-                {[
-                  { count: applications.length, label: 'Submitted (Nộp đơn)' },
-                  { count: applications.filter(a => a.status === 'UNDER_REVIEW').length, label: 'Screening (Sàng lọc)' },
-                  { count: applications.filter(a => a.status === 'SHORTLISTED').length, label: 'Shortlisted (Chọn tiếp)' },
-                  { count: applications.filter(a => a.status === 'REJECTED').length, label: 'Rejected (Từ chối)' },
-                ].map((st, idx) => (
-                  <div key={idx} className="bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] rounded-lg p-3">
-                    <div className="text-xl font-bold font-editorial text-slate-900 dark:text-white">{st.count}</div>
-                    <div className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 mt-0.5">{st.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Two Columns: Top Performing Postings & Recent Candidate Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              
-              {/* Left Column: Top Performing Postings */}
-              <div className="lg:col-span-8 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Vị Trí Đang Tuyển Dụng</h3>
-                  <Link href="/recruiter/jobs" className="text-xs font-semibold text-[#2563EB] hover:underline">
-                    Xem tất cả ({jobs.length})
-                  </Link>
-                </div>
-
-                {jobs.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 dark:bg-[#13233F] text-slate-500 dark:text-slate-400 font-mono text-[10px] uppercase border-b border-slate-200 dark:border-[#1E293B]">
-                        <tr>
-                          <th className="py-2.5 px-3 font-semibold">Tiêu đề vị trí</th>
-                          <th className="py-2.5 px-3 font-semibold">Ngành nghề</th>
-                          <th className="py-2.5 px-3 font-semibold">Mức lương</th>
-                          <th className="py-2.5 px-3 font-semibold text-right">Trạng thái</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-[#1F4A40] text-slate-700 dark:text-slate-300">
-                        {jobs.slice(0, 5).map((j) => (
-                          <tr key={j.id} className="hover:bg-slate-50/80 dark:hover:bg-[#15342E]">
-                            <td className="py-3 px-3 font-medium text-slate-900 dark:text-white">
-                              <Link href={`/recruiter/jobs/${j.id}/ranking`} className="hover:text-[#2563EB] hover:underline">
-                                {j.title}
-                              </Link>
-                            </td>
-                            <td className="py-3 px-3 font-mono">{j.industry}</td>
-                            <td className="py-3 px-3 font-mono">${j.salaryMin} - ${j.salaryMax}</td>
-                            <td className="py-3 px-3 text-right">
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                                  j.status === 'PUBLISHED'
-                                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-[#00B14F] border border-emerald-200 dark:border-emerald-800'
-                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                                }`}
-                              >
-                                {j.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <EmptyState
-                    type="EMPTY"
-                    compact
-                    title={t('emptyStates.jobs.emptyTitle', "Chưa có bài tuyển dụng nào")}
-                    description={t('emptyStates.jobs.emptyDesc', "Hiện tại chưa có vị trí tuyển dụng nào trên hệ thống.")}
-                    primaryCtaText="Tạo tin tuyển dụng đầu tiên"
-                    primaryCtaHref="/recruiter/jobs/new"
-                  />
-                )}
-              </div>
-
-              {/* Right Column: Recent Candidate Activity */}
-              <div className="lg:col-span-4 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Đơn Ứng Tuyển Mới Nhất</h3>
-
-                {applications.length > 0 ? (
-                  <div className="space-y-3 text-xs">
-                    {applications.slice(0, 4).map((app) => (
-                      <div key={app.id} className="p-3 bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] rounded-lg flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <div className="font-semibold text-slate-900 dark:text-white">{app.appliedCvTitle}</div>
-                          <div className="text-[10px] text-slate-500 dark:text-slate-400">{app.job.title}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">{app.appliedDate}</div>
-                        </div>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-blue-50 dark:bg-blue-950/60 text-[#2563EB] dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                          {app.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState
-                    type="EMPTY"
-                    compact
-                    title={t('emptyStates.applications.candidateEmptyTitle', "Chưa có đơn ứng tuyển nào")}
-                    description={t('emptyStates.applications.recruiterEmptyDesc', "Chưa có đơn ứng tuyển nào được ghi nhận.")}
-                  />
-                )}
-              </div>
-
-            </div>
-          </>
-        ) : (
-          /* Assessment & Analytics View */
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-[#1E293B] pb-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Recruitment Telemetry & Funnel Analytics
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Chỉ số đo lường hiệu suất đối sánh và chất lượng nguồn ứng viên
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-slate-400">ĐỘ CHÍNH XÁC XẾP HẠNG (NDCG@3)</span>
-                  <div className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">1.00</div>
-                  <span className="text-[10px] text-[#00B14F] dark:text-[#3B82F6] font-medium">100% Top-tier candidate alignment</span>
-                </div>
-
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-slate-400">F1 EXTRACTION EVALUATION</span>
-                  <div className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">83.6%</div>
-                  <span className="text-[10px] text-[#00B14F] dark:text-[#3B82F6] font-medium">Recall 100% on technical benchmark</span>
-                </div>
-
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-slate-400">CHÍNH SÁCH BẢO VỆ GITHUB</span>
-                  <div className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">Zero Penalty</div>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Tín hiệu bổ trợ (Supplementary Only)</span>
-                </div>
-              </div>
-            </div>
-
-            {/* AI Sourcing Copilot Insights Card */}
-            <div className="bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] text-white border border-blue-900/30 rounded-xl p-6 shadow-md space-y-3">
-              <div className="text-[10px] font-mono uppercase text-[#00B14F] tracking-wider font-semibold">AI SOURCING COPILOT INSIGHTS</div>
-              <ul className="space-y-2 text-xs text-slate-200 font-light list-disc pl-5">
-                <li>Hệ thống áp dụng chuẩn hóa từ đồng nghĩa (JS → JavaScript, Postgres → PostgreSQL, K8s → Kubernetes).</li>
-                <li>Ứng viên chưa đủ thông tin hoặc chưa tải CV sẽ được gắn nhãn INSUFFICIENT_DATA minh bạch, không đưa ra điểm số ảo.</li>
-              </ul>
-            </div>
+            <Link
+              href="/recruiter/jobs"
+              className="text-xs font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:underline flex items-center gap-1"
+            >
+              <span>{locale === 'vi' ? 'Xem tất cả' : 'View all'}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
-        )}
 
-      </main>
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-20 rounded-2xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] animate-pulse" />
+              ))}
+            </div>
+          ) : recentJobs.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] text-center space-y-3">
+              <Briefcase className="w-10 h-10 text-[#94A3B8] mx-auto opacity-40" />
+              <div className="text-xs font-semibold text-[#64748B] dark:text-[#94A3B8]">
+                {locale === 'vi' ? 'Chưa có bài tuyển dụng nào được tạo.' : 'No job postings created yet.'}
+              </div>
+              <Link
+                href="/recruiter/jobs/new"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>{locale === 'vi' ? 'Tạo tin đầu tiên' : 'Create first job'}</span>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentJobs.map((job) => {
+                const jobAppCount = applications.filter((a) => a.job?.id === job.id).length;
+                return (
+                  <div
+                    key={job.id}
+                    className="p-4 rounded-2xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#3B82F6] shadow-xs transition space-y-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-w-0">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                              job.status === 'PUBLISHED'
+                                ? 'bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00B14F] dark:text-[#10B981] border border-[#00B14F]/30'
+                                : job.status === 'DRAFT'
+                                ? 'bg-[#FEF3C7] dark:bg-[#FACC15]/15 text-[#B45309] dark:text-[#FACC15] border border-[#FACC15]/30'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                            }`}
+                          >
+                            {job.status}
+                          </span>
+                          <span className="text-[11px] font-mono text-[#64748B] dark:text-[#94A3B8]">
+                            {job.industry}
+                          </span>
+                          <span className="text-[11px] text-[#94A3B8]">•</span>
+                          <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8]">
+                            {job.location || 'Toàn quốc'}
+                          </span>
+                        </div>
+                        <Link
+                          href={`/recruiter/jobs/${job.id}`}
+                          className="text-sm font-bold text-[#0F2A52] dark:text-white hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition block truncate"
+                        >
+                          {job.title}
+                        </Link>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Link
+                          href={`/recruiter/jobs/${job.id}/applications`}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#F8FAFC] dark:bg-[#13233F] hover:bg-[#EFF6FF] dark:hover:bg-[#18294E] text-[#1E3A5F] dark:text-[#D6E4E1] border border-[#E2E8F0] dark:border-[#1E293B] transition flex items-center gap-1.5 shrink-0"
+                        >
+                          <Users className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#3B82F6]" />
+                          <span>{jobAppCount} {locale === 'vi' ? 'ứng tuyển' : 'applicants'}</span>
+                        </Link>
+                        <Link
+                          href={`/recruiter/jobs/${job.id}/ranking`}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] hover:bg-[#DBEAFE] border border-[#2563EB]/20 transition flex items-center gap-1.5 shrink-0"
+                        >
+                          <Award className="w-3.5 h-3.5" />
+                          <span>AI Ranking</span>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Right Column: Recent Applications */}
+        <div className="space-y-4 min-w-0">
+          <div className="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#1E293B] pb-3">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-[#00B14F] dark:text-[#10B981]" />
+              <h2 className="text-base font-bold text-[#0F2A52] dark:text-white">
+                {locale === 'vi' ? 'Ứng Tuyển Mới Nhất' : 'Latest Applications'}
+              </h2>
+            </div>
+            <Link
+              href="/recruiter/pipeline"
+              className="text-xs font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:underline flex items-center gap-1"
+            >
+              <span>{locale === 'vi' ? 'Pipeline' : 'Pipeline'}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-16 rounded-2xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] animate-pulse" />
+              ))}
+            </div>
+          ) : recentApplications.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] text-center space-y-2">
+              <Users className="w-8 h-8 text-[#94A3B8] mx-auto opacity-40" />
+              <div className="text-xs text-[#64748B] dark:text-[#94A3B8]">
+                {locale === 'vi' ? 'Chưa nhận được hồ sơ nào.' : 'No candidate submissions yet.'}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {recentApplications.map((app) => (
+                <Link
+                  key={app.id}
+                  href={`/recruiter/applications/${app.id}`}
+                  className="p-3.5 rounded-xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#3B82F6] shadow-2xs transition block space-y-1.5 group"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-[#0F2A52] dark:text-white group-hover:text-[#2563EB] dark:group-hover:text-[#3B82F6] transition truncate">
+                      {app.candidateName || (locale === 'vi' ? 'Ứng viên' : 'Candidate')}
+                    </span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase shrink-0 ${
+                        app.status === 'SHORTLISTED'
+                          ? 'bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00B14F]'
+                          : app.status === 'SUBMITTED'
+                          ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB]'
+                          : app.status === 'REJECTED'
+                          ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600'
+                      }`}
+                    >
+                      {app.status}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-[#64748B] dark:text-[#94A3B8]">
+                    <span className="truncate max-w-[180px]">
+                      {app.job?.title || 'Vị trí tuyển dụng'}
+                    </span>
+                    <span className="font-mono text-[10px] shrink-0">
+                      {app.appliedDate}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

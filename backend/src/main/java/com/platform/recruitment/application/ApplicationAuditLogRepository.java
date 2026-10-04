@@ -9,4 +9,5 @@ import java.util.UUID;
 @Repository
 public interface ApplicationAuditLogRepository extends JpaRepository<ApplicationAuditLog, UUID> {
     List<ApplicationAuditLog> findByApplicationIdOrderByCreatedAtDesc(UUID applicationId);
+    org.springframework.data.domain.Page<ApplicationAuditLog> findByApplicationId(UUID applicationId, org.springframework.data.domain.Pageable pageable);
 }

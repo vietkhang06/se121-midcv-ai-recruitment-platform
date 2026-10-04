@@ -152,4 +152,16 @@ public class AiWorkerClient {
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "AI Worker structure-cv failed: " + ex.getMessage());
         }
     }
+
+    public Map<String, Object> checkHealth() {
+        try {
+            return restClient.get()
+                    .uri("/health")
+                    .retrieve()
+                    .body(Map.class);
+        } catch (Exception ex) {
+            log.error("Failed to call AI Worker /health: {}", ex.getMessage());
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "AI Worker health check failed: " + ex.getMessage());
+        }
+    }
 }

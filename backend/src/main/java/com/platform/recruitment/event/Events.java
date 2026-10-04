@@ -1,8 +1,10 @@
 package com.platform.recruitment.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.platform.recruitment.cv.CvProcessingSseService;
 import java.util.*;
 import org.slf4j.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
@@ -10,11 +12,21 @@ import org.springframework.stereotype.Component;
 public class Events {
   private final JdbcTemplate jdbc;
   private final ObjectMapper mapper;
+  private final CvProcessingSseService sseService;
   private static final Logger log = LoggerFactory.getLogger(Events.class);
 
   public Events(JdbcTemplate jdbc, ObjectMapper mapper) {
+    this(jdbc, mapper, null);
+  }
+
+  @Autowired
+  public Events(
+      JdbcTemplate jdbc,
+      ObjectMapper mapper,
+      @Autowired(required = false) CvProcessingSseService sseService) {
     this.jdbc = jdbc;
     this.mapper = mapper;
+    this.sseService = sseService;
   }
 
   public static String requestId() {
@@ -63,6 +75,14 @@ public class Events {
           req,
           code,
           e.getClass().getSimpleName());
+    }
+
+    if (sseService != null && job != null) {
+      try {
+        sseService.onEventEmitted(job, owner, level, step, code, message, duration);
+      } catch (Exception ex) {
+        log.debug("SSE notification failed for job {}: {}", job, ex.getMessage());
+      }
     }
   }
 

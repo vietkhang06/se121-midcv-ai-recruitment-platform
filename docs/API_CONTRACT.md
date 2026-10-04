@@ -211,47 +211,121 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
   }
   ```
 
-#### `GET /api/v1/candidate/profile`
+#### `GET /api/v1/candidate/cvs/{id}/draft`
 - **Role**: `CANDIDATE`
-- **Description**: Lấy dữ liệu hồ sơ hiện tại kèm metadata data lineage cho từng trường.
+- **Description**: Lấy dữ liệu bản nháp CV (DRAFT) để ứng viên review và chỉnh sửa. Khởi tạo từ extraction snapshot (AI structured JSON) và bảo toàn tính bất biến của file gốc và raw text.
 - **Response**: `200 OK`
   ```json
   {
+    "cv_id": "cv_987654",
     "profile_id": "prof_987654",
-    "status": "DRAFT | CONFIRMED",
+    "version_id": "ver_123456",
+    "version_number": 1,
+    "title": "Resume Nguyen Van A v1.0",
+    "status": "DRAFT",
+    "schema_version": "2.0",
+    "confirmed_at": null,
     "personal_info": {
       "full_name": { "value": "Nguyen Van A", "origin": "CV_EXTRACTED" },
       "email": { "value": "vana@example.com", "origin": "CV_EXTRACTED" },
-      "github_url": { "value": "https://github.com/nguyenvana", "origin": "USER_ADDED" }
+      "phone": { "value": "0901234567", "origin": "CV_EXTRACTED" },
+      "location": { "value": "Ho Chi Minh City", "origin": "CV_EXTRACTED" },
+      "headline": { "value": "Backend Engineer", "origin": "CV_EXTRACTED" },
+      "github_url": { "value": "https://github.com/nguyenvana", "origin": "CV_EXTRACTED" },
+      "linkedin_url": { "value": "https://linkedin.com/in/nguyenvana", "origin": "CV_EXTRACTED" },
+      "portfolio_url": { "value": null, "origin": "USER_ADDED" }
+    },
+    "summary": {
+      "content": { "value": "<p>Software Engineer with 3+ years experience in <strong>Java</strong>.</p>", "origin": "CV_EXTRACTED" }
     },
     "skills": [
-      { "name": "Java", "canonical_id": "SKILL_PROG_JAVA", "origin": "CV_EXTRACTED", "verified": true },
-      { "name": "Docker", "canonical_id": "SKILL_DEVOPS_DOCKER", "origin": "USER_ADDED", "verified": false }
+      { "name": "Java", "canonical_id": "SKILL_JAVA", "category": "BACKEND", "is_custom": false, "origin": "CV_EXTRACTED", "verified": true }
     ],
     "work_experience": [
       {
-        "id": "exp_1",
+        "id": "e2a0cfbf-1cb7-47b2-be22-dfb8df2eead5",
         "company": "Tech Corp",
+        "role": "Backend Developer",
         "position": "Backend Developer",
+        "start_date": "2021-01",
+        "end_date": "2023-12",
+        "is_current": false,
+        "description": "<p>Developed microservices using <strong>Spring Boot</strong>.</p>",
+        "technologies": ["Java", "Spring Boot"],
         "origin": "CV_EXTRACTED"
       }
     ],
-    "projects": [],
-    "education": [],
-    "certifications": [],
-    "languages": []
+    "projects": [
+      {
+        "id": "5fa2dc10-449e-436f-b148-356ba3a7d4a2",
+        "name": "E-Commerce System",
+        "role": "Lead Backend",
+        "description": "<p>Architected order processing module.</p>",
+        "project_url": "https://github.com/nguyenvana/ecommerce",
+        "tech_stack": ["Java", "PostgreSQL"],
+        "origin": "CV_EXTRACTED"
+      }
+    ],
+    "education": [
+      {
+        "id": "7ac15b49-b682-411a-bd8a-b8cb79344161",
+        "institution": "University of Technology",
+        "degree": "Bachelor of Computer Science",
+        "field_of_study": "Software Engineering",
+        "start_year": 2017,
+        "end_year": 2021,
+        "gpa": 8.3,
+        "gpa_scale": 10.0,
+        "gpa_display": "8.3/10",
+        "description": "",
+        "origin": "CV_EXTRACTED"
+      }
+    ],
+    "certifications": [
+      {
+        "id": "3be5b072-b7e1-4509-9ca3-4886616ea4f9",
+        "name": "AWS Certified Solutions Architect",
+        "issuer": "Amazon Web Services",
+        "issue_date": "2022-05",
+        "expiry_date": "2025-05",
+        "credential_id": "AWS-123456",
+        "credential_url": "https://aws.amazon.com/verify",
+        "attachment": {
+          "id": "att_111",
+          "file_name": "aws_cert.pdf",
+          "file_size": 245100,
+          "file_type": "application/pdf",
+          "status": "UNVERIFIED"
+        },
+        "origin": "CV_EXTRACTED"
+      }
+    ],
+    "languages": [
+      {
+        "id": "87b92fcb-a45b-4ec2-9e8c-529a6fb586ee",
+        "language": "English",
+        "proficiency": "Professional Working (IELTS 7.5)",
+        "score": "7.5",
+        "attachment": null,
+        "origin": "CV_EXTRACTED"
+      }
+    ],
+    "links": {
+      "github_url": "https://github.com/nguyenvana",
+      "linkedin_url": "https://linkedin.com/in/nguyenvana"
+    }
   }
   ```
 
-#### `PUT /api/v1/candidate/profile`
+#### `PUT /api/v1/candidate/cvs/{id}/draft`
 - **Role**: `CANDIDATE`
-- **Description**: Cập nhật thông tin hồ sơ (thêm/sửa/xóa thẻ lặp, kỹ năng). Các trường sửa đổi được tự động gắn nhãn `origin: USER_CONFIRMED` hoặc `USER_ADDED`.
-- **Request Body**: Cấu trúc profile tương đương `GET /api/v1/candidate/profile`.
-- **Response**: `200 OK`
+- **Description**: Lưu bản nháp đã chỉnh sửa của CV. Cho phép thêm, sửa, xóa các card lặp, chip kỹ năng, định dạng rich text, thông tin GPA. Không làm thay đổi file CV gốc hay raw text snapshot. Origin được backend phân giải tự động (`CV_EXTRACTED` cho trường chưa sửa, `USER_EDITED` cho trường sửa, `USER_ADDED` cho phần tử tạo mới).
+- **Request Body**: Tương đương cấu trúc của `CVDraftResponse`.
+- **Response**: `200 OK` (trả về `CVDraftResponse` đã cập nhật).
 
 #### `POST /api/v1/candidate/cvs/{cvId}/confirm`
 - **Role**: `CANDIDATE`
-- **Description**: Ứng viên cam kết và xác nhận toàn bộ thông tin hồ sơ cho CV cụ thể (`cvId`). Chuyển trạng thái hồ sơ sang `CONFIRMED`.
+- **Description**: Ứng viên cam kết và xác nhận toàn bộ thông tin hồ sơ cho CV cụ thể (`cvId`). Chuyển trạng thái hồ sơ sang `CONFIRMED`. Dữ liệu xác nhận này trở thành Confirmed Profile chính thức phục vụ đối sánh JD–CV.
 - **Response**: `200 OK`
   ```json
   {
@@ -261,6 +335,76 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
     "confirmed_at": "2026-09-28T12:15:00Z"
   }
   ```
+
+#### `GET /api/v1/taxonomy/skills/search`
+- **Role**: `CANDIDATE | RECRUITER | PUBLIC`
+- **Description**: Tìm kiếm kỹ năng chuẩn từ từ điển Taxonomy thật trong database phục vụ autocomplete (debounce 250-350ms).
+- **Query Params**: `query` (chuỗi tìm kiếm), `limit` (mặc định 10, tối đa 30).
+- **Response**: `200 OK`
+  ```json
+  {
+    "query": "jav",
+    "total": 2,
+    "skills": [
+      {
+        "id": "s_java",
+        "canonical_name": "Java",
+        "normalized_name": "java",
+        "category": "BACKEND",
+        "description": "Java programming language",
+        "is_custom": false
+      },
+      {
+        "id": "s_javascript",
+        "canonical_name": "JavaScript",
+        "normalized_name": "javascript",
+        "category": "FRONTEND",
+        "description": "JavaScript language",
+        "is_custom": false
+      }
+    ]
+  }
+  ```
+
+#### `POST /api/v1/candidate/cvs/{cvId}/attachments`
+- **Role**: `CANDIDATE`
+- **Description**: Tải lên tài liệu minh chứng (PDF, PNG, JPG/JPEG <= 10MB) đính kèm cho từng chứng chỉ hoặc ngoại ngữ. Trạng thái minh chứng mặc định là `UPLOADED / UNVERIFIED`. Item ID phải là UUID hợp lệ đã tồn tại trong bản nháp.
+- **Content-Type**: `multipart/form-data`
+- **Form Data**:
+  - `file`: MultipartFile
+  - `itemType`: `CERTIFICATION | LANGUAGE`
+  - `itemId`: UUID của chứng chỉ hoặc ngoại ngữ trong bản nháp (ví dụ: `3be5b072-b7e1-4509-9ca3-4886616ea4f9`)
+- **Response Codes**:
+  - `201 Created`: Upload và liên kết thành công.
+  - `400 Bad Request`: `itemId` không phải UUID hợp lệ (`INVALID_ITEM_ID`).
+  - `403 Forbidden`: Ứng viên không sở hữu CV.
+  - `404 Not Found`: CV không tồn tại hoặc `itemId` không tồn tại trong bản nháp (`ITEM_NOT_FOUND`).
+  - `413 Payload Too Large`: Dung lượng file vượt quá giới hạn cho phép.
+  - `415 Unsupported Media Type`: Định dạng file không được hỗ trợ.
+- **Response**: `201 Created`
+  ```json
+  {
+    "attachment_id": "att_111",
+    "item_type": "CERTIFICATION",
+    "item_id": "3be5b072-b7e1-4509-9ca3-4886616ea4f9",
+    "file_name": "aws_certificate.pdf",
+    "file_size": 245100,
+    "file_type": "application/pdf",
+    "status": "UNVERIFIED",
+    "preview_url": "/api/v1/candidate/cvs/cv_987654/attachments/att_111",
+    "created_at": "2026-10-01T12:00:00Z"
+  }
+  ```
+
+#### `GET /api/v1/candidate/cvs/{cvId}/attachments/{attachmentId}`
+- **Role**: `CANDIDATE | RECRUITER`
+- **Description**: Xem nhanh (preview ảnh / inline PDF) hoặc tải xuống file minh chứng đính kèm. Yêu cầu kiểm tra quyền sở hữu candidate ownership.
+- **Response**: `200 OK` (Binary stream kèm `Content-Type`, `Content-Disposition: inline`).
+
+#### `DELETE /api/v1/candidate/cvs/{cvId}/attachments/{attachmentId}`
+- **Role**: `CANDIDATE`
+- **Description**: Xóa file minh chứng đính kèm khi hồ sơ còn ở trạng thái DRAFT.
+- **Response**: `200 OK`
 
 ---
 

@@ -1,8 +1,11 @@
 package com.platform.recruitment.company;
 
 import com.platform.recruitment.common.BaseEntity;
+import com.platform.recruitment.user.User;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.time.ZonedDateTime;
 
 @Entity
 @Table(name = "companies")
@@ -35,4 +38,19 @@ public class Company extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "verification_status")
     private CompanyVerification verificationStatus = CompanyVerification.PENDING;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by")
+    private User reviewedBy;
+
+    @Column(name = "reviewed_at")
+    private ZonedDateTime reviewedAt;
+
+    @Column(name = "review_notes", columnDefinition = "TEXT")
+    private String reviewNotes;
+
+    @Builder.Default
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
 }

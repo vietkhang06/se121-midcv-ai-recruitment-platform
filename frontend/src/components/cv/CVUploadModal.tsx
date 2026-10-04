@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Industry, CV } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
-import { uploadCandidateCV, fetchCVProcessingStatus, retryCVExtraction, ApiError } from '@/lib/api';
+import { uploadCandidateCV, fetchCVProcessingStatus, subscribeCVProcessingEvents, retryCVExtraction, ApiError } from '@/lib/api';
 import { CVProcessingStatus } from '@/types';
 import {
   X,
@@ -127,18 +127,74 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
 
   const pollProcessingStatus = async (cvId: string, cvEntity: CV, signal: AbortSignal) => {
     let isDone = false;
+    const jobId = (cvEntity as any)?.jobId;
+
+    // 1. Subscribe to real-time SSE event stream for immediate stage progression
+    const unsub = subscribeCVProcessingEvents(
+      { cvId, jobId },
+      (eventData: any) => {
+        if (signal.aborted || isDone) return;
+        if (eventData.progress !== undefined && eventData.progress !== null) {
+          setProcessingProgress(Math.max(eventData.progress, 10));
+        }
+        if (eventData.message) {
+          setProcessingStageMessage(eventData.message);
+        }
+
+        const step = (eventData.step || '').toUpperCase();
+        const code = (eventData.code || '').toUpperCase();
+
+        if (step.includes('FAILED') || code.includes('FAILED')) {
+          isDone = true;
+          unsub();
+          setStatus('FAILED');
+          setErrorMessage(eventData.message || 'Quá trình trích xuất hồ sơ gặp sự cố.');
+        } else if (
+          step.includes('SUCCEEDED') ||
+          step.includes('COMPLETED') ||
+          step.includes('NEEDS_REVIEW') ||
+          code.includes('JOB_SUCCEEDED')
+        ) {
+          isDone = true;
+          unsub();
+          setProcessingProgress(100);
+          setStatus('COMPLETED');
+          if (onUploadSuccess) onUploadSuccess(cvEntity);
+          if (onSuccess) onSuccess();
+          setTimeout(() => {
+            if (!signal.aborted) {
+              onClose();
+              setStatus('IDLE');
+              setFile(null);
+              setUploadedCv(null);
+            }
+          }, 600);
+        }
+      },
+      (err) => {
+        console.warn('SSE stream notice, continuing background check:', err);
+      }
+    );
+
+    // 2. Periodic status check fallback in case SSE connection drops
     const maxAttempts = 60; // 60s timeout for safety
     let attempts = 0;
 
     while (!isDone && attempts < maxAttempts) {
-      if (signal.aborted) return;
+      if (signal.aborted) {
+        unsub();
+        return;
+      }
       await new Promise((r) => setTimeout(r, 1000));
-      if (signal.aborted) return;
+      if (signal.aborted || isDone) {
+        unsub();
+        return;
+      }
       attempts++;
 
       try {
         const statusResp: CVProcessingStatus = await fetchCVProcessingStatus(cvId);
-        if (signal.aborted) return;
+        if (signal.aborted || isDone) return;
         if (statusResp) {
           setProcessingProgress(Math.max(statusResp.progress || 10, 10));
           if (statusResp.message) {
@@ -147,6 +203,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
 
           if (statusResp.status === 'FAILED') {
             isDone = true;
+            unsub();
             setStatus('FAILED');
             const errDetail = statusResp.message || 'Quá trình trích xuất hồ sơ gặp sự cố.';
             const codeDetail = statusResp.errorCode ? ` [${statusResp.errorCode}]` : '';
@@ -162,6 +219,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
             // Chỉ chuyển sang mở review khi processing-status trả về SUCCEEDED hoặc NEEDS_REVIEW hợp lệ
             if (statusResp.progress && statusResp.progress >= 100) {
               isDone = true;
+              unsub();
               setProcessingProgress(100);
               setStatus('COMPLETED');
               if (onUploadSuccess) onUploadSuccess(cvEntity);
@@ -179,7 +237,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
           }
         }
       } catch (pollErr: any) {
-        if (signal.aborted) return;
+        if (signal.aborted || isDone) return;
         // Nếu polling gặp 404: dừng polling ngay lập tức và báo lỗi tính nhất quán ID/dữ liệu
         const statusCode = pollErr?.statusCode || pollErr?.status || pollErr?.responseBody?.code;
         if (
@@ -190,6 +248,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
           pollErr?.responseBody?.code === 'CV_NOT_FOUND'
         ) {
           isDone = true;
+          unsub();
           setStatus('FAILED');
           setErrorMessage('Lỗi tính nhất quán dữ liệu: Không tìm thấy phiên bản xử lý CV (ID không khớp giữa upload và processing). Vui lòng thử lại hoặc tải lại tệp.');
           return;
@@ -200,6 +259,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
 
     // Timeout tuyệt đối không được tự động chuyển sang COMPLETED hay mở review
     if (!isDone && attempts >= maxAttempts) {
+      unsub();
       if (signal.aborted) return;
       setStatus('FAILED');
       setErrorMessage('Quá trình xử lý CV quá thời gian quy định (Timeout). Hệ thống chưa thể hoàn tất trích xuất. Vui lòng bấm Thử lại.');

@@ -47,7 +47,7 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                           : item.rank === 2
                           ? 'bg-blue-50 dark:bg-blue-950/80 text-[#2563EB] dark:text-blue-300 border border-blue-200 dark:border-blue-500/40'
                           : item.rank === 3
-                          ? 'bg-emerald-50 dark:bg-emerald-950/80 text-[#00B14F] dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40'
                           : 'bg-slate-100 dark:bg-[#13233F] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-[#1E293B]'
                       }`}
                     >
@@ -83,7 +83,7 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                         <span className="font-extrabold text-slate-900 dark:text-white">{item.overallMatchScore.toFixed(1)}%</span>
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                           isHighMatch
-                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-[#00B14F] border border-emerald-200 dark:border-emerald-800'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                             : isGoodMatch
                             ? 'bg-blue-50 dark:bg-blue-950/60 text-[#2563EB] border border-blue-200 dark:border-blue-800'
                             : 'bg-slate-100 dark:bg-[#13233F] text-slate-600 dark:text-slate-400'
@@ -95,7 +95,7 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                         <div
                           className={`h-full rounded-full transition-all ${
                             isHighMatch
-                              ? 'bg-gradient-to-r from-[#00B14F] to-emerald-400'
+                              ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
                               : isGoodMatch
                               ? 'bg-gradient-to-r from-[#2563EB] to-blue-400'
                               : 'bg-slate-400'
@@ -115,7 +115,7 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                   <td className="py-4 px-4 text-center">
                     {item.githubSupportingScore !== undefined ? (
                       <span className="font-mono text-slate-900 dark:text-white font-bold flex items-center justify-center gap-1">
-                        <GitBranch className="w-3.5 h-3.5 text-[#00B14F]" />
+                        <GitBranch className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                         {item.githubSupportingScore.toFixed(1)}%
                       </span>
                     ) : (
@@ -128,8 +128,8 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                     <div className="space-y-1">
                       <div className="flex items-center gap-1.5">
                         {!hasMissingRequired ? (
-                          <span className="text-[11px] font-semibold text-[#00B14F] dark:text-[#00B14F] flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-[#00B14F]" />
+                          <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                             Khớp {item.requiredSkillsMatched}/{item.requiredSkillsTotal} bắt buộc
                           </span>
                         ) : (

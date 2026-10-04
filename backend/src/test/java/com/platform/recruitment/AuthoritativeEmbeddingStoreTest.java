@@ -27,18 +27,18 @@ class AuthoritativeEmbeddingStoreTest {
         Embedding cvEmbedding = Embedding.builder()
                 .entityType("CV")
                 .entityId(cvId)
-                .modelProvider("OPENAI")
-                .modelName("text-embedding-3-small")
-                .dimension(1536)
+                .modelProvider("LOCAL_OLLAMA")
+                .modelName("bge-m3")
+                .dimension(1024)
                 .status("ACTIVE")
                 .build();
 
         Embedding jobEmbedding = Embedding.builder()
                 .entityType("JOB")
                 .entityId(jobId)
-                .modelProvider("OPENAI")
-                .modelName("text-embedding-3-small")
-                .dimension(1536)
+                .modelProvider("LOCAL_OLLAMA")
+                .modelName("bge-m3")
+                .dimension(1024)
                 .status("ACTIVE")
                 .build();
 
@@ -52,7 +52,7 @@ class AuthoritativeEmbeddingStoreTest {
         assertTrue(jobResult.isPresent());
         assertEquals("CV", cvResult.get().getEntityType());
         assertEquals("JOB", jobResult.get().getEntityType());
-        assertEquals(1536, cvResult.get().getDimension());
-        assertEquals(1536, jobResult.get().getDimension());
+        assertEquals(1024, cvResult.get().getDimension());
+        assertEquals(1024, jobResult.get().getDimension());
     }
 }

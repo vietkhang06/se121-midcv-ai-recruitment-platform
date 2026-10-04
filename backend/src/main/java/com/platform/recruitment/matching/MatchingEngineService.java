@@ -7,6 +7,8 @@ import com.platform.recruitment.candidate.CandidateProfileRepository;
 import com.platform.recruitment.common.ResourceNotFoundException;
 import com.platform.recruitment.cv.CV;
 import com.platform.recruitment.cv.CVRepository;
+import com.platform.recruitment.cv.CVVersion;
+import com.platform.recruitment.cv.CVVersionRepository;
 import com.platform.recruitment.job.Job;
 import com.platform.recruitment.job.JobRepository;
 import com.platform.recruitment.job.JobRequirement;
@@ -38,6 +40,10 @@ public class MatchingEngineService {
     private final MatchResultRepository matchResultRepository;
     private final MatchFactorRepository matchFactorRepository;
     @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private CVVersionRepository cvVersionRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
     private EvidenceRepository evidenceRepository;
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
@@ -49,6 +55,10 @@ public class MatchingEngineService {
     private final EducationMatcher educationMatcher;
     private final ProjectRelevanceMatcher projectRelevanceMatcher;
     private final GitHubScoringService gitHubScoringService;
+
+    public void setCvVersionRepository(CVVersionRepository cvVersionRepository) {
+        this.cvVersionRepository = cvVersionRepository;
+    }
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private SkillNormalizer skillNormalizer = new SkillNormalizer();
@@ -77,6 +87,28 @@ public class MatchingEngineService {
         // Get latest CV for candidate
         List<CV> cvs = cvRepository.findByCandidateId(candidateId);
         String cvRawText = cvs.isEmpty() ? "" : cvs.get(0).getRawText();
+        
+        // Prefer confirmed CV profile content if available
+        if (!cvs.isEmpty() && cvVersionRepository != null) {
+            List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvs.get(0).getId());
+            Optional<CVVersion> confirmedVersion = versions.stream()
+                    .filter(v -> "CONFIRMED".equalsIgnoreCase(v.getStatus()))
+                    .findFirst();
+            if (confirmedVersion.isPresent()) {
+                String confirmedText = confirmedVersion.get().getRawTextContent();
+                String structuredJson = confirmedVersion.get().getStructuredJsonContent();
+                StringBuilder combined = new StringBuilder();
+                if (confirmedText != null && !confirmedText.isBlank()) {
+                    combined.append(confirmedText).append("\n");
+                }
+                if (structuredJson != null && !structuredJson.isBlank()) {
+                    combined.append(extractTextFromStructuredJson(structuredJson));
+                }
+                if (combined.length() > 0) {
+                    cvRawText = combined.toString();
+                }
+            }
+        }
 
         // Insufficient candidate data handling: DO NOT calculate misleading scores
         if (cvs.isEmpty() || cvRawText == null || cvRawText.trim().isEmpty()) {
@@ -457,5 +489,106 @@ public class MatchingEngineService {
         if (start > 0) snippet = "..." + snippet;
         if (end < text.length()) snippet = snippet + "...";
         return snippet;
+    }
+
+    private String extractTextFromStructuredJson(String json) {
+        if (json == null || json.isBlank()) return "";
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = this.objectMapper != null ? this.objectMapper : new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(json);
+            StringBuilder sb = new StringBuilder();
+
+            // Skills
+            com.fasterxml.jackson.databind.JsonNode skillsNode = root.get("skills");
+            if (skillsNode != null && skillsNode.isArray()) {
+                sb.append("Skills: ");
+                for (com.fasterxml.jackson.databind.JsonNode skill : skillsNode) {
+                    if (skill.has("name")) {
+                        sb.append(skill.get("name").asText()).append(", ");
+                    }
+                }
+                sb.append("\n");
+            }
+
+            // Summary
+            if (root.has("summary") && !root.get("summary").isNull()) {
+                com.fasterxml.jackson.databind.JsonNode sNode = root.get("summary");
+                String summary = "";
+                if (sNode.isObject() && sNode.has("content")) {
+                    com.fasterxml.jackson.databind.JsonNode cNode = sNode.get("content");
+                    summary = (cNode.isObject() && cNode.has("value")) ? cNode.get("value").asText() : cNode.asText();
+                } else if (sNode.isObject() && sNode.has("summary")) {
+                    com.fasterxml.jackson.databind.JsonNode innerNode = sNode.get("summary");
+                    summary = (innerNode.isObject() && innerNode.has("value")) ? innerNode.get("value").asText() : innerNode.asText();
+                } else {
+                    summary = sNode.asText();
+                }
+                // strip basic HTML tags if any
+                summary = summary.replaceAll("<[^>]*>", " ");
+                sb.append("Summary: ").append(summary).append("\n");
+            }
+
+            // Experience
+            com.fasterxml.jackson.databind.JsonNode expNode = root.has("work_experience") ? root.get("work_experience")
+                    : (root.has("experience") ? root.get("experience") : root.get("experiences"));
+            if (expNode != null && expNode.isArray()) {
+                for (com.fasterxml.jackson.databind.JsonNode exp : expNode) {
+                    if (exp.has("company")) sb.append(exp.get("company").asText()).append(" ");
+                    if (exp.has("role")) sb.append(exp.get("role").asText()).append(" ");
+                    if (exp.has("position") && !exp.has("role")) sb.append(exp.get("position").asText()).append(" ");
+                    if (exp.has("description")) {
+                        String desc = exp.get("description").asText().replaceAll("<[^>]*>", " ");
+                        sb.append(desc).append(" ");
+                    }
+                    if (exp.has("technologies") && exp.get("technologies").isArray()) {
+                        for (com.fasterxml.jackson.databind.JsonNode t : exp.get("technologies")) {
+                            sb.append(t.asText()).append(" ");
+                        }
+                    }
+                    sb.append("\n");
+                }
+            }
+
+            // Projects
+            com.fasterxml.jackson.databind.JsonNode projNode = root.get("projects");
+            if (projNode != null && projNode.isArray()) {
+                for (com.fasterxml.jackson.databind.JsonNode p : projNode) {
+                    if (p.has("name")) sb.append(p.get("name").asText()).append(" ");
+                    if (p.has("role")) sb.append(p.get("role").asText()).append(" ");
+                    if (p.has("description")) {
+                        String desc = p.get("description").asText().replaceAll("<[^>]*>", " ");
+                        sb.append(desc).append(" ");
+                    }
+                    if (p.has("techStack") && p.get("techStack").isArray()) {
+                        for (com.fasterxml.jackson.databind.JsonNode t : p.get("techStack")) {
+                            sb.append(t.asText()).append(" ");
+                        }
+                    }
+                    if (p.has("technologies") && p.get("technologies").isArray()) {
+                        for (com.fasterxml.jackson.databind.JsonNode t : p.get("technologies")) {
+                            sb.append(t.asText()).append(" ");
+                        }
+                    }
+                    sb.append("\n");
+                }
+            }
+
+            // Education
+            com.fasterxml.jackson.databind.JsonNode eduNode = root.has("education") ? root.get("education") : root.get("educations");
+            if (eduNode != null && eduNode.isArray()) {
+                for (com.fasterxml.jackson.databind.JsonNode e : eduNode) {
+                    if (e.has("institution")) sb.append(e.get("institution").asText()).append(" ");
+                    if (e.has("degree")) sb.append(e.get("degree").asText()).append(" ");
+                    if (e.has("field_of_study")) sb.append(e.get("field_of_study").asText()).append(" ");
+                    else if (e.has("fieldOfStudy")) sb.append(e.get("fieldOfStudy").asText()).append(" ");
+                    sb.append("\n");
+                }
+            }
+
+            return sb.toString();
+        } catch (Exception e) {
+            log.warn("Failed to parse structured JSON content for matching: {}", e.getMessage());
+            return "";
+        }
     }
 }
