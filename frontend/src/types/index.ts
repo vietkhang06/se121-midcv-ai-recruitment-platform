@@ -24,6 +24,8 @@ export interface User {
   age?: number;
   targetIndustry?: Industry;
   emailVerified?: boolean;
+  accountStatus?: 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
+  isActive?: boolean;
 }
 
 export interface Company {

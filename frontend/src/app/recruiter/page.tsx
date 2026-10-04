@@ -7,6 +7,7 @@ import { fetchRecruiterJobs, fetchRecruiterCompany, fetchJobApplications } from 
 import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
 import { MetricCard } from '@/components/recruiter/MetricCard';
 import { CompanyVerificationBanner } from '@/components/recruiter/CompanyVerificationBanner';
+import { SuspensionBanner } from '@/components/recruiter/SuspensionBanner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { useLanguage } from '@/context/LanguageContext';
 import {
@@ -100,8 +101,14 @@ export default function HRDashboardPage() {
         isCompanyVerified={company?.verificationStatus === 'VERIFIED'}
       />
 
+      {/* Suspension Status Banner if suspended */}
+      <SuspensionBanner
+        companyVerificationStatus={company?.verificationStatus}
+        companyName={company?.name}
+      />
+
       {/* Verification Status Banner if unverified */}
-      {company && (
+      {company && company.verificationStatus !== 'SUSPENDED' && (
         <CompanyVerificationBanner
           status={company.verificationStatus}
           companyName={company.name}

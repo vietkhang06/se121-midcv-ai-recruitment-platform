@@ -49,6 +49,7 @@ public class AdminService {
     private final CVRepository cvRepository;
     private final ApplicationRepository applicationRepository;
     private final com.platform.recruitment.company.service.CompanyVerificationService companyVerificationService;
+    private final com.platform.recruitment.suspension.SuspensionRecordRepository suspensionRecordRepository;
 
     // ==========================================
     // 1. DASHBOARD AGGREGATED METRICS
@@ -218,8 +219,20 @@ public class AdminService {
             throw new CustomException(ErrorCode.ACCESS_DENIED, "Không thể đình chỉ tài khoản mang quyền Quản trị viên.");
         }
 
-        user.setIsActive(false);
+        user.suspend();
         userRepository.save(user);
+
+        com.platform.recruitment.suspension.SuspensionRecord record =
+                com.platform.recruitment.suspension.SuspensionRecord.builder()
+                        .targetType(com.platform.recruitment.suspension.SuspensionTargetType.USER)
+                        .targetId(user.getId())
+                        .reasonCode("ADMIN_MODERATION")
+                        .reasonText(reason.trim())
+                        .suspendedBy(admin)
+                        .suspendedAt(ZonedDateTime.now())
+                        .status(com.platform.recruitment.suspension.SuspensionStatus.ACTIVE)
+                        .build();
+        suspensionRecordRepository.save(record);
 
         adminAuditLogService.log(
                 admin,
@@ -239,8 +252,20 @@ public class AdminService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-        user.setIsActive(true);
+        user.reactivate();
         userRepository.save(user);
+
+        suspensionRecordRepository.findByTargetTypeAndTargetIdAndStatus(
+                com.platform.recruitment.suspension.SuspensionTargetType.USER,
+                user.getId(),
+                com.platform.recruitment.suspension.SuspensionStatus.ACTIVE
+        ).ifPresent(activeRecord -> {
+            activeRecord.setStatus(com.platform.recruitment.suspension.SuspensionStatus.LIFTED);
+            activeRecord.setLiftedBy(admin);
+            activeRecord.setLiftedAt(ZonedDateTime.now());
+            activeRecord.setResolutionNote(reason != null ? reason.trim() : "Quản trị viên kích hoạt lại tài khoản");
+            suspensionRecordRepository.save(activeRecord);
+        });
 
         adminAuditLogService.log(
                 admin,

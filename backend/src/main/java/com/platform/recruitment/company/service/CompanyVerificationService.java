@@ -33,6 +33,7 @@ public class CompanyVerificationService {
     private final RecruiterProfileRepository recruiterProfileRepository;
     private final JobRepository jobRepository;
     private final AdminAuditLogService adminAuditLogService;
+    private final com.platform.recruitment.suspension.SuspensionRecordRepository suspensionRecordRepository;
 
     @Transactional(readOnly = true)
     public Page<CompanyAdminDto> listCompanies(String query, CompanyVerification status, Pageable pageable) {
@@ -93,6 +94,18 @@ public class CompanyVerificationService {
 
         // If company is suspended, cascade suspension to all its published jobs to protect candidates
         if (targetStatus == CompanyVerification.SUSPENDED) {
+            com.platform.recruitment.suspension.SuspensionRecord record =
+                    com.platform.recruitment.suspension.SuspensionRecord.builder()
+                            .targetType(com.platform.recruitment.suspension.SuspensionTargetType.COMPANY)
+                            .targetId(savedCompany.getId())
+                            .reasonCode("ADMIN_MODERATION")
+                            .reasonText(reason != null ? reason.trim() : "Doanh nghiệp bị tạm đình chỉ hoạt động")
+                            .suspendedBy(adminUser)
+                            .suspendedAt(ZonedDateTime.now())
+                            .status(com.platform.recruitment.suspension.SuspensionStatus.ACTIVE)
+                            .build();
+            suspensionRecordRepository.save(record);
+
             jobRepository.findByCompanyId(companyId).forEach(job -> {
                 if (job.getStatus() == JobStatus.PUBLISHED) {
                     job.setStatus(JobStatus.SUSPENDED);
@@ -100,6 +113,18 @@ public class CompanyVerificationService {
                     job.setSuspendedAt(ZonedDateTime.now());
                     jobRepository.save(job);
                 }
+            });
+        } else if (currentStatus == CompanyVerification.SUSPENDED && targetStatus == CompanyVerification.VERIFIED) {
+            suspensionRecordRepository.findByTargetTypeAndTargetIdAndStatus(
+                    com.platform.recruitment.suspension.SuspensionTargetType.COMPANY,
+                    savedCompany.getId(),
+                    com.platform.recruitment.suspension.SuspensionStatus.ACTIVE
+            ).ifPresent(activeRecord -> {
+                activeRecord.setStatus(com.platform.recruitment.suspension.SuspensionStatus.LIFTED);
+                activeRecord.setLiftedBy(adminUser);
+                activeRecord.setLiftedAt(ZonedDateTime.now());
+                activeRecord.setResolutionNote(reason != null ? reason.trim() : "Quản trị viên khôi phục doanh nghiệp");
+                suspensionRecordRepository.save(activeRecord);
             });
         }
 

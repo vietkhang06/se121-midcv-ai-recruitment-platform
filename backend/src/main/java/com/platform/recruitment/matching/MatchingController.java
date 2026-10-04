@@ -30,15 +30,16 @@ public class MatchingController {
     private final JobRepository jobRepository;
     private final RecruiterProfileRepository recruiterProfileRepository;
     private final ApplicationRepository applicationRepository;
+    private final com.platform.recruitment.suspension.SuspensionGuard suspensionGuard;
 
     @PostMapping("/jobs/{jobId}/candidates/{candidateId}")
-    public ResponseEntity<ApiResponse<MatchResult>> calculateMatchScore(
+    public ResponseEntity<ApiResponse<MatchScoreResponse>> calculateMatchScore(
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID jobId,
             @PathVariable UUID candidateId) {
         validateRecruiterJobAccess(currentUser, jobId);
         MatchResult result = matchingEngineService.calculateAndPersistMatchResult(jobId, candidateId);
-        return ResponseEntity.ok(ApiResponse.success("Match score calculated successfully", result));
+        return ResponseEntity.ok(ApiResponse.success("Match score calculated successfully", MatchScoreResponse.fromEntity(result)));
     }
 
     @GetMapping("/jobs/{jobId}/rankings")
@@ -82,6 +83,9 @@ public class MatchingController {
         if (currentUser.getRole() == Role.CANDIDATE) {
             throw new UnauthorizedAccessException("Ứng viên không có quyền truy cập xếp hạng ứng viên của nhà tuyển dụng.");
         }
+        if (suspensionGuard != null) {
+            suspensionGuard.checkRecruiterOperationAllowed(currentUser);
+        }
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(currentUser.getId())
                 .orElseThrow(() -> new UnauthorizedAccessException("Không tìm thấy thông tin nhà tuyển dụng."));
         Job job = jobRepository.findById(jobId)
@@ -111,6 +115,9 @@ public class MatchingController {
         }
 
         if (currentUser.getRole() == Role.HR) {
+            if (suspensionGuard != null) {
+                suspensionGuard.checkRecruiterOperationAllowed(currentUser);
+            }
             RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(currentUser.getId())
                     .orElseThrow(() -> new UnauthorizedAccessException("Không tìm thấy thông tin nhà tuyển dụng."));
             if (application.getJob() == null || application.getJob().getCompany() == null ||
