@@ -23,11 +23,11 @@ public class Embedding extends BaseEntity {
 
     @Builder.Default
     @Column(name = "model_provider")
-    private String modelProvider = "OPENAI";
+    private String modelProvider = "LOCAL_OLLAMA";
 
     @Builder.Default
     @Column(name = "model_name")
-    private String modelName = "text-embedding-3-small";
+    private String modelName = "bge-m3";
 
     @Builder.Default
     @Column(name = "model_version")
@@ -35,7 +35,7 @@ public class Embedding extends BaseEntity {
 
     @Builder.Default
     @Column(name = "dimension")
-    private Integer dimension = 1536;
+    private Integer dimension = 1024;
 
     @Builder.Default
     @Column(name = "status")

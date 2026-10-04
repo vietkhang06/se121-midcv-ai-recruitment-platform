@@ -30,7 +30,7 @@ class EmbeddingServiceTest {
     }
 
     @Test
-    void testGenerateEmbedding_Validates1536Dimension_PersistsCentralizedStore() {
+    void testGenerateEmbedding_Validates1024Dimension_PersistsCentralizedStore() {
         UUID cvId = UUID.randomUUID();
         when(embeddingRepository.findByEntityTypeAndEntityId("CV", cvId)).thenReturn(Optional.empty());
         when(embeddingRepository.save(any(Embedding.class))).thenAnswer(i -> i.getArgument(0));
@@ -40,8 +40,8 @@ class EmbeddingServiceTest {
         assertNotNull(result);
         assertEquals("CV", result.getEntityType());
         assertEquals(cvId, result.getEntityId());
-        assertEquals("text-embedding-3-small", result.getModelName());
-        assertEquals(1536, result.getDimension());
+        assertEquals("bge-m3", result.getModelName());
+        assertEquals(1024, result.getDimension());
         assertEquals("ACTIVE", result.getStatus());
         verify(embeddingRepository, times(1)).save(any(Embedding.class));
     }

@@ -107,6 +107,11 @@ def health_check():
             "status": "UP",
             "ocrReady": ocr_status == "READY"
         },
+        "embedding": {
+            "model": settings.EMBEDDING_MODEL,
+            "dimension": settings.EMBEDDING_DIMENSION,
+            "provider": "LOCAL_OLLAMA"
+        },
         "llm": {
             "primary": {
                 "provider": settings.LLM_PRIMARY_PROVIDER,

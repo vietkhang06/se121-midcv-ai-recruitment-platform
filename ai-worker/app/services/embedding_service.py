@@ -18,8 +18,8 @@ class EmbeddingError(Exception):
 
 class OllamaEmbeddingService:
     """
-    MidCV Local Embedding Service utilizing Ollama nomic-embed-text:latest.
-    Generates authentic 768-dimensional normalized dense vectors.
+    MidCV Local Embedding Service utilizing Ollama bge-m3.
+    Generates authentic 1024-dimensional normalized dense vectors.
     """
     def __init__(
         self,
@@ -28,13 +28,13 @@ class OllamaEmbeddingService:
         timeout: float = 60.0
     ):
         self.base_url = (base_url or settings.OLLAMA_BASE_URL).rstrip("/")
-        self.model_name = model_name or settings.OLLAMA_EMBEDDING_MODEL
+        self.model_name = model_name or settings.EMBEDDING_MODEL
         self.timeout = timeout
 
     def embed_text(self, text: str) -> List[float]:
         """
         Generates embedding vector for a single input text string.
-        Returns a 768-dimensional float list.
+        Returns a 1024-dimensional float list.
         """
         if not text or not text.strip():
             raise EmbeddingError("Input text for embedding cannot be empty.", status_code=400)
