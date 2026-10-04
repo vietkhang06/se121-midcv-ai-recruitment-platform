@@ -131,6 +131,10 @@ public class CVService {
         return mapToResponse(savedCv);
     }
 
+    public static final java.util.Set<String> ALLOWED_CV_SORT_FIELDS = java.util.Set.of(
+            "createdAt", "title", "targetIndustry", "versionNumber", "updatedAt"
+    );
+
     @Transactional(readOnly = true)
     public List<CVResponse> getCandidateCVs(User candidateUser) {
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
@@ -139,6 +143,23 @@ public class CVService {
         return cvRepository.findByCandidateId(candidate.getId()).stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public com.platform.recruitment.common.PageResponse<CVResponse> getCandidateCVs(
+            User candidateUser, int page, int size, String sort, String direction) {
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        org.springframework.data.domain.Pageable pageable =
+                com.platform.recruitment.common.PaginationUtils.createPageable(
+                        page, size, sort, direction, ALLOWED_CV_SORT_FIELDS, "createdAt");
+
+        org.springframework.data.domain.Page<CV> cvPage = cvRepository.findByCandidateId(candidate.getId(), pageable);
+        List<CVResponse> content = cvPage.getContent().stream().map(this::mapToResponse).toList();
+        String sortField = (sort == null || sort.isBlank()) ? "createdAt" : sort;
+        String sortDir = (direction == null || direction.isBlank()) ? "desc" : direction.toLowerCase();
+        return com.platform.recruitment.common.PageResponse.of(cvPage, content, sortField, sortDir);
     }
 
     @Transactional(readOnly = true)

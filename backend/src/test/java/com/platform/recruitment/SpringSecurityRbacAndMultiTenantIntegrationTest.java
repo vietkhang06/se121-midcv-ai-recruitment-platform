@@ -316,7 +316,7 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     @Test
     @DisplayName("Multi-Tenant: HR Company B cannot access Company A's job applications (HTTP 403)")
     void testMultiTenant_HrCompanyB_CannotAccess_CompanyA_Applications() throws Exception {
-        when(applicationService.getApplicationsForJob(any(User.class), eq(jobA.getId())))
+        when(applicationService.getApplicationsForJob(any(User.class), eq(jobA.getId()), anyInt(), anyInt(), any(), any()))
                 .thenThrow(new UnauthorizedAccessException("Recruiter does not own the company for this job posting"));
 
         mockMvc.perform(get("/api/v1/recruiter/jobs/" + jobA.getId() + "/applications")
@@ -329,14 +329,26 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     @Test
     @DisplayName("Multi-Tenant: HR Company A CAN access Company A's job applications (HTTP 200)")
     void testMultiTenant_HrCompanyA_CanAccess_CompanyA_Applications() throws Exception {
-        when(applicationService.getApplicationsForJob(any(User.class), eq(jobA.getId())))
-                .thenReturn(Collections.singletonList(ApplicationResponse.builder().id(appCand1JobA.getId()).jobId(jobA.getId()).build()));
+        com.platform.recruitment.common.PageResponse<ApplicationResponse> mockPage =
+                com.platform.recruitment.common.PageResponse.<ApplicationResponse>builder()
+                        .content(Collections.singletonList(ApplicationResponse.builder().id(appCand1JobA.getId()).jobId(jobA.getId()).build()))
+                        .page(0)
+                        .size(20)
+                        .totalElements(1)
+                        .totalPages(1)
+                        .first(true)
+                        .last(true)
+                        .sort(new com.platform.recruitment.common.PageResponse.SortInfo("createdAt", "desc"))
+                        .build();
+
+        when(applicationService.getApplicationsForJob(any(User.class), eq(jobA.getId()), anyInt(), anyInt(), any(), any()))
+                .thenReturn(mockPage);
 
         mockMvc.perform(get("/api/v1/recruiter/jobs/" + jobA.getId() + "/applications")
                         .header("Authorization", "Bearer " + hrTokenA)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].jobId").value(jobA.getId().toString()));
+                .andExpect(jsonPath("$.data.content[0].jobId").value(jobA.getId().toString()));
     }
 
     @Test

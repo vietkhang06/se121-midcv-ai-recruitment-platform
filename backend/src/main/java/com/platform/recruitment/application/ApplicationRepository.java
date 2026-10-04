@@ -10,7 +10,9 @@ import java.util.UUID;
 @Repository
 public interface ApplicationRepository extends JpaRepository<Application, UUID> {
     List<Application> findByJobId(UUID jobId);
+    org.springframework.data.domain.Page<Application> findByJobId(UUID jobId, org.springframework.data.domain.Pageable pageable);
     List<Application> findByCandidateId(UUID candidateId);
+    org.springframework.data.domain.Page<Application> findByCandidateId(UUID candidateId, org.springframework.data.domain.Pageable pageable);
     boolean existsByJobIdAndCandidateId(UUID jobId, UUID candidateId);
     Optional<Application> findByJobIdAndCandidateId(UUID jobId, UUID candidateId);
     long countByCandidateId(UUID candidateId);

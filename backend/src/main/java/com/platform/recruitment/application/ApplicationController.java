@@ -28,26 +28,41 @@ public class ApplicationController {
     }
 
     @GetMapping("/candidate/applications")
-    public ResponseEntity<ApiResponse<List<ApplicationResponse>>> getMyApplications(
-            @AuthenticationPrincipal User currentUser) {
-        List<ApplicationResponse> response = applicationService.getCandidateApplications(currentUser);
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<ApplicationResponse>>> getMyApplications(
+            @AuthenticationPrincipal User currentUser,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+        com.platform.recruitment.common.PageResponse<ApplicationResponse> response =
+                applicationService.getCandidateApplications(currentUser, page, size, sort, direction);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/recruiter/jobs/{jobId}/applications")
-    public ResponseEntity<ApiResponse<List<ApplicationResponse>>> getJobApplications(
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<ApplicationResponse>>> getJobApplications(
             @AuthenticationPrincipal User currentUser,
-            @PathVariable UUID jobId) {
-        List<ApplicationResponse> response = applicationService.getApplicationsForJob(currentUser, jobId);
+            @PathVariable UUID jobId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+        com.platform.recruitment.common.PageResponse<ApplicationResponse> response =
+                applicationService.getApplicationsForJob(currentUser, jobId, page, size, sort, direction);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/recruiter/jobs/{jobId}/applications/ranked")
-    public ResponseEntity<ApiResponse<List<ApplicationResponse>>> getRankedJobApplications(
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<ApplicationResponse>>> getRankedJobApplications(
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID jobId,
-            @RequestParam(required = false) java.math.BigDecimal minScore) {
-        List<ApplicationResponse> response = applicationService.getRankedApplicationsForJob(currentUser, jobId, minScore);
+            @RequestParam(required = false) java.math.BigDecimal minScore,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+        com.platform.recruitment.common.PageResponse<ApplicationResponse> response =
+                applicationService.getRankedApplicationsForJob(currentUser, jobId, minScore, page, size, sort, direction);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -69,10 +84,15 @@ public class ApplicationController {
     }
 
     @GetMapping("/recruiter/applications/{applicationId}/audit-logs")
-    public ResponseEntity<ApiResponse<List<ApplicationAuditLogResponse>>> getApplicationAuditLogs(
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<ApplicationAuditLogResponse>>> getApplicationAuditLogs(
             @AuthenticationPrincipal User currentUser,
-            @PathVariable UUID applicationId) {
-        List<ApplicationAuditLogResponse> response = applicationService.getApplicationAuditLogs(currentUser, applicationId);
+            @PathVariable UUID applicationId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+        com.platform.recruitment.common.PageResponse<ApplicationAuditLogResponse> response =
+                applicationService.getApplicationAuditLogs(currentUser, applicationId, page, size, sort, direction);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

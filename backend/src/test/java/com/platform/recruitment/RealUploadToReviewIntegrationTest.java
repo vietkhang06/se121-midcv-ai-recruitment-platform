@@ -312,6 +312,10 @@ public class RealUploadToReviewIntegrationTest {
         @Override public List<CV> findByCandidateId(UUID candidateId) {
             return store.values().stream().filter(c -> c.getCandidate().getId().equals(candidateId)).toList();
         }
+        @Override public org.springframework.data.domain.Page<CV> findByCandidateId(UUID candidateId, org.springframework.data.domain.Pageable pageable) {
+            List<CV> list = findByCandidateId(candidateId);
+            return new org.springframework.data.domain.PageImpl<>(list, pageable, list.size());
+        }
         @Override public Optional<CV> findByIdAndCandidateId(UUID id, UUID candidateId) {
             return store.values().stream()
                     .filter(c -> c.getId().equals(id) && c.getCandidate().getId().equals(candidateId))

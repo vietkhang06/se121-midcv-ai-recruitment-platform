@@ -42,13 +42,25 @@ public class MatchingController {
     }
 
     @GetMapping("/jobs/{jobId}/rankings")
-    public ResponseEntity<ApiResponse<List<MatchResult>>> getCandidateRankings(
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<CandidateRankingResponse>>> getCandidateRankings(
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID jobId,
-            @RequestParam(required = false) BigDecimal minScore) {
+            @RequestParam(required = false) BigDecimal minScore,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "overallScore") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
         validateRecruiterJobAccess(currentUser, jobId);
-        List<MatchResult> ranked = candidateRankingService.getRankedCandidatesForJob(jobId, minScore);
+        com.platform.recruitment.common.PageResponse<CandidateRankingResponse> ranked =
+                candidateRankingService.getRankedCandidatesPage(jobId, minScore, page, size, sort, direction);
         return ResponseEntity.ok(ApiResponse.success("Candidate rankings retrieved successfully", ranked));
+    }
+
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<CandidateRankingResponse>>> getCandidateRankings(
+            User currentUser, UUID jobId, BigDecimal minScore) {
+        validateRecruiterJobAccess(currentUser, jobId);
+        candidateRankingService.getRankedCandidatesForJob(jobId, minScore);
+        return getCandidateRankings(currentUser, jobId, minScore, 0, 20, "overallScore", "desc");
     }
 
     @GetMapping("/applications/{id}/inspection")

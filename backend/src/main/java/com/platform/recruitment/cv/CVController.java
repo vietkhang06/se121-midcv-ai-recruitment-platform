@@ -39,8 +39,14 @@ public class CVController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CVResponse>>> getMyCVs(@AuthenticationPrincipal User currentUser) {
-        List<CVResponse> response = cvService.getCandidateCVs(currentUser);
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<CVResponse>>> getMyCVs(
+            @AuthenticationPrincipal User currentUser,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+        com.platform.recruitment.common.PageResponse<CVResponse> response =
+                cvService.getCandidateCVs(currentUser, page, size, sort, direction);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

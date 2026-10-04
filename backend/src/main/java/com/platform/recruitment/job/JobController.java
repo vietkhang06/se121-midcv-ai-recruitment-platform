@@ -20,8 +20,14 @@ public class JobController {
     private final JobService jobService;
 
     @GetMapping("/jobs")
-    public ResponseEntity<ApiResponse<List<JobResponse>>> getPublishedJobs(@RequestParam(required = false) String industry) {
-        List<JobResponse> response = jobService.getPublishedJobs(industry);
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<JobResponse>>> getPublishedJobs(
+            @RequestParam(required = false) String industry,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+        com.platform.recruitment.common.PageResponse<JobResponse> response =
+                jobService.getPublishedJobs(industry, page, size, sort, direction);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -32,8 +38,14 @@ public class JobController {
     }
 
     @GetMapping("/recruiter/jobs")
-    public ResponseEntity<ApiResponse<List<JobResponse>>> getRecruiterJobs(@AuthenticationPrincipal User currentUser) {
-        List<JobResponse> response = jobService.getRecruiterJobs(currentUser);
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<JobResponse>>> getRecruiterJobs(
+            @AuthenticationPrincipal User currentUser,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+        com.platform.recruitment.common.PageResponse<JobResponse> response =
+                jobService.getRecruiterJobs(currentUser, page, size, sort, direction);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

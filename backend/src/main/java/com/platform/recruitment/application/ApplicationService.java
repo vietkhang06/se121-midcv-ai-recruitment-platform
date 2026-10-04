@@ -144,41 +144,99 @@ public class ApplicationService {
         return mapToResponse(savedApplication, snapshot);
     }
 
+    public static final java.util.Set<String> ALLOWED_APPLICATION_SORT_FIELDS = java.util.Set.of(
+            "createdAt", "status", "updatedAt"
+    );
+
     @Transactional(readOnly = true)
     public List<ApplicationResponse> getApplicationsForJob(User recruiterUser, UUID jobId) {
+        return getApplicationsForJob(recruiterUser, jobId, 0, 100, "createdAt", "desc").getContent();
+    }
+
+    @Transactional(readOnly = true)
+    public com.platform.recruitment.common.PageResponse<ApplicationResponse> getApplicationsForJob(
+            User recruiterUser, UUID jobId, int page, int size, String sort, String direction) {
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
 
-        // Ownership Check: Recruiter can only view applications for jobs belonging to
-        // their company
         if (!job.getCompany().getId().equals(recruiter.getCompany().getId())) {
             throw new UnauthorizedAccessException("Recruiter does not own the company for this job posting");
         }
 
-        List<Application> applications = applicationRepository.findByJobId(jobId);
-        return applications.stream()
+        org.springframework.data.domain.Pageable pageable =
+                com.platform.recruitment.common.PaginationUtils.createPageable(
+                        page, size, sort, direction, ALLOWED_APPLICATION_SORT_FIELDS, "createdAt");
+
+        org.springframework.data.domain.Page<Application> appPage = applicationRepository.findByJobId(jobId, pageable);
+        List<Application> appList = (appPage != null) ? appPage.getContent() : applicationRepository.findByJobId(jobId);
+        if (appList == null) appList = List.of();
+        List<ApplicationResponse> content = appList.stream()
                 .map(app -> {
                     ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(app.getId()).orElse(null);
                     return mapToResponse(app, snap);
                 })
                 .toList();
+        long total = (appPage != null) ? appPage.getTotalElements() : content.size();
+        int totalPages = (appPage != null) ? appPage.getTotalPages() : (total > 0 ? 1 : 0);
+        boolean first = (appPage != null) ? appPage.isFirst() : true;
+        boolean last = (appPage != null) ? appPage.isLast() : true;
+        String sortField = (sort == null || sort.isBlank()) ? "createdAt" : sort;
+        String sortDir = (direction == null || direction.isBlank()) ? "desc" : direction.toLowerCase();
+        return com.platform.recruitment.common.PageResponse.<ApplicationResponse>builder()
+                .content(content)
+                .page(page)
+                .size(size)
+                .totalElements(total)
+                .totalPages(totalPages)
+                .first(first)
+                .last(last)
+                .sort(new com.platform.recruitment.common.PageResponse.SortInfo(sortField, sortDir))
+                .build();
     }
 
     @Transactional(readOnly = true)
     public List<ApplicationResponse> getCandidateApplications(User candidateUser) {
+        return getCandidateApplications(candidateUser, 0, 100, "createdAt", "desc").getContent();
+    }
+
+    @Transactional(readOnly = true)
+    public com.platform.recruitment.common.PageResponse<ApplicationResponse> getCandidateApplications(
+            User candidateUser, int page, int size, String sort, String direction) {
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
 
-        List<Application> applications = applicationRepository.findByCandidateId(candidate.getId());
-        return applications.stream()
+        org.springframework.data.domain.Pageable pageable =
+                com.platform.recruitment.common.PaginationUtils.createPageable(
+                        page, size, sort, direction, ALLOWED_APPLICATION_SORT_FIELDS, "createdAt");
+
+        org.springframework.data.domain.Page<Application> appPage = applicationRepository.findByCandidateId(candidate.getId(), pageable);
+        List<Application> appList = (appPage != null) ? appPage.getContent() : applicationRepository.findByCandidateId(candidate.getId());
+        if (appList == null) appList = List.of();
+        List<ApplicationResponse> content = appList.stream()
                 .map(app -> {
                     ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(app.getId()).orElse(null);
                     return mapToResponse(app, snap);
                 })
                 .toList();
+        long total = (appPage != null) ? appPage.getTotalElements() : content.size();
+        int totalPages = (appPage != null) ? appPage.getTotalPages() : (total > 0 ? 1 : 0);
+        boolean first = (appPage != null) ? appPage.isFirst() : true;
+        boolean last = (appPage != null) ? appPage.isLast() : true;
+        String sortField = (sort == null || sort.isBlank()) ? "createdAt" : sort;
+        String sortDir = (direction == null || direction.isBlank()) ? "desc" : direction.toLowerCase();
+        return com.platform.recruitment.common.PageResponse.<ApplicationResponse>builder()
+                .content(content)
+                .page(page)
+                .size(size)
+                .totalElements(total)
+                .totalPages(totalPages)
+                .first(first)
+                .last(last)
+                .sort(new com.platform.recruitment.common.PageResponse.SortInfo(sortField, sortDir))
+                .build();
     }
 
     @Transactional
@@ -258,7 +316,33 @@ public class ApplicationService {
     }
 
     @Transactional(readOnly = true)
+    public com.platform.recruitment.common.PageResponse<ApplicationResponse> getRankedApplicationsForJob(
+            User recruiterUser, UUID jobId, BigDecimal minScoreFilter, int page, int size, String sort, String direction) {
+        List<ApplicationResponse> allRanked = getRankedApplicationsForJob(recruiterUser, jobId, minScoreFilter);
+        org.springframework.data.domain.Pageable pageable =
+                com.platform.recruitment.common.PaginationUtils.createPageable(
+                        page, size, sort, direction, ALLOWED_APPLICATION_SORT_FIELDS, "createdAt");
+
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), allRanked.size());
+        List<ApplicationResponse> pagedContent = (start <= allRanked.size()) ? allRanked.subList(start, end) : List.of();
+        org.springframework.data.domain.Page<ApplicationResponse> paged =
+                new org.springframework.data.domain.PageImpl<>(pagedContent, pageable, allRanked.size());
+        String sortField = (sort == null || sort.isBlank()) ? "createdAt" : sort;
+        String sortDir = (direction == null || direction.isBlank()) ? "desc" : direction.toLowerCase();
+        return com.platform.recruitment.common.PageResponse.of(paged, sortField, sortDir);
+    }
+
+    public static final java.util.Set<String> ALLOWED_AUDIT_LOG_SORT_FIELDS = java.util.Set.of("createdAt", "id");
+
+    @Transactional(readOnly = true)
     public List<ApplicationAuditLogResponse> getApplicationAuditLogs(User recruiterUser, UUID applicationId) {
+        return getApplicationAuditLogs(recruiterUser, applicationId, 0, 100, "createdAt", "desc").getContent();
+    }
+
+    @Transactional(readOnly = true)
+    public com.platform.recruitment.common.PageResponse<ApplicationAuditLogResponse> getApplicationAuditLogs(
+            User recruiterUser, UUID applicationId, int page, int size, String sort, String direction) {
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 
@@ -271,8 +355,18 @@ public class ApplicationService {
                     "Recruiter does not have permission to view audit logs for this application");
         }
 
-        List<ApplicationAuditLog> logs = auditLogRepository.findByApplicationIdOrderByCreatedAtDesc(applicationId);
-        return logs.stream()
+        org.springframework.data.domain.Pageable pageable =
+                com.platform.recruitment.common.PaginationUtils.createPageable(
+                        page, size, sort, direction, ALLOWED_AUDIT_LOG_SORT_FIELDS, "createdAt");
+
+        org.springframework.data.domain.Page<ApplicationAuditLog> logPage =
+                auditLogRepository.findByApplicationId(applicationId, pageable);
+
+        List<ApplicationAuditLog> logList = (logPage != null) ? logPage.getContent()
+                : auditLogRepository.findByApplicationIdOrderByCreatedAtDesc(applicationId);
+        if (logList == null) logList = List.of();
+
+        List<ApplicationAuditLogResponse> content = logList.stream()
                 .map(l -> ApplicationAuditLogResponse.builder()
                         .id(l.getId())
                         .applicationId(l.getApplication().getId())
@@ -283,6 +377,24 @@ public class ApplicationService {
                         .createdAt(l.getCreatedAt())
                         .build())
                 .toList();
+
+        long total = (logPage != null) ? logPage.getTotalElements() : content.size();
+        int totalPages = (logPage != null) ? logPage.getTotalPages() : (total > 0 ? 1 : 0);
+        boolean first = (logPage != null) ? logPage.isFirst() : true;
+        boolean last = (logPage != null) ? logPage.isLast() : true;
+
+        String sortField = (sort == null || sort.isBlank()) ? "createdAt" : sort;
+        String sortDir = (direction == null || direction.isBlank()) ? "desc" : direction.toLowerCase();
+        return com.platform.recruitment.common.PageResponse.<ApplicationAuditLogResponse>builder()
+                .content(content)
+                .page(page)
+                .size(size)
+                .totalElements(total)
+                .totalPages(totalPages)
+                .first(first)
+                .last(last)
+                .sort(new com.platform.recruitment.common.PageResponse.SortInfo(sortField, sortDir))
+                .build();
     }
 
     @Transactional(readOnly = true)

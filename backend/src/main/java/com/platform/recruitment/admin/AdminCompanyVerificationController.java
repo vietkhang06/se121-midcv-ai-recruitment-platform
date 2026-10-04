@@ -29,14 +29,19 @@ public class AdminCompanyVerificationController {
     private final CompanyVerificationService companyVerificationService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<CompanyAdminDto>>> listCompanies(
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<CompanyAdminDto>>> listCompanies(
             @RequestParam(required = false) String query,
             @RequestParam(required = false) CompanyVerification status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+        Pageable pageable = com.platform.recruitment.common.PaginationUtils.createPageable(
+                page, size, sort, direction, java.util.Set.of("createdAt", "name", "verificationStatus", "updatedAt"), "createdAt");
         Page<CompanyAdminDto> result = companyVerificationService.listCompanies(query, status, pageable);
-        return ResponseEntity.ok(ApiResponse.success(result));
+        String sortField = (sort == null || sort.isBlank()) ? "createdAt" : sort;
+        String sortDir = (direction == null || direction.isBlank()) ? "desc" : direction.toLowerCase();
+        return ResponseEntity.ok(ApiResponse.success(com.platform.recruitment.common.PageResponse.of(result, sortField, sortDir)));
     }
 
     @GetMapping("/{id}")

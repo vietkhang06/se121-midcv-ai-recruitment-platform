@@ -44,25 +44,35 @@ public class AdminPortalController {
     // 2. CANDIDATE & RECRUITER MODERATION
     // ==========================================
     @GetMapping("/candidates")
-    public ResponseEntity<ApiResponse<Page<UserAdminDto>>> listCandidates(
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<UserAdminDto>>> listCandidates(
             @RequestParam(required = false) String query,
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+        Pageable pageable = com.platform.recruitment.common.PaginationUtils.createPageable(
+                page, size, sort, direction, java.util.Set.of("createdAt", "email", "role", "isActive"), "createdAt");
         Page<UserAdminDto> candidates = adminService.listCandidates(query, isActive, pageable);
-        return ResponseEntity.ok(ApiResponse.success(candidates));
+        String sortField = (sort == null || sort.isBlank()) ? "createdAt" : sort;
+        String sortDir = (direction == null || direction.isBlank()) ? "desc" : direction.toLowerCase();
+        return ResponseEntity.ok(ApiResponse.success(com.platform.recruitment.common.PageResponse.of(candidates, sortField, sortDir)));
     }
 
     @GetMapping("/recruiters")
-    public ResponseEntity<ApiResponse<Page<UserAdminDto>>> listRecruiters(
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<UserAdminDto>>> listRecruiters(
             @RequestParam(required = false) String query,
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+        Pageable pageable = com.platform.recruitment.common.PaginationUtils.createPageable(
+                page, size, sort, direction, java.util.Set.of("createdAt", "email", "role", "isActive"), "createdAt");
         Page<UserAdminDto> recruiters = adminService.listRecruiters(query, isActive, pageable);
-        return ResponseEntity.ok(ApiResponse.success(recruiters));
+        String sortField = (sort == null || sort.isBlank()) ? "createdAt" : sort;
+        String sortDir = (direction == null || direction.isBlank()) ? "desc" : direction.toLowerCase();
+        return ResponseEntity.ok(ApiResponse.success(com.platform.recruitment.common.PageResponse.of(recruiters, sortField, sortDir)));
     }
 
     @PostMapping("/users/{id}/suspend")
@@ -91,14 +101,19 @@ public class AdminPortalController {
     // 4. JOB MODERATION
     // ==========================================
     @GetMapping("/jobs")
-    public ResponseEntity<ApiResponse<Page<JobAdminDto>>> listJobs(
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<JobAdminDto>>> listJobs(
             @RequestParam(required = false) String query,
             @RequestParam(required = false) JobStatus status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+        Pageable pageable = com.platform.recruitment.common.PaginationUtils.createPageable(
+                page, size, sort, direction, java.util.Set.of("createdAt", "title", "status", "minSalary", "maxSalary"), "createdAt");
         Page<JobAdminDto> jobs = adminService.listJobs(query, status, pageable);
-        return ResponseEntity.ok(ApiResponse.success(jobs));
+        String sortField = (sort == null || sort.isBlank()) ? "createdAt" : sort;
+        String sortDir = (direction == null || direction.isBlank()) ? "desc" : direction.toLowerCase();
+        return ResponseEntity.ok(ApiResponse.success(com.platform.recruitment.common.PageResponse.of(jobs, sortField, sortDir)));
     }
 
     @PostMapping("/jobs/{id}/suspend")
@@ -125,14 +140,19 @@ public class AdminPortalController {
     // 5. REPORTS MODERATION
     // ==========================================
     @GetMapping("/reports")
-    public ResponseEntity<ApiResponse<Page<ReportAdminDto>>> listReports(
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<ReportAdminDto>>> listReports(
             @RequestParam(required = false) ReportStatus status,
             @RequestParam(required = false) ReportTargetType targetType,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+        Pageable pageable = com.platform.recruitment.common.PaginationUtils.createPageable(
+                page, size, sort, direction, java.util.Set.of("createdAt", "status", "targetType"), "createdAt");
         Page<ReportAdminDto> reports = adminService.listReports(status, targetType, pageable);
-        return ResponseEntity.ok(ApiResponse.success(reports));
+        String sortField = (sort == null || sort.isBlank()) ? "createdAt" : sort;
+        String sortDir = (direction == null || direction.isBlank()) ? "desc" : direction.toLowerCase();
+        return ResponseEntity.ok(ApiResponse.success(com.platform.recruitment.common.PageResponse.of(reports, sortField, sortDir)));
     }
 
     @PostMapping("/reports/{id}/resolve")
@@ -192,11 +212,16 @@ public class AdminPortalController {
     // 7. AUDIT LOGS
     // ==========================================
     @GetMapping("/audit-logs")
-    public ResponseEntity<ApiResponse<Page<AdminAuditLogDto>>> listAuditLogs(
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<AdminAuditLogDto>>> listAuditLogs(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+        Pageable pageable = com.platform.recruitment.common.PaginationUtils.createPageable(
+                page, size, sort, direction, java.util.Set.of("createdAt", "action", "adminEmail"), "createdAt");
         Page<AdminAuditLogDto> logs = adminService.listAuditLogs(pageable);
-        return ResponseEntity.ok(ApiResponse.success(logs));
+        String sortField = (sort == null || sort.isBlank()) ? "createdAt" : sort;
+        String sortDir = (direction == null || direction.isBlank()) ? "desc" : direction.toLowerCase();
+        return ResponseEntity.ok(ApiResponse.success(com.platform.recruitment.common.PageResponse.of(logs, sortField, sortDir)));
     }
 }

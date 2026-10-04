@@ -11,8 +11,10 @@ import java.util.UUID;
 @Repository
 public interface JobRepository extends JpaRepository<Job, UUID> {
     List<Job> findByCompanyId(UUID companyId);
+    Page<Job> findByCompanyId(UUID companyId, Pageable pageable);
     List<Job> findByStatus(JobStatus status);
     List<Job> findByStatusAndIndustry(JobStatus status, String industry);
+    Page<Job> findByStatusAndIndustry(JobStatus status, String industry, Pageable pageable);
     long countByStatus(JobStatus status);
     Page<Job> findByStatus(JobStatus status, Pageable pageable);
     Page<Job> findByTitleContainingIgnoreCase(String title, Pageable pageable);

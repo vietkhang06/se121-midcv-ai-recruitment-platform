@@ -10,6 +10,7 @@ import java.util.UUID;
 @Repository
 public interface CVRepository extends JpaRepository<CV, UUID> {
     List<CV> findByCandidateId(UUID candidateId);
+    org.springframework.data.domain.Page<CV> findByCandidateId(UUID candidateId, org.springframework.data.domain.Pageable pageable);
     Optional<CV> findByIdAndCandidateId(UUID id, UUID candidateId);
     long countByCandidateId(UUID candidateId);
 }

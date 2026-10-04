@@ -306,13 +306,32 @@ export interface ApiClient {
 // 5. PRODUCTION REAL API CLIENT IMPLEMENTATION
 // ============================================================
 
+export interface PaginatedResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+  sort?: {
+    field: string;
+    direction: string;
+  };
+}
+
 export class RealApiClient implements ApiClient {
-  async fetchJobs(industry?: string): Promise<Job[]> {
-    const endpoint = industry
-      ? `/api/v1/jobs?industry=${encodeURIComponent(industry)}`
-      : '/api/v1/jobs';
-    const json: any = await apiRequest(endpoint);
-    const rawJobs: any[] = Array.isArray(json) ? json : (json?.data ?? []);
+
+  async fetchJobs(industry?: string, page = 0, size = 20, sort = 'createdAt', direction = 'desc'): Promise<Job[]> {
+    const queryParts: string[] = [];
+    if (industry) queryParts.push(`industry=${encodeURIComponent(industry)}`);
+    if (page != null) queryParts.push(`page=${page}`);
+    if (size != null) queryParts.push(`size=${size}`);
+    if (sort) queryParts.push(`sort=${sort}`);
+    if (direction) queryParts.push(`direction=${direction}`);
+    const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+    const json: any = await apiRequest(`/api/v1/jobs${qs}`);
+    const rawJobs: any[] = Array.isArray(json) ? json : (json?.data?.content ?? (Array.isArray(json?.data) ? json.data : []));
     return rawJobs.map(mapBackendJobToFrontend);
   }
 
@@ -416,7 +435,7 @@ export class RealApiClient implements ApiClient {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    const rawList: any[] = Array.isArray(json) ? json : (json?.data ?? []);
+    const rawList: any[] = Array.isArray(json) ? json : (json?.data?.content ?? (Array.isArray(json?.data) ? json.data : []));
     return rawList.map(mapBackendCVToFrontend);
   }
 
@@ -663,7 +682,7 @@ export class RealApiClient implements ApiClient {
     });
 
     const user = getAuthUser();
-    const rawList: any[] = Array.isArray(json) ? json : (json?.data ?? []);
+    const rawList: any[] = Array.isArray(json) ? json : (json?.data?.content ?? (Array.isArray(json?.data) ? json.data : []));
     return rawList.map((app: any) => ({
       id: String(app.id),
       job: {
@@ -728,7 +747,7 @@ export class RealApiClient implements ApiClient {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    const rawList: any[] = Array.isArray(json) ? json : (json?.data ?? []);
+    const rawList: any[] = Array.isArray(json) ? json : (json?.data?.content ?? (Array.isArray(json?.data) ? json.data : []));
     return rawList.map((app: any) => ({
       id: String(app.id),
       job: {
@@ -884,7 +903,7 @@ export class RealApiClient implements ApiClient {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    const rawList: any[] = Array.isArray(json) ? json : (json?.data ?? []);
+    const rawList: any[] = Array.isArray(json) ? json : (json?.data?.content ?? (Array.isArray(json?.data) ? json.data : []));
     return rawList.map((item: any) => ({
       id: String(item.id),
       applicationId: String(item.applicationId),
@@ -1011,7 +1030,7 @@ export class RealApiClient implements ApiClient {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    const rawList: any[] = Array.isArray(json) ? json : (json?.data ?? []);
+    const rawList: any[] = Array.isArray(json) ? json : (json?.data?.content ?? (Array.isArray(json?.data) ? json.data : []));
     return rawList.map(mapBackendJobToFrontend);
   }
 
@@ -1097,7 +1116,7 @@ export class RealApiClient implements ApiClient {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    const rawList: any[] = Array.isArray(json) ? json : (json?.data ?? []);
+    const rawList: any[] = Array.isArray(json) ? json : (json?.data?.content ?? (Array.isArray(json?.data) ? json.data : []));
     return rawList.map((item: any, idx: number) => {
       const app = item.application;
       const cand = app?.candidate;
@@ -1403,7 +1422,8 @@ export async function uploadQuickScreening(jobId: string, file: File, githubEnab
 }
 
 export async function fetchQuickScreenings(jobId: string, page = 0, size = 20): Promise<QuickScreeningRun[]> {
-  return apiRequest<QuickScreeningRun[]>(`/api/v1/hr/jobs/${jobId}/screenings?page=${page}&size=${size}`);
+  const res = await apiRequest<any>(`/api/v1/hr/jobs/${jobId}/screenings?page=${page}&size=${size}`);
+  return Array.isArray(res) ? res : (res?.data?.content ?? (Array.isArray(res?.data) ? res.data : []));
 }
 
 export async function fetchScreeningDetail(screeningId: string): Promise<QuickScreeningDetail> {
