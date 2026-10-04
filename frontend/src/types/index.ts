@@ -540,4 +540,23 @@ export interface TaxonomySkillAdminDto {
   aliases?: string[];
 }
 
+export interface SuspensionAppeal {
+  id: string;
+  appellantUserId: string;
+  appellantEmail?: string;
+  suspensionId?: string;
+  targetType: 'USER' | 'COMPANY';
+  targetId: string;
+  subject: string;
+  content: string;
+  status: 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  evidenceAttachmentId?: string;
+  submittedAt: string;
+  reviewedBy?: string;
+  reviewerEmail?: string;
+  reviewedAt?: string;
+  resolutionNote?: string;
+  createdAt: string;
+}
+
 

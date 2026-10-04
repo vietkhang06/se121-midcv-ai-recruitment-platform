@@ -259,7 +259,7 @@ public class AdminService {
                 com.platform.recruitment.suspension.SuspensionTargetType.USER,
                 user.getId(),
                 com.platform.recruitment.suspension.SuspensionStatus.ACTIVE
-        ).ifPresent(activeRecord -> {
+        ).forEach(activeRecord -> {
             activeRecord.setStatus(com.platform.recruitment.suspension.SuspensionStatus.LIFTED);
             activeRecord.setLiftedBy(admin);
             activeRecord.setLiftedAt(ZonedDateTime.now());

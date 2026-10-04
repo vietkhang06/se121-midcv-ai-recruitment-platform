@@ -119,7 +119,7 @@ public class CompanyVerificationService {
                     com.platform.recruitment.suspension.SuspensionTargetType.COMPANY,
                     savedCompany.getId(),
                     com.platform.recruitment.suspension.SuspensionStatus.ACTIVE
-            ).ifPresent(activeRecord -> {
+            ).forEach(activeRecord -> {
                 activeRecord.setStatus(com.platform.recruitment.suspension.SuspensionStatus.LIFTED);
                 activeRecord.setLiftedBy(adminUser);
                 activeRecord.setLiftedAt(ZonedDateTime.now());
