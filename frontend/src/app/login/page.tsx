@@ -1,34 +1,75 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { getImageSlot } from '@/config/imageConfig';
-import { BrandLogo } from '@/components/common/BrandLogo';
+import { AuthHeroBanner, AuthRole } from '@/components/auth/AuthHeroBanner';
+import { ThemeSwitch } from '@/components/common/ThemeSwitch';
 import {
-  ShieldCheck,
-  CheckCircle2,
+  User,
+  Briefcase,
+  Eye,
+  EyeOff,
   AlertCircle,
-  Mail,
-  Lock,
-  LogIn,
-  Sparkles,
-  ArrowRight
+  RefreshCw,
+  Globe
 } from 'lucide-react';
 
-export default function LoginPage() {
+function GoogleIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      <path
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+        fill="#34A853"
+      />
+      <path
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+        fill="#EA4335"
+      />
+    </svg>
+  );
+}
+
+function GitHubIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+      />
+    </svg>
+  );
+}
+
+function LoginFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, isAuthenticated, user } = useAuth();
-  const { t, locale } = useLanguage();
+  const { locale, toggleLocale } = useLanguage();
+
+  const roleParam = searchParams.get('role');
+  const initialRole: AuthRole = roleParam === 'hr' || roleParam === 'recruiter' ? 'RECRUITER' : 'CANDIDATE';
+  const [selectedRole, setSelectedRole] = useState<AuthRole | null>(null);
+  const role = selectedRole ?? initialRole;
+
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [rememberMe, setRememberMe] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isUnverified, setIsUnverified] = useState<boolean>(false);
-
-  const authHeroSlot = getImageSlot('IMAGE_PLACEHOLDER_AUTH_HERO');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -40,6 +81,14 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, user, router]);
 
+  const handleRoleChange = (newRole: AuthRole) => {
+    setSelectedRole(newRole);
+    setError(null);
+    // Smooth URL update without page reload
+    const newQuery = newRole === 'RECRUITER' ? '?role=hr' : '?role=candidate';
+    window.history.replaceState(null, '', `/login${newQuery}`);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -47,167 +96,277 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login(email, password);
-      if (user?.role === 'RECRUITER') {
-        router.push('/recruiter');
-      } else {
-        router.push('/candidate/profile');
-      }
-    } catch (err: any) {
-      if (err.code === 'EMAIL_NOT_VERIFIED' || err.message?.includes('EMAIL_NOT_VERIFIED') || err.message?.toLowerCase().includes('not verified')) {
+      await login(email.trim(), password);
+      // AuthContext handles role-based redirection
+    } catch (err: unknown) {
+      const eObj = err as { code?: string; message?: string } | undefined;
+      const msg = eObj?.message || '';
+      if (
+        eObj?.code === 'EMAIL_NOT_VERIFIED' ||
+        msg.includes('EMAIL_NOT_VERIFIED') ||
+        msg.toLowerCase().includes('not verified')
+      ) {
         setIsUnverified(true);
-        setError(locale === 'vi' ? 'Email của bạn chưa được xác thực. Vui lòng xác thực tài khoản để đăng nhập.' : 'Your email is not verified yet. Please verify your email before signing in.');
+        setError(
+          locale === 'vi'
+            ? 'Email của bạn chưa được xác thực. Vui lòng xác thực tài khoản để đăng nhập.'
+            : 'Your email is not verified yet. Please verify your email before signing in.'
+        );
       } else {
-        setError(err.message || (locale === 'vi' ? 'Tài khoản hoặc mật khẩu không chính xác.' : 'Invalid email or password.'));
+        setError(
+          msg ||
+            (locale === 'vi'
+              ? 'Tài khoản hoặc mật khẩu không chính xác.'
+              : 'Invalid email or password.')
+        );
       }
     } finally {
       setIsLoading(false);
     }
   };
 
+  const isCandidate = role === 'CANDIDATE';
+
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#F8FAFC] dark:bg-[#0B1329] flex items-center justify-center p-4 sm:p-6 lg:p-8 transition-colors">
-      <div className="w-full max-w-4xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
-        
-        {/* Left Column: midCV® Editorial Branding */}
-        <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0F172A] dark:to-[#1E293B] p-8 text-white flex-col justify-between relative overflow-hidden">
-          <div className="relative z-10 space-y-6">
-            <BrandLogo size="md" />
+    <div className="min-h-screen w-full flex flex-col md:flex-row bg-white dark:bg-[#0B1329] transition-colors">
+      {/* Left Column: Visual Hero Banner with Role-Synchronized Imagery */}
+      <div className="w-full md:w-1/2 lg:w-1/2 h-72 sm:h-96 md:h-auto md:min-h-screen relative shrink-0">
+        <AuthHeroBanner role={role} />
+      </div>
 
-            <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#2563EB]/20 text-[#D7F9FA] border border-[#2563EB]/40">
-                <Sparkles className="w-3 h-3 text-[#D7F9FA]" />
-                Evidence-Based Portal
-              </span>
-              <h1 className="font-editorial text-3xl text-white leading-tight">
-                {locale === 'vi' ? 'Đăng Nhập Tài Khoản midCV®' : 'Sign In to midCV®'}
-              </h1>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                {locale === 'vi' 
-                  ? 'Trải nghiệm đối sánh năng lực chuẩn xác trên dữ liệu thực tế và bản lưu đánh giá bất biến.'
-                  : 'Experience transparent technical alignment grounded in verified production signals and immutable records.'}
-              </p>
-            </div>
-          </div>
-
-          {/* Graphical Representation */}
-          <div className="relative z-10 my-6 py-4 px-3 rounded-xl bg-white/10 dark:bg-black/30 border border-white/10">
-            {authHeroSlot.placeholderUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={authHeroSlot.placeholderUrl}
-                alt={authHeroSlot.label}
-                className="w-full h-32 object-cover rounded-lg"
-              />
-            ) : (
-              <div className="h-28 w-full flex flex-col justify-center items-center">
-                <svg className="w-full h-full text-[#00B14F]" viewBox="0 0 300 100" fill="none">
-                  <line x1="20" y1="50" x2="280" y2="50" stroke="rgba(255,255,255,0.2)" strokeDasharray="3 3" />
-                  <circle cx="60" cy="50" r="14" fill="#2563EB" stroke="#D7F9FA" strokeWidth="2" />
-                  <circle cx="240" cy="50" r="14" fill="#00B14F" stroke="#A7F3D0" strokeWidth="2" />
-                  <circle cx="150" cy="50" r="18" fill="#1E3A5F" stroke="#00B14F" strokeWidth="2.5" />
-                  <text x="60" y="54" fontSize="9" fill="#FFFFFF" textAnchor="middle" fontWeight="bold">CV</text>
-                  <text x="240" y="54" fontSize="9" fill="#FFFFFF" textAnchor="middle" fontWeight="bold">JD</text>
-                  <text x="150" y="54" fontSize="10" fill="#FACC15" textAnchor="middle" fontWeight="bold">94%</text>
-                </svg>
-              </div>
-            )}
-          </div>
-
-          <div className="relative z-10 space-y-2 pt-2 border-t border-white/10">
-            <div className="flex items-center gap-2 text-[11px] text-slate-300">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#00B14F]" />
-              <span>{locale === 'vi' ? 'Đối sánh vector ngữ nghĩa đa chiều' : 'Multi-dimensional semantic vector alignment'}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Login Form */}
-        <div className="w-full md:w-7/12 p-6 sm:p-10 bg-white dark:bg-[#111C38] flex flex-col justify-between">
-          <div>
-            <div className="mb-6 space-y-1">
-              <h2 className="font-editorial text-2xl font-bold text-[#0F2A52] dark:text-[#F1F5F9] tracking-tight">
-                {t('auth.signInTitle', 'Đăng Nhập Tài Khoản')}
-              </h2>
-              <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
-                {t('auth.signInSubtitle', 'Nhập email và mật khẩu của bạn để tiếp tục.')}
-              </p>
-            </div>
-
-            {error && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-300 text-xs flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <span>{error}</span>
-                  {isUnverified && (
-                    <div className="pt-1">
-                      <Link
-                        href="/verify-email"
-                        className="text-[#2563EB] dark:text-[#3B82F6] underline font-semibold hover:text-[#1D4ED8]"
-                      >
-                        {locale === 'vi' ? 'Đến trang xác thực email' : 'Go to Email Verification'}
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-[#1E3A5F] dark:text-[#D6E4E1] mb-1 flex items-center gap-1">
-                  <Mail className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
-                  <span>{t('auth.emailLabel', 'Email đăng nhập')}</span>
-                </label>
-                <input
-                  type="email"
-                  placeholder="name@example.com"
-                  value={email || ''}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] placeholder-[#94A3B8]"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#1E3A5F] dark:text-[#D6E4E1] mb-1 flex items-center gap-1">
-                  <Lock className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
-                  <span>{t('auth.passwordLabel', 'Mật khẩu')}</span>
-                </label>
-                <input
-                  type="password"
-                  placeholder={t('auth.confirmPasswordPlaceholder', 'Nhập mật khẩu...')}
-                  value={password || ''}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] placeholder-[#94A3B8]"
-                  required
-                />
-              </div>
-
+      {/* Right Column: Form Container */}
+      <div className="w-full md:w-1/2 lg:w-1/2 min-h-screen flex flex-col justify-center items-center px-6 py-10 sm:px-10 lg:px-16 overflow-y-auto">
+        <div className="w-full max-w-[440px] my-auto">
+          {/* Top Bar with Language and Theme Switch */}
+          <div className="flex items-center justify-between mb-5">
+            <span className="text-xs font-medium text-slate-400 dark:text-slate-500">
+              {locale === 'vi' ? 'Đăng nhập tài khoản' : 'Account Sign In'}
+            </span>
+            <div className="flex items-center gap-2">
               <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                type="button"
+                id="login-lang-switch-btn"
+                onClick={toggleLocale}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-[#111C38] text-slate-700 dark:text-slate-200 hover:border-[#2563EB] hover:text-[#2563EB] transition cursor-pointer shadow-xs"
+                title={locale === 'vi' ? 'Switch to English' : 'Chuyển sang Tiếng Việt'}
               >
-                <LogIn className="w-4 h-4" />
-                <span>{isLoading ? (locale === 'vi' ? 'Đang đăng nhập...' : 'Signing in...') : t('auth.loginCta', 'Đăng nhập ngay')}</span>
+                <Globe className="w-3.5 h-3.5 text-[#2563EB]" />
+                <span>{locale.toUpperCase()}</span>
               </button>
-            </form>
+              <ThemeSwitch />
+            </div>
           </div>
 
-          <div className="mt-8 pt-4 border-t border-[#E2E8F0] dark:border-[#1E293B] text-xs text-[#64748B] dark:text-[#94A3B8] flex items-center justify-between">
-            <span>{t('auth.dontHaveAccount', 'Chưa có tài khoản midCV®?')}</span>
-            <Link
-              href="/register"
-              className="font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:text-[#1D4ED8] flex items-center gap-1 transition"
+          {/* Header Section */}
+          <div className="mb-6">
+            <h2 className="text-2xl sm:text-[30px] font-extrabold text-[#0F172A] dark:text-white tracking-tight leading-tight mb-2">
+              {locale === 'vi' ? 'Chào mừng quay trở lại!' : 'Welcome back!'}
+            </h2>
+            <p className="text-xs sm:text-[13px] text-slate-500 dark:text-slate-400 leading-relaxed">
+              {locale === 'vi'
+                ? 'Đăng nhập để tiếp tục hành trình nghề nghiệp của bạn cùng midCV'
+                : 'Sign in to continue your career journey with midCV'}
+            </p>
+          </div>
+
+          {/* Role Switcher Tabs (Figma Pixel-Perfect Pill Style) */}
+          <div className="grid grid-cols-2 gap-3 mb-6 p-1 bg-slate-100/80 dark:bg-[#111C38] rounded-2xl border border-slate-200/60 dark:border-slate-800">
+            <button
+              type="button"
+              id="login-role-candidate-btn"
+              onClick={() => handleRoleChange('CANDIDATE')}
+              className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                isCandidate
+                  ? 'bg-white dark:bg-[#1E293B] text-[#2563EB] dark:text-[#38BDF8] shadow-sm border border-blue-500/20'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent'
+              }`}
             >
-              <span>{t('nav.register', 'Đăng ký tài khoản')}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <User className={`w-4 h-4 ${isCandidate ? 'text-[#2563EB] dark:text-[#38BDF8]' : 'text-slate-500'}`} />
+              <span>{locale === 'vi' ? 'Ứng viên' : 'Candidate'}</span>
+            </button>
+
+            <button
+              type="button"
+              id="login-role-recruiter-btn"
+              onClick={() => handleRoleChange('RECRUITER')}
+              className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                !isCandidate
+                  ? 'bg-white dark:bg-[#1E293B] text-[#2563EB] dark:text-[#38BDF8] shadow-sm border border-blue-500/20'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent'
+              }`}
+            >
+              <Briefcase className={`w-4 h-4 ${!isCandidate ? 'text-[#2563EB] dark:text-[#38BDF8]' : 'text-slate-500'}`} />
+              <span>{locale === 'vi' ? 'Nhà tuyển dụng' : 'Recruiter'}</span>
+            </button>
+          </div>
+
+          {/* Error / Alert notice */}
+          {error && (
+            <div className="mb-5 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-300 text-xs flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <span>{error}</span>
+                {isUnverified && (
+                  <div className="pt-1">
+                    <Link
+                      href="/verify-email"
+                      className="text-[#2563EB] dark:text-[#38BDF8] underline font-semibold hover:text-[#1D4ED8]"
+                    >
+                      {locale === 'vi' ? 'Đến trang xác thực email' : 'Go to email verification'}
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Main Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email / Username field */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                {locale === 'vi' ? 'Email/Số điện thoại' : 'Email or Phone number'} <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="login-email-input"
+                type="text"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition"
+              />
+            </div>
+
+            {/* Password field */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                {locale === 'vi' ? 'Mật khẩu' : 'Password'} <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  id="login-password-input"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder={locale === 'vi' ? 'Nhập mật khẩu...' : 'Enter your password...'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full pl-4 pr-11 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? (locale === 'vi' ? 'Ẩn mật khẩu' : 'Hide password') : (locale === 'vi' ? 'Hiển thị mật khẩu' : 'Show password')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer transition"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Options Row: Remember Me & Forgot Password */}
+            <div className="flex items-center justify-between pt-0.5 text-xs">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 dark:text-slate-400">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-[#2563EB] focus:ring-[#2563EB]/30 cursor-pointer"
+                />
+                <span>{locale === 'vi' ? 'Ghi nhớ đăng nhập' : 'Remember me'}</span>
+              </label>
+
+              <Link
+                href="/help"
+                className="font-medium text-[#2563EB] hover:text-[#1D4ED8] dark:text-[#38BDF8] hover:underline"
+              >
+                {locale === 'vi' ? 'Quên mật khẩu?' : 'Forgot password?'}
+              </Link>
+            </div>
+
+            {/* Submit CTA Button */}
+            <button
+              id="login-submit-btn"
+              type="submit"
+              disabled={isLoading}
+              className="w-full mt-2 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-[0.99] shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>{locale === 'vi' ? 'Đang đăng nhập...' : 'Signing in...'}</span>
+                </span>
+              ) : (
+                <span>
+                  {isCandidate
+                    ? (locale === 'vi' ? 'Đăng nhập với tư cách Ứng viên' : 'Sign In as Candidate')
+                    : (locale === 'vi' ? 'Đăng nhập với tư cách Nhà tuyển dụng' : 'Sign In as Recruiter')}
+                </span>
+              )}
+            </button>
+          </form>
+
+          {/* Social Logins Divider */}
+          <div className="relative my-6 text-center">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200 dark:border-slate-800" />
+            </div>
+            <span className="relative px-3 bg-white dark:bg-[#0B1329] text-xs text-slate-400 font-medium">
+              {locale === 'vi' ? '- Hoặc đăng nhập bằng -' : '- Or sign in with -'}
+            </span>
+          </div>
+
+          {/* Social Buttons */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setError(locale === 'vi' ? 'Phương thức đăng nhập qua Google sẽ sớm khả dụng.' : 'Google sign in will be available soon.');
+              }}
+              className="flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer"
+            >
+              <GoogleIcon className="w-4 h-4" />
+              <span>Google</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setError(locale === 'vi' ? 'Phương thức đăng nhập qua GitHub sẽ sớm khả dụng.' : 'GitHub sign in will be available soon.');
+              }}
+              className="flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer"
+            >
+              <GitHubIcon className="w-4 h-4" />
+              <span>GitHub</span>
+            </button>
+          </div>
+
+          {/* Bottom Switch Link */}
+          <div className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400">
+            {locale === 'vi' ? 'Chưa có tài khoản?' : "Don't have an account?"}{' '}
+            <Link
+              href={`/register?role=${isCandidate ? 'candidate' : 'hr'}`}
+              className="font-semibold text-[#2563EB] hover:text-[#1D4ED8] dark:text-[#38BDF8] hover:underline"
+            >
+              {locale === 'vi' ? 'Đăng ký ngay' : 'Register now'}
             </Link>
           </div>
         </div>
-
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[#0B1329]">
+          <RefreshCw className="w-6 h-6 animate-spin text-[#2563EB]" />
+        </div>
+      }
+    >
+      <LoginFormContent />
+    </Suspense>
   );
 }

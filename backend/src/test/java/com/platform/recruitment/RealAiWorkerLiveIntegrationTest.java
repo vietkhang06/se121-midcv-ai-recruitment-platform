@@ -19,7 +19,20 @@ public class RealAiWorkerLiveIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+                isAiWorkerReachable(),
+                "FastAPI AI Worker (http://127.0.0.1:8000) is not reachable; skipping live contract test"
+        );
         aiWorkerClient = new AiWorkerClient("http://127.0.0.1:8000/internal/ai");
+    }
+
+    private static boolean isAiWorkerReachable() {
+        try (java.net.Socket socket = new java.net.Socket()) {
+            socket.connect(new java.net.InetSocketAddress("127.0.0.1", 8000), 500);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @Test

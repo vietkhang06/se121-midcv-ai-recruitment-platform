@@ -34,7 +34,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 
 @Service
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class ApplicationService {
 
     private final ApplicationRepository applicationRepository;
@@ -48,6 +47,32 @@ public class ApplicationService {
     private final CandidateRankingService candidateRankingService;
     private final MatchResultRepository matchResultRepository;
     private final ApplicationAuditLogRepository auditLogRepository;
+
+    @Autowired
+    public ApplicationService(
+            ApplicationRepository applicationRepository,
+            ApplicationCVSnapshotRepository snapshotRepository,
+            JobRepository jobRepository,
+            CandidateProfileRepository candidateProfileRepository,
+            RecruiterProfileRepository recruiterProfileRepository,
+            CVRepository cvRepository,
+            CVVersionRepository cvVersionRepository,
+            MatchingEngineService matchingEngineService,
+            CandidateRankingService candidateRankingService,
+            MatchResultRepository matchResultRepository,
+            ApplicationAuditLogRepository auditLogRepository) {
+        this.applicationRepository = applicationRepository;
+        this.snapshotRepository = snapshotRepository;
+        this.jobRepository = jobRepository;
+        this.candidateProfileRepository = candidateProfileRepository;
+        this.recruiterProfileRepository = recruiterProfileRepository;
+        this.cvRepository = cvRepository;
+        this.cvVersionRepository = cvVersionRepository;
+        this.matchingEngineService = matchingEngineService;
+        this.candidateRankingService = candidateRankingService;
+        this.matchResultRepository = matchResultRepository;
+        this.auditLogRepository = auditLogRepository;
+    }
 
     public ApplicationService(
             ApplicationRepository applicationRepository,

@@ -177,7 +177,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
     );
 
     // 2. Periodic status check fallback in case SSE connection drops
-    const maxAttempts = 30;
+    const maxAttempts = 60; // 60s timeout for safety
     let attempts = 0;
 
     while (!isDone && attempts < maxAttempts) {
@@ -185,7 +185,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
         unsub();
         return;
       }
-      await new Promise((r) => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 1000));
       if (signal.aborted || isDone) {
         unsub();
         return;
@@ -216,6 +216,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
             statusResp.stage === 'NEEDS_REVIEW' ||
             statusResp.status === 'CONFIRMED'
           ) {
+            // Chỉ chuyển sang mở review khi processing-status trả về SUCCEEDED hoặc NEEDS_REVIEW hợp lệ
             if (statusResp.progress && statusResp.progress >= 100) {
               isDone = true;
               unsub();
@@ -237,6 +238,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
         }
       } catch (pollErr: any) {
         if (signal.aborted || isDone) return;
+        // Nếu polling gặp 404: dừng polling ngay lập tức và báo lỗi tính nhất quán ID/dữ liệu
         const statusCode = pollErr?.statusCode || pollErr?.status || pollErr?.responseBody?.code;
         if (
           statusCode === 404 ||
@@ -255,6 +257,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
       }
     }
 
+    // Timeout tuyệt đối không được tự động chuyển sang COMPLETED hay mở review
     if (!isDone && attempts >= maxAttempts) {
       unsub();
       if (signal.aborted) return;

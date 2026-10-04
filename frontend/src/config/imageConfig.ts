@@ -82,7 +82,23 @@ export const IMAGE_CONFIG: Record<string, ImageSlotConfig> = {
     width: 1920,
     height: 1280,
     aspectRatio: '3:2',
-    placeholderUrl: '', // Default empty string to render vector geometric placeholder; can accept real URL
+    placeholderUrl: '/images/auth/candidate-auth-hero.jpg',
+  },
+  authCandidateHero: {
+    slot: 'authCandidateHero',
+    label: 'MidCV Candidate Auth Hero Image',
+    width: 1200,
+    height: 1600,
+    aspectRatio: '3:4',
+    placeholderUrl: '/images/auth/candidate-auth-hero.jpg',
+  },
+  authRecruiterHero: {
+    slot: 'authRecruiterHero',
+    label: 'MidCV Recruiter Auth Hero Image',
+    width: 1200,
+    height: 1600,
+    aspectRatio: '3:4',
+    placeholderUrl: '/images/auth/hr-auth-hero.jpg',
   },
 };
 

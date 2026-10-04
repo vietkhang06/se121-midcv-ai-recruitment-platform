@@ -446,7 +446,6 @@ export class BenchmarkFixtureClient implements ApiClient {
   async downloadCVEvidence(cvId: string, attachmentId: string, fileName: string): Promise<void> {
     return;
   }
-
   async fetchCandidateApplications(): Promise<Application[]> {
     return [...SEED_APPLICATIONS];
   }

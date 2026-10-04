@@ -565,6 +565,7 @@ export class RealApiClient implements ApiClient {
     };
   }
 
+
   async downloadCVFile(cvId: string, format: string, defaultFilename: string): Promise<void> {
     const token = getAuthToken();
     const url = `${BASE_URL}/api/v1/candidate/cvs/${cvId}/download/${format}`;
@@ -713,6 +714,7 @@ export class RealApiClient implements ApiClient {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(downloadUrl);
   }
+
 
   async fetchCandidateApplications(): Promise<Application[]> {
     const token = getAuthToken();

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Industry } from '@/types';
 import {
@@ -10,13 +11,14 @@ import {
 import { UserCheck, Building2, FastForward, Sparkles, ArrowRight } from 'lucide-react';
 
 export const FirstVisitModal: React.FC = () => {
+  const pathname = usePathname();
   const { hasSeenFirstVisit, setFirstVisitChoice } = useAuth();
   const [step, setStep] = useState<'CHOICE' | 'QUICK_ONBOARDING'>('CHOICE');
   const [age, setAge] = useState<number>(24);
   const [targetIndustry, setTargetIndustry] = useState<Industry>('Technology');
 
-  if (hasSeenFirstVisit) {
-    return null; // Do not render if user has already completed or skipped onboarding
+  if (hasSeenFirstVisit || pathname === '/login' || pathname === '/register' || pathname?.startsWith('/admin') || pathname?.startsWith('/recruiter')) {
+    return null; // Do not render if user has already completed or skipped onboarding, or is on dedicated auth/portal routes
   }
 
   const handleSelectCandidate = () => {
