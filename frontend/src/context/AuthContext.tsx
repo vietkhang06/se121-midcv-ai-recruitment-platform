@@ -47,11 +47,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [intendedAction, setIntendedAction] = useState<IntendedAction | null>(null);
 
   useEffect(() => {
-    // 1. Check first visit state
-    const seen = localStorage.getItem('hasSeenFirstVisitOnboarding');
-    if (!seen) {
-      setHasSeenFirstVisit(false);
-    }
+    // 1. Mark first visit as seen so user always sees the public home page on initial visit
+    localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
+    setHasSeenFirstVisit(true);
 
     // 2. Restore explicit user session if and only if valid session exists
     const storedUser = localStorage.getItem('auth_user');

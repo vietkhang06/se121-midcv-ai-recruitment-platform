@@ -2,9 +2,16 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { BrandLogo } from '@/components/common/BrandLogo';
 
 export const Footer: React.FC = () => {
+  const pathname = usePathname();
+
+  // Hide footer on dedicated auth pages and recruiter/admin dashboards
+  if (pathname === '/login' || pathname === '/register' || pathname?.startsWith('/recruiter') || pathname?.startsWith('/admin')) {
+    return null;
+  }
   return (
     <footer className="bg-[#070D1B] border-t border-[#1E293B] text-slate-400 text-sm py-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-5 gap-10">
