@@ -11,6 +11,7 @@ import { EmptyCandidatesIllustration } from '@/components/illustrations/Illustra
 import { Award, ArrowLeft, Filter, Search, ShieldCheck, Sparkles, Layers, GitBranch, ArrowRight, UserCheck, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { EmptyState } from '@/components/common/EmptyState';
+import { Reveal } from '@/components/motion/Reveal';
 
 export default function CandidateRankingPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -108,36 +109,38 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
     <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors">
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10 w-full">
         {/* Top Breadcrumb & Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#E2E8F0] dark:border-[#1E293B] pb-6">
-          <div className="space-y-1.5">
-            <Link href={`/recruiter/jobs/${job.id}`} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white mb-1 transition">
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>{locale === 'vi' ? 'Quay lại bài đăng JD' : 'Back to Job JD'}</span>
-            </Link>
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider font-mono">
-              <Award className="w-4 h-4" />
-              <span>Backend Sourced Candidate Ranking Engine</span>
+        <Reveal direction="up" delay={0}>
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#E2E8F0] dark:border-[#1E293B] pb-6">
+            <div className="space-y-1.5">
+              <Link href={`/recruiter/jobs/${job.id}`} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white mb-1 transition">
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>{locale === 'vi' ? 'Quay lại bài đăng JD' : 'Back to Job JD'}</span>
+              </Link>
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider font-mono">
+                <Award className="w-4 h-4" />
+                <span>Backend Sourced Candidate Ranking Engine</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-editorial font-bold text-slate-900 dark:text-white tracking-tight">
+                {locale === 'vi' ? 'Bảng Xếp Hạng Ứng Viên Chuẩn AI' : 'AI-Standard Candidate Ranking'}
+              </h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {locale === 'vi' 
+                  ? `Match Report Evaluation • Vị trí: ${job.title} • Phân tích tương thích hồ sơ ứng viên so với chuẩn yêu cầu công việc` 
+                  : `Match Report Evaluation • Position: ${job.title} • Multi-signal candidate compatibility against job specifications`}
+              </p>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-editorial font-bold text-slate-900 dark:text-white tracking-tight">
-              {locale === 'vi' ? 'Bảng Xếp Hạng Ứng Viên Chuẩn AI' : 'AI-Standard Candidate Ranking'}
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {locale === 'vi' 
-                ? `Match Report Evaluation • Vị trí: ${job.title} • Phân tích tương thích hồ sơ ứng viên so với chuẩn yêu cầu công việc` 
-                : `Match Report Evaluation • Position: ${job.title} • Multi-signal candidate compatibility against job specifications`}
-            </p>
-          </div>
 
-          {selectedCompareCandidates.length > 0 && (
-            <button
-              onClick={() => setIsCompareModalOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-md shadow-blue-500/20 transition active:scale-95 flex-shrink-0 cursor-pointer"
-            >
-              <Layers className="w-4 h-4 text-white" />
-              <span>{locale === 'vi' ? `So Sánh (${selectedCompareCandidates.length} Ứng viên)` : `Compare (${selectedCompareCandidates.length} Candidates)`}</span>
-            </button>
-          )}
-        </div>
+            {selectedCompareCandidates.length > 0 && (
+              <button
+                onClick={() => setIsCompareModalOpen(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-md shadow-blue-500/20 transition active:scale-95 flex-shrink-0 cursor-pointer"
+              >
+                <Layers className="w-4 h-4 text-white" />
+                <span>{locale === 'vi' ? `So Sánh (${selectedCompareCandidates.length} Ứng viên)` : `Compare (${selectedCompareCandidates.length} Candidates)`}</span>
+              </button>
+            )}
+          </div>
+        </Reveal>
 
         {rankings.length === 0 ? (
           <EmptyState

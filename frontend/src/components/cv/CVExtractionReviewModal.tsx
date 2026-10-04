@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { CVReviewData, CVEvidenceItem, PageSegmentItem } from '@/types';
 import { fetchCVReview, downloadCVFile, retryCVExtraction } from '@/lib/api';
+import { AnimatedModalShell, AnimatedStatus } from '@/components/motion';
 import {
   X,
   FileText,
@@ -123,8 +124,6 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
     setTimeout(() => setCopiedType(null), 2000);
   };
 
-  if (!isOpen) return null;
-
   const structured = data?.structured || {};
   const evidences = data?.evidences || [];
   const unverifiedFacts = data?.unverifiedFacts || [];
@@ -132,8 +131,15 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
   const pages = data?.pages || [];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-2xl w-full max-w-6xl h-[92vh] flex flex-col shadow-2xl overflow-hidden text-slate-800 dark:text-slate-100">
+    <AnimatedModalShell
+      isOpen={isOpen}
+      onRequestClose={onClose}
+      titleId="cv-review-modal-title"
+      descriptionId="cv-review-modal-description"
+      testId="cv-review-modal"
+      overlayClassName="p-3 sm:p-5 bg-slate-950/80 dark:bg-slate-950/80 backdrop-blur-md"
+      panelClassName="bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-2xl w-full max-w-6xl h-[92vh] flex flex-col shadow-2xl overflow-hidden text-slate-800 dark:text-slate-100"
+    >
         
         {/* Top Header */}
         <div className="px-6 py-4 border-b border-slate-200 dark:border-[#1E293B] flex items-center justify-between bg-slate-50/80 dark:bg-[#111C38]/90">
@@ -143,7 +149,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold truncate text-[#0F2A52] dark:text-white">
+                <h2 id="cv-review-modal-title" className="text-base sm:text-lg font-bold truncate text-[#0F2A52] dark:text-white">
                   {data?.title || 'Đang tải dữ liệu hồ sơ...'}
                 </h2>
                 {data?.status && (
@@ -165,7 +171,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+              <p id="cv-review-modal-description" className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
                 {data?.fileName ? `${data.fileName} (${((data.fileSize || 0) / 1024).toFixed(1)} KB)` : 'Chi tiết trích xuất nội dung & Grounded Evidence'}
               </p>
             </div>
@@ -183,6 +189,8 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
             </button>
             <button
               onClick={onClose}
+              data-autofocus="true"
+              aria-label="Đóng chi tiết trích xuất CV"
               className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#18294E] transition cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -286,12 +294,12 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 dark:bg-[#070D1E]/50">
           {isLoading ? (
-            <div className="h-full flex flex-col items-center justify-center space-y-3 py-16">
-              <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+            <AnimatedStatus stateKey="loading" isBusy className="h-full flex flex-col items-center justify-center space-y-3 py-16">
+              <RefreshCw className="w-8 h-8 text-blue-600 animate-spin motion-reduce:animate-none" />
               <p className="text-sm text-slate-500 dark:text-slate-400">Đang tải và xử lý hồ sơ trích xuất...</p>
-            </div>
+            </AnimatedStatus>
           ) : errorMessage ? (
-            <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 flex items-start gap-3">
+            <AnimatedStatus stateKey="error" isError className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
               <div>
                 <h4 className="text-sm font-semibold">Trích xuất gặp sự cố</h4>
@@ -303,12 +311,12 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                   Thử lại trích xuất
                 </button>
               </div>
-            </div>
+            </AnimatedStatus>
           ) : (
             <>
               {/* TAB 1: OVERVIEW & EXTRACTED PROFILE */}
               {activeTab === 'overview' && (
-                <div className="space-y-6 max-w-5xl mx-auto">
+                <div className="animate-fade-in space-y-6 max-w-5xl mx-auto">
                   
                   {/* Personal Header Card */}
                   <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs">
@@ -534,7 +542,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
               {/* TAB 2: RAW TEXT */}
               {activeTab === 'raw_text' && (
-                <div className="space-y-4 max-w-5xl mx-auto">
+                <div className="animate-fade-in space-y-4 max-w-5xl mx-auto">
                   <div className="flex items-center justify-between bg-white dark:bg-[#111C38] p-4 rounded-xl border border-slate-200 dark:border-[#1E293B]">
                     <div>
                       <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white">
@@ -614,7 +622,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
               {/* TAB 3: GROUNDED EVIDENCE */}
               {activeTab === 'evidence' && (
-                <div className="space-y-4 max-w-5xl mx-auto">
+                <div className="animate-fade-in space-y-4 max-w-5xl mx-auto">
                   <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/40 p-4 rounded-xl text-xs text-blue-800 dark:text-blue-300 flex items-start gap-3">
                     <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                     <div>
@@ -679,7 +687,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
               {/* TAB 4: STRUCTURED JSON */}
               {activeTab === 'json' && (
-                <div className="space-y-4 max-w-5xl mx-auto">
+                <div className="animate-fade-in space-y-4 max-w-5xl mx-auto">
                   <div className="flex items-center justify-between bg-white dark:bg-[#111C38] p-4 rounded-xl border border-slate-200 dark:border-[#1E293B]">
                     <div>
                       <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white">
@@ -717,7 +725,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
               {/* TAB 5: WARNINGS & AUDIT */}
               {activeTab === 'warnings' && (
-                <div className="space-y-4 max-w-5xl mx-auto">
+                <div className="animate-fade-in space-y-4 max-w-5xl mx-auto">
                   
                   {/* Warnings List */}
                   <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-3">
@@ -790,7 +798,6 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
           )}
         </div>
 
-      </div>
-    </div>
+    </AnimatedModalShell>
   );
 };

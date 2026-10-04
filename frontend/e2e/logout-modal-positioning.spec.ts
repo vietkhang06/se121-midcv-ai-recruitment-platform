@@ -3,6 +3,10 @@ import { test, expect } from '@playwright/test';
 test.describe('Logout Confirmation Modal Positioning & UX Suite', () => {
 
   const candidateInitScript = () => {
+    const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }))
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
     window.localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
     window.localStorage.setItem('midcv_lang', 'vi');
     window.localStorage.setItem('auth_user', JSON.stringify({
@@ -12,7 +16,7 @@ test.describe('Logout Confirmation Modal Positioning & UX Suite', () => {
       role: 'CANDIDATE',
       emailVerified: true
     }));
-    window.localStorage.setItem('auth_token', 'jwt-test-token-cand');
+    window.localStorage.setItem('auth_token', `e30.${payload}.logout-positioning-signature`);
   };
 
   test('01: Desktop Viewport (1280x800) -> Modal is precisely centered in viewport', async ({ page }) => {
@@ -28,7 +32,7 @@ test.describe('Logout Confirmation Modal Positioning & UX Suite', () => {
     await logoutBtn.click();
 
     // Verify modal overlay and dialog
-    const modalDialog = page.locator('div[role="dialog"] > div').first();
+    const modalDialog = page.getByRole('dialog', { name: /Xác Nhận Đăng Xuất/i });
     await expect(modalDialog).toBeVisible();
 
     const box = await modalDialog.boundingBox();
@@ -49,7 +53,7 @@ test.describe('Logout Confirmation Modal Positioning & UX Suite', () => {
     expect(box!.y + box!.height).toBeLessThan(vpHeight);
 
     // Verify overlay covers the entire viewport
-    const overlay = page.locator('div[role="dialog"]').first();
+    const overlay = page.getByTestId('logout-modal-overlay');
     const overlayBox = await overlay.boundingBox();
     expect(overlayBox).not.toBeNull();
     expect(overlayBox!.x).toBe(0);
@@ -81,7 +85,7 @@ test.describe('Logout Confirmation Modal Positioning & UX Suite', () => {
     await expect(logoutBtn).toBeVisible();
     await logoutBtn.click();
 
-    const modalDialog = page.locator('div[role="dialog"] > div').first();
+    const modalDialog = page.getByRole('dialog', { name: /Xác Nhận Đăng Xuất/i });
     await expect(modalDialog).toBeVisible();
 
     const box = await modalDialog.boundingBox();
@@ -114,13 +118,14 @@ test.describe('Logout Confirmation Modal Positioning & UX Suite', () => {
     const mobileBtn = page.locator('#mobile-menu-btn');
     if (await mobileBtn.isVisible()) {
       await mobileBtn.click();
-      const drawerLogoutBtn = page.locator('button:has-text("Đăng xuất"), button:has-text("Sign Out")').last();
+      const drawerLogoutBtn = page.locator('#mobile-drawer-logout-btn');
+      await expect(drawerLogoutBtn).toBeVisible();
       await drawerLogoutBtn.click();
     } else {
       await page.locator('#navbar-logout-btn').click();
     }
 
-    const modalDialog = page.locator('div[role="dialog"] > div').first();
+    const modalDialog = page.getByRole('dialog', { name: /Xác Nhận Đăng Xuất/i });
     await expect(modalDialog).toBeVisible();
 
     const box = await modalDialog.boundingBox();
@@ -156,7 +161,7 @@ test.describe('Logout Confirmation Modal Positioning & UX Suite', () => {
     await expect(drawerLogoutBtn).toBeVisible();
     await drawerLogoutBtn.click();
 
-    const modalDialog = page.locator('div[role="dialog"] > div').first();
+    const modalDialog = page.getByRole('dialog', { name: /Xác Nhận Đăng Xuất/i });
     await expect(modalDialog).toBeVisible();
 
     const box = await modalDialog.boundingBox();

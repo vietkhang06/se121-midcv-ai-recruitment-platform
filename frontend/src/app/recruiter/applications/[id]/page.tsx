@@ -171,7 +171,11 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
             </span>
 
             {/* Radial SVG Meter */}
-            <div className="relative w-36 h-36 flex items-center justify-center">
+            <div
+              className="relative w-36 h-36 flex items-center justify-center"
+              role="img"
+              aria-label={`${locale === 'vi' ? 'Điểm phù hợp' : 'Match score'} ${data.overallScore.toFixed(1)}%`}
+            >
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle
                   cx="50"
@@ -192,7 +196,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                   strokeDashoffset={251.2 * (1 - Math.min(100, data.overallScore) / 100)}
                   strokeLinecap="round"
                   fill="transparent"
-                  className="transition-all duration-1000"
+                  className="motion-score-ring"
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">

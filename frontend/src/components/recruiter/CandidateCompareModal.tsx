@@ -3,6 +3,7 @@
 import React from 'react';
 import { CandidateRankingItem } from '@/types';
 import { X, Award, CheckCircle2, AlertCircle, GitBranch, ArrowRight } from 'lucide-react';
+import { AnimatedModalShell, staggerDelay } from '@/components/motion';
 
 interface CandidateCompareModalProps {
   isOpen: boolean;
@@ -15,13 +16,22 @@ export const CandidateCompareModal: React.FC<CandidateCompareModalProps> = ({
   onClose,
   candidates
 }) => {
-  if (!isOpen || candidates.length === 0) return null;
+  if (candidates.length === 0) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 text-slate-100 relative max-h-[90vh] overflow-y-auto space-y-6">
+    <AnimatedModalShell
+      isOpen={isOpen}
+      onRequestClose={onClose}
+      titleId="candidate-compare-title"
+      descriptionId="candidate-compare-description"
+      testId="candidate-compare-modal"
+      overlayClassName="bg-slate-950/80 dark:bg-slate-950/80 backdrop-blur-md"
+      panelClassName="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 text-slate-100 relative max-h-[90vh] overflow-y-auto space-y-6"
+    >
         <button
           onClick={onClose}
+          data-autofocus="true"
+          aria-label="Đóng so sánh ứng viên"
           className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
         >
           <X className="w-5 h-5" />
@@ -29,14 +39,14 @@ export const CandidateCompareModal: React.FC<CandidateCompareModalProps> = ({
 
         <div className="space-y-1 border-b border-slate-800 pb-3">
           <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Candidate Comparison Tool</span>
-          <h3 className="text-xl font-bold text-white">So Sánh Trực Tiếp Ứng Viên (Side-by-Side Comparison)</h3>
-          <p className="text-xs text-slate-400">Đối sánh các chỉ số điểm, kỹ năng bắt buộc và minh chứng kinh nghiệm</p>
+          <h3 id="candidate-compare-title" className="text-xl font-bold text-white">So Sánh Trực Tiếp Ứng Viên (Side-by-Side Comparison)</h3>
+          <p id="candidate-compare-description" className="text-xs text-slate-400">Đối sánh các chỉ số điểm, kỹ năng bắt buộc và minh chứng kinh nghiệm</p>
         </div>
 
         {/* Side-by-Side Grid */}
         <div className={`grid gap-4 ${candidates.length === 1 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
           {candidates.map((cand, idx) => (
-            <div key={cand.applicationId} className="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
+            <div key={cand.applicationId} className="animate-fade-in bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs" style={{ animationDelay: `${staggerDelay(idx)}ms` }}>
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400">Ứng viên #{idx + 1}</span>
@@ -100,7 +110,6 @@ export const CandidateCompareModal: React.FC<CandidateCompareModalProps> = ({
             Đóng
           </button>
         </div>
-      </div>
-    </div>
+    </AnimatedModalShell>
   );
 };

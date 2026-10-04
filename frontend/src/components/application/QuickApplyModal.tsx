@@ -31,7 +31,8 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
   onSuccess,
 }) => {
   const { user, isAuthenticated, openAuthModal } = useAuth();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const isVi = locale === 'vi';
 
   // Step 1: Select CV, Step 2: Review Match Grid (Figma 07), Step 3: Confirm & Send
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(2);
@@ -59,16 +60,18 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
         <div className="w-full max-w-md bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 text-slate-900 dark:text-slate-100 text-center space-y-4 shadow-2xl">
           <ShieldAlert className="w-12 h-12 mx-auto text-amber-500" />
-          <h2 className="text-lg font-bold font-editorial text-slate-900 dark:text-white">Yêu cầu Đăng nhập để Ứng tuyển</h2>
+          <h2 className="text-lg font-bold font-editorial text-slate-900 dark:text-white">
+            {isVi ? 'Yêu cầu Đăng nhập để Ứng tuyển' : 'Sign In Required to Apply'}
+          </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-            Bạn cần đăng nhập tài khoản Ứng viên để thực hiện quy trình nộp đơn Quick Apply chuẩn MidCV.
+            {isVi ? 'Bạn cần đăng nhập tài khoản Ứng viên để thực hiện quy trình nộp đơn Quick Apply chuẩn MidCV.' : 'You must sign in as a Candidate to complete the verified Quick Apply workflow.'}
           </p>
           <div className="flex justify-center gap-3 pt-2">
             <button
               onClick={onClose}
               className="px-4 py-2 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
             >
-              Hủy
+              {t('common.cancel', isVi ? 'Hủy' : 'Cancel')}
             </button>
             <button
               onClick={() => {
@@ -77,7 +80,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
               }}
               className="px-4 py-2 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] dark:bg-[#2563EB] dark:hover:bg-[#1D4ED8] rounded-lg transition"
             >
-              Đăng nhập ngay
+              {isVi ? 'Đăng nhập ngay' : 'Sign In Now'}
             </button>
           </div>
         </div>
@@ -204,19 +207,23 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
               {/* Yellow Tip Callout */}
               <div className="bg-[#FEF9C3] dark:bg-[#FACC15]/15 border border-[#FACC15]/40 rounded-xl p-4 text-xs text-[#92400E] dark:text-[#FACC15] space-y-1">
                 <div className="font-semibold flex items-center gap-1.5">
-                  <span>Khuyến nghị tối ưu hóa hồ sơ:</span>
+                  <span>{isVi ? 'Khuyến nghị tối ưu hóa hồ sơ:' : 'Profile Optimization Tip:'}</span>
                 </div>
                 <p className="leading-relaxed font-light">
-                  Doanh nghiệp đặc biệt chú trọng các kỹ năng thực chiến và công nghệ cốt lõi. Hãy đảm bảo bản CV đã làm rõ các minh chứng dự án tương ứng.
+                  {isVi
+                    ? 'Doanh nghiệp đặc biệt chú trọng các kỹ năng thực chiến và công nghệ cốt lõi. Hãy đảm bảo bản CV đã làm rõ các minh chứng dự án tương ứng.'
+                    : 'Employers prioritize verified technical skills and core technologies. Ensure your selected CV highlights relevant project evidence.'}
                 </p>
               </div>
 
               {/* CV Selection */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-[#0F2A52] dark:text-[#E2E8F0] flex items-center justify-between">
-                  <span>Bản CV ứng tuyển:</span>
+                  <span>{isVi ? 'Bản CV ứng tuyển:' : 'Application CV:'}</span>
                   {candidateCVs.length === 0 && (
-                    <span className="text-rose-500 text-[11px]">Chưa có CV nào — hãy tải lên trước!</span>
+                    <span className="text-rose-500 text-[11px]">
+                      {isVi ? 'Chưa có CV nào — hãy tải lên trước!' : 'No CV found — please upload or build one first!'}
+                    </span>
                   )}
                 </label>
                 {candidateCVs.length > 0 ? (
@@ -227,13 +234,15 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
                   >
                     {candidateCVs.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.title} ({c.creationPath === 'UPLOAD' ? 'File tải lên' : 'Tạo từ Builder'}) {c.isDefault ? '— Mặc định' : ''}
+                        {c.title} ({c.creationPath === 'UPLOAD' ? (isVi ? 'File tải lên' : 'Uploaded file') : (isVi ? 'Tạo từ Builder' : 'CV Builder')}) {c.isDefault ? (isVi ? '— Mặc định' : '— Default') : ''}
                       </option>
                     ))}
                   </select>
                 ) : (
                   <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 rounded-xl text-xs text-rose-700 dark:text-rose-300">
-                    Bạn chưa có bản CV nào trong hệ thống. Vui lòng vào trang Quản lý CV để tải lên hoặc tạo mới.
+                    {isVi
+                      ? 'Bạn chưa có bản CV nào trong hệ thống. Vui lòng vào trang Quản lý CV để tải lên hoặc tạo mới.'
+                      : 'You do not have any CV profile yet. Please visit the CV Library to upload or create one.'}
                   </div>
                 )}
               </div>
@@ -248,16 +257,16 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
               {/* Match Evaluation Breakdown Table */}
               <div className="space-y-3">
                 <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8]">
-                  ĐỐI SOÁT TIÊU CHÍ YÊU CẦU CÔNG VIỆC
+                  {isVi ? 'ĐỐI SOÁT TIÊU CHÍ YÊU CẦU CÔNG VIỆC' : 'JOB REQUIREMENTS AUDIT'}
                 </div>
 
                 <div className="border border-slate-200 dark:border-[#1E293B] rounded-xl overflow-hidden">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-50 dark:bg-[#0B1528] text-[#64748B] dark:text-[#94A3B8] font-mono text-[10px] uppercase border-b border-slate-200 dark:border-[#1E293B]">
                       <tr>
-                        <th className="py-2.5 px-4 font-semibold">Kỹ năng yêu cầu</th>
-                        <th className="py-2.5 px-4 font-semibold">Đối sánh từ CV</th>
-                        <th className="py-2.5 px-4 font-semibold text-right">Kết quả</th>
+                        <th className="py-2.5 px-4 font-semibold">{isVi ? 'Kỹ năng yêu cầu' : 'Required Skill'}</th>
+                        <th className="py-2.5 px-4 font-semibold">{isVi ? 'Đối sánh từ CV' : 'CV Verification Evidence'}</th>
+                        <th className="py-2.5 px-4 font-semibold text-right">{isVi ? 'Kết quả' : 'Result'}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-[#1E293B] text-[#0F2A52] dark:text-slate-300">
@@ -272,7 +281,9 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
                                 <span className="ml-1.5 text-[9px] font-mono font-bold text-slate-400">({req.requirementType})</span>
                               </td>
                               <td className="py-3 px-4 text-[#64748B] dark:text-[#94A3B8]">
-                                {hasSkill ? 'Đã tìm thấy minh chứng trong bản CV' : 'Chưa phát hiện từ khóa trong CV'}
+                                {hasSkill
+                                  ? (isVi ? 'Đã tìm thấy minh chứng trong bản CV' : 'Evidence found in selected CV')
+                                  : (isVi ? 'Chưa phát hiện từ khóa trong CV' : 'Keyword not found in CV')}
                               </td>
                               <td className="py-3 px-4 text-right">
                                 <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
@@ -280,7 +291,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
                                     ? 'bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00873D] dark:text-[#10B981] border-[#00B14F]/30' 
                                     : 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-900/40'
                                 }`}>
-                                  {hasSkill ? 'Đạt chuẩn ✓' : 'Chưa có ✗'}
+                                  {hasSkill ? (isVi ? 'Đạt chuẩn ✓' : 'Verified ✓') : (isVi ? 'Chưa có ✗' : 'Missing ✗')}
                                 </span>
                               </td>
                             </tr>
@@ -289,7 +300,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
                       ) : (
                         <tr>
                           <td colSpan={3} className="py-3 px-4 text-center text-slate-400 italic">
-                            Chưa có yêu cầu kỹ năng cụ thể cho vị trí này.
+                            {isVi ? 'Chưa có yêu cầu kỹ năng cụ thể cho vị trí này.' : 'No specific skill requirements defined for this role.'}
                           </td>
                         </tr>
                       )}

@@ -7,6 +7,8 @@ import { fetchRecruiterJobs, fetchRecruiterProfile, getAuthUser, fetchJobApplica
 import { CompanyVerificationBanner } from '@/components/recruiter/CompanyVerificationBanner';
 import { useLanguage } from '@/context/LanguageContext';
 import { EmptyState } from '@/components/common/EmptyState';
+import { Reveal } from '@/components/motion/Reveal';
+import { staggerDelay } from '@/components/motion/stagger';
 import {
   Briefcase,
   Users,
@@ -130,37 +132,39 @@ export default function HRDashboardPage() {
         )}
 
         {/* Welcome Banner */}
-        <div className="bg-gradient-to-r from-[#0F2A52] via-[#1E3A5F] to-[#0F2A52] text-white rounded-2xl p-8 border border-blue-900/30 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <h2 suppressHydrationWarning className="text-2xl sm:text-3xl font-editorial font-normal text-white">
-              {locale === 'vi' ? 'Chào mừng trở lại, ' : 'Welcome back, '}{recruiterName}
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-200 font-light leading-relaxed">
-              {locale === 'vi' ? (
-                <>Hệ sinh thái <strong className="font-semibold text-white">mid<span className="text-[#00B14F]">CV</span><sup>®</sup></strong> đang đồng bộ các vị trí tuyển dụng với mô hình trích xuất thực thể và đối sánh vector chuẩn hóa.</>
-              ) : (
-                <>The <strong className="font-semibold text-white">mid<span className="text-[#00B14F]">CV</span><sup>®</sup></strong> ecosystem is syncing requisition vectors and candidate semantic pipelines.</>
-              )}
-            </p>
-          </div>
+        <Reveal direction="up" delay={0}>
+          <div className="bg-gradient-to-r from-[#0F2A52] via-[#1E3A5F] to-[#0F2A52] text-white rounded-2xl p-8 border border-blue-900/30 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div className="space-y-2 max-w-2xl">
+              <h2 suppressHydrationWarning className="text-2xl sm:text-3xl font-editorial font-normal text-white">
+                {locale === 'vi' ? 'Chào mừng trở lại, ' : 'Welcome back, '}{recruiterName}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-200 font-light leading-relaxed">
+                {locale === 'vi' ? (
+                  <>Hệ sinh thái <strong className="font-semibold text-white">mid<span className="text-[#00B14F]">CV</span><sup>®</sup></strong> đang đồng bộ các vị trí tuyển dụng với mô hình trích xuất thực thể và đối sánh vector chuẩn hóa.</>
+                ) : (
+                  <>The <strong className="font-semibold text-white">mid<span className="text-[#00B14F]">CV</span><sup>®</sup></strong> ecosystem is syncing requisition vectors and candidate semantic pipelines.</>
+                )}
+              </p>
+            </div>
 
-          <div className="flex items-center gap-3 shrink-0">
-            <Link
-              href="/recruiter/jobs/new"
-              className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#00B14F] hover:bg-[#009643] text-white transition shadow-sm flex items-center gap-1.5"
-            >
-              <span>{locale === 'vi' ? '+ Đăng Tin Tuyển Dụng' : '+ Post New Job'}</span>
-            </Link>
-            {jobs.length > 0 && (
+            <div className="flex items-center gap-3 shrink-0">
               <Link
-                href={`/recruiter/jobs/${jobs[0].id}/applications`}
-                className="px-4 py-2 rounded-lg text-xs font-medium border border-white/25 text-white hover:bg-white/10 transition"
+                href="/recruiter/jobs/new"
+                className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#00B14F] hover:bg-[#009643] text-white transition shadow-sm flex items-center gap-1.5"
               >
-                {locale === 'vi' ? 'Duyệt Ứng Viên' : 'Review Candidates'}
+                <span>{locale === 'vi' ? '+ Đăng Tin Tuyển Dụng' : '+ Post New Job'}</span>
               </Link>
-            )}
+              {jobs.length > 0 && (
+                <Link
+                  href={`/recruiter/jobs/${jobs[0].id}/applications`}
+                  className="px-4 py-2 rounded-lg text-xs font-medium border border-white/25 text-white hover:bg-white/10 transition"
+                >
+                  {locale === 'vi' ? 'Duyệt Ứng Viên' : 'Review Candidates'}
+                </Link>
+              )}
+            </div>
           </div>
-        </div>
+        </Reveal>
 
         {isLoading ? (
           <EmptyState
@@ -180,165 +184,179 @@ export default function HRDashboardPage() {
           <>
             {/* 4 KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-                <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-                  ACTIVE JOB POSTINGS
-                </span>
-                <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
-                  {publishedJobs.length}
+              <Reveal delay={staggerDelay(0)}>
+                <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
+                  <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+                    ACTIVE JOB POSTINGS
+                  </span>
+                  <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
+                    {publishedJobs.length}
+                  </div>
+                  <div className="text-[11px] text-[#00B14F] dark:text-[#3B82F6] font-medium pt-1">
+                    {jobs.length} tổng số vị trí đã tạo
+                  </div>
                 </div>
-                <div className="text-[11px] text-[#00B14F] dark:text-[#3B82F6] font-medium pt-1">
-                  {jobs.length} tổng số vị trí đã tạo
-                </div>
-              </div>
+              </Reveal>
 
-              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-                <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-                  APPLICANTS RECEIVED
-                </span>
-                <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
-                  {applications.length}
+              <Reveal delay={staggerDelay(1)}>
+                <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
+                  <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+                    APPLICANTS RECEIVED
+                  </span>
+                  <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
+                    {applications.length}
+                  </div>
+                  <div className="text-[11px] text-[#00B14F] dark:text-[#3B82F6] font-medium pt-1">
+                    Xác thực danh tính thực tế
+                  </div>
                 </div>
-                <div className="text-[11px] text-[#00B14F] dark:text-[#3B82F6] font-medium pt-1">
-                  Xác thực danh tính thực tế
-                </div>
-              </div>
+              </Reveal>
 
-              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-                <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-                  DRAFT JOBS
-                </span>
-                <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
-                  {draftJobs.length}
+              <Reveal delay={staggerDelay(2)}>
+                <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
+                  <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+                    DRAFT JOBS
+                  </span>
+                  <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
+                    {draftJobs.length}
+                  </div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                    Đang hoàn thiện mô tả JD
+                  </div>
                 </div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
-                  Đang hoàn thiện mô tả JD
-                </div>
-              </div>
+              </Reveal>
 
-              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-                <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-                  AI MATCH ENGINE
-                </span>
-                <div className="text-3xl font-editorial font-bold text-[#00B14F] dark:text-[#3B82F6]">
-                  Active
+              <Reveal delay={staggerDelay(3)}>
+                <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
+                  <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+                    AI MATCH ENGINE
+                  </span>
+                  <div className="text-3xl font-editorial font-bold text-[#00B14F] dark:text-[#3B82F6]">
+                    Active
+                  </div>
+                  <div className="text-[11px] text-[#00B14F] dark:text-[#3B82F6] font-medium pt-1">
+                    NDCG@K chuẩn hóa
+                  </div>
                 </div>
-                <div className="text-[11px] text-[#00B14F] dark:text-[#3B82F6] font-medium pt-1">
-                  NDCG@K chuẩn hóa
-                </div>
-              </div>
+              </Reveal>
             </div>
 
             {/* Active Sourcing Funnel Stage */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
-              <div className="text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wide">
-                Active Sourcing Funnel
-              </div>
+            <Reveal delay={120}>
+              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
+                <div className="text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wide">
+                  Active Sourcing Funnel
+                </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center pt-2">
-                {[
-                  { count: applications.length, label: 'Submitted (Nộp đơn)' },
-                  { count: applications.filter(a => a.status === 'UNDER_REVIEW').length, label: 'Screening (Sàng lọc)' },
-                  { count: applications.filter(a => a.status === 'SHORTLISTED').length, label: 'Shortlisted (Chọn tiếp)' },
-                  { count: applications.filter(a => a.status === 'REJECTED').length, label: 'Rejected (Từ chối)' },
-                ].map((st, idx) => (
-                  <div key={idx} className="bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] rounded-lg p-3">
-                    <div className="text-xl font-bold font-editorial text-slate-900 dark:text-white">{st.count}</div>
-                    <div className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 mt-0.5">{st.label}</div>
-                  </div>
-                ))}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center pt-2">
+                  {[
+                    { count: applications.length, label: 'Submitted (Nộp đơn)' },
+                    { count: applications.filter(a => a.status === 'UNDER_REVIEW').length, label: 'Screening (Sàng lọc)' },
+                    { count: applications.filter(a => a.status === 'SHORTLISTED').length, label: 'Shortlisted (Chọn tiếp)' },
+                    { count: applications.filter(a => a.status === 'REJECTED').length, label: 'Rejected (Từ chối)' },
+                  ].map((st, idx) => (
+                    <div key={idx} className="bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] rounded-lg p-3">
+                      <div className="text-xl font-bold font-editorial text-slate-900 dark:text-white">{st.count}</div>
+                      <div className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 mt-0.5">{st.label}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            </Reveal>
 
             {/* Two Columns: Top Performing Postings & Recent Candidate Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               
               {/* Left Column: Top Performing Postings */}
-              <div className="lg:col-span-8 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Vị Trí Đang Tuyển Dụng</h3>
-                  <Link href="/recruiter/jobs" className="text-xs font-semibold text-[#2563EB] hover:underline">
-                    Xem tất cả ({jobs.length})
-                  </Link>
-                </div>
-
-                {jobs.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 dark:bg-[#13233F] text-slate-500 dark:text-slate-400 font-mono text-[10px] uppercase border-b border-slate-200 dark:border-[#1E293B]">
-                        <tr>
-                          <th className="py-2.5 px-3 font-semibold">Tiêu đề vị trí</th>
-                          <th className="py-2.5 px-3 font-semibold">Ngành nghề</th>
-                          <th className="py-2.5 px-3 font-semibold">Mức lương</th>
-                          <th className="py-2.5 px-3 font-semibold text-right">Trạng thái</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-[#1F4A40] text-slate-700 dark:text-slate-300">
-                        {jobs.slice(0, 5).map((j) => (
-                          <tr key={j.id} className="hover:bg-slate-50/80 dark:hover:bg-[#15342E]">
-                            <td className="py-3 px-3 font-medium text-slate-900 dark:text-white">
-                              <Link href={`/recruiter/jobs/${j.id}/ranking`} className="hover:text-[#2563EB] hover:underline">
-                                {j.title}
-                              </Link>
-                            </td>
-                            <td className="py-3 px-3 font-mono">{j.industry}</td>
-                            <td className="py-3 px-3 font-mono">${j.salaryMin} - ${j.salaryMax}</td>
-                            <td className="py-3 px-3 text-right">
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                                  j.status === 'PUBLISHED'
-                                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-[#00B14F] border border-emerald-200 dark:border-emerald-800'
-                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                                }`}
-                              >
-                                {j.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              <Reveal delay={160} className="lg:col-span-8">
+                <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Vị Trí Đang Tuyển Dụng</h3>
+                    <Link href="/recruiter/jobs" className="text-xs font-semibold text-[#2563EB] hover:underline">
+                      Xem tất cả ({jobs.length})
+                    </Link>
                   </div>
-                ) : (
-                  <EmptyState
-                    type="EMPTY"
-                    compact
-                    title={t('emptyStates.jobs.emptyTitle', "Chưa có bài tuyển dụng nào")}
-                    description={t('emptyStates.jobs.emptyDesc', "Hiện tại chưa có vị trí tuyển dụng nào trên hệ thống.")}
-                    primaryCtaText="Tạo tin tuyển dụng đầu tiên"
-                    primaryCtaHref="/recruiter/jobs/new"
-                  />
-                )}
-              </div>
+
+                  {jobs.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 dark:bg-[#13233F] text-slate-500 dark:text-slate-400 font-mono text-[10px] uppercase border-b border-slate-200 dark:border-[#1E293B]">
+                          <tr>
+                            <th className="py-2.5 px-3 font-semibold">Tiêu đề vị trí</th>
+                            <th className="py-2.5 px-3 font-semibold">Ngành nghề</th>
+                            <th className="py-2.5 px-3 font-semibold">Mức lương</th>
+                            <th className="py-2.5 px-3 font-semibold text-right">Trạng thái</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-[#1F4A40] text-slate-700 dark:text-slate-300">
+                          {jobs.slice(0, 5).map((j) => (
+                            <tr key={j.id} className="hover:bg-slate-50/80 dark:hover:bg-[#15342E]">
+                              <td className="py-3 px-3 font-medium text-slate-900 dark:text-white">
+                                <Link href={`/recruiter/jobs/${j.id}/ranking`} className="hover:text-[#2563EB] hover:underline">
+                                  {j.title}
+                                </Link>
+                              </td>
+                              <td className="py-3 px-3 font-mono">{j.industry}</td>
+                              <td className="py-3 px-3 font-mono">${j.salaryMin} - ${j.salaryMax}</td>
+                              <td className="py-3 px-3 text-right">
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                                    j.status === 'PUBLISHED'
+                                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-[#00B14F] border border-emerald-200 dark:border-emerald-800'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                                  }`}
+                                >
+                                  {j.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <EmptyState
+                      type="EMPTY"
+                      compact
+                      title={t('emptyStates.jobs.emptyTitle', "Chưa có bài tuyển dụng nào")}
+                      description={t('emptyStates.jobs.emptyDesc', "Hiện tại chưa có vị trí tuyển dụng nào trên hệ thống.")}
+                      primaryCtaText="Tạo tin tuyển dụng đầu tiên"
+                      primaryCtaHref="/recruiter/jobs/new"
+                    />
+                  )}
+                </div>
+              </Reveal>
 
               {/* Right Column: Recent Candidate Activity */}
-              <div className="lg:col-span-4 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Đơn Ứng Tuyển Mới Nhất</h3>
+              <Reveal delay={200} className="lg:col-span-4">
+                <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Đơn Ứng Tuyển Mới Nhất</h3>
 
-                {applications.length > 0 ? (
-                  <div className="space-y-3 text-xs">
-                    {applications.slice(0, 4).map((app) => (
-                      <div key={app.id} className="p-3 bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] rounded-lg flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <div className="font-semibold text-slate-900 dark:text-white">{app.appliedCvTitle}</div>
-                          <div className="text-[10px] text-slate-500 dark:text-slate-400">{app.job.title}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">{app.appliedDate}</div>
+                  {applications.length > 0 ? (
+                    <div className="space-y-3 text-xs">
+                      {applications.slice(0, 4).map((app) => (
+                        <div key={app.id} className="p-3 bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] rounded-lg flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <div className="font-semibold text-slate-900 dark:text-white">{app.appliedCvTitle}</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">{app.job.title}</div>
+                            <div className="text-[10px] text-slate-400 font-mono">{app.appliedDate}</div>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-blue-50 dark:bg-blue-950/60 text-[#2563EB] dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                            {app.status}
+                          </span>
                         </div>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-blue-50 dark:bg-blue-950/60 text-[#2563EB] dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                          {app.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState
-                    type="EMPTY"
-                    compact
-                    title={t('emptyStates.applications.candidateEmptyTitle', "Chưa có đơn ứng tuyển nào")}
-                    description={t('emptyStates.applications.recruiterEmptyDesc', "Chưa có đơn ứng tuyển nào được ghi nhận.")}
-                  />
-                )}
-              </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState
+                      type="EMPTY"
+                      compact
+                      title={t('emptyStates.applications.candidateEmptyTitle', "Chưa có đơn ứng tuyển nào")}
+                      description={t('emptyStates.applications.recruiterEmptyDesc', "Chưa có đơn ứng tuyển nào được ghi nhận.")}
+                    />
+                  )}
+                </div>
+              </Reveal>
 
             </div>
           </>

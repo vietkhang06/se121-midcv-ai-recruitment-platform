@@ -6,8 +6,10 @@ import { fetchJobs, fetchCandidateProfile } from '@/lib/api';
 import { JobCard } from '@/components/jobs/JobCard';
 import { QuickApplyModal } from '@/components/application/QuickApplyModal';
 import { EmptyState } from '@/components/common/EmptyState';
+import { Reveal, staggerDelay } from '@/components/motion';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { translateIndustry, translateWorkMode, translateSeniority, formatSalary } from '@/lib/i18n';
 import {
   Search,
   MapPin,
@@ -197,39 +199,42 @@ export default function JobsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         {/* Page Header */}
-        <div className="border-b border-slate-200 dark:border-[#1E293B] pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] font-mono">
-              Vector Validation Directory
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9] mt-1">
-              {t('jobs.pageTitle', 'Khám Phá & Đối Sánh Việc Làm')}
-            </h1>
-            <p className="text-xs sm:text-sm text-[#64748B] dark:text-[#94A3B8] mt-0.5">
-              {t('jobs.pageSubtitle', 'Tìm kiếm vị trí tuyển dụng với tiêu chuẩn minh bạch và đối soát năng lực số.')}
-            </p>
-          </div>
+        <Reveal direction="up" delay={0}>
+          <div className="border-b border-slate-200 dark:border-[#1E293B] pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] font-mono">
+                Vector Validation Directory
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9] mt-1">
+                {t('jobs.pageTitle', 'Khám Phá & Đối Sánh Việc Làm')}
+              </h1>
+              <p className="text-xs sm:text-sm text-[#64748B] dark:text-[#94A3B8] mt-0.5">
+                {t('jobs.pageSubtitle', 'Tìm kiếm vị trí tuyển dụng với tiêu chuẩn minh bạch và đối soát năng lực số.')}
+              </p>
+            </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-mono text-[#64748B] dark:text-[#94A3B8]">
-              Hiển thị <strong className="text-[#0F2A52] dark:text-white">{filteredJobs.length}</strong> / {jobs.length} công việc
-            </span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#111C38] text-xs font-medium text-[#0F2A52] dark:text-slate-200 focus:outline-none focus:border-[#2563EB]"
-            >
-              <option value="newest">Mới nhất trước</option>
-              <option value="salary_high">Lương cao đến thấp</option>
-            </select>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-mono text-[#64748B] dark:text-[#94A3B8]">
+                {t('jobs.showing', 'Hiển thị')} <strong className="text-[#0F2A52] dark:text-white">{filteredJobs.length}</strong> {t('jobs.of', '/')} {jobs.length} {t('jobs.jobsCount', 'công việc')}
+              </span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#111C38] text-xs font-medium text-[#0F2A52] dark:text-slate-200 focus:outline-none focus:border-[#2563EB]"
+              >
+                <option value="newest">{t('jobs.newestFirst', 'Mới nhất trước')}</option>
+                <option value="salary_high">{t('jobs.salaryHighLow', 'Lương cao đến thấp')}</option>
+              </select>
+            </div>
           </div>
-        </div>
+        </Reveal>
 
         {/* 2-Column Responsive Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* Left Column: Refine Matches Filters Sidebar */}
-          <aside className="lg:col-span-4 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 space-y-5 shadow-xs transition-colors">
+          <Reveal direction="up" delay={80} className="lg:col-span-4">
+            <aside className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 space-y-5 shadow-xs transition-colors">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4 text-[#2563EB]" />
@@ -265,11 +270,11 @@ export default function JobsPage() {
                     className="accent-[#00B14F] rounded"
                   />
                   <span className="text-xs font-semibold text-[#00873D] dark:text-[#10B981]">
-                    Ưu tiên ngành nghề mục tiêu của tôi
+                    {t('jobs.prioritizeTarget', 'Ưu tiên ngành nghề mục tiêu của tôi')}
                   </span>
                 </label>
                 <p className="text-[11px] text-[#00873D] dark:text-[#10B981] pl-5">
-                  Đang lọc: {candidateIndustries.join(', ')}
+                  {t('jobs.filtering', 'Đang lọc:')} {candidateIndustries.map(ind => translateIndustry(ind, locale)).join(', ')}
                 </p>
               </div>
             )}
@@ -282,7 +287,7 @@ export default function JobsPage() {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Ví dụ: Frontend, Java, Senior..."
+                  placeholder={t('jobs.rolePlaceholder', 'Ví dụ: Frontend, Java, Senior...')}
                   value={searchKeyword}
                   onChange={(e) => setSearchKeyword(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
@@ -306,7 +311,7 @@ export default function JobsPage() {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Ví dụ: TP. Hồ Chí Minh, Hà Nội, Remote..."
+                  placeholder={t('jobs.locationPlaceholder', 'Ví dụ: TP. Hồ Chí Minh, Hà Nội, Remote...')}
                   value={locationKeyword}
                   onChange={(e) => setLocationKeyword(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
@@ -325,11 +330,11 @@ export default function JobsPage() {
             {/* Required Skill Filter */}
             <div className="space-y-1.5">
               <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
-                KỸ NĂNG YÊU CẦU
+                {t('jobs.requiredSkills', 'KỸ NĂNG YÊU CẦU')}
               </label>
               <input
                 type="text"
-                placeholder="Ví dụ: React, TypeScript, Docker..."
+                placeholder={t('jobs.skillPlaceholder', 'Ví dụ: React, TypeScript, Docker...')}
                 value={skillFilter}
                 onChange={(e) => setSkillFilter(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
@@ -350,7 +355,7 @@ export default function JobsPage() {
                       onChange={() => toggleItem(selectedSectors, setSelectedSectors, sector)}
                       className="accent-[#2563EB] rounded cursor-pointer"
                     />
-                    <span>{sector === 'Technology' ? 'Công nghệ thông tin' : sector}</span>
+                    <span>{translateIndustry(sector, locale)}</span>
                   </label>
                 ))}
               </div>
@@ -370,7 +375,7 @@ export default function JobsPage() {
                       onChange={() => toggleItem(selectedModes, setSelectedModes, mode)}
                       className="accent-[#2563EB] rounded cursor-pointer"
                     />
-                    <span>{mode}</span>
+                    <span>{translateWorkMode(mode, locale)}</span>
                   </label>
                 ))}
               </div>
@@ -390,7 +395,7 @@ export default function JobsPage() {
                       onChange={() => toggleItem(selectedLevels, setSelectedLevels, lvl)}
                       className="accent-[#2563EB] rounded cursor-pointer"
                     />
-                    <span>{lvl} Level</span>
+                    <span>{translateSeniority(lvl, locale)}</span>
                   </label>
                 ))}
               </div>
@@ -399,9 +404,9 @@ export default function JobsPage() {
             {/* Salary Range Slider */}
             <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
               <div className="flex items-center justify-between text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
-                <span>MỨC LƯƠNG TỐI THIỂU</span>
+                <span>{t('jobs.minSalaryLabel', 'MỨC LƯƠNG TỐI THIỂU')}</span>
                 <span className="text-[#00B14F] font-bold">
-                  {minSalary > 0 ? `$${minSalary.toLocaleString()} /tháng` : 'Tất cả'}
+                  {minSalary > 0 ? `$${minSalary.toLocaleString()} ${locale === 'vi' ? '/tháng' : '/mo'}` : t('jobs.all', 'Tất cả')}
                 </span>
               </div>
               <input
@@ -415,6 +420,7 @@ export default function JobsPage() {
               />
             </div>
           </aside>
+        </Reveal>
 
           {/* Right Column: Job Listings Results */}
           <main className="lg:col-span-8 space-y-4">
@@ -442,13 +448,14 @@ export default function JobsPage() {
                 primaryCtaHref="/recruiter/jobs/new"
               />
             ) : filteredJobs.length > 0 ? (
-              filteredJobs.map((job) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  onApplyClick={(j) => setApplyJob(j)}
-                  matchStatus={isAuthenticated && user?.role === 'CANDIDATE' ? 'INSUFFICIENT_DATA' : undefined}
-                />
+              filteredJobs.map((job, idx) => (
+                <Reveal key={job.id} delay={staggerDelay(idx)} className="h-full">
+                  <JobCard
+                    job={job}
+                    onApplyClick={(j) => setApplyJob(j)}
+                    matchStatus={isAuthenticated && user?.role === 'CANDIDATE' ? 'INSUFFICIENT_DATA' : undefined}
+                  />
+                </Reveal>
               ))
             ) : (
               /* Filter No-Match State: DB has jobs, but active filters returned 0 */
