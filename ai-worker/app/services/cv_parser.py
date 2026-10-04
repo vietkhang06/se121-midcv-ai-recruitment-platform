@@ -618,6 +618,13 @@ OUTPUT JSON SCHEMA:
             except Exception as e:
                 logger.warning(f"Custom LLM client call failed: {e}")
 
+        if settings.USE_MOCK_LLM:
+            try:
+                from tests.fixtures.mock_llm_client import MockLLMClient
+                return MockLLMClient().generate_json(system_instruction, user_content)
+            except Exception as e:
+                logger.warning(f"Mock LLM client call failed: {e}")
+
         messages = [
             {"role": "system", "content": system_instruction},
             {"role": "user", "content": user_content}
