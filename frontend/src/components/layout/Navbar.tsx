@@ -67,8 +67,8 @@ export const Navbar: React.FC = () => {
     return pathname === href;
   };
 
-  // If on recruiter or admin portal routes, let their dedicated layouts handle top navigation
-  if (pathname?.startsWith('/recruiter') || pathname?.startsWith('/admin')) {
+  // If on recruiter or admin portal routes, or dedicated split auth pages, let their views handle header presentation
+  if (pathname?.startsWith('/recruiter') || pathname?.startsWith('/admin') || pathname === '/login' || pathname === '/register') {
     return null;
   }
 
@@ -254,20 +254,20 @@ export const Navbar: React.FC = () => {
           ) : (
             <div className="hidden sm:flex items-center gap-2 xl:gap-2.5 shrink-0">
               {/* Đăng nhập */}
-              <button
-                onClick={() => openAuthModal('LOGIN')}
+              <Link
+                href="/login"
                 className="px-3.5 py-2 rounded-full text-xs font-bold text-[#173B73] dark:text-slate-200 hover:text-[#2563EB] dark:hover:text-[#3B82F6] hover:bg-blue-50/70 dark:hover:bg-[#152342] transition cursor-pointer whitespace-nowrap shrink-0"
               >
                 {locale === 'vi' ? 'Đăng nhập' : 'Sign In'}
-              </button>
+              </Link>
 
               {/* Đăng ký */}
-              <button
-                onClick={() => openAuthModal('REGISTER')}
+              <Link
+                href="/register"
                 className="px-5 py-2 rounded-full text-xs font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-xs cursor-pointer whitespace-nowrap shrink-0 active:scale-95"
               >
                 {locale === 'vi' ? 'Đăng ký' : 'Register'}
-              </button>
+              </Link>
 
               {/* Dành cho Doanh nghiệp (Anonymous only) */}
               <Link
@@ -324,24 +324,20 @@ export const Navbar: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2 pb-3 border-b border-slate-100 dark:border-[#1E293B]">
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  openAuthModal('LOGIN');
-                }}
+              <Link
+                href="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full py-2 text-center text-xs font-semibold rounded-lg border border-slate-200 dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition cursor-pointer"
               >
                 {t('nav.signIn', 'Sign In')}
-              </button>
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  openAuthModal('REGISTER');
-                }}
+              </Link>
+              <Link
+                href="/register"
+                onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full py-2 text-center text-xs font-semibold rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white transition cursor-pointer shadow-xs"
               >
                 {t('nav.register', 'Register')}
-              </button>
+              </Link>
             </div>
           )}
 
