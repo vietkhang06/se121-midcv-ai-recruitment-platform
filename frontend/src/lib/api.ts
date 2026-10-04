@@ -1375,18 +1375,18 @@ export const loginAccount = (email: string, password: string) => currentApiClien
 // ============================================================
 
 export async function fetchAiSettings(): Promise<AiSettings> {
-  return apiRequest<AiSettings>('/api/admin/ai-settings');
+  return apiRequest<AiSettings>('/api/v1/admin/ai-settings');
 }
 
 export async function updateAiSettings(body: Partial<AiSettings> & { cloudApiKey?: string }): Promise<AiSettings> {
-  return apiRequest<AiSettings>('/api/admin/ai-settings', {
+  return apiRequest<AiSettings>('/api/v1/admin/ai-settings', {
     method: 'PUT',
     body: JSON.stringify(body)
   });
 }
 
 export async function testAiSettings(body: Partial<AiSettings> & { cloudApiKey?: string }): Promise<{ healthy: boolean; latencyMs?: number; message?: string; error?: string }> {
-  return apiRequest<{ healthy: boolean; latencyMs?: number; message?: string; error?: string }>('/api/admin/ai-settings/test', {
+  return apiRequest<{ healthy: boolean; latencyMs?: number; message?: string; error?: string }>('/api/v1/admin/ai-settings/test', {
     method: 'POST',
     body: JSON.stringify(body)
   });
@@ -1396,22 +1396,22 @@ export async function uploadQuickScreening(jobId: string, file: File, githubEnab
   const formData = new FormData();
   formData.append('file', file);
   formData.append('githubEnabled', String(githubEnabled));
-  return apiRequest<{ id: string; jobId: string; document: any }>(`/api/hr/jobs/${jobId}/screenings`, {
+  return apiRequest<{ id: string; jobId: string; document: any }>(`/api/v1/hr/jobs/${jobId}/screenings`, {
     method: 'POST',
     body: formData
   });
 }
 
 export async function fetchQuickScreenings(jobId: string, page = 0, size = 20): Promise<QuickScreeningRun[]> {
-  return apiRequest<QuickScreeningRun[]>(`/api/hr/jobs/${jobId}/screenings?page=${page}&size=${size}`);
+  return apiRequest<QuickScreeningRun[]>(`/api/v1/hr/jobs/${jobId}/screenings?page=${page}&size=${size}`);
 }
 
 export async function fetchScreeningDetail(screeningId: string): Promise<QuickScreeningDetail> {
-  return apiRequest<QuickScreeningDetail>(`/api/hr/screenings/${screeningId}`);
+  return apiRequest<QuickScreeningDetail>(`/api/v1/hr/screenings/${screeningId}`);
 }
 
 export async function rematchScreening(screeningId: string): Promise<{ jobId: string }> {
-  return apiRequest<{ jobId: string }>(`/api/hr/screenings/${screeningId}/match`, {
+  return apiRequest<{ jobId: string }>(`/api/v1/hr/screenings/${screeningId}/match`, {
     method: 'POST'
   });
 }

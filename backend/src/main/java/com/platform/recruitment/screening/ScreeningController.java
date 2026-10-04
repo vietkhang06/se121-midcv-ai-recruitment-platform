@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/hr")
+@RequestMapping("/api/v1/hr")
 public class ScreeningController {
   private final JdbcTemplate jdbc;
   private final ObjectMapper mapper;
