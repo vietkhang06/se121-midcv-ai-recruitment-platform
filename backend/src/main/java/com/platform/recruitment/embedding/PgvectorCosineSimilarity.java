@@ -92,7 +92,8 @@ public class PgvectorCosineSimilarity {
 
             return BigDecimal.valueOf(score).setScale(2, RoundingMode.HALF_UP);
         } catch (Exception ex) {
-            return BigDecimal.valueOf(50.00);
+            log.error("Failed to compute vector similarity score: {}", ex.getMessage());
+            return BigDecimal.ZERO;
         }
     }
 

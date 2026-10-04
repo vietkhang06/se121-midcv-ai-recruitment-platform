@@ -60,7 +60,8 @@ public class User extends BaseEntity {
     }
 
     public boolean isDeactivated() {
-        return this.accountStatus == AccountStatus.DEACTIVATED;
+        return this.accountStatus == AccountStatus.DEACTIVATED
+                || (Boolean.FALSE.equals(this.isActive) && this.accountStatus != AccountStatus.SUSPENDED);
     }
 
     public void suspend() {

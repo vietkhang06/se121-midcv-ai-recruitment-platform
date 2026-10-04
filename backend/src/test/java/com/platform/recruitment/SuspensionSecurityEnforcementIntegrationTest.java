@@ -142,8 +142,6 @@ class SuspensionSecurityEnforcementIntegrationTest {
     @Test
     @DisplayName("Suspended recruiter is blocked from publishing job with ACCOUNT_SUSPENDED")
     void testSuspendedRecruiterCannotPublishJob() {
-        when(jobRepository.findById(activeJob.getId())).thenReturn(Optional.of(activeJob));
-
         assertThatThrownBy(() -> jobService.publishJob(suspendedRecruiterUser, activeJob.getId()))
                 .isInstanceOf(CustomException.class)
                 .satisfies(ex -> {
@@ -152,6 +150,7 @@ class SuspensionSecurityEnforcementIntegrationTest {
                 });
 
         assertThat(activeJob.getStatus()).isEqualTo(JobStatus.DRAFT);
+        verify(jobRepository, never()).save(any());
     }
 
     @Test

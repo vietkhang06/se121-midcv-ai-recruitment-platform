@@ -77,6 +77,7 @@ class ProductionDataIntegrityEvaluationTest {
     @Mock private GitHubAssessmentRepository gitHubAssessmentRepository;
     @Mock private RecruiterProfileRepository recruiterProfileRepository;
     @Mock private JdbcTemplate jdbcTemplate;
+    @Mock private com.platform.recruitment.suspension.SuspensionGuard suspensionGuard;
 
     private MatchingEngineService matchingEngineService;
     private GitHubScoringService gitHubScoringService;
@@ -113,7 +114,7 @@ class ProductionDataIntegrityEvaluationTest {
 
         matchingController = new MatchingController(
                 matchingEngineService, candidateRankingService,
-                jobRepository, recruiterProfileRepository, applicationRepository
+                jobRepository, recruiterProfileRepository, applicationRepository, suspensionGuard
         );
 
         // Setup test entities

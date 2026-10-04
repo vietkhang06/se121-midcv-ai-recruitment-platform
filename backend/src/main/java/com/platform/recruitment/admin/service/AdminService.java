@@ -33,7 +33,6 @@ import java.util.*;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class AdminService {
 
     private final UserRepository userRepository;
@@ -50,6 +49,43 @@ public class AdminService {
     private final ApplicationRepository applicationRepository;
     private final com.platform.recruitment.company.service.CompanyVerificationService companyVerificationService;
     private final com.platform.recruitment.suspension.SuspensionRecordRepository suspensionRecordRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AdminService(UserRepository userRepository, CandidateProfileRepository candidateProfileRepository,
+                        RecruiterProfileRepository recruiterProfileRepository, CompanyRepository companyRepository,
+                        JobRepository jobRepository, SystemReportRepository systemReportRepository,
+                        AdminAuditLogRepository adminAuditLogRepository, AdminAuditLogService adminAuditLogService,
+                        AiClient aiClient, TaxonomyService taxonomyService, CVRepository cvRepository,
+                        ApplicationRepository applicationRepository,
+                        com.platform.recruitment.company.service.CompanyVerificationService companyVerificationService,
+                        @org.springframework.lang.Nullable com.platform.recruitment.suspension.SuspensionRecordRepository suspensionRecordRepository) {
+        this.userRepository = userRepository;
+        this.candidateProfileRepository = candidateProfileRepository;
+        this.recruiterProfileRepository = recruiterProfileRepository;
+        this.companyRepository = companyRepository;
+        this.jobRepository = jobRepository;
+        this.systemReportRepository = systemReportRepository;
+        this.adminAuditLogRepository = adminAuditLogRepository;
+        this.adminAuditLogService = adminAuditLogService;
+        this.aiClient = aiClient;
+        this.taxonomyService = taxonomyService;
+        this.cvRepository = cvRepository;
+        this.applicationRepository = applicationRepository;
+        this.companyVerificationService = companyVerificationService;
+        this.suspensionRecordRepository = suspensionRecordRepository;
+    }
+
+    public AdminService(UserRepository userRepository, CandidateProfileRepository candidateProfileRepository,
+                        RecruiterProfileRepository recruiterProfileRepository, CompanyRepository companyRepository,
+                        JobRepository jobRepository, SystemReportRepository systemReportRepository,
+                        AdminAuditLogRepository adminAuditLogRepository, AdminAuditLogService adminAuditLogService,
+                        AiClient aiClient, TaxonomyService taxonomyService, CVRepository cvRepository,
+                        ApplicationRepository applicationRepository,
+                        com.platform.recruitment.company.service.CompanyVerificationService companyVerificationService) {
+        this(userRepository, candidateProfileRepository, recruiterProfileRepository, companyRepository, jobRepository,
+             systemReportRepository, adminAuditLogRepository, adminAuditLogService, aiClient, taxonomyService,
+             cvRepository, applicationRepository, companyVerificationService, null);
+    }
 
     // ==========================================
     // 1. DASHBOARD AGGREGATED METRICS
@@ -222,17 +258,19 @@ public class AdminService {
         user.suspend();
         userRepository.save(user);
 
-        com.platform.recruitment.suspension.SuspensionRecord record =
-                com.platform.recruitment.suspension.SuspensionRecord.builder()
-                        .targetType(com.platform.recruitment.suspension.SuspensionTargetType.USER)
-                        .targetId(user.getId())
-                        .reasonCode("ADMIN_MODERATION")
-                        .reasonText(reason.trim())
-                        .suspendedBy(admin)
-                        .suspendedAt(ZonedDateTime.now())
-                        .status(com.platform.recruitment.suspension.SuspensionStatus.ACTIVE)
-                        .build();
-        suspensionRecordRepository.save(record);
+        if (suspensionRecordRepository != null) {
+            com.platform.recruitment.suspension.SuspensionRecord record =
+                    com.platform.recruitment.suspension.SuspensionRecord.builder()
+                            .targetType(com.platform.recruitment.suspension.SuspensionTargetType.USER)
+                            .targetId(user.getId())
+                            .reasonCode("ADMIN_MODERATION")
+                            .reasonText(reason.trim())
+                            .suspendedBy(admin)
+                            .suspendedAt(ZonedDateTime.now())
+                            .status(com.platform.recruitment.suspension.SuspensionStatus.ACTIVE)
+                            .build();
+            suspensionRecordRepository.save(record);
+        }
 
         adminAuditLogService.log(
                 admin,
@@ -255,17 +293,19 @@ public class AdminService {
         user.reactivate();
         userRepository.save(user);
 
-        suspensionRecordRepository.findByTargetTypeAndTargetIdAndStatus(
-                com.platform.recruitment.suspension.SuspensionTargetType.USER,
-                user.getId(),
-                com.platform.recruitment.suspension.SuspensionStatus.ACTIVE
-        ).forEach(activeRecord -> {
-            activeRecord.setStatus(com.platform.recruitment.suspension.SuspensionStatus.LIFTED);
-            activeRecord.setLiftedBy(admin);
-            activeRecord.setLiftedAt(ZonedDateTime.now());
-            activeRecord.setResolutionNote(reason != null ? reason.trim() : "Quản trị viên kích hoạt lại tài khoản");
-            suspensionRecordRepository.save(activeRecord);
-        });
+        if (suspensionRecordRepository != null) {
+            suspensionRecordRepository.findByTargetTypeAndTargetIdAndStatus(
+                    com.platform.recruitment.suspension.SuspensionTargetType.USER,
+                    user.getId(),
+                    com.platform.recruitment.suspension.SuspensionStatus.ACTIVE
+            ).forEach(activeRecord -> {
+                activeRecord.setStatus(com.platform.recruitment.suspension.SuspensionStatus.LIFTED);
+                activeRecord.setLiftedBy(admin);
+                activeRecord.setLiftedAt(ZonedDateTime.now());
+                activeRecord.setResolutionNote(reason != null ? reason.trim() : "Quản trị viên kích hoạt lại tài khoản");
+                suspensionRecordRepository.save(activeRecord);
+            });
+        }
 
         adminAuditLogService.log(
                 admin,
