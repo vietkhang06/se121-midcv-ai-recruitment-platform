@@ -54,3 +54,7 @@ app:
   github-token: ${GITHUB_TOKEN:}
   ai-timeout-seconds: ${AI_TIMEOUT_SECONDS:360}
   ai-num-ctx: ${AI_NUM_CTX:8192}
+  admin:
+    bootstrap:
+      email: ${ADMIN_INITIAL_EMAIL:admin@midcv.io}
+      password: ${ADMIN_INITIAL_PASSWORD:MidCV#SysOps_2026@SecureCore!}
