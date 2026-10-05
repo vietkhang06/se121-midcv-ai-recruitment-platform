@@ -62,7 +62,8 @@ class SuspensionSecurityEnforcementIntegrationTest {
         UUID companyId2 = UUID.randomUUID();
         suspendedCompany = Company.builder()
                 .name("Scam Corp")
-                .verificationStatus(CompanyVerification.SUSPENDED)
+                .verificationStatus(CompanyVerification.VERIFIED)
+                .operationalStatus(com.platform.recruitment.company.CompanyOperationalStatus.SUSPENDED)
                 .build();
         suspendedCompany.setId(companyId2);
 

@@ -60,7 +60,7 @@ public class SuspensionGuard {
             Optional<RecruiterProfile> profileOpt = recruiterProfileRepository.findByUserId(user.getId());
             if (profileOpt.isPresent()) {
                 Company company = profileOpt.get().getCompany();
-                if (company != null && company.getVerificationStatus() == CompanyVerification.SUSPENDED) {
+                if (company != null && company.isSuspended()) {
                     log.warn("Blocked recruiter operation due to suspended company: userId={}, companyId={}",
                             user.getId(), company.getId());
                     throw new CustomException(
@@ -70,6 +70,25 @@ public class SuspensionGuard {
                     );
                 }
             }
+        }
+    }
+
+    /**
+     * Checks if a candidate is allowed to perform applications or candidate mutations.
+     */
+    public void checkCandidateOperationAllowed(User user) {
+        checkUserActive(user);
+    }
+
+    /**
+     * Checks if a company is operational and not suspended.
+     */
+    public void checkCompanyOperationAllowed(Company company) {
+        if (company != null && company.isSuspended()) {
+            throw new CustomException(
+                    ErrorCode.COMPANY_SUSPENDED,
+                    String.format("Doanh nghiệp '%s' đang bị tạm đình chỉ hoạt động.", company.getName())
+            );
         }
     }
 
