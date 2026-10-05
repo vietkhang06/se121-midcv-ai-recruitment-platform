@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Job } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { translateIndustry, translateWorkMode, formatSalary } from '@/lib/i18n';
 import { Briefcase, Bookmark, ShieldCheck, HelpCircle, Info } from 'lucide-react';
 
 interface JobCardProps {
@@ -22,6 +23,7 @@ export const JobCard: React.FC<JobCardProps> = ({
 }) => {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
+  const isVi = locale === 'vi';
 
   const isCandidate = user?.role === 'CANDIDATE';
   const hasInsufficientData =
@@ -38,7 +40,7 @@ export const JobCard: React.FC<JobCardProps> = ({
   const percentVerified = totalReqs > 0 ? Math.round((verifiedCount / totalReqs) * 100) : 0;
 
   return (
-    <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#3B82F6] rounded-2xl p-6 shadow-xs hover:shadow-md transition-all duration-200">
+    <div className="motion-hover-lift bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#3B82F6] rounded-2xl p-6 shadow-xs hover:shadow-md">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         
         {/* Left: Company Icon + Details */}
@@ -55,7 +57,7 @@ export const JobCard: React.FC<JobCardProps> = ({
               {job.companyVerified && (
                 <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#00B14F] dark:text-[#10B981] bg-[#E8F8EE] dark:bg-[#00B14F]/15 border border-[#00B14F]/30 px-2.5 py-0.5 rounded-full">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Doanh nghiệp xác thực</span>
+                  <span>{isVi ? 'Doanh nghiệp xác thực' : 'Company Verified'}</span>
                 </span>
               )}
             </div>
@@ -63,25 +65,27 @@ export const JobCard: React.FC<JobCardProps> = ({
             <div className="text-xs text-[#64748B] dark:text-[#94A3B8]">
               <span className="font-semibold text-[#0F2A52] dark:text-slate-200">{job.companyName}</span>
               <span className="mx-2 text-slate-300 dark:text-slate-600">•</span>
-              <span>{job.location} ({job.employmentType})</span>
+              <span>{job.location} ({translateWorkMode(job.employmentType, locale)})</span>
               <span className="mx-2 text-slate-300 dark:text-slate-600">•</span>
-              <span className="font-mono text-[#2563EB] dark:text-[#3B82F6]">{job.industry}</span>
+              <span className="font-mono text-[#2563EB] dark:text-[#3B82F6]">{translateIndustry(job.industry, locale)}</span>
             </div>
 
             {/* Matching Technical Skills Bar */}
             <div className="pt-2 max-w-md space-y-1">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-[#64748B] dark:text-[#94A3B8] font-medium">Đối sánh kỹ năng yêu cầu</span>
+                <span className="text-[#64748B] dark:text-[#94A3B8] font-medium">
+                  {isVi ? 'Đối sánh kỹ năng yêu cầu' : 'Matching Technical Skills'}
+                </span>
                 <span className="font-semibold text-[#0F2A52] dark:text-slate-200 font-mono">
                   {hasInsufficientData
-                    ? 'Chưa đủ dữ liệu hồ sơ'
-                    : `${verifiedCount} / ${totalReqs} Đạt chuẩn`}
+                    ? (isVi ? 'Chưa đủ dữ liệu hồ sơ' : 'Insufficient profile data')
+                    : `${verifiedCount} / ${totalReqs} ${isVi ? 'Đạt chuẩn' : 'Verified'}`}
                 </span>
               </div>
               <div className="w-full bg-slate-100 dark:bg-[#13233F] rounded-full h-1.5 overflow-hidden">
                 <div
-                  className="bg-[#2563EB] h-1.5 rounded-full transition-all duration-500"
-                  style={{ width: `${percentVerified}%` }}
+                  className="bg-[#2563EB] h-1.5 rounded-full origin-left transition-transform duration-500 motion-reduce:transition-none"
+                  style={{ transform: `scaleX(${percentVerified / 100})` }}
                 />
               </div>
             </div>
@@ -89,10 +93,10 @@ export const JobCard: React.FC<JobCardProps> = ({
             {/* Salary & Date */}
             <div className="pt-2 text-xs text-[#64748B] dark:text-[#94A3B8] font-mono">
               <span className="font-semibold text-[#0F2A52] dark:text-slate-200">
-                {job.salaryRange || (job.salaryMin ? `$${job.salaryMin} - $${job.salaryMax} /mo` : 'Thỏa thuận')}
+                {formatSalary(job.salaryMin, job.salaryMax, job.salaryRange, locale)}
               </span>
               <span className="mx-2 text-slate-300 dark:text-slate-600">•</span>
-              <span>Đăng {job.publishedDate || 'gần đây'}</span>
+              <span>{isVi ? `Đăng ${job.publishedDate || 'gần đây'}` : `Posted ${job.publishedDate || 'recently'}`}</span>
             </div>
           </div>
         </div>
@@ -128,7 +132,7 @@ export const JobCard: React.FC<JobCardProps> = ({
               </span>
             )}
 
-            <button className="text-slate-400 hover:text-[#0F2A52] dark:hover:text-white p-1 cursor-pointer transition" title="Lưu công việc">
+            <button className="text-slate-400 hover:text-[#0F2A52] dark:hover:text-white p-1 cursor-pointer transition" title={isVi ? 'Lưu công việc' : 'Save job'}>
               <Bookmark className="w-4 h-4" />
             </button>
           </div>

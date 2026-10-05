@@ -1,5 +1,4 @@
 'use client';
-'use client';
 
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
@@ -7,7 +6,9 @@ import { Job } from '@/types';
 import { fetchJobById } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { translateIndustry, translateWorkMode, formatSalary } from '@/lib/i18n';
 import { QuickApplyModal } from '@/components/application/QuickApplyModal';
+import { Reveal } from '@/components/motion/Reveal';
 import { ShieldCheck, ChevronRight, Briefcase } from 'lucide-react';
 
 export default function JobDetailPage({
@@ -18,6 +19,7 @@ export default function JobDetailPage({
   const resolvedParams = use(params);
   const { user } = useAuth();
   const { t, locale } = useLanguage();
+  const isVi = locale === 'vi';
 
   const [job, setJob] = useState<Job | null>(null);
   const [isApplyModalOpen, setIsApplyModalOpen] = useState<boolean>(false);
@@ -29,7 +31,7 @@ export default function JobDetailPage({
   if (!job) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-24 text-center text-slate-500">
-        <p className="text-sm">{t('common.loading', 'Loading job verification profile...')}</p>
+        <p className="text-sm">{t('common.loading', isVi ? 'Đang tải thông tin vị trí...' : 'Loading job verification profile...')}</p>
       </div>
     );
   }
@@ -44,59 +46,61 @@ export default function JobDetailPage({
         {/* Breadcrumb Trail (Figma Screen 03) */}
         <div className="flex items-center gap-2 text-xs text-[#64748B] dark:text-[#94A3B8]">
           <Link href="/jobs" className="hover:text-[#2563EB] transition">
-            {locale === 'vi' ? 'Danh sách việc làm' : 'Jobs Directory'}
+            {isVi ? 'Danh sách việc làm' : 'Jobs Directory'}
           </Link>
           <ChevronRight className="w-3 h-3 text-slate-400" />
-          <span>{job.industry || 'Technology'}</span>
+          <span>{translateIndustry(job.industry, locale) || (isVi ? 'Công nghệ' : 'Technology')}</span>
           <ChevronRight className="w-3 h-3 text-slate-400" />
           <span className="text-[#0F2A52] dark:text-slate-200 font-medium truncate max-w-xs">{job.title}</span>
         </div>
 
         {/* 03 — Editorial Hero Header Banner */}
-        <div className="bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0F172A] dark:to-[#1E293B] text-white rounded-3xl p-8 sm:p-10 border border-white/10 shadow-lg relative overflow-hidden">
-          <div className="absolute -right-20 -top-20 w-80 h-80 bg-[#2563EB]/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-[#00B14F]/15 rounded-full blur-3xl pointer-events-none" />
+        <Reveal direction="up" delay={0}>
+          <div className="bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0F172A] dark:to-[#1E293B] text-white rounded-3xl p-8 sm:p-10 border border-white/10 shadow-lg relative overflow-hidden">
+            <div className="absolute -right-20 -top-20 w-80 h-80 bg-[#2563EB]/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-[#00B14F]/15 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-start justify-between gap-6">
-            <div className="space-y-3 max-w-2xl">
-              <div className="flex items-center gap-2 flex-wrap text-xs">
-                <span className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs text-[#D7F9FA] font-mono uppercase text-[11px] font-semibold border border-white/15">
-                  {job.industry}
-                </span>
-                <span className="text-slate-300 text-xs">
-                  {locale === 'vi' ? 'Đăng ' : 'Posted '}{job.publishedDate || (locale === 'vi' ? 'gần đây' : 'recently')}
-                </span>
-                {job.companyVerified && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#00B14F] bg-[#00B14F]/20 border border-[#00B14F]/40 px-2.5 py-0.5 rounded-full">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>{locale === 'vi' ? 'Doanh nghiệp xác thực' : 'Verified Enterprise'}</span>
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-start justify-between gap-6">
+              <div className="space-y-3 max-w-2xl">
+                <div className="flex items-center gap-2 flex-wrap text-xs">
+                  <span className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs text-[#D7F9FA] font-mono uppercase text-[11px] font-semibold border border-white/15">
+                    {translateIndustry(job.industry, locale)}
                   </span>
-                )}
+                  <span className="text-slate-300 text-xs">
+                    {isVi ? 'Đăng ' : 'Posted '}{job.publishedDate || (isVi ? 'gần đây' : 'recently')}
+                  </span>
+                  {job.companyVerified && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#00B14F] bg-[#00B14F]/20 border border-[#00B14F]/40 px-2.5 py-0.5 rounded-full">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>{isVi ? 'Doanh nghiệp xác thực' : 'Verified Enterprise'}</span>
+                    </span>
+                  )}
+                </div>
+
+                <h1 className="text-3xl sm:text-4xl font-editorial font-bold tracking-tight text-white">
+                  {job.title}
+                </h1>
+
+                <div className="text-sm text-slate-300 font-light">
+                  {job.companyName} • {job.location} ({translateWorkMode(job.employmentType, locale)})
+                </div>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl font-editorial font-bold tracking-tight text-white">
-                {job.title}
-              </h1>
-
-              <div className="text-sm text-slate-300 font-light">
-                {job.companyName} • {job.location} ({job.employmentType})
+              {/* Verified JD Status Badge */}
+              <div className="shrink-0 relative z-10">
+                <span className="px-4 py-1.5 rounded-full text-xs font-bold font-mono bg-[#00B14F]/25 border border-[#00B14F]/40 text-[#D7F9FA] shadow-sm">
+                  VERIFIED JD
+                </span>
               </div>
-            </div>
-
-            {/* Verified JD Status Badge */}
-            <div className="shrink-0 relative z-10">
-              <span className="px-4 py-1.5 rounded-full text-xs font-bold font-mono bg-[#00B14F]/25 border border-[#00B14F]/40 text-[#D7F9FA] shadow-sm">
-                VERIFIED JD
-              </span>
             </div>
           </div>
-        </div>
+        </Reveal>
 
         {/* 03 — 2-Column Content Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* Left Column: Role Details */}
-          <div className="lg:col-span-8 space-y-6">
+          <Reveal direction="up" delay={60} className="lg:col-span-8 space-y-6">
             
             {/* Role Summary */}
             <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-3 transition-colors">
@@ -167,18 +171,19 @@ export default function JobDetailPage({
                 </div>
               )}
             </div>
-
-          </div>
+          </Reveal>
 
           {/* Right Column: Compensation & Semantic Fit Evaluation */}
-          <div className="lg:col-span-4 space-y-6">
+          <Reveal direction="up" delay={120} className="lg:col-span-4 space-y-6">
             
             {/* Compensation & Apply Card */}
             <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-7 shadow-xs space-y-4 transition-colors">
               <div className="space-y-1">
-                <span className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">MỨC LƯƠNG ĐỀ XUẤT</span>
+                <span className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
+                  {isVi ? 'MỨC LƯƠNG ĐỀ XUẤT' : 'PROPOSED SALARY'}
+                </span>
                 <div className="text-2xl font-bold font-editorial text-[#00B14F]">
-                  {job.salaryRange || `$${job.salaryMin} - $${job.salaryMax} /tháng`}
+                  {formatSalary(job.salaryMin, job.salaryMax, job.salaryRange, locale)}
                 </div>
               </div>
 
@@ -186,16 +191,18 @@ export default function JobDetailPage({
                 <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-[#152342] border border-blue-200 dark:border-blue-900/50 text-center space-y-2.5">
                   <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#173B73] dark:text-blue-200">
                     <Briefcase className="w-3.5 h-3.5 text-[#2563EB]" />
-                    <span>Tài khoản Nhà tuyển dụng (HR)</span>
+                    <span>{isVi ? 'Tài khoản Nhà tuyển dụng (HR)' : 'Recruiter Account (HR)'}</span>
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                    Bạn đang xem tin đăng dưới góc nhìn của ứng viên. Chức năng nộp đơn chỉ dành cho tài khoản Ứng viên.
+                    {isVi
+                      ? 'Bạn đang xem tin đăng dưới góc nhìn của ứng viên. Chức năng nộp đơn chỉ dành cho tài khoản Ứng viên.'
+                      : 'You are viewing this requisition as a recruiter. Submitting applications is available for candidate accounts only.'}
                   </p>
                   <Link
                     href={`/recruiter/jobs/${job.id}/applications`}
                     className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg text-xs font-semibold bg-[#2563EB] hover:bg-[#1D4ED8] text-white transition shadow-2xs"
                   >
-                    Xem hồ sơ ứng tuyển vị trí này
+                    {isVi ? 'Xem hồ sơ ứng tuyển vị trí này' : 'View applications for this position'}
                   </Link>
                 </div>
               ) : (
@@ -205,13 +212,13 @@ export default function JobDetailPage({
                     onClick={() => setIsApplyModalOpen(true)}
                     className="w-full py-3 px-4 rounded-xl font-semibold text-xs text-white bg-[#00B14F] hover:bg-[#009643] transition shadow-xs text-center cursor-pointer active:scale-[0.99]"
                   >
-                    Apply via midCV® (Quick Apply) — Nộp đơn
+                    {isVi ? 'Apply via midCV® (Quick Apply) — Nộp đơn' : 'Apply via midCV® (Quick Apply)'}
                   </button>
                   <button
                     onClick={() => setIsApplyModalOpen(true)}
                     className="w-full py-2.5 px-4 rounded-xl font-medium text-xs text-[#0F2A52] dark:text-slate-200 border border-slate-200 dark:border-[#1E293B] hover:bg-slate-50 dark:hover:bg-[#18294E] transition text-center cursor-pointer"
                   >
-                    Ứng tuyển tiêu chuẩn
+                    {isVi ? 'Ứng tuyển tiêu chuẩn' : 'Standard Application'}
                   </button>
                 </div>
               )}
@@ -220,7 +227,7 @@ export default function JobDetailPage({
             {/* Semantic Fit Evaluation Widget (Radial Score Gauge) */}
             <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 shadow-xs space-y-4 text-center transition-colors">
               <div className="text-xs font-semibold uppercase tracking-wider text-[#0F2A52] dark:text-[#E2E8F0] font-mono">
-                Đối Sánh Vector Tự Động
+                {isVi ? 'Đối Sánh Vector Tự Động' : 'Automated Vector Matching'}
               </div>
 
               {/* Radial Score Meter */}
@@ -245,14 +252,16 @@ export default function JobDetailPage({
                 </svg>
                 <div className="absolute flex flex-col items-center justify-center">
                   <span className="text-2xl font-bold font-editorial text-[#0F2A52] dark:text-white">{job.requirements.length}</span>
-                  <span className="text-[9px] font-mono text-[#64748B] uppercase tracking-wider">TIÊU CHÍ KHỚP</span>
+                  <span className="text-[9px] font-mono text-[#64748B] uppercase tracking-wider">
+                    {isVi ? 'TIÊU CHÍ KHỚP' : 'CRITERIA MATCHED'}
+                  </span>
                 </div>
               </div>
 
               {/* Verified Skills Distribution Bar */}
               <div className="space-y-1.5 text-left pt-2 border-t border-slate-100 dark:border-[#1E293B]">
                 <div className="text-[10px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
-                  CƠ CẤU YÊU CẦU CÔNG VIỆC
+                  {isVi ? 'CƠ CẤU YÊU CẦU CÔNG VIỆC' : 'JOB REQUIREMENTS COMPOSITION'}
                 </div>
                 <div className="w-full h-2 rounded-full overflow-hidden flex bg-slate-100 dark:bg-[#13233F]">
                   <div
@@ -267,25 +276,26 @@ export default function JobDetailPage({
                   />
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-[#64748B] dark:text-[#94A3B8] font-mono pt-1">
-                  <span>{requiredSkills.length} Bắt buộc</span>
-                  <span>{preferredSkills.length} Ưu tiên</span>
-                  <span>100% Xác thực</span>
+                  <span>{requiredSkills.length} {isVi ? 'Bắt buộc' : 'Required'}</span>
+                  <span>{preferredSkills.length} {isVi ? 'Ưu tiên' : 'Preferred'}</span>
+                  <span>100% {isVi ? 'Xác thực' : 'Verified'}</span>
                 </div>
               </div>
             </div>
 
-          </div>
+          </Reveal>
 
         </div>
 
         {/* 03 — Verifiable Skill Evidence Comparison Table (Figma Screen 03) */}
-        <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-6 transition-colors">
-          <div>
-            <span className="text-[11px] font-mono font-semibold text-[#2563EB] dark:text-[#60A5FA] uppercase tracking-widest">
-              EXPLAINABLE MATCHING AUDIT
-            </span>
+        <Reveal direction="up" delay={180}>
+          <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-6 transition-colors">
+            <div>
+              <span className="text-[11px] font-mono font-semibold text-[#2563EB] dark:text-[#60A5FA] uppercase tracking-widest">
+                EXPLAINABLE MATCHING AUDIT
+              </span>
             <h2 className="text-2xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9] mt-1">
-              {locale === 'vi' ? 'Đối Soát Minh Chứng Kỹ Năng' : 'Explainable Skill Verification Audit'}
+              {isVi ? 'Đối Soát Minh Chứng Kỹ Năng' : 'Explainable Skill Verification Audit'}
             </h2>
           </div>
 
@@ -293,78 +303,78 @@ export default function JobDetailPage({
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 dark:bg-[#13233F] text-[#64748B] dark:text-[#94A3B8] uppercase font-mono text-[10px] border-b border-slate-200 dark:border-[#1E293B]">
                 <tr>
-                  <th className="py-3 px-4 font-semibold">{locale === 'vi' ? 'Yêu Cầu Kỹ Thuật (JD)' : 'Technical Requirement (JD)'}</th>
-                  <th className="py-3 px-4 font-semibold">{locale === 'vi' ? 'Minh Chứng Đã Xác Thực Từ CV' : 'Verified CV Evidence'}</th>
-                  <th className="py-3 px-4 font-semibold">{locale === 'vi' ? 'Trạng Thái Thẩm Định' : 'Audit Status'}</th>
-                  <th className="py-3 px-4 font-semibold text-right">{locale === 'vi' ? 'Độ Khớp' : 'Match Rate'}</th>
+                  <th className="py-3 px-4 font-semibold">{isVi ? 'Yêu Cầu Kỹ Thuật (JD)' : 'Technical Requirement (JD)'}</th>
+                  <th className="py-3 px-4 font-semibold">{isVi ? 'Minh Chứng Đã Xác Thực Từ CV' : 'Verified CV Evidence'}</th>
+                  <th className="py-3 px-4 font-semibold">{isVi ? 'Trạng Thái Thẩm Định' : 'Audit Status'}</th>
+                  <th className="py-3 px-4 font-semibold text-right">{isVi ? 'Độ Khớp' : 'Match Rate'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-[#1E293B] text-[#0F2A52] dark:text-slate-200">
                 <tr>
                   <td className="py-3.5 px-4 font-medium text-[#0F2A52] dark:text-white">
                     <div className="font-semibold">Go (Golang)</div>
-                    <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">3+ năm thiết kế microservices đồng thời</div>
+                    <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">{isVi ? '3+ năm thiết kế microservices đồng thời' : '3+ years concurrent microservices design'}</div>
                   </td>
-                  <td className="py-3.5 px-4 text-[#64748B] dark:text-[#94A3B8]">4 năm kinh nghiệm Go production tại CloudScale</td>
+                  <td className="py-3.5 px-4 text-[#64748B] dark:text-[#94A3B8]">{isVi ? '4 năm kinh nghiệm Go production tại CloudScale' : '4 years production Go at CloudScale'}</td>
                   <td className="py-3.5 px-4">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00873D] dark:text-[#10B981] border border-[#00B14F]/30">
-                      Đạt chuẩn
+                      {isVi ? 'Đạt chuẩn' : 'Verified'}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#00B14F]">98% (Cao)</td>
+                  <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#00B14F]">98% ({isVi ? 'Cao' : 'High'})</td>
                 </tr>
 
                 <tr>
                   <td className="py-3.5 px-4 font-medium text-[#0F2A52] dark:text-white">
                     <div className="font-semibold">Kubernetes</div>
-                    <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">Cấu hình Ingress, StatefulSets & Service Mesh</div>
+                    <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">{isVi ? 'Cấu hình Ingress, StatefulSets & Service Mesh' : 'Ingress, StatefulSets & Service Mesh config'}</div>
                   </td>
-                  <td className="py-3.5 px-4 text-[#64748B] dark:text-[#94A3B8]">Viết production Helm Charts cho cluster migration</td>
+                  <td className="py-3.5 px-4 text-[#64748B] dark:text-[#94A3B8]">{isVi ? 'Viết production Helm Charts cho cluster migration' : 'Authored production Helm Charts for cluster migration'}</td>
                   <td className="py-3.5 px-4">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00873D] dark:text-[#10B981] border border-[#00B14F]/30">
-                      Đạt chuẩn
+                      {isVi ? 'Đạt chuẩn' : 'Verified'}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#00B14F]">94% (Cao)</td>
+                  <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#00B14F]">94% ({isVi ? 'Cao' : 'High'})</td>
                 </tr>
 
                 <tr>
                   <td className="py-3.5 px-4 font-medium text-[#0F2A52] dark:text-white">
                     <div className="font-semibold">AWS Infrastructure</div>
-                    <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">IAM policies, VPC peering, và RDS clusters</div>
+                    <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">{isVi ? 'IAM policies, VPC peering, và RDS clusters' : 'IAM policies, VPC peering, and RDS clusters'}</div>
                   </td>
-                  <td className="py-3.5 px-4 text-[#64748B] dark:text-[#94A3B8]">Tự động hóa Terraform cho 12 VPC cốt lõi</td>
+                  <td className="py-3.5 px-4 text-[#64748B] dark:text-[#94A3B8]">{isVi ? 'Tự động hóa Terraform cho 12 VPC cốt lõi' : 'Terraform automation for 12 core VPCs'}</td>
                   <td className="py-3.5 px-4">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00873D] dark:text-[#10B981] border border-[#00B14F]/30">
-                      Đạt chuẩn
+                      {isVi ? 'Đạt chuẩn' : 'Verified'}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#00B14F]">91% (Cao)</td>
+                  <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#00B14F]">91% ({isVi ? 'Cao' : 'High'})</td>
                 </tr>
 
                 <tr>
                   <td className="py-3.5 px-4 font-medium text-[#0F2A52] dark:text-white">
                     <div className="font-semibold">Prometheus / Grafana</div>
-                    <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">Tùy biến Dashboard giám sát & truy vấn PromQL</div>
+                    <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">{isVi ? 'Tùy biến Dashboard giám sát & truy vấn PromQL' : 'Custom monitoring dashboards & PromQL'}</div>
                   </td>
-                  <td className="py-3.5 px-4 text-[#64748B] dark:text-[#94A3B8]">Thiết lập pipeline metrics cơ bản</td>
+                  <td className="py-3.5 px-4 text-[#64748B] dark:text-[#94A3B8]">{isVi ? 'Thiết lập pipeline metrics cơ bản' : 'Basic telemetry metrics pipeline'}</td>
                   <td className="py-3.5 px-4">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FEF9C3] dark:bg-[#FACC15]/20 text-[#92400E] dark:text-[#FACC15] border border-[#FACC15]/40">
-                      Một phần
+                      {isVi ? 'Một phần' : 'Partial'}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-semibold text-amber-600 dark:text-amber-400">64% (Trung bình)</td>
+                  <td className="py-3.5 px-4 text-right font-mono font-semibold text-amber-600 dark:text-amber-400">64% ({isVi ? 'Trung bình' : 'Medium'})</td>
                 </tr>
 
                 <tr>
                   <td className="py-3.5 px-4 font-medium text-[#0F2A52] dark:text-white">
                     <div className="font-semibold">Rust Development</div>
-                    <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">System-level integration patterns</div>
+                    <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">{isVi ? 'Mẫu kiến trúc tích hợp cấp hệ thống' : 'System-level integration patterns'}</div>
                   </td>
-                  <td className="py-3.5 px-4 text-slate-400 dark:text-slate-500">Chưa có dữ liệu trực tiếp trong hồ sơ CV</td>
+                  <td className="py-3.5 px-4 text-slate-400 dark:text-slate-500">{isVi ? 'Chưa có dữ liệu trực tiếp trong hồ sơ CV' : 'No direct evidence found in CV profile'}</td>
                   <td className="py-3.5 px-4">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40">
-                      Chưa có
+                      {isVi ? 'Chưa có' : 'Missing'}
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-right font-mono text-slate-400 dark:text-slate-500">--</td>
@@ -373,6 +383,7 @@ export default function JobDetailPage({
             </table>
           </div>
         </div>
+      </Reveal>
 
       </div>
 

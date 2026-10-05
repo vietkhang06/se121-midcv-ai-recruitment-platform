@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { fetchCandidateProfile, saveCandidateProfile, confirmCandidateCV, fetchCandidateCVs } from '@/lib/api';
 import { Industry, CandidateProfile, CV } from '@/types';
+import { AnimatedStatus, Reveal, staggerDelay } from '@/components/motion';
 import {
   User,
   ShieldCheck,
@@ -183,113 +184,124 @@ export default function CandidateProfilePage() {
         </div>
 
         {/* 04 — Dark Forest Green Welcome Banner (Figma Screen 04) */}
-        <div className="bg-[#111C38] text-white rounded-2xl p-8 sm:p-10 border border-[#1E293B] shadow-md relative overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div className="space-y-3 max-w-2xl">
-              <h2 className="text-3xl sm:text-4xl font-editorial font-normal tracking-tight text-white">
-                {locale === 'vi' ? `Chào mừng trở lại, ${profile.fullName || user?.fullName || 'Ứng viên'}` : `Welcome back, ${profile.fullName || user?.fullName || 'Andrew'}`}
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-300 font-light leading-relaxed">
-                {locale === 'vi'
-                  ? 'Hồ sơ kỹ năng có cấu trúc của bạn đã được xác thực và sẵn sàng. Hệ thống tuyển dụng có thể xem xét trực tiếp minh chứng năng lực của bạn.'
-                  : 'Your structural skills profile is verified and active. Hiring systems matching distributed infrastructure roles can view your evidence vectors.'}
-              </p>
-              <div className="flex items-center gap-3 pt-2">
-                <Link
-                  href="/candidate/cvs"
-                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#10B981] hover:bg-[#059669] text-[#081C15] transition shadow-xs"
-                >
-                  {locale === 'vi' ? 'Cập nhật CV / Nạp Repos' : 'Update CV / Ingest Repos'}
-                </Link>
-                <button
-                  onClick={() => setActiveTab('profile')}
-                  className="px-4 py-2 rounded-lg text-xs font-medium border border-slate-400/40 text-white hover:bg-white/10 transition"
-                >
-                  {locale === 'vi' ? 'Xem Chỉ Số Đối Sánh' : 'View Match Metrics'}
-                </button>
-              </div>
-            </div>
-
-            {/* Profile Strength Gauge */}
-            <div className="flex items-center gap-4 bg-[#13233F] border border-[#1E3A5F] rounded-xl p-4 shrink-0">
-              <div className="relative w-16 h-16 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                  <path
-                    className="text-slate-700"
-                    strokeWidth="3.5"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                  <path
-                    className="text-[#10B981]"
-                    strokeDasharray="85, 100"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                </svg>
-                <span className="absolute font-bold font-editorial text-lg text-white">85%</span>
-              </div>
-              <div className="text-left space-y-0.5">
-                <div className="text-xs font-semibold text-white">
-                  {locale === 'vi' ? 'Độ hoàn thiện hồ sơ' : 'Profile Strength'}
+        <Reveal direction="up" delay={0}>
+          <div className="bg-[#111C38] text-white rounded-2xl p-8 sm:p-10 border border-[#1E293B] shadow-md relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+              <div className="space-y-3 max-w-2xl">
+                <h2 className="text-3xl sm:text-4xl font-editorial font-normal tracking-tight text-white">
+                  {locale === 'vi' ? `Chào mừng trở lại, ${profile.fullName || user?.fullName || 'Ứng viên'}` : `Welcome back, ${profile.fullName || user?.fullName || 'Andrew'}`}
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 font-light leading-relaxed">
+                  {locale === 'vi'
+                    ? 'Hồ sơ kỹ năng có cấu trúc của bạn đã được xác thực và sẵn sàng. Hệ thống tuyển dụng có thể xem xét trực tiếp minh chứng năng lực của bạn.'
+                    : 'Your structural skills profile is verified and active. Hiring systems matching distributed infrastructure roles can view your evidence vectors.'}
+                </p>
+                <div className="flex items-center gap-3 pt-2">
+                  <Link
+                    href="/candidate/cvs"
+                    className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#10B981] hover:bg-[#059669] text-[#081C15] transition shadow-xs"
+                  >
+                    {locale === 'vi' ? 'Cập nhật CV / Nạp Repos' : 'Update CV / Ingest Repos'}
+                  </Link>
+                  <button
+                    onClick={() => setActiveTab('profile')}
+                    className="px-4 py-2 rounded-lg text-xs font-medium border border-slate-400/40 text-white hover:bg-white/10 transition cursor-pointer"
+                  >
+                    {locale === 'vi' ? 'Xem Chỉ Số Đối Sánh' : 'View Match Metrics'}
+                  </button>
                 </div>
-                <div className="text-[11px] text-emerald-400 font-mono">
-                  {locale === 'vi' ? 'Thêm mẫu mã nguồn (+15%)' : 'Add Code samples (+15%)'}
+              </div>
+
+              {/* Profile Strength Gauge */}
+              <div className="flex items-center gap-4 bg-[#13233F] border border-[#1E3A5F] rounded-xl p-4 shrink-0">
+                <div className="relative w-16 h-16 flex items-center justify-center">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      className="text-slate-700"
+                      strokeWidth="3.5"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <path
+                      className="text-[#10B981]"
+                      strokeDasharray="85, 100"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                  </svg>
+                  <span className="absolute font-bold font-editorial text-lg text-white">85%</span>
+                </div>
+                <div className="text-left space-y-0.5">
+                  <div className="text-xs font-semibold text-white">
+                    {locale === 'vi' ? 'Độ hoàn thiện hồ sơ' : 'Profile Strength'}
+                  </div>
+                  <div className="text-[11px] text-emerald-400 font-mono">
+                    {locale === 'vi' ? 'Thêm mẫu mã nguồn (+15%)' : 'Add Code samples (+15%)'}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </Reveal>
 
         {/* 04 — 4 KPI Stat Cards (Figma Screen 04) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-            <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-              {locale === 'vi' ? 'ĐƠN ĐÃ ỨNG TUYỂN' : 'APPLICATIONS SENT'}
-            </span>
-            <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">12</div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
-              {locale === 'vi' ? '2 đánh giá mới hôm nay' : '2 new reviews today'}
+          <Reveal delay={staggerDelay(0)}>
+            <div className="motion-hover-lift bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
+              <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+                {locale === 'vi' ? 'ĐƠN ĐÃ ỨNG TUYỂN' : 'APPLICATIONS SENT'}
+              </span>
+              <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">12</div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                {locale === 'vi' ? '2 đánh giá mới hôm nay' : '2 new reviews today'}
+              </div>
             </div>
-          </div>
+          </Reveal>
 
-          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-            <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-              {locale === 'vi' ? 'LỊCH PHỎNG VẤN' : 'INTERVIEWS SCHEDULED'}
-            </span>
-            <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">3</div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
-              {locale === 'vi' ? 'Kế tiếp: CloudScale ngày mai' : 'Next: cloud scale tomorrow'}
+          <Reveal delay={staggerDelay(1)}>
+            <div className="motion-hover-lift bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
+              <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+                {locale === 'vi' ? 'LỊCH PHỎNG VẤN' : 'INTERVIEWS SCHEDULED'}
+              </span>
+              <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">3</div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                {locale === 'vi' ? 'Kế tiếp: CloudScale ngày mai' : 'Next: cloud scale tomorrow'}
+              </div>
             </div>
-          </div>
+          </Reveal>
 
-          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-            <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-              {locale === 'vi' ? 'LƯỢT XEM HỒ SƠ' : 'PROFILE VIEWS'}
-            </span>
-            <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">184</div>
-            <div className="text-[11px] text-emerald-600 dark:text-[#3B82F6] font-medium pt-1">
-              {locale === 'vi' ? '+24% so với tuần trước' : '+24% compared to last week'}
+          <Reveal delay={staggerDelay(2)}>
+            <div className="motion-hover-lift bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
+              <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+                {locale === 'vi' ? 'LƯỢT XEM HỒ SƠ' : 'PROFILE VIEWS'}
+              </span>
+              <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">184</div>
+              <div className="text-[11px] text-emerald-600 dark:text-[#3B82F6] font-medium pt-1">
+                {locale === 'vi' ? '+24% so với tuần trước' : '+24% compared to last week'}
+              </div>
             </div>
-          </div>
+          </Reveal>
 
-          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-            <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-              {locale === 'vi' ? 'ĐIỂM ĐỐI SÁNH TB' : 'AVERAGE MATCH SCORE'}
-            </span>
-            <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">86%</div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
-              {locale === 'vi' ? 'Chỉ số ứng viên năng lực cao' : 'Highly qualified candidate index'}
+          <Reveal delay={staggerDelay(3)}>
+            <div className="motion-hover-lift bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
+              <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+                {locale === 'vi' ? 'ĐIỂM ĐỐI SÁNH TB' : 'AVERAGE MATCH SCORE'}
+              </span>
+              <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">86%</div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                {locale === 'vi' ? 'Chỉ số ứng viên năng lực cao' : 'Highly qualified candidate index'}
+              </div>
             </div>
-          </div>
+          </Reveal>
         </div>
 
         {/* 04 — Active Application Pipeline Stepper (Figma Screen 04) */}
-        <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
+        <Reveal direction="up" delay={120}>
+          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
           <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
             {locale === 'vi' 
               ? 'Tiến độ nộp đơn đang xử lý: Kỹ sư Hạ tầng Cao cấp (CloudScale Systems)' 
@@ -328,6 +340,7 @@ export default function CandidateProfilePage() {
             </div>
           </div>
         </div>
+      </Reveal>
 
         {/* Dynamic Content based on Active Tab */}
         {activeTab === 'dashboard' ? (
@@ -524,10 +537,10 @@ export default function CandidateProfilePage() {
                   </p>
                 </div>
                 {savedSuccess && (
-                  <span className="text-xs font-semibold text-emerald-700 dark:text-[#93C5FD] bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/40 flex items-center gap-1">
+                  <AnimatedStatus stateKey="profile-saved" className="text-xs font-semibold text-emerald-700 dark:text-[#93C5FD] bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/40 flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>{locale === 'vi' ? 'Đã lưu thành công!' : 'Successfully saved!'}</span>
-                  </span>
+                  </AnimatedStatus>
                 )}
               </div>
 
@@ -563,13 +576,14 @@ export default function CandidateProfilePage() {
                   {profile.skills.map((skill) => (
                     <span
                       key={skill}
-                      className="px-3 py-1 rounded-full text-xs font-mono font-medium bg-[#F1F5F3] dark:bg-[#13233F] text-[#0C2B24] dark:text-[#93C5FD] border border-[#1E293B]/20 dark:border-emerald-500/20 flex items-center gap-1.5"
+                      className="animate-chip-in px-3 py-1 rounded-full text-xs font-mono font-medium bg-[#F1F5F3] dark:bg-[#13233F] text-[#0C2B24] dark:text-[#93C5FD] border border-[#1E293B]/20 dark:border-emerald-500/20 flex items-center gap-1.5"
                     >
                       <span>{skill}</span>
                       <button
                         type="button"
                         onClick={() => handleRemoveSkill(skill)}
                         className="text-slate-400 hover:text-rose-600 font-bold"
+                        aria-label={`${locale === 'vi' ? 'Xóa kỹ năng' : 'Remove skill'} ${skill}`}
                       >
                         ×
                       </button>
@@ -607,9 +621,9 @@ export default function CandidateProfilePage() {
                     <span>{cvStatus === 'CONFIRMED' ? (locale === 'vi' ? 'TRẠNG THÁI: ĐÃ XÁC NHẬN (CONFIRMED)' : 'STATUS: CONFIRMED') : (locale === 'vi' ? 'TRẠNG THÁI: BẢN THẢO (DRAFT)' : 'STATUS: DRAFT')}</span>
                   </span>
                   {confirmedSuccess && (
-                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                    <AnimatedStatus stateKey="profile-confirmed" className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                       {locale === 'vi' ? '✓ Hồ sơ đã được xác nhận thành công!' : '✓ Profile confirmed successfully!'}
-                    </span>
+                    </AnimatedStatus>
                   )}
                 </div>
 

@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Industry, CV } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
-import { uploadCandidateCV, fetchCVProcessingStatus, subscribeCVProcessingEvents, retryCVExtraction, ApiError } from '@/lib/api';
+import { AnimatedModalShell, AnimatedStatus } from '@/components/motion';
+import { uploadCandidateCV, fetchCVProcessingStatus, retryCVExtraction, ApiError } from '@/lib/api';
 import { CVProcessingStatus } from '@/types';
 import {
   X,
@@ -54,24 +55,27 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
     onClose();
   };
 
+  const wasOpenRef = useRef(false);
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleClose();
-      }
-    };
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
+    let resetFrame = 0;
+    if (isOpen && !wasOpenRef.current) {
+      resetFrame = window.requestAnimationFrame(() => {
+        setStatus('IDLE');
+        setErrorMessage('');
+        setProcessingProgress(5);
+        setProcessingStageMessage('');
+        setFile(null);
+        setUploadedCv(null);
+      });
     }
+    wasOpenRef.current = isOpen;
+
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      if (resetFrame) window.cancelAnimationFrame(resetFrame);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, [isOpen]);
-
-  if (!isOpen) return null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -224,14 +228,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
               setStatus('COMPLETED');
               if (onUploadSuccess) onUploadSuccess(cvEntity);
               if (onSuccess) onSuccess();
-              setTimeout(() => {
-                if (!signal.aborted) {
-                  onClose();
-                  setStatus('IDLE');
-                  setFile(null);
-                  setUploadedCv(null);
-                }
-              }, 600);
+              onClose();
               return;
             }
           }
@@ -363,13 +360,22 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div id="cv-upload-modal" className="w-full max-w-xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl shadow-2xl p-6 sm:p-7 text-slate-800 dark:text-slate-100 relative transition-colors max-h-[90vh] overflow-y-auto">
+    <AnimatedModalShell
+      isOpen={isOpen}
+      onRequestClose={handleClose}
+      titleId="cv-upload-modal-title"
+      descriptionId="cv-upload-modal-description"
+      id="cv-upload-modal"
+      testId="cv-upload-modal"
+      panelClassName="w-full max-w-xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl shadow-2xl p-6 sm:p-7 text-slate-800 dark:text-slate-100 relative transition-colors max-h-[90vh] overflow-y-auto"
+    >
+      <div aria-busy={status === 'UPLOADING' || status === 'QUEUED' || status === 'PROCESSING'}>
         
         {/* Close Button */}
         <button
           id="close-cv-upload-modal-btn"
           onClick={handleClose}
+          data-autofocus="true"
           aria-label={t('common.close', 'Đóng')}
           className="absolute top-4 right-4 p-2 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#18294E] transition cursor-pointer"
         >
@@ -385,10 +391,10 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
             <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#2563EB] dark:text-[#3B82F6] block">
               {t('cvUpload.badge', 'MIDCV PARSER PIPELINE')}
             </span>
-            <h3 className="text-xl font-editorial font-bold text-slate-900 dark:text-white">
+            <h3 id="cv-upload-modal-title" className="text-xl font-editorial font-bold text-slate-900 dark:text-white">
               {t('cvUpload.title', 'Tải Lên & Phân Tích CV (PDF / DOCX)')}
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p id="cv-upload-modal-description" className="text-xs text-slate-500 dark:text-slate-400">
               {t('cvUpload.subtitle', 'Trích xuất kỹ năng, kinh nghiệm và cấu trúc thực thể qua AI Worker trước khi lưu vào Thư Viện.')}
             </p>
           </div>
@@ -479,12 +485,18 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
 
         {/* STEP: PROCESSING PIPELINE STATES */}
         {(status === 'UPLOADING' || status === 'QUEUED' || status === 'PROCESSING' || status === 'COMPLETED') && (
-          <div className="py-10 text-center space-y-5">
+          <div className="py-10 text-center space-y-5 animate-fade-in">
             <div className="relative w-16 h-16 mx-auto">
-              <div className="w-16 h-16 rounded-full border-4 border-slate-200 dark:border-[#1E293B] border-t-[#2563EB] animate-spin" />
-              <div className="absolute inset-0 flex items-center justify-center text-[#2563EB] dark:text-[#3B82F6]">
-                <Sparkles className="w-6 h-6 animate-pulse" />
-              </div>
+              {status === 'COMPLETED' ? (
+                <CheckCircle2 className="w-16 h-16 text-emerald-500 animate-scale-in" aria-hidden="true" />
+              ) : (
+                <>
+                  <div className="w-16 h-16 rounded-full border-4 border-slate-200 dark:border-[#1E293B] border-t-[#2563EB] animate-spin motion-reduce:animate-none" />
+                  <div className="absolute inset-0 flex items-center justify-center text-[#2563EB] dark:text-[#3B82F6]">
+                    <Sparkles className="w-6 h-6 animate-pulse motion-reduce:animate-none" />
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="space-y-3 max-w-md mx-auto">
@@ -500,18 +512,25 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
               {/* Real Progress Bar */}
               <div className="w-full bg-slate-100 dark:bg-[#18294E] rounded-full h-2.5 overflow-hidden border border-slate-200 dark:border-[#1E3A5F]">
                 <div
-                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out"
-                  style={{ width: `${Math.min(Math.max(processingProgress, 5), 100)}%` }}
+                  className="bg-blue-600 h-2.5 rounded-full origin-left transition-transform duration-300 ease-out motion-reduce:transition-none"
+                  style={{ transform: `scaleX(${Math.min(Math.max(processingProgress, 5), 100) / 100})` }}
+                  role="progressbar"
+                  aria-label={t('cvUpload.progressLabel', 'Tiến độ xử lý CV')}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={processingProgress}
                 />
               </div>
 
-              <h4 className="text-sm font-semibold text-slate-900 dark:text-white pt-1">
-                {processingStageMessage || (
-                  status === 'UPLOADING' ? 'Đang tải file an toàn lên máy chủ...' :
-                  status === 'COMPLETED' ? 'Trích xuất hoàn tất! Chuẩn bị chuyển sang màn hình Đánh giá...' :
-                  'Đang xử lý và trích xuất hồ sơ...'
-                )}
-              </h4>
+              <AnimatedStatus stateKey={status} isBusy={status !== 'COMPLETED'}>
+                <h4 className="text-sm font-semibold text-slate-900 dark:text-white pt-1">
+                  {processingStageMessage || (
+                    status === 'UPLOADING' ? 'Đang tải file an toàn lên máy chủ...' :
+                    status === 'COMPLETED' ? 'Trích xuất hoàn tất! Chuẩn bị chuyển sang màn hình Đánh giá...' :
+                    'Đang xử lý và trích xuất hồ sơ...'
+                  )}
+                </h4>
+              </AnimatedStatus>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-light">
                 {t('cvUpload.normalizationHint', 'Chuẩn hóa các kỹ năng đồng nghĩa (JS → JavaScript, Postgres → PostgreSQL) và vector embedding.')}
               </p>
@@ -521,7 +540,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
 
         {/* STEP: REVIEW & REFINEMENT */}
         {status === 'REVIEW' && (
-          <div className="space-y-4">
+          <div className="space-y-4 animate-fade-in">
             <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300 flex items-center justify-between">
               <span className="font-semibold flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6] flex-shrink-0" />
@@ -605,7 +624,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
 
         {/* STEP: FAILED */}
         {status === 'FAILED' && (
-          <div className="py-8 text-center space-y-4">
+          <AnimatedStatus stateKey="FAILED" isError className="py-8 text-center space-y-4">
             <div className="w-12 h-12 mx-auto rounded-full bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
               <AlertCircle className="w-6 h-6" />
             </div>
@@ -637,10 +656,10 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
                 {t('cvUpload.uploadAnother', 'Tải tệp khác')}
               </button>
             </div>
-          </div>
+          </AnimatedStatus>
         )}
 
       </div>
-    </div>
+    </AnimatedModalShell>
   );
 };
