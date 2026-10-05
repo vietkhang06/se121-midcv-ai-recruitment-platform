@@ -18,6 +18,7 @@ import java.util.UUID;
 public class JobController {
 
     private final JobService jobService;
+    private final com.platform.recruitment.matching.JobMatchingPolicyService jobMatchingPolicyService;
 
     @GetMapping("/jobs")
     public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<JobResponse>>> getPublishedJobs(
@@ -80,5 +81,30 @@ public class JobController {
             @Valid @RequestBody CreateJobRequest request) {
         JobResponse response = jobService.updateJob(currentUser, id, request);
         return ResponseEntity.ok(ApiResponse.success("Job updated successfully", response));
+    }
+
+    @GetMapping("/jobs/{id}/matching-policy")
+    public ResponseEntity<ApiResponse<com.platform.recruitment.matching.JobMatchingPolicyDto>> getMatchingPolicy(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        com.platform.recruitment.matching.JobMatchingPolicyDto policy = jobMatchingPolicyService.getPolicy(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success("Lấy cấu hình trọng số đối sánh thành công", policy));
+    }
+
+    @PutMapping("/jobs/{id}/matching-policy")
+    public ResponseEntity<ApiResponse<com.platform.recruitment.matching.JobMatchingPolicyDto>> updateMatchingPolicy(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @Valid @RequestBody com.platform.recruitment.matching.JobMatchingPolicyDto dto) {
+        com.platform.recruitment.matching.JobMatchingPolicyDto updated = jobMatchingPolicyService.updatePolicy(currentUser, id, dto);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật cấu hình trọng số đối sánh thành công", updated));
+    }
+
+    @PostMapping("/jobs/{id}/matching/recalculate")
+    public ResponseEntity<ApiResponse<Integer>> recalculateMatching(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        int count = jobMatchingPolicyService.recalculateMatching(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success(String.format("Đã tính toán lại điểm đối sánh cho %d hồ sơ ứng tuyển", count), count));
     }
 }
