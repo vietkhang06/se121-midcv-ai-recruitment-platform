@@ -24,4 +24,10 @@ public interface SuspensionRecordRepository extends JpaRepository<SuspensionReco
 
     boolean existsByTargetTypeAndTargetIdAndStatus(
             SuspensionTargetType targetType, UUID targetId, SuspensionStatus status);
+
+    long countByTargetTypeAndTargetIdAndStatus(
+            SuspensionTargetType targetType, UUID targetId, SuspensionStatus status);
+
+    List<SuspensionRecord> findByStatusAndExpiresAtBefore(
+            SuspensionStatus status, java.time.ZonedDateTime now);
 }

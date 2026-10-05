@@ -52,6 +52,9 @@ public class SuspensionRecord extends BaseEntity {
     @Column(name = "resolution_note", columnDefinition = "TEXT")
     private String resolutionNote;
 
+    @Column(name = "previous_status")
+    private String previousStatus;
+
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)

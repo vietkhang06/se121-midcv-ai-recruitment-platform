@@ -7,6 +7,7 @@ import com.platform.recruitment.company.Company;
 import com.platform.recruitment.company.CompanyRepository;
 import com.platform.recruitment.company.CompanyVerification;
 import com.platform.recruitment.company.RecruiterProfileRepository;
+import com.platform.recruitment.job.JobRepository;
 import com.platform.recruitment.suspension.*;
 import com.platform.recruitment.suspension.dto.AppealResponse;
 import com.platform.recruitment.suspension.dto.CreateAppealRequest;
@@ -52,6 +53,9 @@ class SuspensionAppealWorkflowIntegrationTest {
     private RecruiterProfileRepository recruiterProfileRepository;
 
     @Mock
+    private JobRepository jobRepository;
+
+    @Mock
     private AdminAuditLogService adminAuditLogService;
 
     private SuspensionAppealService appealService;
@@ -69,6 +73,7 @@ class SuspensionAppealWorkflowIntegrationTest {
                 userRepository,
                 companyRepository,
                 recruiterProfileRepository,
+                jobRepository,
                 adminAuditLogService
         );
 
@@ -193,9 +198,9 @@ class SuspensionAppealWorkflowIntegrationTest {
         appeal.setId(appealId);
 
         when(appealRepository.findById(appealId)).thenReturn(Optional.of(appeal));
-        when(suspensionRecordRepository.findByTargetTypeAndTargetIdAndStatus(
+        when(suspensionRecordRepository.countByTargetTypeAndTargetIdAndStatus(
                 SuspensionTargetType.USER, suspendedUser.getId(), SuspensionStatus.ACTIVE))
-                .thenReturn(List.of(activeSuspensionRecord));
+                .thenReturn(0L);
         when(userRepository.findById(suspendedUser.getId())).thenReturn(Optional.of(suspendedUser));
 
         ReviewAppealRequest request = ReviewAppealRequest.builder()
