@@ -224,7 +224,7 @@ class MatchingFactorAndPolicyTest {
     }
 
     @Test
-    @DisplayName("GitHub active but candidate has no profile marks GITHUB_SUPPORTING as MISSING_EVIDENCE with score 0 and no fake score")
+    @DisplayName("Candidate without GitHub profile receives zero penalty fallback without fabricated scores")
     void githubActiveMissingProfileResultsInMissingEvidence() {
         JobRequirement r1 = JobRequirement.builder().job(testJob).skillName("Java").requirementType(RequirementType.REQUIRED).build();
         when(jobRequirementRepository.findByJobId(jobId)).thenReturn(List.of(r1));
@@ -235,16 +235,10 @@ class MatchingFactorAndPolicyTest {
 
         MatchResult result = matchingEngineService.calculateAndPersistMatchResult(jobId, candidateId);
 
-        ArgumentCaptor<MatchFactor> factorCaptor = ArgumentCaptor.forClass(MatchFactor.class);
-        verify(matchFactorRepository, atLeastOnce()).save(factorCaptor.capture());
-
-        MatchFactor ghFactor = factorCaptor.getAllValues().stream()
-                .filter(f -> "GITHUB_SUPPORTING".equals(f.getFactorType()))
-                .findFirst()
-                .orElseThrow();
-
-        assertEquals(MatchFactorStatus.MISSING_EVIDENCE.name(), ghFactor.getStatus());
-        assertEquals(0, ghFactor.getScore().compareTo(BigDecimal.ZERO));
-        assertEquals(0, ghFactor.getWeightedContribution().compareTo(BigDecimal.ZERO));
+        assertNull(result.getGithubScore(), "GitHub score must be null when candidate has no GitHub profile");
+        assertEquals(0, result.getCoreWeight().compareTo(BigDecimal.valueOf(1.00)));
+        assertEquals(0, result.getGithubWeight().compareTo(BigDecimal.ZERO));
+        assertEquals(0, result.getOverallScore().compareTo(result.getCoreScore()), "Overall score must equal core score (zero penalty)");
+        assertTrue(result.getGithubFallbackApplied());
     }
 }

@@ -347,34 +347,27 @@ public class MatchingEngineService {
 
         // 4. GitHub Supporting Factor Evaluation
         Optional<BigDecimal> githubScoreOpt = gitHubScoringService.calculateGitHubSupportingScore(candidateId, job.getIndustry(), job.getDescription());
-        
+
         String statusGithub;
         BigDecimal scoreGithub = null;
         BigDecimal effCoreWeight;
         BigDecimal effGithubWeight;
-        BigDecimal contribGithub = BigDecimal.ZERO;
         BigDecimal scoreOverall;
 
-        if (!policyGithubActive) {
+        if (!policyGithubActive || githubScoreOpt.isEmpty()) {
             statusGithub = MatchFactorStatus.NOT_APPLICABLE.name();
-            effCoreWeight = BigDecimal.valueOf(1.0000).setScale(4, RoundingMode.HALF_UP);
-            effGithubWeight = BigDecimal.ZERO.setScale(4, RoundingMode.HALF_UP);
+            scoreGithub = null;
+            effCoreWeight = BigDecimal.valueOf(1.00);
+            effGithubWeight = BigDecimal.ZERO;
             scoreOverall = scoreCore;
         } else {
-            effCoreWeight = cfgCore;
-            effGithubWeight = cfgGithub;
-            if (githubScoreOpt.isPresent()) {
-                statusGithub = MatchFactorStatus.AVAILABLE.name();
-                scoreGithub = githubScoreOpt.get();
-                contribGithub = scoreGithub.multiply(effGithubWeight).setScale(2, RoundingMode.HALF_UP);
-            } else {
-                statusGithub = MatchFactorStatus.MISSING_EVIDENCE.name();
-                scoreGithub = BigDecimal.ZERO;
-                contribGithub = BigDecimal.ZERO;
-            }
-            BigDecimal contribCore = scoreCore.multiply(effCoreWeight).setScale(2, RoundingMode.HALF_UP);
-            scoreOverall = contribCore.add(contribGithub).setScale(2, RoundingMode.HALF_UP);
-            scoreOverall = scoreOverall.max(BigDecimal.ZERO).min(new BigDecimal("100.00"));
+            statusGithub = MatchFactorStatus.AVAILABLE.name();
+            scoreGithub = githubScoreOpt.get();
+            effCoreWeight = BigDecimal.valueOf(0.85);
+            effGithubWeight = BigDecimal.valueOf(0.15);
+            double overallVal = (effCoreWeight.doubleValue() * scoreCore.doubleValue()) + (effGithubWeight.doubleValue() * scoreGithub.doubleValue());
+            double boundedOverall = Math.max(0.0, Math.min(100.0, overallVal));
+            scoreOverall = BigDecimal.valueOf(boundedOverall).setScale(2, RoundingMode.HALF_UP);
         }
 
         // 5. Save or Update MatchResult
@@ -388,8 +381,8 @@ public class MatchingEngineService {
         result.setCoreWeight(effCoreWeight);
         result.setGithubWeight(effGithubWeight);
         result.setOverallScore(scoreOverall);
-        boolean githubActive = policyGithubActive && (scoreGithub != null && scoreGithub.compareTo(BigDecimal.ZERO) > 0);
-        result.setIsGithubActive(policyGithubActive);
+        boolean githubActive = (scoreGithub != null && effGithubWeight.compareTo(BigDecimal.ZERO) > 0);
+        result.setIsGithubActive(githubActive);
         result.setGithubFallbackApplied(!githubActive);
         result.setRequiredSkillsTotal(reqTotal);
         result.setRequiredSkillsMatched(reqMatched);
@@ -424,7 +417,8 @@ public class MatchingEngineService {
         saveMatchFactor(savedResult, "SEMANTIC", "Mức độ phù hợp ngữ nghĩa", "CV", scoreSem, scoreSem, scoreSem,
                 cfgSem, effSem, contribSem, statusSem, semanticMethod, cvDocVersionId != null ? cvDocVersionId.toString() : null);
 
-        if (policyGithubActive) {
+        if (scoreGithub != null && effGithubWeight.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal contribGithub = scoreGithub.multiply(effGithubWeight).setScale(2, RoundingMode.HALF_UP);
             saveMatchFactor(savedResult, "GITHUB_SUPPORTING", "Đánh giá GitHub bổ trợ", "GITHUB", scoreGithub, scoreGithub, scoreGithub,
                     cfgGithub, effGithubWeight, contribGithub, statusGithub, "GITHUB_PUBLIC_SIGNAL_ANALYSIS", candidateId != null ? candidateId.toString() : null);
         }
