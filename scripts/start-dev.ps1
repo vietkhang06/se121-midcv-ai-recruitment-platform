@@ -106,7 +106,7 @@ Write-Host "  -> Docker, Java 21, Maven, Node environment valid." -ForegroundCol
 Write-Host "  -> Checking PRIMARY LLM Configuration (OpenAI-Compatible)..." -ForegroundColor Gray
 $primaryCheckOk = $false
 try {
-    $proc = Start-Process -FilePath "python" -ArgumentList "-m", "app.tools.check_primary_llm" -WorkingDirectory "$rootDir/ai-worker" -NoNewWindow -Wait -PassThru
+    $proc = Start-Process -FilePath "python" -ArgumentList "-m", "app.tools.check_primary_llm" -WorkingDirectory "$ProjectRoot/ai-worker" -NoNewWindow -Wait -PassThru
     if ($proc.ExitCode -eq 0) {
         $primaryCheckOk = $true
         Write-Host "  -> PRIMARY LLM: Verified and operational." -ForegroundColor Green
@@ -141,6 +141,79 @@ if ($ollamaReady) {
         Write-Host "  -> NOTICE: Local Ollama is not responding on http://127.0.0.1:11434." -ForegroundColor Yellow
         Write-Host "     If using Local AI mode, please launch Ollama ('ollama serve') before testing AI features." -ForegroundColor Yellow
     }
+}
+
+# 3. Check Tesseract OCR Engine & Language Packs
+Write-Host "  -> Checking Tesseract OCR Engine & Language Packs..." -ForegroundColor Gray
+$tessExe = $null
+
+$cmd = Get-Command tesseract -ErrorAction SilentlyContinue
+if ($cmd) {
+    $tessExe = $cmd.Source
+}
+
+if (-not $tessExe -and $env:TESSERACT_CMD -and (Test-Path $env:TESSERACT_CMD)) {
+    $tessExe = $env:TESSERACT_CMD
+}
+
+if (-not $tessExe) {
+    $possiblePaths = @(
+        "C:\Program Files\Tesseract-OCR\tesseract.exe",
+        "C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+        "$env:LOCALAPPDATA\Programs\Tesseract-OCR\tesseract.exe"
+    )
+    foreach ($p in $possiblePaths) {
+        if (Test-Path $p) {
+            $tessExe = $p
+            break
+        }
+    }
+}
+
+if ($tessExe -and (Test-Path $tessExe)) {
+    try {
+        $prevEAP = $ErrorActionPreference
+        $ErrorActionPreference = "SilentlyContinue"
+        $verOut = (cmd.exe /c "`"$tessExe`" --version 2>&1") -join " "
+        $langsOut = (cmd.exe /c "`"$tessExe`" --list-langs 2>&1") -join "`n"
+        $ErrorActionPreference = $prevEAP
+
+        $versionMatch = "Unknown"
+        if ($verOut -match 'tesseract\s+([0-9\.]+)') {
+            $versionMatch = $matches[1]
+        }
+
+        $langs = @()
+        foreach ($line in ($langsOut -split "`r?`n")) {
+            $trimmed = $line.Trim()
+            if ($trimmed -and -not ($trimmed -match 'List of installed languages') -and -not ($trimmed -match 'found:')) {
+                $langs += $trimmed
+            }
+        }
+
+        $hasEng = $langs -contains "eng"
+        $hasVie = $langs -contains "vie"
+
+        if ($hasEng -and $hasVie) {
+            Write-Host "  -> Tesseract OCR: READY" -ForegroundColor Green
+            Write-Host "     Version: $versionMatch" -ForegroundColor Gray
+            Write-Host "     Languages: $($langs -join ', ')" -ForegroundColor Gray
+        } else {
+            $missing = @()
+            if (-not $hasEng) { $missing += "eng" }
+            if (-not $hasVie) { $missing += "vie" }
+            Write-Host "  -> Tesseract OCR: NOT READY" -ForegroundColor Yellow
+            Write-Host "     Missing languages: $($missing -join ', ')" -ForegroundColor Yellow
+            Write-Host "     Corrective action: Download missing traineddata (vie/eng) into tessdata folder." -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "  -> Tesseract OCR: NOT READY" -ForegroundColor Yellow
+        Write-Host "     Error executing: $_" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "  -> Tesseract OCR: NOT READY" -ForegroundColor Yellow
+    Write-Host "     Executable not found in PATH or standard locations." -ForegroundColor Yellow
+    Write-Host "     Corrective action: Install Tesseract (e.g. winget install UB-Mannheim.TesseractOCR) and set TESSERACT_CMD or PATH." -ForegroundColor Yellow
 }
 
 # Helper function to test TCP Port using 127.0.0.1 IPv4

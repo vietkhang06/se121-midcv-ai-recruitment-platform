@@ -60,6 +60,14 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/jobs", "/api/v1/jobs/*").permitAll()
+                        // OpenAPI / Swagger UI
+                        .requestMatchers(
+                                "/v3/api-docs",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/index.html"
+                        ).permitAll()
                         // Candidate-only endpoints
                         .requestMatchers("/api/v1/candidate/**").hasRole("CANDIDATE")
                         .requestMatchers(HttpMethod.POST, "/api/v1/processing/candidate/**").hasRole("CANDIDATE")
@@ -71,8 +79,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/processing/jobs/**").hasAnyRole("HR", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/matching/jobs/*/candidates/*").hasAnyRole("HR", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/matching/jobs/*/rankings").hasAnyRole("HR", "ADMIN")
-                        .requestMatchers("/api/hr/**").hasAnyRole("HR", "ADMIN")
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/hr/**").hasAnyRole("HR", "ADMIN")
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )

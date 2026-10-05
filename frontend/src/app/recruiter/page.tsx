@@ -1,51 +1,46 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Job, Company, Application } from '@/types';
-import { fetchRecruiterJobs, fetchRecruiterProfile, getAuthUser, fetchJobApplications } from '@/lib/api';
+import { fetchRecruiterJobs, fetchRecruiterCompany, fetchJobApplications } from '@/lib/api';
+import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
+import { MetricCard } from '@/components/recruiter/MetricCard';
 import { CompanyVerificationBanner } from '@/components/recruiter/CompanyVerificationBanner';
-import { useLanguage } from '@/context/LanguageContext';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Reveal } from '@/components/motion/Reveal';
 import { staggerDelay } from '@/components/motion/stagger';
 import {
   Briefcase,
   Users,
-  Calendar,
   Clock,
-  Plus,
+  FileText,
+  PlusCircle,
   ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
-  Sparkles,
+  AlertCircle,
   ChevronRight,
-  TrendingUp,
-  BarChart3,
-  Building2,
-  FileText
+  Award
 } from 'lucide-react';
 
 export default function HRDashboardPage() {
-  const { t, locale } = useLanguage();
+  const { locale } = useLanguage();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'console' | 'analytics'>('console');
-  const user = getAuthUser();
 
-  const loadDashboardData = () => {
+  const loadDashboardData = useCallback(() => {
     setIsLoading(true);
     setFetchError(null);
+
     Promise.all([
       fetchRecruiterJobs(),
-      fetchRecruiterProfile().catch(() => null),
+      fetchRecruiterCompany().catch(() => null),
     ])
-      .then(async ([recJobs, profile]) => {
+      .then(async ([recJobs, comp]) => {
         setJobs(recJobs);
-        if (profile?.company) setCompany(profile.company);
+        if (comp) setCompany(comp);
 
         if (recJobs.length > 0) {
           const appLists = await Promise.all(
@@ -57,79 +52,63 @@ export default function HRDashboardPage() {
         }
       })
       .catch((err) => {
-        setFetchError(err.message || (locale === 'vi' ? 'Lỗi khi tải dữ liệu nhà tuyển dụng.' : 'Error loading recruiter data.'));
+        setFetchError(err.message || (locale === 'vi' ? 'Không thể tải dữ liệu tuyển dụng.' : 'Unable to load recruitment data.'));
       })
       .finally(() => setIsLoading(false));
-  };
+  }, [locale]);
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    const timer = setTimeout(() => {
+      loadDashboardData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadDashboardData]);
 
   const publishedJobs = jobs.filter((j) => j.status === 'PUBLISHED');
   const draftJobs = jobs.filter((j) => j.status === 'DRAFT');
-  const recruiterName = user?.fullName || (locale === 'vi' ? 'Tuyển Dụng' : 'Recruiter');
+  const submittedApps = applications.filter((a) => a.status === 'SUBMITTED');
+
+  // Sorted recent jobs and applications
+  const recentJobs = [...jobs].slice(0, 5);
+  const recentApplications = [...applications].slice(0, 6);
+
+  if (fetchError && !isLoading && jobs.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <EmptyState
+          type="ERROR"
+          title={locale === 'vi' ? 'Lỗi kết nối máy chủ' : 'Server Connection Error'}
+          description={fetchError}
+          primaryCtaText={locale === 'vi' ? 'Thử lại' : 'Retry'}
+          onPrimaryCtaClick={loadDashboardData}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col py-8 transition-colors">
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 w-full">
-        
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1E293B] pb-4">
-          <div className="space-y-1">
-            <span className="text-[11px] font-mono font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-              RECRUITER PORTAL COMMAND CENTER
-            </span>
-            <h1 className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
-              {locale === 'vi' ? 'Dashboard Console — Tổng Quan Tuyển Dụng Doanh Nghiệp' : 'Recruiter Command Console — Enterprise Hiring Dashboard'}
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {company?.name || (locale === 'vi' ? 'Doanh nghiệp' : 'Enterprise')} Recruitment command center & telemetry
-            </p>
-          </div>
+    <div className="w-full max-w-7xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* Page Header */}
+      <RecruiterPageHeader
+        categoryTag="RECRUITER WORKSPACE"
+        title={locale === 'vi' ? 'Tổng Quan Tuyển Dụng Doanh Nghiệp' : 'Enterprise Recruitment Overview'}
+        subtitle={
+          company?.name
+            ? `${company.name} • ${locale === 'vi' ? 'Bảng điều khiển hoạt động tuyển dụng, phân tích ứng viên và telemetry đối sánh' : 'Hiring operations telemetry, candidate pipelines and matching metrics'}`
+            : (locale === 'vi' ? 'Bảng điều khiển hoạt động tuyển dụng và đối sánh năng lực kỹ thuật' : 'Hiring operations command center and technical matching vectors')
+        }
+        companyName={company?.name}
+        isCompanyVerified={company?.verificationStatus === 'VERIFIED'}
+      />
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-lg p-1 text-xs font-medium shadow-xs">
-              <button
-                onClick={() => setActiveTab('console')}
-                className={`px-3 py-1.5 rounded-md transition cursor-pointer ${
-                  activeTab === 'console'
-                    ? 'bg-[#2563EB] text-white font-semibold shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                Dashboard Console
-              </button>
-              <button
-                onClick={() => setActiveTab('analytics')}
-                className={`px-3 py-1.5 rounded-md transition cursor-pointer ${
-                  activeTab === 'analytics'
-                    ? 'bg-[#2563EB] text-white font-semibold shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                Recruitment Telemetry
-              </button>
-            </div>
-
-            <Link
-              href="/recruiter/jobs/new"
-              className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-xs flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4 text-white" />
-              <span>{t('recruiterNav.createJob', 'Tạo Bài Tuyển Dụng Mới')}</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Company Verification Banner */}
-        {company && (
-          <CompanyVerificationBanner
-            status={company.verificationStatus}
-            companyName={company.name}
-            reason={company.verificationReason}
-          />
-        )}
+      {/* Verification Status Banner if unverified */}
+      {company && (
+        <CompanyVerificationBanner
+          status={company.verificationStatus}
+          companyName={company.name}
+          reason={company.verificationReason}
+        />
+      )}
 
         {/* Welcome Banner */}
         <Reveal direction="up" delay={0}>
@@ -240,6 +219,14 @@ export default function HRDashboardPage() {
                 </div>
               </Reveal>
             </div>
+            <Link
+              href="/recruiter/jobs"
+              className="text-xs font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:underline flex items-center gap-1"
+            >
+              <span>{locale === 'vi' ? 'Xem tất cả' : 'View all'}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
 
             {/* Active Sourcing Funnel Stage */}
             <Reveal delay={120}>
@@ -358,56 +345,102 @@ export default function HRDashboardPage() {
                 </div>
               </Reveal>
 
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Link
+                          href={`/recruiter/jobs/${job.id}/applications`}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#F8FAFC] dark:bg-[#13233F] hover:bg-[#EFF6FF] dark:hover:bg-[#18294E] text-[#1E3A5F] dark:text-[#D6E4E1] border border-[#E2E8F0] dark:border-[#1E293B] transition flex items-center gap-1.5 shrink-0"
+                        >
+                          <Users className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#3B82F6]" />
+                          <span>{jobAppCount} {locale === 'vi' ? 'ứng tuyển' : 'applicants'}</span>
+                        </Link>
+                        <Link
+                          href={`/recruiter/jobs/${job.id}/ranking`}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] hover:bg-[#DBEAFE] border border-[#2563EB]/20 transition flex items-center gap-1.5 shrink-0"
+                        >
+                          <Award className="w-3.5 h-3.5" />
+                          <span>AI Ranking</span>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </>
-        ) : (
-          /* Assessment & Analytics View */
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-[#1E293B] pb-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Recruitment Telemetry & Funnel Analytics
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Chỉ số đo lường hiệu suất đối sánh và chất lượng nguồn ứng viên
-                  </p>
-                </div>
-              </div>
+          )}
+        </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-slate-400">ĐỘ CHÍNH XÁC XẾP HẠNG (NDCG@3)</span>
-                  <div className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">1.00</div>
-                  <span className="text-[10px] text-[#00B14F] dark:text-[#3B82F6] font-medium">100% Top-tier candidate alignment</span>
-                </div>
-
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-slate-400">F1 EXTRACTION EVALUATION</span>
-                  <div className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">83.6%</div>
-                  <span className="text-[10px] text-[#00B14F] dark:text-[#3B82F6] font-medium">Recall 100% on technical benchmark</span>
-                </div>
-
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-slate-400">CHÍNH SÁCH BẢO VỆ GITHUB</span>
-                  <div className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">Zero Penalty</div>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Tín hiệu bổ trợ (Supplementary Only)</span>
-                </div>
-              </div>
+        {/* Right Column: Recent Applications */}
+        <div className="space-y-4 min-w-0">
+          <div className="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#1E293B] pb-3">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-[#00B14F] dark:text-[#10B981]" />
+              <h2 className="text-base font-bold text-[#0F2A52] dark:text-white">
+                {locale === 'vi' ? 'Ứng Tuyển Mới Nhất' : 'Latest Applications'}
+              </h2>
             </div>
-
-            {/* AI Sourcing Copilot Insights Card */}
-            <div className="bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] text-white border border-blue-900/30 rounded-xl p-6 shadow-md space-y-3">
-              <div className="text-[10px] font-mono uppercase text-[#00B14F] tracking-wider font-semibold">AI SOURCING COPILOT INSIGHTS</div>
-              <ul className="space-y-2 text-xs text-slate-200 font-light list-disc pl-5">
-                <li>Hệ thống áp dụng chuẩn hóa từ đồng nghĩa (JS → JavaScript, Postgres → PostgreSQL, K8s → Kubernetes).</li>
-                <li>Ứng viên chưa đủ thông tin hoặc chưa tải CV sẽ được gắn nhãn INSUFFICIENT_DATA minh bạch, không đưa ra điểm số ảo.</li>
-              </ul>
-            </div>
+            <Link
+              href="/recruiter/pipeline"
+              className="text-xs font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:underline flex items-center gap-1"
+            >
+              <span>{locale === 'vi' ? 'Pipeline' : 'Pipeline'}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
-        )}
 
-      </main>
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-16 rounded-2xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] animate-pulse" />
+              ))}
+            </div>
+          ) : recentApplications.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] text-center space-y-2">
+              <Users className="w-8 h-8 text-[#94A3B8] mx-auto opacity-40" />
+              <div className="text-xs text-[#64748B] dark:text-[#94A3B8]">
+                {locale === 'vi' ? 'Chưa nhận được hồ sơ nào.' : 'No candidate submissions yet.'}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {recentApplications.map((app) => (
+                <Link
+                  key={app.id}
+                  href={`/recruiter/applications/${app.id}`}
+                  className="p-3.5 rounded-xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#3B82F6] shadow-2xs transition block space-y-1.5 group"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-[#0F2A52] dark:text-white group-hover:text-[#2563EB] dark:group-hover:text-[#3B82F6] transition truncate">
+                      {app.candidateName || (locale === 'vi' ? 'Ứng viên' : 'Candidate')}
+                    </span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase shrink-0 ${
+                        app.status === 'SHORTLISTED'
+                          ? 'bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00B14F]'
+                          : app.status === 'SUBMITTED'
+                          ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB]'
+                          : app.status === 'REJECTED'
+                          ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600'
+                      }`}
+                    >
+                      {app.status}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-[#64748B] dark:text-[#94A3B8]">
+                    <span className="truncate max-w-[180px]">
+                      {app.job?.title || 'Vị trí tuyển dụng'}
+                    </span>
+                    <span className="font-mono text-[10px] shrink-0">
+                      {app.appliedDate}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

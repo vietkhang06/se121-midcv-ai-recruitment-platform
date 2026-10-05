@@ -18,6 +18,7 @@ import java.util.UUID;
 public class CVController {
 
     private final CVService cvService;
+    private final CvProcessingSseService cvProcessingSseService;
 
     @PostMapping(consumes = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<CVResponse>> createCV(
@@ -39,8 +40,14 @@ public class CVController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CVResponse>>> getMyCVs(@AuthenticationPrincipal User currentUser) {
-        List<CVResponse> response = cvService.getCandidateCVs(currentUser);
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<CVResponse>>> getMyCVs(
+            @AuthenticationPrincipal User currentUser,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+        com.platform.recruitment.common.PageResponse<CVResponse> response =
+                cvService.getCandidateCVs(currentUser, page, size, sort, direction);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -61,6 +68,20 @@ public class CVController {
             @PathVariable UUID id) {
         CVProcessingStatusResponse response = cvService.getProcessingStatus(currentUser, id);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping(value = "/processing/{jobId}/events", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamJobEvents(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID jobId) {
+        return cvProcessingSseService.subscribe(jobId, currentUser);
+    }
+
+    @GetMapping(value = "/{id}/events", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamCvEvents(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        return cvProcessingSseService.subscribeByCvId(id, currentUser);
     }
 
     @GetMapping("/{id}")
@@ -139,4 +160,37 @@ public class CVController {
         List<CVVersionSummaryResponse> response = cvService.getCVVersions(currentUser, id);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @PostMapping(value = "/{id}/attachments", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<CVEvidenceAttachmentResponse>> uploadAttachment(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam("itemType") String itemType,
+            @RequestParam("itemId") String itemId) {
+        CVEvidenceAttachmentResponse response = cvService.uploadEvidenceAttachment(currentUser, id, file, itemType, itemId);
+        return new ResponseEntity<>(ApiResponse.success("Evidence attachment uploaded successfully", response), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/{id}/attachments/{attachmentId}")
+    public ResponseEntity<byte[]> previewAttachment(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @PathVariable UUID attachmentId) {
+        DownloadResult result = cvService.getEvidenceAttachmentFile(currentUser, id, attachmentId);
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + result.filename() + "\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType(result.contentType()))
+                .body(result.data());
+    }
+
+    @DeleteMapping("/{id}/attachments/{attachmentId}")
+    public ResponseEntity<ApiResponse<Void>> deleteAttachment(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @PathVariable UUID attachmentId) {
+        cvService.deleteEvidenceAttachment(currentUser, id, attachmentId);
+        return ResponseEntity.ok(ApiResponse.success("Evidence attachment deleted successfully", null));
+    }
 }
+

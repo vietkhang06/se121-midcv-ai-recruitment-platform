@@ -17,16 +17,20 @@ def run_startup_checks() -> int:
     print("MIDCV AI-WORKER PRE-FLIGHT STARTUP CHECK")
     print("=" * 60)
 
-    # 1. Document Extraction Check
-    print("[1/3] Checking Document Extraction Local Libraries...")
+    # 1. Document Extraction & OCR Check
+    print("[1/3] Checking Document Extraction & OCR Engine...")
     try:
         import pdfplumber
         import docx
         import pypdfium2
+        from app.services.tesseract_runtime import tesseract_runtime
+        ocr_health = tesseract_runtime.get_health()
         print("  -> pdfplumber, python-docx, pypdfium2: READY (Local extraction UP)")
+        print(f"  -> Tesseract OCR: {ocr_health.get('status')} (Version: {ocr_health.get('version')}, Languages: {', '.join(ocr_health.get('installed_languages', []))})")
     except ImportError as e:
         print(f"  -> CRITICAL: Missing extraction dependency: {e}")
         return 1
+
 
     # 2. Primary LLM Check
     print("\n[2/3] Checking PRIMARY LLM Configuration & Connectivity...")

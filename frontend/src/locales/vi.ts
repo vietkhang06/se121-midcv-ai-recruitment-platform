@@ -23,12 +23,16 @@ export const vi = {
   },
   recruiterNav: {
     brand: "midCV® HR Portal",
-    dashboard: "Tổng Quan Tuyển Dụng",
-    company: "Doanh nghiệp",
-    jobs: "Quản Lý Bài Đăng",
-    createJob: "Tạo Bài Tuyển Dụng",
+    dashboard: "Tổng Quan",
+    jobs: "Tin Tuyển Dụng",
+    pipeline: "Quy Trình Tuyển Dụng",
+    analytics: "Phân Tích Tuyển Dụng",
+    company: "Doanh Nghiệp",
+    profile: "Hồ Sơ HR",
+    createJob: "Tạo Tin Tuyển Dụng",
     candidatePortal: "Về Cổng Ứng Viên",
-    verifiedStatus: "Đã Xác Minh"
+    verifiedStatus: "Đã Xác Minh",
+    pendingVerification: "Chờ Xác Minh"
   },
   auth: {
     signInTitle: "Truy Cập midCV®",

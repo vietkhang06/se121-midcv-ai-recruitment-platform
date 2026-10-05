@@ -90,6 +90,63 @@ public class JobService {
         return mapToResponse(publishedJob);
     }
 
+    @Transactional
+    public JobResponse closeJob(User recruiterUser, UUID jobId) {
+        RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
+
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
+
+        // Ownership check
+        if (!job.getCompany().getId().equals(recruiter.getCompany().getId())) {
+            throw new UnauthorizedAccessException("Recruiter does not own this job posting");
+        }
+
+        job.setStatus(JobStatus.CLOSED);
+        Job closedJob = jobRepository.save(job);
+        return mapToResponse(closedJob);
+    }
+
+    @Transactional
+    public JobResponse updateJob(User recruiterUser, UUID jobId, CreateJobRequest request) {
+        RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
+
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
+
+        // Ownership check
+        if (!job.getCompany().getId().equals(recruiter.getCompany().getId())) {
+            throw new UnauthorizedAccessException("Recruiter does not own this job posting");
+        }
+
+        job.setTitle(request.getTitle());
+        job.setIndustry(request.getIndustry());
+        job.setSeniority(request.getSeniority());
+        job.setMinSalary(request.getMinSalary());
+        job.setMaxSalary(request.getMaxSalary());
+        job.setLocation(request.getLocation());
+        job.setEmploymentType(request.getEmploymentType());
+        job.setDescription(request.getDescription());
+
+        if (request.getRequirements() != null) {
+            job.getRequirements().clear();
+            for (CreateJobRequest.RequirementItem item : request.getRequirements()) {
+                JobRequirement req = JobRequirement.builder()
+                        .job(job)
+                        .skillName(item.getSkillName())
+                        .requirementType(item.getType() != null ? item.getType() : RequirementType.REQUIRED)
+                        .minYearsExp(item.getMinYearsExp() != null ? item.getMinYearsExp() : 0)
+                        .build();
+                job.getRequirements().add(req);
+            }
+        }
+
+        Job updatedJob = jobRepository.save(job);
+        return mapToResponse(updatedJob);
+    }
+
     @Transactional(readOnly = true)
     public JobResponse getJobById(UUID jobId) {
         Job job = jobRepository.findById(jobId)
@@ -97,29 +154,62 @@ public class JobService {
         return mapToResponse(job);
     }
 
+    public static final java.util.Set<String> ALLOWED_JOB_SORT_FIELDS = java.util.Set.of(
+            "createdAt", "title", "minSalary", "maxSalary", "industry", "seniority", "status"
+    );
+
     @Transactional(readOnly = true)
     public List<JobResponse> getPublishedJobs(String industry) {
-        List<Job> jobs;
+        return getPublishedJobs(industry, 0, 100, "createdAt", "desc").getContent();
+    }
+
+    @Transactional(readOnly = true)
+    public com.platform.recruitment.common.PageResponse<JobResponse> getPublishedJobs(
+            String industry, int page, int size, String sort, String direction) {
+        org.springframework.data.domain.Pageable pageable =
+                com.platform.recruitment.common.PaginationUtils.createPageable(
+                        page, size, sort, direction, ALLOWED_JOB_SORT_FIELDS, "createdAt");
+
+        org.springframework.data.domain.Page<Job> jobs;
         if (industry != null && !industry.isBlank()) {
-            jobs = jobRepository.findByStatusAndIndustry(JobStatus.PUBLISHED, industry);
+            jobs = jobRepository.findByStatusAndIndustry(JobStatus.PUBLISHED, industry, pageable);
         } else {
-            jobs = jobRepository.findByStatus(JobStatus.PUBLISHED);
+            jobs = jobRepository.findByStatus(JobStatus.PUBLISHED, pageable);
         }
-        return jobs.stream().map(this::mapToResponse).toList();
+
+        List<JobResponse> content = jobs.getContent().stream().map(this::mapToResponse).toList();
+        String sortField = (sort == null || sort.isBlank()) ? "createdAt" : sort;
+        String sortDir = (direction == null || direction.isBlank()) ? "desc" : direction.toLowerCase();
+        return com.platform.recruitment.common.PageResponse.of(jobs, content, sortField, sortDir);
     }
 
     @Transactional(readOnly = true)
     public List<JobResponse> getRecruiterJobs(User recruiterUser) {
+        return getRecruiterJobs(recruiterUser, 0, 100, "createdAt", "desc").getContent();
+    }
+
+    @Transactional(readOnly = true)
+    public com.platform.recruitment.common.PageResponse<JobResponse> getRecruiterJobs(
+            User recruiterUser, int page, int size, String sort, String direction) {
+        org.springframework.data.domain.Pageable pageable =
+                com.platform.recruitment.common.PaginationUtils.createPageable(
+                        page, size, sort, direction, ALLOWED_JOB_SORT_FIELDS, "createdAt");
+
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 
+        String sortField = (sort == null || sort.isBlank()) ? "createdAt" : sort;
+        String sortDir = (direction == null || direction.isBlank()) ? "desc" : direction.toLowerCase();
+
         if (recruiter.getCompany() == null) {
-            return List.of();
+            return com.platform.recruitment.common.PageResponse.of(
+                    org.springframework.data.domain.Page.empty(pageable), List.of(), sortField, sortDir);
         }
 
-        return jobRepository.findByCompanyId(recruiter.getCompany().getId()).stream()
-                .map(this::mapToResponse)
-                .toList();
+        org.springframework.data.domain.Page<Job> jobs =
+                jobRepository.findByCompanyId(recruiter.getCompany().getId(), pageable);
+        List<JobResponse> content = jobs.getContent().stream().map(this::mapToResponse).toList();
+        return com.platform.recruitment.common.PageResponse.of(jobs, content, sortField, sortDir);
     }
 
     public JobResponse mapToResponse(Job job) {

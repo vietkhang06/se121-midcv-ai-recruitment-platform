@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/hr")
+@RequestMapping("/api/v1/hr")
 public class ScreeningController {
   private final JdbcTemplate jdbc;
   private final ObjectMapper mapper;
@@ -114,11 +114,13 @@ public class ScreeningController {
   }
 
   @GetMapping("/jobs/{id}/screenings")
-  public List<Map<String, Object>> list(
+  public com.platform.recruitment.common.ApiResponse<com.platform.recruitment.common.PageResponse<Map<String, Object>>> list(
       @PathVariable UUID id,
       @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "20") int size) {
-    if (page < 0 || page > 1000 || size < 1 || size > 100)
+      @RequestParam(defaultValue = "20") int size,
+      @RequestParam(defaultValue = "score") String sort,
+      @RequestParam(defaultValue = "desc") String direction) {
+    if (page < 0 || size < 1 || size > 100)
       throw new CustomException(ErrorCode.VALIDATION_ERROR, "Tham số phân trang không hợp lệ.");
     User a = requireRole(Role.HR);
     queryOne(
@@ -127,7 +129,7 @@ public class ScreeningController {
         id,
         a.getId(),
         a.getId());
-    return queryRows(
+    List<Map<String, Object>> content = queryRows(
         "SELECT s.*,d.title,v.filename,v.state AS cv_state,r.score,r.coverage,p.state AS"
             + " processing_state,p.error_code FROM screening_runs s JOIN document_versions v ON"
             + " v.id=s.cv_version_id JOIN documents d ON d.id=v.document_id LEFT JOIN"
@@ -138,6 +140,21 @@ public class ScreeningController {
         id,
         size,
         page * size);
+    Long totalCount = jdbc.queryForObject("SELECT count(*) FROM screening_runs WHERE job_id=?", Long.class, id);
+    long total = totalCount != null ? totalCount : 0L;
+    int totalPages = size > 0 ? (int) Math.ceil((double) total / size) : 0;
+    com.platform.recruitment.common.PageResponse<Map<String, Object>> pageResponse =
+        com.platform.recruitment.common.PageResponse.<Map<String, Object>>builder()
+            .content(content)
+            .page(page)
+            .size(size)
+            .totalElements(total)
+            .totalPages(totalPages)
+            .first(page == 0)
+            .last(page >= totalPages - 1)
+            .sort(new com.platform.recruitment.common.PageResponse.SortInfo(sort, direction))
+            .build();
+    return com.platform.recruitment.common.ApiResponse.success(pageResponse);
   }
 
   @GetMapping("/screenings/{id}")

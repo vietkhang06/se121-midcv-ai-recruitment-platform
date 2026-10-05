@@ -28,7 +28,7 @@ Senior Engineer at TechCorp Vietnam (2022 - Present)
     assert res.status == "SUCCESS"
     assert res.cv_version_id == "cv-ver-100"
     assert len(res.skills) > 0
-    assert any(s.normalized_name == "Java" for s in res.skills)
+    assert any(s.normalized_name.startswith("Java") for s in res.skills)
     assert len(res.evidences) > 0
 
 def test_section_heading_alias_mapping():

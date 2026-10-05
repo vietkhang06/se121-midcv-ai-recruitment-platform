@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Job } from '@/types';
-import { fetchRecruiterJobs } from '@/lib/api';
-import { RecruiterNavbar } from '@/components/recruiter/RecruiterNavbar';
+import { fetchRecruiterJobs, publishJob, closeJob, fetchJobApplications } from '@/lib/api';
+import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
 import { EmptyState } from '@/components/common/EmptyState';
 import { useLanguage } from '@/context/LanguageContext';
 import { translateIndustry, translateStatus, translateSeniority } from '@/lib/i18n';
@@ -14,19 +14,35 @@ import { Briefcase, PlusCircle, Search, Filter, Eye, Award, Users } from 'lucide
 export default function RecruiterJobsListPage() {
   const { t, locale } = useLanguage();
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [applicationCounts, setApplicationCounts] = useState<Record<string, number>>({});
   const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [searchKeyword, setSearchKeyword] = useState<string>('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [actionInProgressId, setActionInProgressId] = useState<string | null>(null);
 
   const loadJobs = () => {
     setIsLoading(true);
     fetchRecruiterJobs()
-      .then(data => {
+      .then(async (data) => {
         setJobs(data);
         setFilteredJobs(data);
         setFetchError(null);
+
+        // Fetch application counts
+        const counts: Record<string, number> = {};
+        await Promise.all(
+          data.map(async (j) => {
+            try {
+              const apps = await fetchJobApplications(j.id);
+              counts[j.id] = apps.length;
+            } catch {
+              counts[j.id] = 0;
+            }
+          })
+        );
+        setApplicationCounts(counts);
       })
       .catch((err) => {
         setFetchError(err.message || (locale === 'vi' ? 'Không thể tải danh sách bài tuyển dụng.' : 'Unable to load jobs list.'));
@@ -40,11 +56,17 @@ export default function RecruiterJobsListPage() {
 
   useEffect(() => {
     let result = [...jobs];
-    if (searchKeyword) {
-      result = result.filter(j => j.title.toLowerCase().includes(searchKeyword.toLowerCase()));
+    if (searchKeyword.trim()) {
+      const q = searchKeyword.toLowerCase();
+      result = result.filter(
+        (j) =>
+          j.title.toLowerCase().includes(q) ||
+          (j.location && j.location.toLowerCase().includes(q)) ||
+          (j.industry && j.industry.toLowerCase().includes(q))
+      );
     }
-    if (selectedStatus) {
-      result = result.filter(j => j.status === selectedStatus);
+    if (selectedStatus !== 'ALL') {
+      result = result.filter((j) => j.status === selectedStatus);
     }
     setFilteredJobs(result);
   }, [searchKeyword, selectedStatus, jobs]);

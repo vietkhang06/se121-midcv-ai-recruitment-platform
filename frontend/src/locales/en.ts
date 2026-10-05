@@ -23,12 +23,16 @@ export const en = {
   },
   recruiterNav: {
     brand: "midCV® HR Portal",
-    dashboard: "HR Dashboard",
-    company: "Company Profile",
+    dashboard: "Overview",
     jobs: "Job Postings",
+    pipeline: "Hiring Pipeline",
+    analytics: "Recruitment Analytics",
+    company: "Company Profile",
+    profile: "HR Profile",
     createJob: "Create Job Posting",
     candidatePortal: "Back to Candidate Portal",
-    verifiedStatus: "Verified"
+    verifiedStatus: "Verified",
+    pendingVerification: "Pending Verification"
   },
   auth: {
     signInTitle: "Access midCV®",

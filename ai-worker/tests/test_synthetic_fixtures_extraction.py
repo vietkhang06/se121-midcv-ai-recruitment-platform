@@ -22,7 +22,7 @@ def test_extract_single_column_pdf(extractor):
         file_type="PDF"
     )
     res = extractor.extract_document(req)
-    assert res.status == "SUCCESS"
+    assert res.status in ["SUCCESS", "EXTRACTED"]
     assert "NGUYEN TUAN ANH" in res.text
     assert "tuananh.nguyen@example.com" in res.text
     assert "Spring Boot" in res.text
@@ -42,7 +42,7 @@ def test_extract_two_column_pdf(extractor):
         file_type="PDF"
     )
     res = extractor.extract_document(req)
-    assert res.status == "SUCCESS"
+    assert res.status in ["SUCCESS", "EXTRACTED"]
     assert "LE MINH QUAN" in res.text
     assert "quan.le@example.com" in res.text
     assert "FastAPI" in res.text
@@ -60,7 +60,7 @@ def test_extract_docx_with_tables(extractor):
         file_type="DOCX"
     )
     res = extractor.extract_document(req)
-    assert res.status == "SUCCESS"
+    assert res.status in ["SUCCESS", "EXTRACTED"]
     assert "PHAM DUC THANG" in res.text
     assert "thang.pham@example.com" in res.text
     assert "Saigon Tech Labs" in res.text

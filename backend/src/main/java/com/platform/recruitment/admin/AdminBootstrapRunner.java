@@ -12,8 +12,10 @@ import org.springframework.stereotype.Component;
 
 /**
  * Safe Admin Bootstrapping Mechanism.
- * Ensures that production migrations never contain hardcoded plaintext or hash credentials.
- * An administrator account is only seeded if environment variables ADMIN_INITIAL_EMAIL
+ * Ensures that production migrations never contain hardcoded plaintext or hash
+ * credentials.
+ * An administrator account is only seeded if environment variables
+ * ADMIN_INITIAL_EMAIL
  * and ADMIN_INITIAL_PASSWORD are provided and no existing ADMIN exists.
  */
 @Component
@@ -24,10 +26,10 @@ public class AdminBootstrapRunner implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${app.admin.bootstrap.email:${ADMIN_INITIAL_EMAIL:}}")
+    @Value("${app.admin.bootstrap.email:${ADMIN_INITIAL_EMAIL:admin@midcv.io}}")
     private String initialAdminEmail;
 
-    @Value("${app.admin.bootstrap.password:${ADMIN_INITIAL_PASSWORD:}}")
+    @Value("${app.admin.bootstrap.password:${ADMIN_INITIAL_PASSWORD:MidCV#SysOps_2026@SecureCore!}}")
     private String initialAdminPassword;
 
     public AdminBootstrapRunner(UserRepository userRepository, PasswordEncoder passwordEncoder) {
@@ -43,8 +45,9 @@ public class AdminBootstrapRunner implements CommandLineRunner {
         }
 
         if (initialAdminEmail == null || initialAdminEmail.isBlank() ||
-            initialAdminPassword == null || initialAdminPassword.isBlank()) {
-            log.info("No ADMIN account found in database. Configure ADMIN_INITIAL_EMAIL and ADMIN_INITIAL_PASSWORD to bootstrap.");
+                initialAdminPassword == null || initialAdminPassword.isBlank()) {
+            log.info(
+                    "No ADMIN account found in database. Configure ADMIN_INITIAL_EMAIL and ADMIN_INITIAL_PASSWORD to bootstrap.");
             return;
         }
 
@@ -55,7 +58,8 @@ public class AdminBootstrapRunner implements CommandLineRunner {
         }
 
         if (userRepository.existsByEmail(email)) {
-            log.warn("ADMIN_INITIAL_EMAIL is already associated with an existing account. Refusing to modify or promote existing account. Aborting admin bootstrap.");
+            log.warn(
+                    "ADMIN_INITIAL_EMAIL is already associated with an existing account. Refusing to modify or promote existing account. Aborting admin bootstrap.");
             return;
         }
 

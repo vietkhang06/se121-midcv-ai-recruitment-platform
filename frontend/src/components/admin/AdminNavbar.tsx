@@ -7,6 +7,10 @@ import {
   LayoutDashboard,
   Cpu,
   Building2,
+  Users,
+  ShieldAlert,
+  Tags,
+  History,
   Globe,
   Menu,
   X,
@@ -61,41 +65,89 @@ export const AdminNavbar: React.FC = () => {
           </div>
 
           {/* Admin Navigation Links (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-1.5 xl:gap-2.5 text-xs font-semibold shrink-0">
+          <nav className="hidden lg:flex items-center gap-1 xl:gap-2 text-xs font-semibold shrink-0">
             <Link
               href="/admin"
-              className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+              className={`px-2.5 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                 pathname === '/admin'
                   ? 'bg-indigo-600 text-white font-bold shadow-xs'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
               }`}
             >
-              <LayoutDashboard className="w-4 h-4 text-indigo-400" />
+              <LayoutDashboard className="w-3.5 h-3.5 text-indigo-400" />
               <span>{locale === 'vi' ? 'Tổng Quan' : 'Dashboard'}</span>
             </Link>
 
             <Link
-              href="/admin/ai-settings"
-              className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                isActive('/admin/ai-settings')
-                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
-              }`}
-            >
-              <Cpu className="w-4 h-4 text-indigo-400" />
-              <span>{locale === 'vi' ? 'Cấu hình AI & LLM' : 'AI Engine Settings'}</span>
-            </Link>
-
-            <Link
               href="/admin/companies"
-              className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+              className={`px-2.5 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                 isActive('/admin/companies')
                   ? 'bg-indigo-600 text-white font-bold shadow-xs'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
               }`}
             >
-              <Building2 className="w-4 h-4 text-indigo-400" />
-              <span>{locale === 'vi' ? 'Xác thực Doanh nghiệp' : 'Company Verification'}</span>
+              <Building2 className="w-3.5 h-3.5 text-indigo-400" />
+              <span>{locale === 'vi' ? 'Doanh Nghiệp' : 'Companies'}</span>
+            </Link>
+
+            <Link
+              href="/admin/users"
+              className={`px-2.5 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                isActive('/admin/users')
+                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5 text-indigo-400" />
+              <span>{locale === 'vi' ? 'Người Dùng' : 'Users'}</span>
+            </Link>
+
+            <Link
+              href="/admin/moderation"
+              className={`px-2.5 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                isActive('/admin/moderation')
+                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+              }`}
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-indigo-400" />
+              <span>{locale === 'vi' ? 'Kiểm Duyệt' : 'Moderation'}</span>
+            </Link>
+
+            <Link
+              href="/admin/taxonomy"
+              className={`px-2.5 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                isActive('/admin/taxonomy')
+                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+              }`}
+            >
+              <Tags className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Taxonomy</span>
+            </Link>
+
+            <Link
+              href="/admin/ai-settings"
+              className={`px-2.5 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                isActive('/admin/ai-settings')
+                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+              }`}
+            >
+              <Cpu className="w-3.5 h-3.5 text-indigo-400" />
+              <span>{locale === 'vi' ? 'Cấu Hình AI' : 'AI Settings'}</span>
+            </Link>
+
+            <Link
+              href="/admin/audit-logs"
+              className={`px-2.5 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                isActive('/admin/audit-logs')
+                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+              }`}
+            >
+              <History className="w-3.5 h-3.5 text-indigo-400" />
+              <span>{locale === 'vi' ? 'Nhật Ký' : 'Audit Logs'}</span>
             </Link>
           </nav>
 
@@ -198,6 +250,58 @@ export const AdminNavbar: React.FC = () => {
               </Link>
 
               <Link
+                href="/admin/companies"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${
+                  isActive('/admin/companies') 
+                    ? 'bg-indigo-600 text-white font-bold' 
+                    : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Building2 className="w-4 h-4 text-indigo-400" />
+                <span>{locale === 'vi' ? 'Xác thực Doanh nghiệp' : 'Company Verification'}</span>
+              </Link>
+
+              <Link
+                href="/admin/users"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${
+                  isActive('/admin/users') 
+                    ? 'bg-indigo-600 text-white font-bold' 
+                    : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Users className="w-4 h-4 text-indigo-400" />
+                <span>{locale === 'vi' ? 'Quản lý Người Dùng' : 'User Management'}</span>
+              </Link>
+
+              <Link
+                href="/admin/moderation"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${
+                  isActive('/admin/moderation') 
+                    ? 'bg-indigo-600 text-white font-bold' 
+                    : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <ShieldAlert className="w-4 h-4 text-indigo-400" />
+                <span>{locale === 'vi' ? 'Kiểm Duyệt Tin & Báo Cáo' : 'Moderation & Reports'}</span>
+              </Link>
+
+              <Link
+                href="/admin/taxonomy"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${
+                  isActive('/admin/taxonomy') 
+                    ? 'bg-indigo-600 text-white font-bold' 
+                    : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Tags className="w-4 h-4 text-indigo-400" />
+                <span>{locale === 'vi' ? 'Taxonomy Kỹ Năng' : 'Skill Taxonomy'}</span>
+              </Link>
+
+              <Link
                 href="/admin/ai-settings"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${
@@ -211,16 +315,16 @@ export const AdminNavbar: React.FC = () => {
               </Link>
 
               <Link
-                href="/admin/companies"
+                href="/admin/audit-logs"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${
-                  isActive('/admin/companies') 
+                  isActive('/admin/audit-logs') 
                     ? 'bg-indigo-600 text-white font-bold' 
                     : 'text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <Building2 className="w-4 h-4 text-indigo-400" />
-                <span>{locale === 'vi' ? 'Xác thực Doanh nghiệp' : 'Company Verification'}</span>
+                <History className="w-4 h-4 text-indigo-400" />
+                <span>{locale === 'vi' ? 'Nhật Ký Quản Trị' : 'Audit Logs'}</span>
               </Link>
             </nav>
 

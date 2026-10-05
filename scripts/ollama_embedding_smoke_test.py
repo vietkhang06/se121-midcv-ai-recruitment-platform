@@ -41,7 +41,7 @@ def run_embedding_smoke_test():
     text_b = "Backend engineer using Java"
     text_c = "Wedding photographer"
 
-    print("\n--- Generating Embeddings via nomic-embed-text ---")
+    print("\n--- Generating Embeddings via bge-m3 ---")
     try:
         vec_a = embedding_service.embed_text(text_a)
         vec_b = embedding_service.embed_text(text_b)
@@ -59,8 +59,8 @@ def run_embedding_smoke_test():
     print(f"Vector B ('{text_b}') dimension: {dim_b}")
     print(f"Vector C ('{text_c}') dimension: {dim_c}")
 
-    if not (dim_a == dim_b == dim_c == 768):
-        print(f"[ERROR] Unexpected dimension: expected 768, got {dim_a}")
+    if not (dim_a == dim_b == dim_c == 1024):
+        print(f"[ERROR] Unexpected dimension: expected 1024, got {dim_a}")
         print("EMBEDDING_TEST=FAIL")
         sys.exit(1)
 
@@ -82,11 +82,10 @@ def run_embedding_smoke_test():
 
     # 3. Section 10 Embedding Dimension Audit
     print("\n--- SECTION 10: EMBEDDING DIMENSION CHECK ---")
-    print("OLLAMA_MODEL_DIMENSION=768")
-    print("PGVECTOR_SCHEMA_DIMENSION=1536")
-    print("DIMENSION_MATCH=FALSE (768 != 1536)")
-    print("POLICY_ACTION=PRESERVE_DATABASE_SCHEMA (No truncation, padding, or dropping)")
-    print("MIGRATION_REQUIRED=TRUE (Flyway V2 migration + re-indexing required for database vector column)")
+    print("OLLAMA_MODEL_DIMENSION=1024")
+    print("PGVECTOR_SCHEMA_DIMENSION=1024")
+    print("DIMENSION_MATCH=TRUE (1024 == 1024)")
+    print("POLICY_ACTION=STANDARDIZED_ON_BGE_M3 (No truncation or padding)")
 
     print("\n==========================================")
     print("EMBEDDING SMOKE TEST PASSED")

@@ -29,6 +29,9 @@ public class CVVersion extends AssignedIdBaseEntity {
     @Column(name = "structured_json_content", columnDefinition = "TEXT")
     private String structuredJsonContent;
 
+    @Column(name = "raw_structured_content", columnDefinition = "TEXT")
+    private String rawStructuredContent;
+
     @Builder.Default
     @Column(name = "status")
     private String status = "DRAFT";

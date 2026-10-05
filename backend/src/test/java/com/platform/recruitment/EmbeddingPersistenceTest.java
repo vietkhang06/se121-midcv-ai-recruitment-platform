@@ -25,10 +25,10 @@ class EmbeddingPersistenceTest {
         Embedding embedding = Embedding.builder()
                 .entityType("JOB")
                 .entityId(jobId)
-                .modelProvider("OPENAI")
-                .modelName("text-embedding-3-small")
+                .modelProvider("LOCAL_OLLAMA")
+                .modelName("bge-m3")
                 .modelVersion("v1.0")
-                .dimension(1536)
+                .dimension(1024)
                 .status("ACTIVE")
                 .build();
 
@@ -36,7 +36,7 @@ class EmbeddingPersistenceTest {
 
         Optional<Embedding> result = embeddingRepository.findByEntityTypeAndEntityId("JOB", jobId);
         assertTrue(result.isPresent());
-        assertEquals(1536, result.get().getDimension());
-        assertEquals("text-embedding-3-small", result.get().getModelName());
+        assertEquals(1024, result.get().getDimension());
+        assertEquals("bge-m3", result.get().getModelName());
     }
 }
