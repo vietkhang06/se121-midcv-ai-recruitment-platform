@@ -212,18 +212,48 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
           </div>
         </div>
 
-        {/* HUMAN DECISION CONTROL HUB */}
-        <div className="bg-white dark:bg-[#111C38] border border-blue-200 dark:border-blue-900/60 rounded-2xl p-6 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-4">
-            <div className="flex items-center gap-2.5">
-              <UserCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  {locale === 'vi' ? 'Quyết định Nhân sự (Human Decision Workflow)' : 'Recruiter Decision Hub'}
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {locale === 'vi' ? 'Cập nhật trạng thái vòng tuyển dụng và lưu vết kiểm toán (Audit Trail)' : 'Advance applicant through hiring pipeline with recorded audit trail'}
-                </p>
+        {/* Top 2-Card Row: Overall Fit Index & Match Explanation Narrative */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          {/* Card 1: Overall Fit Index (Radial progress) */}
+          <div className="md:col-span-4 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-7 shadow-xs flex flex-col items-center justify-center text-center space-y-4 transition-colors">
+            <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider block font-mono">
+              Overall Fit Index
+            </span>
+
+            {/* Radial SVG Meter */}
+            <div
+              className="relative w-36 h-36 flex items-center justify-center"
+              role="img"
+              aria-label={`${locale === 'vi' ? 'Điểm phù hợp' : 'Match score'} ${data.overallScore.toFixed(1)}%`}
+            >
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  stroke="#E2E8F0"
+                  className="stroke-slate-200 dark:stroke-[#1E293B]"
+                  strokeWidth="8"
+                  fill="transparent"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  stroke="#10B981"
+                  strokeWidth="8"
+                  strokeDasharray="251.2"
+                  strokeDashoffset={251.2 * (1 - Math.min(100, data.overallScore) / 100)}
+                  strokeLinecap="round"
+                  fill="transparent"
+                  className="motion-score-ring"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
+                  {data.overallScore.toFixed(1)}%
+                </span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold font-mono">MATCH</span>
               </div>
             </div>
             <div className="flex items-center gap-2">

@@ -7,6 +7,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { AuthHeroBanner, AuthRole } from '@/components/auth/AuthHeroBanner';
 import { ThemeSwitch } from '@/components/common/ThemeSwitch';
+import { GoogleIcon, GitHubIcon, LinkedInIcon } from '@/components/auth/SocialIcons';
+import { Reveal } from '@/components/motion/Reveal';
 import {
   User,
   Briefcase,
@@ -16,41 +18,6 @@ import {
   RefreshCw,
   Globe
 } from 'lucide-react';
-
-function GoogleIcon({ className = 'w-4 h-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none">
-      <path
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-        fill="#4285F4"
-      />
-      <path
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-        fill="#34A853"
-      />
-      <path
-        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-        fill="#FBBC05"
-      />
-      <path
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-        fill="#EA4335"
-      />
-    </svg>
-  );
-}
-
-function GitHubIcon({ className = 'w-4 h-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-      />
-    </svg>
-  );
-}
 
 function LoginFormContent() {
   const router = useRouter();
@@ -68,7 +35,9 @@ function LoginFormContent() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [rememberMe, setRememberMe] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [oauthNotice, setOauthNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'github' | 'linkedin' | null>(null);
   const [isUnverified, setIsUnverified] = useState<boolean>(false);
 
   useEffect(() => {
@@ -84,14 +53,37 @@ function LoginFormContent() {
   const handleRoleChange = (newRole: AuthRole) => {
     setSelectedRole(newRole);
     setError(null);
+    setOauthNotice(null);
     // Smooth URL update without page reload
     const newQuery = newRole === 'RECRUITER' ? '?role=hr' : '?role=candidate';
     window.history.replaceState(null, '', `/login${newQuery}`);
   };
 
+  const handleOAuth = (provider: 'google' | 'github' | 'linkedin') => {
+    setOauthLoading(provider);
+    setError(null);
+    setOauthNotice(null);
+
+    // Simulate OAuth connection state per UX specification
+    setTimeout(() => {
+      setOauthLoading(null);
+      const providerNames = {
+        google: 'Google',
+        github: 'GitHub',
+        linkedin: 'LinkedIn',
+      };
+      setOauthNotice(
+        locale === 'vi'
+          ? `Đang kết nối xác thực tài khoản qua ${providerNames[provider]}... (Chế độ mô phỏng giao diện)`
+          : `Connecting to ${providerNames[provider]} OAuth... (UI simulation mode)`
+      );
+    }, 1200);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setOauthNotice(null);
     setIsUnverified(false);
     setIsLoading(true);
 
@@ -134,9 +126,9 @@ function LoginFormContent() {
         <AuthHeroBanner role={role} />
       </div>
 
-      {/* Right Column: Form Container */}
+      {/* Right Column: Form Container (max-width 480px, responsive centered) */}
       <div className="w-full md:w-1/2 lg:w-1/2 min-h-screen flex flex-col justify-center items-center px-6 py-10 sm:px-10 lg:px-16 overflow-y-auto">
-        <div className="w-full max-w-[440px] my-auto">
+        <Reveal direction="up" delay={50} className="w-full max-w-[480px] my-auto">
           {/* Top Bar with Language and Theme Switch */}
           <div className="flex items-center justify-between mb-5">
             <span className="text-xs font-medium text-slate-400 dark:text-slate-500">
@@ -220,17 +212,25 @@ function LoginFormContent() {
             </div>
           )}
 
+          {/* OAuth Simulation Notice */}
+          {oauthNotice && (
+            <div className="mb-5 p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 text-blue-800 dark:text-blue-300 text-xs flex items-center gap-2.5">
+              <RefreshCw className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 animate-spin" />
+              <span>{oauthNotice}</span>
+            </div>
+          )}
+
           {/* Main Login Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email / Username field */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                {locale === 'vi' ? 'Email/Số điện thoại' : 'Email or Phone number'} <span className="text-red-500">*</span>
+                {locale === 'vi' ? 'Email / Số điện thoại' : 'Email or Phone number'} <span className="text-red-500">*</span>
               </label>
               <input
                 id="login-email-input"
                 type="text"
-                placeholder="you@example.com"
+                placeholder={locale === 'vi' ? 'you@example.com hoặc 0901234567' : 'you@example.com or phone number'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -238,7 +238,7 @@ function LoginFormContent() {
               />
             </div>
 
-            {/* Password field */}
+            {/* Password field with Visibility Toggle */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 {locale === 'vi' ? 'Mật khẩu' : 'Password'} <span className="text-red-500">*</span>
@@ -257,7 +257,7 @@ function LoginFormContent() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? (locale === 'vi' ? 'Ẩn mật khẩu' : 'Hide password') : (locale === 'vi' ? 'Hiển thị mật khẩu' : 'Show password')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer transition"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer transition focus:outline-none"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -276,12 +276,20 @@ function LoginFormContent() {
                 <span>{locale === 'vi' ? 'Ghi nhớ đăng nhập' : 'Remember me'}</span>
               </label>
 
-              <Link
-                href="/help"
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setError(
+                    locale === 'vi'
+                      ? 'Tính năng cấp lại mật khẩu đang được nâng cấp.'
+                      : 'Password reset feature is currently being updated.'
+                  );
+                }}
                 className="font-medium text-[#2563EB] hover:text-[#1D4ED8] dark:text-[#38BDF8] hover:underline"
               >
                 {locale === 'vi' ? 'Quên mật khẩu?' : 'Forgot password?'}
-              </Link>
+              </a>
             </div>
 
             {/* Submit CTA Button */}
@@ -312,32 +320,55 @@ function LoginFormContent() {
               <div className="w-full border-t border-slate-200 dark:border-slate-800" />
             </div>
             <span className="relative px-3 bg-white dark:bg-[#0B1329] text-xs text-slate-400 font-medium">
-              {locale === 'vi' ? '- Hoặc đăng nhập bằng -' : '- Or sign in with -'}
+              {locale === 'vi' ? '- Hoặc tiếp tục với -' : '- Or continue with -'}
             </span>
           </div>
 
-          {/* Social Buttons */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Social Login Buttons: Google, GitHub, LinkedIn */}
+          <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+            {/* Google Button */}
             <button
               type="button"
-              onClick={() => {
-                setError(locale === 'vi' ? 'Phương thức đăng nhập qua Google sẽ sớm khả dụng.' : 'Google sign in will be available soon.');
-              }}
-              className="flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer"
+              onClick={() => handleOAuth('google')}
+              disabled={oauthLoading !== null}
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-xs disabled:opacity-60"
             >
-              <GoogleIcon className="w-4 h-4" />
-              <span>Google</span>
+              {oauthLoading === 'google' ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-[#2563EB]" />
+              ) : (
+                <GoogleIcon className="w-4 h-4 shrink-0" />
+              )}
+              <span className="truncate">Google</span>
             </button>
 
+            {/* GitHub Button */}
             <button
               type="button"
-              onClick={() => {
-                setError(locale === 'vi' ? 'Phương thức đăng nhập qua GitHub sẽ sớm khả dụng.' : 'GitHub sign in will be available soon.');
-              }}
-              className="flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer"
+              onClick={() => handleOAuth('github')}
+              disabled={oauthLoading !== null}
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-xs disabled:opacity-60"
             >
-              <GitHubIcon className="w-4 h-4" />
-              <span>GitHub</span>
+              {oauthLoading === 'github' ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-[#2563EB]" />
+              ) : (
+                <GitHubIcon className="w-4 h-4 shrink-0" />
+              )}
+              <span className="truncate">GitHub</span>
+            </button>
+
+            {/* LinkedIn Button */}
+            <button
+              type="button"
+              onClick={() => handleOAuth('linkedin')}
+              disabled={oauthLoading !== null}
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-xs disabled:opacity-60"
+            >
+              {oauthLoading === 'linkedin' ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-[#0A66C2]" />
+              ) : (
+                <LinkedInIcon className="w-4 h-4 shrink-0 text-[#0A66C2]" />
+              )}
+              <span className="truncate">LinkedIn</span>
             </button>
           </div>
 
@@ -351,7 +382,7 @@ function LoginFormContent() {
               {locale === 'vi' ? 'Đăng ký ngay' : 'Register now'}
             </Link>
           </div>
-        </div>
+        </Reveal>
       </div>
     </div>
   );

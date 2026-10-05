@@ -22,7 +22,7 @@ export const CVCard: React.FC<CVCardProps> = ({
   onDelete
 }) => {
   return (
-    <div className="bg-slate-900/90 border border-slate-800 hover:border-indigo-500/40 rounded-2xl p-5 shadow-lg flex flex-col justify-between transition-all group">
+    <div className="motion-hover-lift bg-slate-900/90 border border-slate-800 hover:border-indigo-500/40 rounded-2xl p-5 shadow-lg flex flex-col justify-between group">
       <div className="space-y-3">
         {/* Header Badges */}
         <div className="flex items-center justify-between gap-2">

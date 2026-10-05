@@ -117,14 +117,15 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
         {skills.map((skill) => (
           <span
             key={skill}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-medium bg-[#F8FAF9] dark:bg-[#18294E] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-[#1E3A5F] shadow-2xs transition group"
+            className="animate-chip-in inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-medium bg-[#F8FAF9] dark:bg-[#18294E] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-[#1E3A5F] shadow-2xs transition-[color,background-color,border-color,box-shadow] group"
           >
             <span>{skill}</span>
             <button
               type="button"
               onClick={() => removeSkill(skill)}
-              className="text-slate-400 hover:text-rose-500 transition cursor-pointer"
+              className="text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
               title={`Remove ${skill}`}
+              aria-label={`Remove ${skill}`}
             >
               <X className="w-3 h-3" />
             </button>
@@ -144,6 +145,11 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
             if (query.trim()) setIsOpen(true);
           }}
           onKeyDown={handleKeyDown}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={isOpen && suggestions.length > 0}
+          aria-controls="skill-autocomplete-listbox"
+          aria-activedescendant={isOpen && suggestions[highlightedIndex] ? `skill-option-${highlightedIndex}` : undefined}
           placeholder={skills.length === 0 ? placeholder : 'Add more...'}
           className="flex-1 min-w-[140px] bg-transparent text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none px-1 py-1"
         />
@@ -151,15 +157,18 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
 
       {/* Intelligent Autocomplete Dropdown */}
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute left-0 right-0 z-50 mt-1 bg-white dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl shadow-xl overflow-hidden animate-fade-in divide-y divide-slate-100 dark:divide-[#1E293B]">
+        <div className="absolute left-0 right-0 z-50 mt-1 bg-white dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl shadow-xl overflow-hidden animate-slide-up divide-y divide-slate-100 dark:divide-[#1E293B]">
           <div className="px-3 py-1.5 bg-[#F8FAF9] dark:bg-[#0B1528] flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
             <span>Intelligent Taxonomy Matches</span>
             <span>Use ↑↓ to navigate, Enter to select</span>
           </div>
-          <ul className="max-h-60 overflow-y-auto py-1">
+          <ul id="skill-autocomplete-listbox" role="listbox" className="max-h-60 overflow-y-auto py-1">
             {suggestions.map((item, idx) => (
               <li
                 key={item.name}
+                id={`skill-option-${idx}`}
+                role="option"
+                aria-selected={idx === highlightedIndex}
                 onClick={() => addSkill(item.name)}
                 onMouseEnter={() => setHighlightedIndex(idx)}
                 className={`px-3.5 py-2 text-xs flex items-center justify-between cursor-pointer transition-colors ${
