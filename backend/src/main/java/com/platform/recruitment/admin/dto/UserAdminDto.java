@@ -16,6 +16,7 @@ public class UserAdminDto {
     private String email;
     private Role role;
     private Boolean isActive;
+    private com.platform.recruitment.user.AccountStatus accountStatus;
     private Boolean emailVerified;
     private String fullName;
     private String phone;
@@ -32,4 +33,5 @@ public class UserAdminDto {
     private UUID companyId;
     private String companyName;
     private String companyVerificationStatus;
+    private String companyOperationalStatus;
 }
