@@ -102,6 +102,9 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     @MockBean
     private ApplicationService applicationService;
 
+    @MockBean
+    private com.platform.recruitment.suspension.SuspensionGuard suspensionGuard;
+
     // Fixture Users
     private UUID adminUserId;
     private User adminUser;

@@ -15,6 +15,7 @@ import com.platform.recruitment.job.JobStatus;
 import com.platform.recruitment.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,13 +27,33 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class CompanyVerificationService {
 
     private final CompanyRepository companyRepository;
     private final RecruiterProfileRepository recruiterProfileRepository;
     private final JobRepository jobRepository;
     private final AdminAuditLogService adminAuditLogService;
+    private final com.platform.recruitment.suspension.SuspensionRecordRepository suspensionRecordRepository;
+
+    @Autowired
+    public CompanyVerificationService(CompanyRepository companyRepository,
+                                      RecruiterProfileRepository recruiterProfileRepository,
+                                      JobRepository jobRepository,
+                                      AdminAuditLogService adminAuditLogService,
+                                      @org.springframework.lang.Nullable com.platform.recruitment.suspension.SuspensionRecordRepository suspensionRecordRepository) {
+        this.companyRepository = companyRepository;
+        this.recruiterProfileRepository = recruiterProfileRepository;
+        this.jobRepository = jobRepository;
+        this.adminAuditLogService = adminAuditLogService;
+        this.suspensionRecordRepository = suspensionRecordRepository;
+    }
+
+    public CompanyVerificationService(CompanyRepository companyRepository,
+                                      RecruiterProfileRepository recruiterProfileRepository,
+                                      JobRepository jobRepository,
+                                      AdminAuditLogService adminAuditLogService) {
+        this(companyRepository, recruiterProfileRepository, jobRepository, adminAuditLogService, null);
+    }
 
     @Transactional(readOnly = true)
     public Page<CompanyAdminDto> listCompanies(String query, CompanyVerification status, Pageable pageable) {
@@ -93,6 +114,20 @@ public class CompanyVerificationService {
 
         // If company is suspended, cascade suspension to all its published jobs to protect candidates
         if (targetStatus == CompanyVerification.SUSPENDED) {
+            if (suspensionRecordRepository != null) {
+                com.platform.recruitment.suspension.SuspensionRecord record =
+                        com.platform.recruitment.suspension.SuspensionRecord.builder()
+                                .targetType(com.platform.recruitment.suspension.SuspensionTargetType.COMPANY)
+                                .targetId(savedCompany.getId())
+                                .reasonCode("ADMIN_MODERATION")
+                                .reasonText(reason != null ? reason.trim() : "Doanh nghiệp bị tạm đình chỉ hoạt động")
+                                .suspendedBy(adminUser)
+                                .suspendedAt(ZonedDateTime.now())
+                                .status(com.platform.recruitment.suspension.SuspensionStatus.ACTIVE)
+                                .build();
+                suspensionRecordRepository.save(record);
+            }
+
             jobRepository.findByCompanyId(companyId).forEach(job -> {
                 if (job.getStatus() == JobStatus.PUBLISHED) {
                     job.setStatus(JobStatus.SUSPENDED);
@@ -101,6 +136,20 @@ public class CompanyVerificationService {
                     jobRepository.save(job);
                 }
             });
+        } else if (currentStatus == CompanyVerification.SUSPENDED && targetStatus == CompanyVerification.VERIFIED) {
+            if (suspensionRecordRepository != null) {
+                suspensionRecordRepository.findByTargetTypeAndTargetIdAndStatus(
+                        com.platform.recruitment.suspension.SuspensionTargetType.COMPANY,
+                        savedCompany.getId(),
+                        com.platform.recruitment.suspension.SuspensionStatus.ACTIVE
+                ).forEach(activeRecord -> {
+                    activeRecord.setStatus(com.platform.recruitment.suspension.SuspensionStatus.LIFTED);
+                    activeRecord.setLiftedBy(adminUser);
+                    activeRecord.setLiftedAt(ZonedDateTime.now());
+                    activeRecord.setResolutionNote(reason != null ? reason.trim() : "Quản trị viên khôi phục doanh nghiệp");
+                    suspensionRecordRepository.save(activeRecord);
+                });
+            }
         }
 
         // Immutable Audit Log

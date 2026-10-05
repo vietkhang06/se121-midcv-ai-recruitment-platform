@@ -7,6 +7,8 @@ import { fetchRecruiterJobs, fetchRecruiterCompany, fetchJobApplications } from 
 import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
 import { MetricCard } from '@/components/recruiter/MetricCard';
 import { CompanyVerificationBanner } from '@/components/recruiter/CompanyVerificationBanner';
+import { SuspensionBanner } from '@/components/recruiter/SuspensionBanner';
+import { AppealModal } from '@/components/recruiter/AppealModal';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Reveal } from '@/components/motion/Reveal';
 import { staggerDelay } from '@/components/motion/stagger';
@@ -29,6 +31,7 @@ export default function HRDashboardPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isAppealModalOpen, setIsAppealModalOpen] = useState<boolean>(false);
 
   const loadDashboardData = useCallback(() => {
     setIsLoading(true);
@@ -101,8 +104,22 @@ export default function HRDashboardPage() {
         isCompanyVerified={company?.verificationStatus === 'VERIFIED'}
       />
 
+      {/* Suspension Status Banner if suspended */}
+      <SuspensionBanner
+        companyVerificationStatus={company?.verificationStatus}
+        companyName={company?.name}
+        onOpenAppealModal={() => setIsAppealModalOpen(true)}
+      />
+
+      {/* Appeal Submission Modal */}
+      <AppealModal
+        isOpen={isAppealModalOpen}
+        onClose={() => setIsAppealModalOpen(false)}
+        onSuccess={loadDashboardData}
+      />
+
       {/* Verification Status Banner if unverified */}
-      {company && (
+      {company && company.verificationStatus !== 'SUSPENDED' && (
         <CompanyVerificationBanner
           status={company.verificationStatus}
           companyName={company.name}

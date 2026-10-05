@@ -24,6 +24,8 @@ export interface User {
   age?: number;
   targetIndustry?: Industry;
   emailVerified?: boolean;
+  accountStatus?: 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
+  isActive?: boolean;
 }
 
 export interface Company {
@@ -192,8 +194,14 @@ export interface SkillMatchResultItem {
 
 export interface MatchFactorItem {
   factorName: string; // Skill, Experience, Education, Project, Semantic, GitHub
-  score: number;
-  status: 'HIGH' | 'MODERATE' | 'LOW';
+  score: number | null;
+  weight?: number;
+  configuredWeight?: number;
+  effectiveWeight?: number;
+  weightedContribution?: number;
+  status: 'AVAILABLE' | 'NOT_AVAILABLE' | 'NOT_COMPUTED' | 'HIGH' | 'MODERATE' | 'LOW' | string;
+  calculationMethod?: string;
+  algorithmVersion?: string;
   explanation: string;
   evidence?: string;
 }
@@ -243,9 +251,11 @@ export interface MatchInspectionData {
   applicationId: string;
   jobTitle: string;
   candidateName: string;
-  overallScore: number;
-  coreScore: number;
-  githubScore?: number;
+  algorithmVersion?: string;
+  calculationStatus?: string;
+  overallScore: number | null;
+  coreScore: number | null;
+  githubScore?: number | null;
   githubScoreActive: boolean;
   requiredSkillsStatus: SkillMatchResultItem[];
   preferredSkillsStatus: SkillMatchResultItem[];
@@ -536,6 +546,25 @@ export interface TaxonomySkillAdminDto {
   source: string;
   active: boolean;
   aliases?: string[];
+}
+
+export interface SuspensionAppeal {
+  id: string;
+  appellantUserId: string;
+  appellantEmail?: string;
+  suspensionId?: string;
+  targetType: 'USER' | 'COMPANY';
+  targetId: string;
+  subject: string;
+  content: string;
+  status: 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  evidenceAttachmentId?: string;
+  submittedAt: string;
+  reviewedBy?: string;
+  reviewerEmail?: string;
+  reviewedAt?: string;
+  resolutionNote?: string;
+  createdAt: string;
 }
 
 

@@ -447,7 +447,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                     stroke="#2563EB"
                     strokeWidth="8"
                     strokeDasharray="251.2"
-                    strokeDashoffset={251.2 * (1 - Math.min(100, data.overallScore) / 100)}
+                    strokeDashoffset={251.2 * (1 - Math.min(100, data.overallScore ?? 0) / 100)}
                     strokeLinecap="round"
                     fill="transparent"
                     className="transition-all duration-1000"
@@ -455,7 +455,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-3xl font-bold text-slate-900 dark:text-white font-mono">
-                    {data.overallScore.toFixed(1)}%
+                    {data.overallScore !== null && data.overallScore !== undefined ? `${data.overallScore.toFixed(1)}%` : 'N/A'}
                   </span>
                   <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold font-mono">FIT SCORE</span>
                 </div>
@@ -474,7 +474,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                     Match Explanation Narrative
                   </h3>
                   <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 px-2.5 py-0.5 rounded-full font-mono">
-                    {data.overallScore >= 80 ? (locale === 'vi' ? 'Độ Phù Hợp Cao' : 'High Match') : (locale === 'vi' ? 'Độ Phù Hợp Trung Bình' : 'Moderate Match')}
+                    {data.overallScore !== null && data.overallScore >= 80 ? (locale === 'vi' ? 'Độ Phù Hợp Cao' : 'High Match') : (locale === 'vi' ? 'Độ Phù Hợp Trung Bình' : 'Moderate Match')}
                   </span>
                 </div>
 
@@ -498,7 +498,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
                 <div>
                   <span className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 block font-mono">
-                    {Math.round(data.overallScore)}%
+                    {data.overallScore !== null && data.overallScore !== undefined ? `${Math.round(data.overallScore)}%` : 'N/A'}
                   </span>
                   <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-mono">
                     {locale === 'vi' ? 'ĐIỂM ĐỐI SÁNH TỔNG HỢP' : 'OVERALL MATCH'}

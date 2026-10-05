@@ -24,7 +24,8 @@ import {
   JobAdminDto,
   ReportAdminDto,
   AdminAuditLogDto,
-  TaxonomySkillAdminDto
+  TaxonomySkillAdminDto,
+  SuspensionAppeal
 } from '@/types';
 
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -1844,5 +1845,75 @@ export const adminApi = {
     return fetchAdminAuditLogs(params);
   },
 };
+
+// ============================================================
+// 15. SUSPENSION APPEALS API
+// ============================================================
+
+export async function submitSuspensionAppeal(data: {
+  subject: string;
+  content: string;
+  evidenceAttachmentId?: string;
+}): Promise<SuspensionAppeal> {
+  const res = await apiRequest<any>('/api/v1/recruiter/appeals', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return res.data || res;
+}
+
+export async function fetchMyAppeals(): Promise<SuspensionAppeal[]> {
+  const res = await apiRequest<any>('/api/v1/recruiter/appeals', {
+    method: 'GET',
+  });
+  return res.data || res || [];
+}
+
+export async function cancelSuspensionAppeal(appealId: string): Promise<SuspensionAppeal> {
+  const res = await apiRequest<any>(`/api/v1/recruiter/appeals/${appealId}/cancel`, {
+    method: 'POST',
+  });
+  return res.data || res;
+}
+
+export async function fetchAdminAppeals(params?: {
+  status?: string;
+  page?: number;
+  size?: number;
+}): Promise<{ content: SuspensionAppeal[]; totalElements: number; totalPages: number }> {
+  const queryParams = new URLSearchParams();
+  if (params?.status) queryParams.set('status', params.status);
+  if (params?.page !== undefined) queryParams.set('page', params.page.toString());
+  if (params?.size !== undefined) queryParams.set('size', params.size.toString());
+
+  const url = `/api/v1/admin/appeals${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  const res = await apiRequest<any>(url, {
+    method: 'GET',
+  });
+  return res.data || res;
+}
+
+export async function startReviewAdminAppeal(appealId: string): Promise<SuspensionAppeal> {
+  const res = await apiRequest<any>(`/api/v1/admin/appeals/${appealId}/review`, {
+    method: 'POST',
+  });
+  return res.data || res;
+}
+
+export async function approveAdminAppeal(appealId: string, resolutionNote: string): Promise<SuspensionAppeal> {
+  const res = await apiRequest<any>(`/api/v1/admin/appeals/${appealId}/approve`, {
+    method: 'POST',
+    body: JSON.stringify({ resolutionNote }),
+  });
+  return res.data || res;
+}
+
+export async function rejectAdminAppeal(appealId: string, resolutionNote: string): Promise<SuspensionAppeal> {
+  const res = await apiRequest<any>(`/api/v1/admin/appeals/${appealId}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ resolutionNote }),
+  });
+  return res.data || res;
+}
 
 

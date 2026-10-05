@@ -20,12 +20,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleCustomException(CustomException ex) {
         log.error("CustomException: code={}, message={}", ex.getErrorCode(), ex.getMessage());
         HttpStatus status = switch (ex.getErrorCode()) {
-            case RESOURCE_NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case ACCESS_DENIED, COMPANY_NOT_VERIFIED, EMAIL_NOT_VERIFIED -> HttpStatus.FORBIDDEN;
+            case RESOURCE_NOT_FOUND, APPEAL_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case ACCESS_DENIED, COMPANY_NOT_VERIFIED, EMAIL_NOT_VERIFIED,
+                 ACCOUNT_SUSPENDED, COMPANY_SUSPENDED, OPERATION_NOT_ALLOWED_WHILE_SUSPENDED -> HttpStatus.FORBIDDEN;
             case AUTHENTICATION_FAILED -> HttpStatus.UNAUTHORIZED;
-            case DUPLICATE_APPLICATION, EMAIL_ALREADY_EXISTS, INVALID_STATE_TRANSITION, CONCURRENT_MODIFICATION -> HttpStatus.CONFLICT;
+            case DUPLICATE_APPLICATION, EMAIL_ALREADY_EXISTS, INVALID_STATE_TRANSITION,
+                 CONCURRENT_MODIFICATION, APPEAL_ALREADY_EXISTS -> HttpStatus.CONFLICT;
             case RATE_LIMIT_EXCEEDED -> HttpStatus.TOO_MANY_REQUESTS;
-            case VALIDATION_ERROR, INVALID_FILE, FILE_SIZE_EXCEEDED, TOKEN_EXPIRED, TOKEN_INVALID -> HttpStatus.BAD_REQUEST;
+            case VALIDATION_ERROR, INVALID_FILE, FILE_SIZE_EXCEEDED, TOKEN_EXPIRED,
+                 TOKEN_INVALID, INVALID_APPEAL_STATE -> HttpStatus.BAD_REQUEST;
             case CV_TEXT_EXTRACTION_FAILED, CV_STRUCTURING_FAILED, CV_PROCESSING_FAILED -> HttpStatus.UNPROCESSABLE_ENTITY;
             case SERVICE_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
             case FILE_STORAGE_FAILED -> HttpStatus.INTERNAL_SERVER_ERROR;

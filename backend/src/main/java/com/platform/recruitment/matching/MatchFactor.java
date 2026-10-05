@@ -37,9 +37,29 @@ public class MatchFactor extends BaseEntity {
     @Column(name = "weight", nullable = false, precision = 4, scale = 3)
     private BigDecimal weight;
 
+    @Column(name = "configured_weight", precision = 5, scale = 4)
+    private BigDecimal configuredWeight;
+
+    @Column(name = "effective_weight", precision = 5, scale = 4)
+    private BigDecimal effectiveWeight;
+
+    @Column(name = "weighted_contribution", precision = 6, scale = 2)
+    private BigDecimal weightedContribution;
+
     @Column(name = "score", nullable = false, precision = 5, scale = 2)
     private BigDecimal score;
 
+    @Builder.Default
+    @Column(name = "status", nullable = false)
+    private String status = "AVAILABLE";
+
+    @Column(name = "calculation_method")
+    private String calculationMethod;
+
     @Column(name = "evidence_reference", columnDefinition = "TEXT")
     private String evidenceReference;
+
+    @Builder.Default
+    @Column(name = "algorithm_version")
+    private String algorithmVersion = "v2.0";
 }

@@ -47,6 +47,7 @@ public class ApplicationService {
     private final CandidateRankingService candidateRankingService;
     private final MatchResultRepository matchResultRepository;
     private final ApplicationAuditLogRepository auditLogRepository;
+    private final com.platform.recruitment.suspension.SuspensionGuard suspensionGuard;
 
     @Autowired
     public ApplicationService(
@@ -60,7 +61,8 @@ public class ApplicationService {
             MatchingEngineService matchingEngineService,
             CandidateRankingService candidateRankingService,
             MatchResultRepository matchResultRepository,
-            ApplicationAuditLogRepository auditLogRepository) {
+            ApplicationAuditLogRepository auditLogRepository,
+            com.platform.recruitment.suspension.SuspensionGuard suspensionGuard) {
         this.applicationRepository = applicationRepository;
         this.snapshotRepository = snapshotRepository;
         this.jobRepository = jobRepository;
@@ -72,6 +74,7 @@ public class ApplicationService {
         this.candidateRankingService = candidateRankingService;
         this.matchResultRepository = matchResultRepository;
         this.auditLogRepository = auditLogRepository;
+        this.suspensionGuard = suspensionGuard;
     }
 
     public ApplicationService(
@@ -85,7 +88,7 @@ public class ApplicationService {
             MatchingEngineService matchingEngineService) {
         this(applicationRepository, snapshotRepository, jobRepository, candidateProfileRepository,
                 recruiterProfileRepository, cvRepository, cvVersionRepository, matchingEngineService,
-                null, null, null);
+                null, null, null, null);
     }
 
     @Transactional
@@ -181,6 +184,9 @@ public class ApplicationService {
     @Transactional(readOnly = true)
     public com.platform.recruitment.common.PageResponse<ApplicationResponse> getApplicationsForJob(
             User recruiterUser, UUID jobId, int page, int size, String sort, String direction) {
+        if (suspensionGuard != null) {
+            suspensionGuard.checkRecruiterOperationAllowed(recruiterUser);
+        }
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 
@@ -267,6 +273,9 @@ public class ApplicationService {
     @Transactional
     public ApplicationResponse updateApplicationStatus(User recruiterUser, UUID applicationId,
             UpdateApplicationStatusRequest request) {
+        if (suspensionGuard != null) {
+            suspensionGuard.checkRecruiterOperationAllowed(recruiterUser);
+        }
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 
@@ -301,6 +310,9 @@ public class ApplicationService {
     @Transactional(readOnly = true)
     public List<ApplicationResponse> getRankedApplicationsForJob(User recruiterUser, UUID jobId,
             BigDecimal minScoreFilter) {
+        if (suspensionGuard != null) {
+            suspensionGuard.checkRecruiterOperationAllowed(recruiterUser);
+        }
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 

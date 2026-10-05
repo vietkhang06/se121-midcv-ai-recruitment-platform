@@ -34,6 +34,22 @@ public class Evidence extends BaseEntity {
     @Column(name = "normalized_value", precision = 5, scale = 2)
     private BigDecimal normalizedValue;
 
+    @Column(name = "requirement_id")
+    private String requirementId;
+
+    @Column(name = "requirement_text", columnDefinition = "TEXT")
+    private String requirementText;
+
+    @Column(name = "candidate_value", columnDefinition = "TEXT")
+    private String candidateValue;
+
+    @Builder.Default
+    @Column(name = "match_status")
+    private String matchStatus = "MATCH";
+
+    @Column(name = "similarity_confidence", precision = 5, scale = 4)
+    private BigDecimal similarityConfidence;
+
     @Builder.Default
     @Column(name = "validation_status")
     private String validationStatus = "VERIFIED";

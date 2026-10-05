@@ -88,8 +88,13 @@ public class GitHubScoringService {
         String rank = assessmentOpt.map(GitHubAssessment::getLanguageRankSummary).orElse("").toLowerCase();
         String lowerJd = (jobDescription != null) ? jobDescription.toLowerCase() : "";
 
+        if (repos.isEmpty() && rank.isBlank() && profile.getActivitySignal() == null) {
+            log.info("Candidate has no public repositories, rank summary, or activity signals; GitHub score NOT_AVAILABLE");
+            return Optional.empty();
+        }
+
         // 1. Language Match (40%)
-        double languageScore = 85.0;
+        double languageScore = 0.0;
         if (!repos.isEmpty()) {
             boolean matchesKeyLang = false;
             boolean hasAnyOverlap = false;
@@ -122,7 +127,7 @@ public class GitHubScoringService {
                 languageScore = 80.0;
             } else {
                 // Completely unrelated language observed (e.g. only Python repo for Java JD)
-                languageScore = 40.0;
+                languageScore = 20.0;
             }
         } else if (!rank.isBlank()) {
             if (lowerJd.contains("java") && rank.contains("java")) {
@@ -132,16 +137,14 @@ public class GitHubScoringService {
             } else if (lowerJd.contains("typescript") && rank.contains("typescript")) {
                 languageScore = 95.0;
             } else if (lowerJd.contains("java") && !rank.contains("java")) {
-                languageScore = 45.0;
+                languageScore = 25.0;
             } else {
-                languageScore = 90.0;
+                languageScore = 60.0;
             }
-        } else {
-            languageScore = 90.0;
         }
 
         // 2. Technology Evidence & Relevant Repositories (35%)
-        double techScore = 85.0;
+        double techScore = 0.0;
         if (!repos.isEmpty()) {
             int relevantCount = 0;
             for (GitHubRepository r : repos) {
@@ -207,7 +210,12 @@ public class GitHubScoringService {
             }
         }
 
-        double total = (0.40 * languageScore) + (0.35 * techScore) + (0.15 * activityScore) + (0.10 * recencyScore);
+        double total;
+        if (repos.isEmpty() && rank.isBlank()) {
+            total = activityScore;
+        } else {
+            total = (0.40 * languageScore) + (0.35 * techScore) + (0.15 * activityScore) + (0.10 * recencyScore);
+        }
         BigDecimal finalScore = BigDecimal.valueOf(total).setScale(2, RoundingMode.HALF_UP);
         log.info("Calculated GitHub Supporting Score: {} (Lang: {}, Tech: {}, Act: {}, Rec: {}) for candidate: {}", 
                 finalScore, languageScore, techScore, activityScore, recencyScore, candidateId);

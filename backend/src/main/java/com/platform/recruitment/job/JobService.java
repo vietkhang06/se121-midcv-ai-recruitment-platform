@@ -9,6 +9,7 @@ import com.platform.recruitment.company.RecruiterProfile;
 import com.platform.recruitment.company.RecruiterProfileRepository;
 import com.platform.recruitment.user.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,14 +18,30 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class JobService {
 
     private final JobRepository jobRepository;
     private final RecruiterProfileRepository recruiterProfileRepository;
+    private final com.platform.recruitment.suspension.SuspensionGuard suspensionGuard;
+
+    @Autowired
+    public JobService(JobRepository jobRepository,
+                      RecruiterProfileRepository recruiterProfileRepository,
+                      @org.springframework.lang.Nullable com.platform.recruitment.suspension.SuspensionGuard suspensionGuard) {
+        this.jobRepository = jobRepository;
+        this.recruiterProfileRepository = recruiterProfileRepository;
+        this.suspensionGuard = suspensionGuard;
+    }
+
+    public JobService(JobRepository jobRepository, RecruiterProfileRepository recruiterProfileRepository) {
+        this(jobRepository, recruiterProfileRepository, null);
+    }
 
     @Transactional
     public JobResponse createDraftJob(User recruiterUser, CreateJobRequest request) {
+        if (suspensionGuard != null) {
+            suspensionGuard.checkRecruiterOperationAllowed(recruiterUser);
+        }
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 
@@ -66,23 +83,27 @@ public class JobService {
 
     @Transactional
     public JobResponse publishJob(User recruiterUser, UUID jobId) {
-        RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
+        if (suspensionGuard != null) {
+            suspensionGuard.checkRecruiterOperationAllowed(recruiterUser);
+        }
 
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
 
-        // Ownership check
-        if (!job.getCompany().getId().equals(recruiter.getCompany().getId())) {
-            throw new UnauthorizedAccessException("Recruiter does not own this job posting");
-        }
+        // Recruiter profile existence check
+        recruiterProfileRepository.findByUserId(recruiterUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 
         // Company Verification Business Rule
         Company company = job.getCompany();
-        if (company.getVerificationStatus() != CompanyVerification.VERIFIED) {
+        if (company != null && company.getVerificationStatus() != CompanyVerification.VERIFIED) {
             throw new CompanyNotVerifiedException(
                     String.format("Company '%s' has verification status '%s'. Only VERIFIED companies can publish jobs.",
                             company.getName(), company.getVerificationStatus()));
+        }
+
+        if (suspensionGuard != null) {
+            suspensionGuard.assertCanManageJob(recruiterUser, job);
         }
 
         job.setStatus(JobStatus.PUBLISHED);
@@ -92,15 +113,15 @@ public class JobService {
 
     @Transactional
     public JobResponse closeJob(User recruiterUser, UUID jobId) {
-        RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
+        if (suspensionGuard != null) {
+            suspensionGuard.checkRecruiterOperationAllowed(recruiterUser);
+        }
 
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
 
-        // Ownership check
-        if (!job.getCompany().getId().equals(recruiter.getCompany().getId())) {
-            throw new UnauthorizedAccessException("Recruiter does not own this job posting");
+        if (suspensionGuard != null) {
+            suspensionGuard.assertCanManageJob(recruiterUser, job);
         }
 
         job.setStatus(JobStatus.CLOSED);
@@ -110,15 +131,15 @@ public class JobService {
 
     @Transactional
     public JobResponse updateJob(User recruiterUser, UUID jobId, CreateJobRequest request) {
-        RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
+        if (suspensionGuard != null) {
+            suspensionGuard.checkRecruiterOperationAllowed(recruiterUser);
+        }
 
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
 
-        // Ownership check
-        if (!job.getCompany().getId().equals(recruiter.getCompany().getId())) {
-            throw new UnauthorizedAccessException("Recruiter does not own this job posting");
+        if (suspensionGuard != null) {
+            suspensionGuard.assertCanManageJob(recruiterUser, job);
         }
 
         job.setTitle(request.getTitle());

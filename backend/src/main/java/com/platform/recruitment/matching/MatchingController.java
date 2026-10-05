@@ -20,9 +20,10 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
 @RestController
 @RequestMapping("/api/v1/matching")
-@RequiredArgsConstructor
 public class MatchingController {
 
     private final MatchingEngineService matchingEngineService;
@@ -30,15 +31,39 @@ public class MatchingController {
     private final JobRepository jobRepository;
     private final RecruiterProfileRepository recruiterProfileRepository;
     private final ApplicationRepository applicationRepository;
+    private final com.platform.recruitment.suspension.SuspensionGuard suspensionGuard;
+
+    @Autowired
+    public MatchingController(MatchingEngineService matchingEngineService,
+                              CandidateRankingService candidateRankingService,
+                              JobRepository jobRepository,
+                              RecruiterProfileRepository recruiterProfileRepository,
+                              ApplicationRepository applicationRepository,
+                              @org.springframework.lang.Nullable com.platform.recruitment.suspension.SuspensionGuard suspensionGuard) {
+        this.matchingEngineService = matchingEngineService;
+        this.candidateRankingService = candidateRankingService;
+        this.jobRepository = jobRepository;
+        this.recruiterProfileRepository = recruiterProfileRepository;
+        this.applicationRepository = applicationRepository;
+        this.suspensionGuard = suspensionGuard;
+    }
+
+    public MatchingController(MatchingEngineService matchingEngineService,
+                              CandidateRankingService candidateRankingService,
+                              JobRepository jobRepository,
+                              RecruiterProfileRepository recruiterProfileRepository,
+                              ApplicationRepository applicationRepository) {
+        this(matchingEngineService, candidateRankingService, jobRepository, recruiterProfileRepository, applicationRepository, null);
+    }
 
     @PostMapping("/jobs/{jobId}/candidates/{candidateId}")
-    public ResponseEntity<ApiResponse<MatchResult>> calculateMatchScore(
+    public ResponseEntity<ApiResponse<MatchScoreResponse>> calculateMatchScore(
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID jobId,
             @PathVariable UUID candidateId) {
         validateRecruiterJobAccess(currentUser, jobId);
         MatchResult result = matchingEngineService.calculateAndPersistMatchResult(jobId, candidateId);
-        return ResponseEntity.ok(ApiResponse.success("Match score calculated successfully", result));
+        return ResponseEntity.ok(ApiResponse.success("Match score calculated successfully", MatchScoreResponse.fromEntity(result)));
     }
 
     @GetMapping("/jobs/{jobId}/rankings")
@@ -82,6 +107,9 @@ public class MatchingController {
         if (currentUser.getRole() == Role.CANDIDATE) {
             throw new UnauthorizedAccessException("Ứng viên không có quyền truy cập xếp hạng ứng viên của nhà tuyển dụng.");
         }
+        if (suspensionGuard != null) {
+            suspensionGuard.checkRecruiterOperationAllowed(currentUser);
+        }
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(currentUser.getId())
                 .orElseThrow(() -> new UnauthorizedAccessException("Không tìm thấy thông tin nhà tuyển dụng."));
         Job job = jobRepository.findById(jobId)
@@ -111,6 +139,9 @@ public class MatchingController {
         }
 
         if (currentUser.getRole() == Role.HR) {
+            if (suspensionGuard != null) {
+                suspensionGuard.checkRecruiterOperationAllowed(currentUser);
+            }
             RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(currentUser.getId())
                     .orElseThrow(() -> new UnauthorizedAccessException("Không tìm thấy thông tin nhà tuyển dụng."));
             if (application.getJob() == null || application.getJob().getCompany() == null ||

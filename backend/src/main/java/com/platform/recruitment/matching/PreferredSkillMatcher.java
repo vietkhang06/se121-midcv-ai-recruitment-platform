@@ -26,7 +26,7 @@ public class PreferredSkillMatcher {
         }
 
         if (cvRawText == null || cvRawText.isBlank()) {
-            return BigDecimal.valueOf(50.00); // Missing preferred skill does NOT equal hard failure
+            return BigDecimal.ZERO;
         }
 
         int matchedCount = 0;

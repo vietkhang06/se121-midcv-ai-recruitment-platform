@@ -113,6 +113,8 @@ export const RecruiterNavbar: React.FC = () => {
     },
   ];
 
+  const isSuspended = user?.accountStatus === 'SUSPENDED' || user?.isActive === false;
+
   return (
     <>
       <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-md border-b border-[#E2E8F0] dark:border-[#1E293B] text-[#1E3A5F] dark:text-[#D6E4E1] transition-colors w-full">
@@ -125,6 +127,11 @@ export const RecruiterNavbar: React.FC = () => {
               <span className="hidden sm:inline-block text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#EFF6FF] dark:bg-[#1E3A5F]/40 text-[#2563EB] dark:text-[#3B82F6] border border-[#2563EB]/20 font-sans tracking-wide whitespace-nowrap">
                 HR Portal
               </span>
+              {isSuspended && (
+                <span className="inline-block text-[11px] font-bold px-2 py-0.5 rounded-md bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-800 tracking-wide uppercase whitespace-nowrap">
+                  Tài khoản bị đình chỉ
+                </span>
+              )}
             </div>
 
             {/* Right: Quick Tools, Create Job CTA, Account Dropdown & Actions */}
@@ -145,13 +152,23 @@ export const RecruiterNavbar: React.FC = () => {
               <ThemeSwitch />
 
               {/* Create Job CTA */}
-              <Link
-                href="/recruiter/jobs/new"
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm transition active:scale-95 whitespace-nowrap shrink-0"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>{t('recruiterNav.createJob', 'Tạo bài tuyển dụng')}</span>
-              </Link>
+              {!isSuspended ? (
+                <Link
+                  href="/recruiter/jobs/new"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm transition active:scale-95 whitespace-nowrap shrink-0"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>{t('recruiterNav.createJob', 'Tạo bài tuyển dụng')}</span>
+                </Link>
+              ) : (
+                <span
+                  title="Tài khoản bị đình chỉ không thể tạo bài tuyển dụng mới"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 cursor-not-allowed whitespace-nowrap shrink-0"
+                >
+                  <PlusCircle className="w-4 h-4 opacity-50" />
+                  <span>{t('recruiterNav.createJob', 'Tạo bài tuyển dụng')}</span>
+                </span>
+              )}
 
               {/* Account Dropdown Menu */}
               <div className="relative hidden sm:block" ref={accountMenuRef}>
@@ -173,7 +190,7 @@ export const RecruiterNavbar: React.FC = () => {
                       {user?.fullName || 'HR Recruiter'}
                     </span>
                     <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] leading-tight">
-                      Recruiter
+                      {isSuspended ? 'Tài khoản đình chỉ' : 'Recruiter'}
                     </span>
                   </div>
 
@@ -198,6 +215,11 @@ export const RecruiterNavbar: React.FC = () => {
                         <span className="text-[10px] font-mono font-bold text-[#B45309] dark:text-[#FACC15] bg-[#FEF3C7] dark:bg-[#FACC15]/15 px-1.5 py-0.5 rounded border border-[#FACC15]/40 uppercase">
                           RECRUITER
                         </span>
+                        {isSuspended && (
+                          <span className="text-[10px] font-mono font-bold text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-950/60 px-1.5 py-0.5 rounded border border-red-300 dark:border-red-800 uppercase">
+                            SUSPENDED
+                          </span>
+                        )}
                       </div>
                     </div>
 
