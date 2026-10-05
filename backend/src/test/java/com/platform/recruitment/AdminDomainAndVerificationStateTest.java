@@ -100,17 +100,27 @@ public class AdminDomainAndVerificationStateTest {
                 CompanyVerification.PENDING,
                 CompanyVerification.UNDER_REVIEW,
                 CompanyVerification.CHANGES_REQUESTED,
-                CompanyVerification.REJECTED,
-                CompanyVerification.SUSPENDED
+                CompanyVerification.REJECTED
         };
 
         for (CompanyVerification state : blockedStates) {
             testCompany.setVerificationStatus(state);
+            testCompany.setOperationalStatus(com.platform.recruitment.company.CompanyOperationalStatus.ACTIVE);
             CompanyNotVerifiedException ex = assertThrows(CompanyNotVerifiedException.class, () -> {
                 jobService.publishJob(recruiterUser, testJob.getId());
             });
-            assertTrue(ex.getMessage().contains("Only VERIFIED companies can publish jobs"));
+            assertTrue(ex.getMessage().contains("Only VERIFIED"));
         }
+
+        // Test VERIFIED but SUSPENDED company is blocked from publishing
+        testCompany.setVerificationStatus(CompanyVerification.VERIFIED);
+        testCompany.setOperationalStatus(com.platform.recruitment.company.CompanyOperationalStatus.SUSPENDED);
+        com.platform.recruitment.common.CustomException suspendedEx =
+                assertThrows(com.platform.recruitment.common.CustomException.class, () -> {
+                    jobService.publishJob(recruiterUser, testJob.getId());
+                });
+        assertTrue(suspendedEx.getMessage().contains("Only VERIFIED and ACTIVE companies can publish jobs")
+                && suspendedEx.getMessage().contains("SUSPENDED"));
 
         verify(jobRepository, never()).save(any());
     }

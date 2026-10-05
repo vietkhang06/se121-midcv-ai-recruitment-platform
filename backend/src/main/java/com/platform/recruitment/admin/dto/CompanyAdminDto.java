@@ -20,6 +20,7 @@ public class CompanyAdminDto {
     private String industry;
     private String description;
     private CompanyVerification verificationStatus;
+    private com.platform.recruitment.company.CompanyOperationalStatus operationalStatus;
 
     private UUID reviewedById;
     private String reviewedByEmail;
