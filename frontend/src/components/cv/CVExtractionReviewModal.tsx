@@ -1,18 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CVReviewData, CVEvidenceItem, PageSegmentItem, CVDraftData, CVEvidenceAttachmentItem } from '@/types';
-import {
-  fetchCVReview,
-  downloadCVFile,
-  retryCVExtraction,
-  fetchCVDraft,
-  updateCVDraft,
-  confirmCandidateCV
-} from '@/lib/api';
-import { RichTextEditor } from '@/components/common/RichTextEditor';
-import { SkillAutocomplete } from '@/components/cv/SkillAutocomplete';
-import { EvidenceAttachmentControl } from '@/components/cv/EvidenceAttachmentControl';
+import { CVReviewData, CVEvidenceItem, PageSegmentItem } from '@/types';
+import { fetchCVReview, downloadCVFile, retryCVExtraction } from '@/lib/api';
+import { AnimatedModalShell, AnimatedStatus } from '@/components/motion';
 import {
   X,
   FileText,
@@ -479,104 +470,23 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
     setTimeout(() => setCopiedType(null), 2000);
   };
 
-  const markDraftDirty = (updatedDraft: CVDraftData) => {
-    setDraft(updatedDraft);
-    setHasUnsavedChanges(true);
-  };
-
-  const handleSaveDraft = async () => {
-    if (!draft) return;
-    setIsSavingDraft(true);
-    try {
-      const preparedDraft = normalizeDraftEvidenceItemIds(draft);
-      const res = await updateCVDraft(cvId, preparedDraft);
-      const updated = initializeDraftFromResponse(res, data);
-      setDraft(updated);
-      setInitialDraftSnapshot(structuredClone(updated));
-      setHasUnsavedChanges(false);
-      setSaveSuccessNotice('Đã lưu bản nháp thành công!');
-      setTimeout(() => setSaveSuccessNotice(null), 3000);
-      if (onCvUpdated) onCvUpdated();
-    } catch (err: any) {
-      alert(err.message || 'Không thể lưu bản nháp hồ sơ.');
-    } finally {
-      setIsSavingDraft(false);
-    }
-  };
-
-  const handleCancelChanges = () => {
-    if (hasUnsavedChanges) {
-      const confirmDiscard = window.confirm('Bạn có thay đổi chưa lưu. Bạn có chắc chắn muốn hủy bỏ các thay đổi gần nhất không?');
-      if (!confirmDiscard) return;
-    }
-    if (initialDraftSnapshot) {
-      setDraft(JSON.parse(JSON.stringify(initialDraftSnapshot)));
-    }
-    setHasUnsavedChanges(false);
-    setIsEditing(false);
-  };
-
-  const handleCloseModal = () => {
-    if (hasUnsavedChanges) {
-      const confirmClose = window.confirm('Bạn có thay đổi bản nháp chưa lưu. Bạn có chắc chắn muốn đóng mà không lưu không?');
-      if (!confirmClose) return;
-    }
-    onClose();
-  };
-
-  const handleOpenConfirmDialog = () => {
-    if (!draft?.personal_info?.fullName?.trim()) {
-      alert('Họ tên ứng viên không được để trống trước khi xác nhận hồ sơ.');
-      return;
-    }
-    setShowConfirmModal(true);
-  };
-
-  const handleConfirmProfile = async () => {
-    setIsConfirming(true);
-    try {
-      if (draft) {
-        const preparedDraft = normalizeDraftEvidenceItemIds(draft);
-        await updateCVDraft(cvId, preparedDraft);
-      }
-      await confirmCandidateCV(cvId);
-      setShowConfirmModal(false);
-      setIsEditing(false);
-      setHasUnsavedChanges(false);
-      setSaveSuccessNotice('Hồ sơ CV đã được xác nhận chính thức thành công!');
-      setTimeout(() => setSaveSuccessNotice(null), 4000);
-      await loadReviewAndDraft();
-      if (onCvUpdated) onCvUpdated();
-    } catch (err: any) {
-      alert(err.message || 'Lỗi khi xác nhận hồ sơ CV.');
-    } finally {
-      setIsConfirming(false);
-    }
-  };
-
-  if (!isOpen) return null;
-
-  const currentProfile = draft || (data ? initializeDraftFromReview(data) : null);
-  const personalInfo = currentProfile?.personal_info || {};
-  const summaryContent = typeof currentProfile?.summary === 'string'
-    ? currentProfile.summary
-    : currentProfile?.summary?.content || '';
-  const skillsList = currentProfile?.skills || [];
-  const experiences = currentProfile?.work_experience || [];
-  const projects = currentProfile?.projects || [];
-  const educations = currentProfile?.education || [];
-  const certifications = currentProfile?.certifications || [];
-  const languages = currentProfile?.languages || [];
-
+  const structured = data?.structured || {};
   const evidences = data?.evidences || [];
   const unverifiedFacts = data?.unverifiedFacts || [];
   const warnings = data?.warnings || [];
   const pages = data?.pages || [];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-2xl w-full max-w-6xl h-[92vh] flex flex-col shadow-2xl overflow-hidden text-slate-800 dark:text-slate-100">
-
+    <AnimatedModalShell
+      isOpen={isOpen}
+      onRequestClose={onClose}
+      titleId="cv-review-modal-title"
+      descriptionId="cv-review-modal-description"
+      testId="cv-review-modal"
+      overlayClassName="p-3 sm:p-5 bg-slate-950/80 dark:bg-slate-950/80 backdrop-blur-md"
+      panelClassName="bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-2xl w-full max-w-6xl h-[92vh] flex flex-col shadow-2xl overflow-hidden text-slate-800 dark:text-slate-100"
+    >
+        
         {/* Top Header */}
         <div className="px-6 py-4 border-b border-slate-200 dark:border-[#1E293B] flex items-center justify-between bg-slate-50/80 dark:bg-[#111C38]/90">
           <div className="flex items-center gap-3 min-w-0">
@@ -585,8 +495,8 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold truncate text-[#0F2A52] dark:text-white">
-                  {currentProfile?.title || data?.title || 'Hồ Sơ CV Trích Xuất'}
+                <h2 id="cv-review-modal-title" className="text-base sm:text-lg font-bold truncate text-[#0F2A52] dark:text-white">
+                  {data?.title || 'Đang tải dữ liệu hồ sơ...'}
                 </h2>
                 {currentProfile?.status && (
                   <span
@@ -614,8 +524,8 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                {data?.fileName ? `${data.fileName} (${((data.fileSize || 0) / 1024).toFixed(1)} KB)` : 'Hồ sơ ứng viên & Đối chiếu trích xuất'}
+              <p id="cv-review-modal-description" className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                {data?.fileName ? `${data.fileName} (${((data.fileSize || 0) / 1024).toFixed(1)} KB)` : 'Chi tiết trích xuất nội dung & Grounded Evidence'}
               </p>
             </div>
           </div>
@@ -687,7 +597,9 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
             </button>
 
             <button
-              onClick={handleCloseModal}
+              onClick={onClose}
+              data-autofocus="true"
+              aria-label="Đóng chi tiết trích xuất CV"
               className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#18294E] transition cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -786,12 +698,12 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 dark:bg-[#070D1E]/50">
           {isLoading ? (
-            <div className="h-full flex flex-col items-center justify-center space-y-3 py-16">
-              <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
-              <p className="text-sm text-slate-500 dark:text-slate-400">Đang tải và đồng bộ hồ sơ...</p>
-            </div>
+            <AnimatedStatus stateKey="loading" isBusy className="h-full flex flex-col items-center justify-center space-y-3 py-16">
+              <RefreshCw className="w-8 h-8 text-blue-600 animate-spin motion-reduce:animate-none" />
+              <p className="text-sm text-slate-500 dark:text-slate-400">Đang tải và xử lý hồ sơ trích xuất...</p>
+            </AnimatedStatus>
           ) : errorMessage ? (
-            <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 flex items-start gap-3">
+            <AnimatedStatus stateKey="error" isError className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
               <div>
                 <h4 className="text-sm font-semibold">Trích xuất gặp sự cố</h4>
@@ -803,22 +715,26 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                   Thử lại trích xuất
                 </button>
               </div>
-            </div>
+            </AnimatedStatus>
           ) : (
             <>
               {/* TAB 1: OVERVIEW & EDITABLE PROFILE */}
               {activeTab === 'overview' && (
-                <div className="space-y-6 max-w-5xl mx-auto">
-
-                  {/* Top Notification in Edit Mode */}
-                  {isEditing && (
-                    <div className="p-4 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 text-blue-800 dark:text-blue-300 text-xs flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-2">
-                        <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                        <div>
-                          <p className="font-semibold">Đang trong chế độ chỉnh sửa bản nháp (Candidate Review Draft)</p>
-                          <p className="text-blue-700/80 dark:text-blue-300/80 mt-0.5">
-                            Bạn có thể chỉnh sửa mọi thông tin nếu AI trích xuất chưa chính xác, bổ sung GPA, tải minh chứng chứng chỉ/ngoại ngữ. Các thay đổi tại đây không làm mất bản trích xuất gốc.
+                <div className="animate-fade-in space-y-6 max-w-5xl mx-auto">
+                  
+                  {/* Personal Header Card */}
+                  <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div>
+                        <h3 className="text-xl font-bold text-[#0F2A52] dark:text-white">
+                          {structured.full_name || structured.name || 'Chưa xác định họ tên'}
+                        </h3>
+                        <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mt-0.5">
+                          {structured.headline || structured.target_role || 'Chuyên viên kỹ thuật'}
+                        </p>
+                        {structured.address && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            📍 {structured.address}
                           </p>
                         </div>
                       </div>
@@ -2290,7 +2206,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
               {/* TAB 2: RAW TEXT (IMMUTABLE SNAPSHOT) */}
               {activeTab === 'raw_text' && (
-                <div className="space-y-4 max-w-5xl mx-auto">
+                <div className="animate-fade-in space-y-4 max-w-5xl mx-auto">
                   <div className="flex items-center justify-between bg-white dark:bg-[#111C38] p-4 rounded-xl border border-slate-200 dark:border-[#1E293B]">
                     <div>
                       <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white flex items-center gap-2">
@@ -2366,8 +2282,9 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
               {/* TAB 3: EVIDENCE AUDIT */}
               {activeTab === 'evidence' && (
-                <div className="space-y-4 max-w-5xl mx-auto">
-                  <div className="bg-white dark:bg-[#111C38] p-4 rounded-xl border border-slate-200 dark:border-[#1E293B] flex items-center justify-between">
+                <div className="animate-fade-in space-y-4 max-w-5xl mx-auto">
+                  <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/40 p-4 rounded-xl text-xs text-blue-800 dark:text-blue-300 flex items-start gap-3">
+                    <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                     <div>
                       <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white">
                         Bằng chứng đối chiếu (Evidence Citations)
@@ -2431,7 +2348,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
               {/* TAB 4: STRUCTURED JSON SNAPSHOT */}
               {activeTab === 'json' && (
-                <div className="space-y-4 max-w-5xl mx-auto">
+                <div className="animate-fade-in space-y-4 max-w-5xl mx-auto">
                   <div className="flex items-center justify-between bg-white dark:bg-[#111C38] p-4 rounded-xl border border-slate-200 dark:border-[#1E293B]">
                     <div>
                       <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white flex items-center gap-2">
@@ -2470,7 +2387,9 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
               {/* TAB 5: WARNINGS & AUDIT */}
               {activeTab === 'warnings' && (
-                <div className="space-y-4 max-w-5xl mx-auto">
+                <div className="animate-fade-in space-y-4 max-w-5xl mx-auto">
+                  
+                  {/* Warnings List */}
                   <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-3">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-amber-500" />
@@ -2539,68 +2458,6 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
           )}
         </div>
 
-      </div>
-
-      {/* CONFIRM PROFILE MODAL DIALOG */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-600 flex items-center justify-center shrink-0">
-                <CheckSquare className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-[#0F2A52] dark:text-white">
-                  Xác nhận hồ sơ chính thức
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Lưu phiên bản hồ sơ đã review để sử dụng
-                </p>
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Bạn có chắc chắn muốn xác nhận hồ sơ này? Sau khi xác nhận:
-            </p>
-
-            <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-1.5 list-disc pl-4">
-              <li>Dữ liệu hồ sơ này sẽ được lưu thành phiên bản <strong>CONFIRMED</strong> chính thức.</li>
-              <li>Engine AI Matching JD–CV sẽ sử dụng chính xác các kỹ năng, học vấn và kinh nghiệm đã được bạn xác nhận.</li>
-              <li>Bản trích xuất raw text và JSON gốc của AI vẫn được bảo toàn nguyên vẹn.</li>
-            </ul>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
-              <button
-                type="button"
-                disabled={isConfirming}
-                onClick={() => setShowConfirmModal(false)}
-                className="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 dark:border-[#1E293B] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#18294E] transition"
-              >
-                Hủy bỏ
-              </button>
-              <button
-                type="button"
-                disabled={isConfirming}
-                onClick={handleConfirmProfile}
-                className="px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-xs disabled:opacity-50"
-              >
-                {isConfirming ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Đang xác nhận...</span>
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Xác nhận ngay</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
+    </AnimatedModalShell>
   );
 };

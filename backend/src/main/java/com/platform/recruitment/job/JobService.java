@@ -42,6 +42,7 @@ public class JobService {
         if (suspensionGuard != null) {
             suspensionGuard.checkRecruiterOperationAllowed(recruiterUser);
         }
+
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 
@@ -96,11 +97,18 @@ public class JobService {
 
         // Company Verification and Operational Business Rule
         Company company = job.getCompany();
-        if (company != null && (company.getVerificationStatus() != CompanyVerification.VERIFIED ||
-                company.getOperationalStatus() != com.platform.recruitment.company.CompanyOperationalStatus.ACTIVE)) {
+        if (company != null && (
+                company.getVerificationStatus() != CompanyVerification.VERIFIED ||
+                company.getOperationalStatus() != com.platform.recruitment.company.CompanyOperationalStatus.ACTIVE
+        )) {
             throw new CompanyNotVerifiedException(
-                    String.format("Company '%s' has verification status '%s' and operational status '%s'. Only VERIFIED and ACTIVE companies can publish jobs.",
-                            company.getName(), company.getVerificationStatus(), company.getOperationalStatus()));
+                    String.format(
+                            "Company '%s' has verification status '%s' and operational status '%s'. Only VERIFIED and ACTIVE companies can publish jobs.",
+                            company.getName(),
+                            company.getVerificationStatus(),
+                            company.getOperationalStatus()
+                    )
+            );
         }
 
         if (suspensionGuard != null) {

@@ -4,6 +4,7 @@ import React from 'react';
 import { MatchInspectionData } from '@/types';
 import { CheckCircle2, Sparkles, GitBranch, ShieldCheck, HelpCircle, Calculator, FileCheck, Layers } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import { staggerDelay } from '@/components/motion';
 
 interface ScoreBreakdownCardProps {
   data: MatchInspectionData;
@@ -115,11 +116,12 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
             {data.requiredSkillsStatus.map((item, idx) => (
               <div
                 key={idx}
-                className={`p-3.5 rounded-xl border space-y-1 text-xs transition-colors ${
+                className={`animate-fade-in p-3.5 rounded-xl border space-y-1 text-xs transition-colors ${
                   item.status === 'MATCH'
                     ? 'bg-emerald-50/70 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200'
                     : 'bg-rose-50/70 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800 text-rose-950 dark:text-rose-200'
                 }`}
+                style={{ animationDelay: `${staggerDelay(idx)}ms` }}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-slate-900 dark:text-white font-mono">{item.skillName}</span>
@@ -151,11 +153,12 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
               {data.preferredSkillsStatus.map((item, idx) => (
                 <div
                   key={idx}
-                  className={`p-3 rounded-xl border space-y-1 text-xs transition-colors ${
+                  className={`animate-fade-in p-3 rounded-xl border space-y-1 text-xs transition-colors ${
                     item.status === 'MATCH'
                       ? 'bg-slate-50 dark:bg-[#13233F] border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300'
                       : 'bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-slate-600 dark:text-slate-400'
                   }`}
+                  style={{ animationDelay: `${staggerDelay(idx)}ms` }}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-slate-900 dark:text-white font-mono">{item.skillName}</span>

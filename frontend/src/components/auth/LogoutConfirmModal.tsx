@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { createPortal } from 'react-dom';
 import { useLanguage } from '@/context/LanguageContext';
 import { LogOut, AlertTriangle, X } from 'lucide-react';
+import { AnimatedModalShell } from '@/components/motion';
 
 interface LogoutConfirmModalProps {
   isOpen: boolean;
@@ -25,45 +26,22 @@ export const LogoutConfirmModal: React.FC<LogoutConfirmModalProps> = ({
     () => false
   );
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
-    }
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  // Lock body scroll when modal is active
-  useEffect(() => {
-    if (!isOpen) return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isOpen]);
-
-  if (!isOpen || !isMounted) return null;
+  if (!isMounted) return null;
 
   return createPortal(
-    <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-black/60 dark:bg-black/80 backdrop-blur-xs animate-fade-in"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="logout-modal-title"
-      onClick={onClose}
+    <AnimatedModalShell
+      isOpen={isOpen}
+      onRequestClose={onClose}
+      titleId="logout-modal-title"
+      descriptionId="logout-modal-description"
+      testId="logout-modal"
+      overlayClassName="z-[100] p-4 sm:p-6 overflow-y-auto backdrop-blur-xs"
+      panelClassName="w-full max-w-md my-auto bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl shadow-2xl p-6 text-slate-800 dark:text-slate-100 relative transition-colors max-h-[calc(100vh-2rem)] overflow-y-auto"
     >
-      <div 
-        className="w-full max-w-md my-auto bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl shadow-2xl p-6 text-slate-800 dark:text-slate-100 relative transition-colors max-h-[calc(100vh-2rem)] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
         {/* Close Button */}
         <button
           onClick={onClose}
+          data-autofocus="true"
           aria-label={t('common.close', 'Đóng')}
           className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#18294E] transition cursor-pointer"
         >
@@ -79,7 +57,7 @@ export const LogoutConfirmModal: React.FC<LogoutConfirmModalProps> = ({
             <h3 id="logout-modal-title" className="text-lg font-bold text-slate-900 dark:text-white">
               {t('logoutModal.title', 'Xác Nhận Đăng Xuất')}
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+            <p id="logout-modal-description" className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
               {t('logoutModal.message', 'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản MidCV không? Mọi tiến trình chưa lưu có thể bị mất.')}
             </p>
           </div>
@@ -107,8 +85,7 @@ export const LogoutConfirmModal: React.FC<LogoutConfirmModalProps> = ({
             <span>{t('logoutModal.confirm', 'Đăng Xuất')}</span>
           </button>
         </div>
-      </div>
-    </div>,
+    </AnimatedModalShell>,
     document.body
   );
 };

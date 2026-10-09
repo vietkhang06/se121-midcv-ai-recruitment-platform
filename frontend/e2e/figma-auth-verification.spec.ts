@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Figma Pixel-Perfect Authentication Screens & Role Sync', () => {
+test.describe('Figma Pixel-Perfect Authentication Screens & UX Verification', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test.beforeEach(async ({ page }) => {
@@ -11,7 +11,7 @@ test.describe('Figma Pixel-Perfect Authentication Screens & Role Sync', () => {
     });
   });
 
-  test('01: Candidate Login - matches Figma Image 1 & Full Page VI-EN translation', async ({ page }) => {
+  test('01: Candidate Login - Split Screen, Social Logins (Google, GitHub, LinkedIn), Password Toggle & VI-EN translation', async ({ page }) => {
     await page.goto('/login?role=candidate');
     await page.waitForLoadState('domcontentloaded');
 
@@ -33,8 +33,26 @@ test.describe('Figma Pixel-Perfect Authentication Screens & Role Sync', () => {
     await expect(page.locator('#login-role-candidate-btn')).toHaveClass(/text-\[#2563EB\]/);
 
     // Verify Form Inputs
-    await expect(page.locator('#login-email-input')).toBeVisible();
-    await expect(page.locator('#login-password-input')).toBeVisible();
+    const emailInput = page.locator('#login-email-input');
+    const passwordInput = page.locator('#login-password-input');
+    await expect(emailInput).toBeVisible();
+    await expect(passwordInput).toBeVisible();
+    await expect(passwordInput).toHaveAttribute('type', 'password');
+
+    // 3. Test Password Visibility Toggle in Login
+    const loginToggleBtn = passwordInput.locator('xpath=following-sibling::button');
+    await expect(loginToggleBtn).toBeVisible();
+    await expect(loginToggleBtn).toHaveAttribute('type', 'button');
+
+    // Click toggle to reveal password
+    await loginToggleBtn.click();
+    await expect(passwordInput).toHaveAttribute('type', 'text');
+
+    // Click toggle again to hide password
+    await loginToggleBtn.click();
+    await expect(passwordInput).toHaveAttribute('type', 'password');
+
+    // Verify Checkbox & Forgot Password Link
     await expect(page.getByText('Ghi nhớ đăng nhập')).toBeVisible();
     await expect(page.getByText('Quên mật khẩu?')).toBeVisible();
 
@@ -45,11 +63,17 @@ test.describe('Figma Pixel-Perfect Authentication Screens & Role Sync', () => {
     // Verify Submit CTA text in VI
     await expect(page.locator('#login-submit-btn')).toHaveText(/đăng nhập với tư cách ứng viên/i);
 
-    // Verify Social Login Buttons
+    // Verify Social Logins (Google, GitHub, LinkedIn) under divider
+    await expect(page.getByText('- Hoặc tiếp tục với -')).toBeVisible();
     await expect(page.getByRole('button', { name: /google/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /github/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /linkedin/i })).toBeVisible();
 
-    // 3. Test Full Page English Translation when clicking Language Switcher
+    // Test OAuth simulated interaction
+    await page.getByRole('button', { name: /google/i }).click();
+    await expect(page.getByText(/đang kết nối xác thực/i)).toBeVisible();
+
+    // 4. Test Full Page English Translation when clicking Language Switcher
     await page.locator('#login-lang-switch-btn').click();
     await expect(page.locator('#login-lang-switch-btn')).toHaveText(/EN/i);
 
@@ -67,6 +91,7 @@ test.describe('Figma Pixel-Perfect Authentication Screens & Role Sync', () => {
     await expect(page.getByText('Remember me')).toBeVisible();
     await expect(page.getByText('Forgot password?')).toBeVisible();
     await expect(page.locator('#login-submit-btn')).toHaveText(/sign in as candidate/i);
+    await expect(page.getByText('- Or continue with -')).toBeVisible();
     await expect(page.getByText("Don't have an account?")).toBeVisible();
     await expect(page.getByText('Register now')).toBeVisible();
 
@@ -100,7 +125,7 @@ test.describe('Figma Pixel-Perfect Authentication Screens & Role Sync', () => {
     await page.screenshot({ path: 'e2e/screenshots/figma/02-hr-login.png', fullPage: true });
   });
 
-  test('03: Candidate Register - matches Figma without stepper, with language & theme switches', async ({ page }) => {
+  test('03: Candidate Register - Password Visibility Toggle, Password Strength Bar & Password Match Indicator', async ({ page }) => {
     await page.goto('/register?role=candidate');
     await page.waitForLoadState('domcontentloaded');
 
@@ -110,7 +135,7 @@ test.describe('Figma Pixel-Perfect Authentication Screens & Role Sync', () => {
     await expect(hero.getByRole('heading', { name: /bắt đầu hành trình/i })).toBeVisible();
 
     // 2. Verify Right Column (in VI)
-    await expect(page.getByText('Đã có tài khoản?')).toBeVisible();
+    await expect(page.getByText('Đã có tài khoản?').first()).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Tạo tài khoản ứng viên' })).toBeVisible();
     await expect(page.getByText('Bắt đầu hành trình tìm kiếm công việc thông minh cùng midCV.')).toBeVisible();
 
@@ -118,31 +143,75 @@ test.describe('Figma Pixel-Perfect Authentication Screens & Role Sync', () => {
     await expect(page.locator('#register-lang-switch-btn')).toBeVisible();
     await expect(page.getByRole('switch')).toBeVisible();
 
-    // Verify 3-step progress bar (stepper) is REMOVED as requested
-    await expect(page.getByText('Thông tin cơ bản')).not.toBeVisible();
-    await expect(page.getByText('Thông tin nghề nghiệp')).not.toBeVisible();
-    await expect(page.getByText('Hoàn tất')).not.toBeVisible();
+    // Verify Role Switcher
+    await expect(page.locator('#register-role-candidate-btn')).toBeVisible();
+    await expect(page.locator('#register-role-recruiter-btn')).toBeVisible();
 
-    // Verify Candidate Fields
-    await expect(page.locator('#register-fullname-input')).toBeVisible();
-    await expect(page.locator('#register-email-input')).toBeVisible();
-    await expect(page.locator('#register-phone-input')).toBeVisible();
-    await expect(page.locator('#register-target-title-input')).toBeVisible();
-
-    // Verify Target Industries checklist in VI
-    await expect(page.getByText('Ngành mục tiêu (có thể chọn nhiều ngành)')).toBeVisible();
-    await expect(page.getByText('Công nghệ thông tin (IT)')).toBeVisible();
-    await expect(page.getByText('Truyền thông & Marketing')).toBeVisible();
-    await expect(page.getByText('Nhân sự (HR)')).toBeVisible();
+    // Verify Email or Phone input
+    const emailInput = page.locator('#register-email-input');
+    await expect(emailInput).toBeVisible();
 
     // Verify Password Inputs
-    await expect(page.locator('#register-password-input')).toBeVisible();
-    await expect(page.locator('#register-confirm-password-input')).toBeVisible();
+    const passwordInput = page.locator('#register-password-input');
+    const confirmPasswordInput = page.locator('#register-confirm-password-input');
+    await expect(passwordInput).toBeVisible();
+    await expect(confirmPasswordInput).toBeVisible();
+    await expect(passwordInput).toHaveAttribute('type', 'password');
+    await expect(confirmPasswordInput).toHaveAttribute('type', 'password');
 
-    // Verify Submit CTA in VI
+    // 3. Test Password Visibility Toggles for BOTH Password and Confirm Password
+    const passwordToggleBtn = passwordInput.locator('xpath=following-sibling::button');
+    const confirmPasswordToggleBtn = confirmPasswordInput.locator('xpath=following-sibling::button');
+
+    await expect(passwordToggleBtn).toHaveAttribute('type', 'button');
+    await expect(confirmPasswordToggleBtn).toHaveAttribute('type', 'button');
+
+    // Toggle Password Visibility
+    await passwordToggleBtn.click();
+    await expect(passwordInput).toHaveAttribute('type', 'text');
+    await passwordToggleBtn.click();
+    await expect(passwordInput).toHaveAttribute('type', 'password');
+
+    // Toggle Confirm Password Visibility
+    await confirmPasswordToggleBtn.click();
+    await expect(confirmPasswordInput).toHaveAttribute('type', 'text');
+    await confirmPasswordToggleBtn.click();
+    await expect(confirmPasswordInput).toHaveAttribute('type', 'password');
+
+    // 4. Test Password Strength Bar UX
+    await passwordInput.fill('weak');
+    const strengthContainer = page.locator('[data-testid="password-strength-container"]');
+    await expect(strengthContainer).toBeVisible();
+    await expect(page.locator('[data-testid="password-strength-label"]')).toHaveText(/yếu/i);
+
+    // Type strong password
+    await passwordInput.fill('MidCV@2026Secure!');
+    await expect(page.locator('[data-testid="password-strength-label"]')).toHaveText(/mạnh/i);
+
+    // 5. Test Password Match Visual Notification
+    // First, mismatched password
+    await confirmPasswordInput.fill('MismatchPass');
+    await expect(page.getByText('Mật khẩu chưa khớp')).toBeVisible();
+
+    // Then, matching password
+    await confirmPasswordInput.fill('MidCV@2026Secure!');
+    await expect(page.getByText('Mật khẩu trùng khớp')).toBeVisible();
+
+    // 6. Verify Terms & Privacy Agreement Checkbox
+    await expect(page.getByText('Tôi đồng ý với')).toBeVisible();
+    await expect(page.getByText('Điều khoản dịch vụ')).toBeVisible();
+    await expect(page.getByText('Chính sách bảo mật')).toBeVisible();
+
+    // 7. Verify Submit CTA in VI
     await expect(page.locator('#register-submit-btn')).toHaveText(/tạo tài khoản & nhận link xác thực/i);
 
-    // 3. Test Full Page English Translation on Register
+    // 8. Verify Social Logins (Google, GitHub, LinkedIn)
+    await expect(page.getByText('- Hoặc tiếp tục với -')).toBeVisible();
+    await expect(page.getByRole('button', { name: /google/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /github/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /linkedin/i })).toBeVisible();
+
+    // 9. Test Full Page English Translation on Register
     await page.locator('#register-lang-switch-btn').click();
     await expect(page.locator('#register-lang-switch-btn')).toHaveText(/EN/i);
 
@@ -150,24 +219,21 @@ test.describe('Figma Pixel-Perfect Authentication Screens & Role Sync', () => {
     await expect(hero.getByRole('heading', { name: /start your career/i })).toBeVisible();
 
     // Verify entire right form translated to English
-    await expect(page.getByText('Already have an account?')).toBeVisible();
+    await expect(page.getByText('Already have an account?').first()).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Create Candidate Account' })).toBeVisible();
-    await expect(page.locator('#register-role-candidate-btn')).toHaveText(/job seeker/i);
+    await expect(page.locator('#register-role-candidate-btn')).toHaveText(/candidate/i);
     await expect(page.locator('#register-role-recruiter-btn')).toHaveText(/recruiter/i);
-    await expect(page.getByText('Candidate Full Name *')).toBeVisible();
-    await expect(page.getByText('Account Email *')).toBeVisible();
-    await expect(page.getByText('Phone Number *')).toBeVisible();
-    await expect(page.getByText('Target Job Title *')).toBeVisible();
-    await expect(page.getByText('Target Industries (Multi-select)')).toBeVisible();
-    await expect(page.getByText('Information Technology (IT)')).toBeVisible();
-    await expect(page.getByText('Marketing & Communications')).toBeVisible();
+    await expect(page.getByText('Email or Phone number')).toBeVisible();
+    await expect(page.getByText('Password *', { exact: true })).toBeVisible();
+    await expect(page.getByText('Confirm Password *')).toBeVisible();
+    await expect(page.getByText('Passwords match')).toBeVisible();
     await expect(page.locator('#register-submit-btn')).toHaveText(/create account & get verification link/i);
 
     // Take screenshot
     await page.screenshot({ path: 'e2e/screenshots/figma/03-candidate-register.png', fullPage: true });
   });
 
-  test('04: HR Register - matches Figma Image 3', async ({ page }) => {
+  test('04: HR Register - matches Recruiter Split Screen and Role Sync', async ({ page }) => {
     await page.goto('/register?role=hr');
     await page.waitForLoadState('domcontentloaded');
 
@@ -181,13 +247,15 @@ test.describe('Figma Pixel-Perfect Authentication Screens & Role Sync', () => {
     await expect(page.getByRole('heading', { name: 'Tạo tài khoản nhà tuyển dụng' })).toBeVisible();
     await expect(page.getByText('Tạo tài khoản tuyển dụng và bắt đầu kết nối với những ứng viên phù hợp.')).toBeVisible();
 
-    // Verify Recruiter Specific Fields
-    await expect(page.locator('#register-fullname-input')).toBeVisible();
+    // Verify Credentials & Security Inputs
     await expect(page.locator('#register-email-input')).toBeVisible();
-    await expect(page.locator('#register-phone-input')).toBeVisible();
-    await expect(page.locator('#register-company-name-input')).toBeVisible();
-    await expect(page.locator('#register-company-address-input')).toBeVisible();
-    await expect(page.locator('#register-company-industry-select')).toBeVisible();
+    await expect(page.locator('#register-password-input')).toBeVisible();
+    await expect(page.locator('#register-confirm-password-input')).toBeVisible();
+
+    // Verify Social Logins
+    await expect(page.getByRole('button', { name: /google/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /github/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /linkedin/i })).toBeVisible();
 
     // Verify Bottom Login Link
     await expect(page.getByText('Đăng nhập tại đây')).toBeVisible();

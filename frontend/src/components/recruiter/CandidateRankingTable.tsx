@@ -3,7 +3,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { CandidateRankingItem } from '@/types';
+import { useLanguage } from '@/context/LanguageContext';
 import { Award, CheckCircle2, AlertCircle, Eye, GitBranch, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { staggerDelay } from '@/components/motion';
 
 interface CandidateRankingTableProps {
   rankings: CandidateRankingItem[];
@@ -14,30 +16,37 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
   rankings,
   onSelectCandidateForCompare
 }) => {
+  const { locale } = useLanguage();
+  const isVi = locale === 'vi';
+
   return (
     <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl shadow-xs overflow-hidden transition-colors">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
             <tr className="bg-slate-50 dark:bg-[#0B1528] border-b border-slate-200 dark:border-[#1E293B] text-slate-800 dark:text-slate-200 font-bold uppercase tracking-wider text-[11px] font-mono">
-              <th className="py-4 px-4 text-center w-16">Hạng</th>
-              <th className="py-4 px-4">Ứng viên & Chức danh</th>
+              <th className="py-4 px-4 text-center w-16">{isVi ? 'Hạng' : 'Rank'}</th>
+              <th className="py-4 px-4">{isVi ? 'Ứng viên & Chức danh' : 'Candidate & Headline'}</th>
               <th className="py-4 px-4 text-center w-48">Overall Match (S_overall)</th>
               <th className="py-4 px-4 text-center">Core JD-CV</th>
               <th className="py-4 px-4 text-center">GitHub Signal</th>
-              <th className="py-4 px-4">Kỹ năng Bắt buộc (Gating)</th>
-              <th className="py-4 px-4 text-center">Kinh nghiệm</th>
-              <th className="py-4 px-4 text-right">Thao tác</th>
+              <th className="py-4 px-4">{isVi ? 'Kỹ năng Bắt buộc (Gating)' : 'Required Skills (Gating)'}</th>
+              <th className="py-4 px-4 text-center">{isVi ? 'Kinh nghiệm' : 'Experience'}</th>
+              <th className="py-4 px-4 text-right">{isVi ? 'Thao tác' : 'Actions'}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-[#1E293B] text-slate-700 dark:text-slate-200">
-            {rankings.map((item) => {
+            {rankings.map((item, index) => {
               const hasMissingRequired = item.requiredSkillsMissingNames.length > 0;
               const isHighMatch = item.overallMatchScore >= 85;
               const isGoodMatch = item.overallMatchScore >= 70 && item.overallMatchScore < 85;
 
               return (
-                <tr key={item.applicationId} className="hover:bg-slate-50/80 dark:hover:bg-[#18294E] transition">
+                <tr
+                  key={item.applicationId}
+                  className="animate-fade-in hover:bg-slate-50/80 dark:hover:bg-[#18294E] transition-colors"
+                  style={{ animationDelay: `${staggerDelay(index)}ms` }}
+                >
                   {/* Rank Badge */}
                   <td className="py-4 px-4 text-center font-bold">
                     <span
@@ -93,14 +102,14 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                       </div>
                       <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-[#13233F] overflow-hidden border border-slate-200 dark:border-[#1E293B]">
                         <div
-                          className={`h-full rounded-full transition-all ${
+                          className={`h-full rounded-full origin-left transition-transform ${
                             isHighMatch
                               ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
                               : isGoodMatch
                               ? 'bg-gradient-to-r from-[#2563EB] to-blue-400'
                               : 'bg-slate-400'
                           }`}
-                          style={{ width: `${Math.min(100, item.overallMatchScore)}%` }}
+                          style={{ transform: `scaleX(${Math.min(100, item.overallMatchScore) / 100})` }}
                         />
                       </div>
                     </div>
@@ -128,20 +137,24 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                     <div className="space-y-1">
                       <div className="flex items-center gap-1.5">
                         {!hasMissingRequired ? (
-                          <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            Khớp {item.requiredSkillsMatched}/{item.requiredSkillsTotal} bắt buộc
+                          <span className="text-[11px] font-semibold text-[#00B14F] dark:text-[#00B14F] flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#00B14F]" />
+                            {isVi
+                              ? `Khớp ${item.requiredSkillsMatched}/${item.requiredSkillsTotal} bắt buộc`
+                              : `Matched ${item.requiredSkillsMatched}/${item.requiredSkillsTotal} required`}
                           </span>
                         ) : (
                           <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1">
                             <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
-                            Thiếu {item.requiredSkillsMissingNames.length} bắt buộc (Gated)
+                            {isVi
+                              ? `Thiếu ${item.requiredSkillsMissingNames.length} bắt buộc (Gated)`
+                              : `Missing ${item.requiredSkillsMissingNames.length} required (Gated)`}
                           </span>
                         )}
                       </div>
                       {hasMissingRequired && (
                         <p className="text-[10px] text-rose-500 dark:text-rose-400 line-clamp-1 font-mono">
-                          Thiếu: {item.requiredSkillsMissingNames.join(', ')}
+                          {isVi ? 'Thiếu: ' : 'Missing: '}{item.requiredSkillsMissingNames.join(', ')}
                         </p>
                       )}
                     </div>
@@ -149,7 +162,7 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
 
                   {/* Years of Experience */}
                   <td className="py-4 px-4 text-center text-slate-600 dark:text-slate-300 font-medium">
-                    {item.relevantExperienceYears} năm
+                    {item.relevantExperienceYears} {isVi ? 'năm' : 'yrs'}
                   </td>
 
                   {/* Actions */}
@@ -160,7 +173,7 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                           onClick={() => onSelectCandidateForCompare(item)}
                           className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#1E293B] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#18294E] font-semibold text-[11px] transition cursor-pointer"
                         >
-                          So Sánh
+                          {isVi ? 'So Sánh' : 'Compare'}
                         </button>
                       )}
                       <Link
@@ -168,7 +181,7 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-[11px] shadow-xs transition"
                       >
                         <Eye className="w-3 h-3" />
-                        <span>Xem Chi Tiết</span>
+                        <span>{isVi ? 'Xem Chi Tiết' : 'View Details'}</span>
                       </Link>
                     </div>
                   </td>

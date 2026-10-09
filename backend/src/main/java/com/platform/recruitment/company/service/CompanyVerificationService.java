@@ -110,8 +110,20 @@ public class CompanyVerificationService {
         company.setReviewedAt(ZonedDateTime.now());
         company.setReviewNotes(reason != null ? reason.trim() : null);
 
-        Company savedCompany = companyRepository.save(company);
-
+        Company company = job.getCompany();
+        if (company != null && (
+                company.getVerificationStatus() != CompanyVerification.VERIFIED ||
+                company.getOperationalStatus() != com.platform.recruitment.company.CompanyOperationalStatus.ACTIVE
+        )) {
+            throw new CompanyNotVerifiedException(
+                    String.format(
+                            "Company '%s' has verification status '%s' and operational status '%s'. Only VERIFIED and ACTIVE companies can publish jobs.",
+                            company.getName(),
+                            company.getVerificationStatus(),
+                            company.getOperationalStatus()
+                    )
+            );
+        }
         // Immutable Audit Log
         adminAuditLogService.log(
                 adminUser,
