@@ -7,9 +7,23 @@ import { fetchRecruiterJobs, publishJob, closeJob, fetchJobApplications } from '
 import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
 import { EmptyState } from '@/components/common/EmptyState';
 import { useLanguage } from '@/context/LanguageContext';
-import { translateIndustry, translateStatus, translateSeniority } from '@/lib/i18n';
-import { Reveal, staggerDelay } from '@/components/motion';
-import { Briefcase, PlusCircle, Search, Filter, Eye, Award, Users } from 'lucide-react';
+import {
+  Briefcase,
+  PlusCircle,
+  Search,
+  Users,
+  Award,
+  Eye,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  ChevronRight,
+  MapPin,
+  DollarSign,
+  Sliders
+} from 'lucide-react';
+import { ConfirmActionDialog } from '@/components/common/ConfirmActionDialog';
+import { JobMatchingPolicyModal } from '@/components/recruiter/JobMatchingPolicyModal';
 
 export default function RecruiterJobsListPage() {
   const { t, locale } = useLanguage();
@@ -21,6 +35,11 @@ export default function RecruiterJobsListPage() {
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [actionInProgressId, setActionInProgressId] = useState<string | null>(null);
+
+  // Policy and Action confirmation modals
+  const [policyModalJob, setPolicyModalJob] = useState<Job | null>(null);
+  const [confirmCloseJobId, setConfirmCloseJobId] = useState<string | null>(null);
+  const [confirmPublishJobId, setConfirmPublishJobId] = useState<string | null>(null);
 
   const loadJobs = () => {
     setIsLoading(true);
@@ -70,6 +89,42 @@ export default function RecruiterJobsListPage() {
     }
     setFilteredJobs(result);
   }, [searchKeyword, selectedStatus, jobs]);
+
+  const handleExecutePublish = async () => {
+    if (!confirmPublishJobId) return;
+    setActionInProgressId(confirmPublishJobId);
+    try {
+      const updated = await publishJob(confirmPublishJobId);
+      if (updated) {
+        setJobs((prev) => prev.map((j) => (j.id === confirmPublishJobId ? updated : j)));
+      }
+      setConfirmPublishJobId(null);
+    } catch (err: any) {
+      alert(err.message || 'Xuất bản tin thất bại.');
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
+
+  const handleExecuteClose = async () => {
+    if (!confirmCloseJobId) return;
+    setActionInProgressId(confirmCloseJobId);
+    try {
+      const updated = await closeJob(confirmCloseJobId);
+      if (updated) {
+        setJobs((prev) => prev.map((j) => (j.id === confirmCloseJobId ? updated : j)));
+      }
+      setConfirmCloseJobId(null);
+    } catch (err: any) {
+      alert(err.message || 'Đóng tin tuyển dụng thất bại.');
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
+
+  const publishedCount = jobs.filter((j) => j.status === 'PUBLISHED').length;
+  const draftCount = jobs.filter((j) => j.status === 'DRAFT').length;
+  const closedCount = jobs.filter((j) => j.status === 'CLOSED').length;
 
   return (
     <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors">
@@ -165,78 +220,116 @@ export default function RecruiterJobsListPage() {
                         <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-slate-700 dark:text-[#93C5FD]">
                           {translateIndustry(job.industry, locale)}
                         </span>
-                        <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
-                          job.status === 'PUBLISHED' ? 'bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-[#00B14F]' : 'bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
-                        }`}>
-                          {translateStatus(job.status, locale)}
-                        </span>
-                      </div>
-                      <h3 className="text-xl font-bold font-editorial text-slate-900 dark:text-white hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition-colors">
-                        <Link href={`/recruiter/jobs/${job.id}`}>{job.title}</Link>
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {locale === 'vi' ? 'Địa điểm' : 'Location'}: {job.location} • {locale === 'vi' ? 'Cấp bậc' : 'Level'}: {translateSeniority(job.seniority, locale)} • {locale === 'vi' ? 'Lương' : 'Salary'}: ${job.salaryMin} - ${job.salaryMax} /{locale === 'vi' ? 'tháng' : 'mo'}
-                      </p>
-                    </div>
+                      </td>
 
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Link
-                        href={`/recruiter/jobs/${job.id}`}
-                        className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-[#13233F] hover:bg-slate-200 dark:hover:bg-[#18294E] text-slate-800 dark:text-slate-200 border border-transparent dark:border-[#1E293B] transition flex items-center gap-1"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>{locale === 'vi' ? 'Xem Chi tiết JD' : 'View Requisition'}</span>
-                      </Link>
+                      {/* Applications Count */}
+                      <td className="py-4 px-4 text-center">
+                        <Link
+                          href={`/recruiter/jobs/${job.id}/applications`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-mono font-bold hover:bg-[#DBEAFE] transition"
+                        >
+                          <Users className="w-3.5 h-3.5" />
+                          <span>{appCount}</span>
+                        </Link>
+                      </td>
 
-                      <Link
-                        href={`/recruiter/jobs/${job.id}/applications`}
-                        className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-[#13233F] hover:bg-slate-200 dark:hover:bg-[#18294E] text-slate-800 dark:text-slate-200 border border-transparent dark:border-[#1E293B] transition flex items-center gap-1"
-                      >
-                        <Users className="w-3.5 h-3.5 text-[#2563EB]" />
-                        <span>{locale === 'vi' ? 'Đơn Ứng Tuyển' : 'Applications'}</span>
-                      </Link>
+                      {/* Actions */}
+                      <td className="py-4 px-4 sm:px-6 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Link
+                            href={`/recruiter/jobs/${job.id}`}
+                            className="p-1.5 rounded-lg text-[#64748B] dark:text-[#94A3B8] hover:text-[#2563EB] dark:hover:text-[#3B82F6] hover:bg-[#F1F5F9] dark:hover:bg-[#13233F] transition"
+                            title="Xem chi tiết JD"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Link>
 
-                      <Link
-                        href={`/recruiter/jobs/${job.id}/ranking`}
-                        className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#00B14F] hover:bg-[#009643] shadow-xs shadow-emerald-500/20 transition active:scale-95 flex items-center gap-1.5"
-                      >
-                        <Award className="w-4 h-4" />
-                        <span>{locale === 'vi' ? 'Bảng Xếp Hạng AI' : 'AI Ranking'}</span>
-                      </Link>
-                    </div>
-                  </div>
+                          <Link
+                            href={`/recruiter/jobs/${job.id}/ranking`}
+                            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] hover:bg-[#DBEAFE] border border-[#2563EB]/20 transition inline-flex items-center gap-1"
+                            title="Xem Bảng xếp hạng AI"
+                          >
+                            <Award className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Ranking</span>
+                          </Link>
 
-                  {/* Requirements Summary */}
-                  <div className="flex flex-wrap gap-1.5 text-[11px]">
-                    <span className="text-slate-500 dark:text-slate-400 font-semibold mr-1">Skills:</span>
-                    {(job.requirements || []).map((req, idx) => (
-                      <span
-                        key={req.id || idx}
-                        className={`px-2 py-0.5 rounded font-mono ${
-                          req.requirementType === 'REQUIRED' ? 'bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-[#00B14F] font-medium' : 'bg-slate-100 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-slate-600 dark:text-slate-400'
-                        }`}
-                      >
-                        {req.skillName} {req.requirementType === 'REQUIRED' ? '(Req)' : ''}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </Reveal>
-            ))}
+                          <button
+                            type="button"
+                            onClick={() => setPolicyModalJob(job)}
+                            className="p-1.5 rounded-lg text-[#64748B] dark:text-[#94A3B8] hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-[#F1F5F9] dark:hover:bg-[#13233F] transition cursor-pointer"
+                            title="Cấu hình trọng số đối sánh"
+                          >
+                            <Sliders className="w-4 h-4" />
+                          </button>
+
+                          {job.status === 'DRAFT' && (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmPublishJobId(job.id)}
+                              disabled={isBusy}
+                              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#E8F8EE] text-[#00B14F] hover:bg-[#C9F2D8] border border-[#00B14F]/30 transition disabled:opacity-50 cursor-pointer"
+                            >
+                              {isBusy ? '...' : (locale === 'vi' ? 'Xuất bản' : 'Publish')}
+                            </button>
+                          )}
+
+                          {job.status === 'PUBLISHED' && (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmCloseJobId(job.id)}
+                              disabled={isBusy}
+                              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-rose-50 hover:text-rose-600 border border-slate-200 dark:border-slate-700 transition disabled:opacity-50 cursor-pointer"
+                            >
+                              {isBusy ? '...' : (locale === 'vi' ? 'Đóng tin' : 'Close')}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <EmptyState
-            type="NO_MATCH"
-            title={locale === 'vi' ? 'Không tìm thấy bài tuyển dụng phù hợp' : 'No matching jobs found'}
-            description={locale === 'vi' ? 'Không có vị trí tuyển dụng nào khớp với từ khóa tìm kiếm hoặc bộ lọc trạng thái.' : 'No requisitions match your search keyword or status filter.'}
-            primaryCtaText={locale === 'vi' ? 'Xóa tất cả bộ lọc' : 'Reset All Filters'}
-            onPrimaryCtaClick={() => {
-              setSearchKeyword('');
-              setSelectedStatus('');
-            }}
-          />
-        )}
-      </main>
+        </div>
+      )}
+
+      {/* Matching Policy Configuration Modal */}
+      {policyModalJob && (
+        <JobMatchingPolicyModal
+          jobId={policyModalJob.id}
+          jobTitle={policyModalJob.title}
+          isOpen={true}
+          onClose={() => setPolicyModalJob(null)}
+          onPolicyUpdated={() => loadJobs()}
+        />
+      )}
+
+      {/* Confirm Publish Dialog */}
+      <ConfirmActionDialog
+        isOpen={confirmPublishJobId !== null}
+        title="Xác nhận xuất bản tin tuyển dụng"
+        description="Tin tuyển dụng sẽ được công khai cho ứng viên nộp hồ sơ. Hãy đảm bảo doanh nghiệp đã được xác thực và đang hoạt động bình thường."
+        confirmLabel="Xuất bản ngay"
+        cancelLabel="Hủy"
+        variant="info"
+        isLoading={actionInProgressId !== null}
+        onConfirm={handleExecutePublish}
+        onCancel={() => setConfirmPublishJobId(null)}
+      />
+
+      {/* Confirm Close Dialog */}
+      <ConfirmActionDialog
+        isOpen={confirmCloseJobId !== null}
+        title="Xác nhận đóng tin tuyển dụng"
+        description="Sau khi đóng tin, ứng viên sẽ không thể xem hoặc nộp đơn vào vị trí này nữa. Các hồ sơ đã nộp vẫn được lưu trữ an toàn."
+        confirmLabel="Đóng tin tuyển dụng"
+        cancelLabel="Quay lại"
+        variant="warning"
+        isLoading={actionInProgressId !== null}
+        onConfirm={handleExecuteClose}
+        onCancel={() => setConfirmCloseJobId(null)}
+      />
     </div>
   );
 }

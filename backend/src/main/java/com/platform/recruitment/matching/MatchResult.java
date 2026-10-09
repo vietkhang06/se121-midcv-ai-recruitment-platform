@@ -79,4 +79,11 @@ public class MatchResult extends BaseEntity {
 
     @Column(name = "ai_summary", columnDefinition = "TEXT")
     private String aiSummary;
+
+    @Builder.Default
+    @Column(name = "policy_version")
+    private Integer policyVersion = 1;
+
+    @Column(name = "policy_snapshot", columnDefinition = "TEXT")
+    private String policySnapshot;
 }

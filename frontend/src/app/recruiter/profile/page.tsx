@@ -17,6 +17,7 @@ import {
   Lock
 } from 'lucide-react';
 import { EmptyState } from '@/components/common/EmptyState';
+import { DeactivateAccountSection } from '@/components/common/DeactivateAccountSection';
 
 export default function RecruiterProfilePage() {
   const { user } = useAuth();
@@ -128,6 +129,8 @@ export default function RecruiterProfilePage() {
             </div>
           </div>
         </div>
+
+        <DeactivateAccountSection />
       </main>
     </div>
   );

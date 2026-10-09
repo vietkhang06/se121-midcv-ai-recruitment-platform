@@ -97,6 +97,17 @@ public class AdminPortalController {
         return ResponseEntity.ok(ApiResponse.success("Kích hoạt lại tài khoản thành công", null));
     }
 
+    @PostMapping("/users/{id}/restore")
+    public ResponseEntity<ApiResponse<Void>> restoreUser(
+            @AuthenticationPrincipal User adminUser,
+            @PathVariable UUID id,
+            @RequestBody(required = false) UserModerationRequest request,
+            HttpServletRequest servletRequest) {
+        String reason = (request != null && request.getReason() != null) ? request.getReason() : "Khôi phục tài khoản bởi Quản trị viên";
+        adminService.reactivateUser(adminUser, id, reason, servletRequest.getRemoteAddr());
+        return ResponseEntity.ok(ApiResponse.success("Khôi phục tài khoản thành công", null));
+    }
+
     // ==========================================
     // 4. JOB MODERATION
     // ==========================================

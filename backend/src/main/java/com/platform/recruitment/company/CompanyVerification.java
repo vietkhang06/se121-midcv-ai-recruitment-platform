@@ -5,6 +5,5 @@ public enum CompanyVerification {
     UNDER_REVIEW,
     CHANGES_REQUESTED,
     VERIFIED,
-    REJECTED,
-    SUSPENDED
+    REJECTED
 }

@@ -127,7 +127,7 @@ public class AdminModerationApiIntegrationTest {
         when(companyRepository.countByVerificationStatus(CompanyVerification.UNDER_REVIEW)).thenReturn(3L);
         when(companyRepository.countByVerificationStatus(CompanyVerification.VERIFIED)).thenReturn(30L);
         when(companyRepository.countByVerificationStatus(CompanyVerification.REJECTED)).thenReturn(2L);
-        when(companyRepository.countByVerificationStatus(CompanyVerification.SUSPENDED)).thenReturn(1L);
+        when(companyRepository.countByOperationalStatus(com.platform.recruitment.company.CompanyOperationalStatus.SUSPENDED)).thenReturn(1L);
 
         when(jobRepository.countByStatus(JobStatus.PUBLISHED)).thenReturn(85L);
         when(jobRepository.countByStatus(JobStatus.SUSPENDED)).thenReturn(4L);
@@ -216,9 +216,9 @@ public class AdminModerationApiIntegrationTest {
         when(companyRepository.findById(testCompany.getId())).thenReturn(Optional.of(testCompany));
 
         CompanyReviewRequest req = CompanyReviewRequest.builder()
-                .status(CompanyVerification.SUSPENDED) // Invalid: PENDING cannot directly transition to SUSPENDED
+                .status(CompanyVerification.CHANGES_REQUESTED) // Invalid: PENDING cannot directly transition to CHANGES_REQUESTED
                 .version(1L)
-                .reason("Đình chỉ doanh nghiệp")
+                .reason("Yêu cầu sửa đổi hồ sơ")
                 .build();
 
         CustomException ex = assertThrows(CustomException.class, () ->
@@ -316,21 +316,18 @@ public class AdminModerationApiIntegrationTest {
     }
 
     @Test
-    @DisplayName("Company Suspension Cascades: Suspending verified company also marks its published jobs as SUSPENDED")
+    @DisplayName("Company Suspension Cascades: Suspending verified company sets operationalStatus SUSPENDED, preserves verificationStatus, and cascades to published jobs")
     void testCompanySuspension_CascadesJobSuspension() {
         testCompany.setVerificationStatus(CompanyVerification.VERIFIED);
+        testCompany.setOperationalStatus(com.platform.recruitment.company.CompanyOperationalStatus.ACTIVE);
         when(companyRepository.findById(testCompany.getId())).thenReturn(Optional.of(testCompany));
         when(companyRepository.save(any(Company.class))).thenAnswer(i -> i.getArgument(0));
         when(jobRepository.findByCompanyId(testCompany.getId())).thenReturn(List.of(testJob));
 
-        CompanyReviewRequest req = CompanyReviewRequest.builder()
-                .status(CompanyVerification.SUSPENDED)
-                .reason("Legal violation detected")
-                .build();
+        companyVerificationService.suspend(adminUser, testCompany.getId(), "Legal violation detected", 1L, "127.0.0.1");
 
-        adminService.transitionCompanyVerification(adminUser, testCompany.getId(), req, "127.0.0.1");
-
-        assertEquals(CompanyVerification.SUSPENDED, testCompany.getVerificationStatus());
+        assertEquals(CompanyVerification.VERIFIED, testCompany.getVerificationStatus());
+        assertEquals(com.platform.recruitment.company.CompanyOperationalStatus.SUSPENDED, testCompany.getOperationalStatus());
         assertEquals(JobStatus.SUSPENDED, testJob.getStatus());
         assertEquals("Doanh nghiệp bị tạm đình chỉ hoạt động", testJob.getModerationReason());
         verify(jobRepository, times(1)).save(testJob);

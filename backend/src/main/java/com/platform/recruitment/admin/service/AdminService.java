@@ -102,7 +102,7 @@ public class AdminService {
         long underReviewCompanies = companyRepository.countByVerificationStatus(CompanyVerification.UNDER_REVIEW);
         long verifiedCompanies = companyRepository.countByVerificationStatus(CompanyVerification.VERIFIED);
         long rejectedCompanies = companyRepository.countByVerificationStatus(CompanyVerification.REJECTED);
-        long suspendedCompanies = companyRepository.countByVerificationStatus(CompanyVerification.SUSPENDED);
+        long suspendedCompanies = companyRepository.countByOperationalStatus(com.platform.recruitment.company.CompanyOperationalStatus.SUSPENDED);
 
         long activeJobs = jobRepository.countByStatus(JobStatus.PUBLISHED);
         long suspendedJobs = jobRepository.countByStatus(JobStatus.SUSPENDED);
@@ -195,6 +195,7 @@ public class AdminService {
                     .email(user.getEmail())
                     .role(user.getRole())
                     .isActive(user.getIsActive())
+                    .accountStatus(user.getAccountStatus())
                     .emailVerified(user.getEmailVerified())
                     .fullName(profileOpt.map(CandidateProfile::getFullName).orElse(null))
                     .phone(profileOpt.map(CandidateProfile::getPhone).orElse(null))
@@ -228,12 +229,14 @@ public class AdminService {
                     .email(user.getEmail())
                     .role(user.getRole())
                     .isActive(user.getIsActive())
+                    .accountStatus(user.getAccountStatus())
                     .emailVerified(user.getEmailVerified())
                     .fullName(profileOpt.map(RecruiterProfile::getFullName).orElse(null))
                     .phone(profileOpt.map(RecruiterProfile::getPhone).orElse(null))
                     .companyId(company != null ? company.getId() : null)
                     .companyName(company != null ? company.getName() : null)
                     .companyVerificationStatus(company != null ? company.getVerificationStatus().name() : null)
+                    .companyOperationalStatus(company != null ? company.getOperationalStatus().name() : null)
                     .createdAt(user.getCreatedAt())
                     .build();
         });

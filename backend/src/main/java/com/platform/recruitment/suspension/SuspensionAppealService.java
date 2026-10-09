@@ -7,9 +7,10 @@ import com.platform.recruitment.common.ResourceNotFoundException;
 import com.platform.recruitment.common.UnauthorizedAccessException;
 import com.platform.recruitment.company.Company;
 import com.platform.recruitment.company.CompanyRepository;
-import com.platform.recruitment.company.CompanyVerification;
 import com.platform.recruitment.company.RecruiterProfile;
 import com.platform.recruitment.company.RecruiterProfileRepository;
+import com.platform.recruitment.job.JobRepository;
+import com.platform.recruitment.job.JobStatus;
 import com.platform.recruitment.suspension.dto.AppealResponse;
 import com.platform.recruitment.suspension.dto.CreateAppealRequest;
 import com.platform.recruitment.suspension.dto.ReviewAppealRequest;
@@ -25,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -38,6 +38,7 @@ public class SuspensionAppealService {
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
     private final RecruiterProfileRepository recruiterProfileRepository;
+    private final JobRepository jobRepository;
     private final AdminAuditLogService adminAuditLogService;
 
     @Transactional
@@ -55,7 +56,7 @@ public class SuspensionAppealService {
         } else if (appellantUser.getRole() == Role.HR) {
             RecruiterProfile profile = recruiterProfileRepository.findByUserId(appellantUser.getId()).orElse(null);
             if (profile != null && profile.getCompany() != null
-                    && profile.getCompany().getVerificationStatus() == CompanyVerification.SUSPENDED) {
+                    && profile.getCompany().isSuspended()) {
                 targetType = SuspensionTargetType.COMPANY;
                 targetId = profile.getCompany().getId();
                 activeSuspension = suspensionRecordRepository
@@ -195,34 +196,62 @@ public class SuspensionAppealService {
         appealRepository.save(appeal);
 
         // 2. Lift associated SuspensionRecord in same transaction
-        suspensionRecordRepository.findByTargetTypeAndTargetIdAndStatus(
-                appeal.getTargetType(),
-                appeal.getTargetId(),
-                SuspensionStatus.ACTIVE
-        ).forEach(record -> {
-            record.setStatus(SuspensionStatus.LIFTED);
-            record.setLiftedBy(admin);
-            record.setLiftedAt(now);
-            record.setResolutionNote("Chấp thuận khiếu nại: " + note);
-            suspensionRecordRepository.save(record);
-        });
+        if (appeal.getSuspension() != null) {
+            SuspensionRecord rec = appeal.getSuspension();
+            rec.setStatus(SuspensionStatus.LIFTED);
+            rec.setLiftedBy(admin);
+            rec.setLiftedAt(now);
+            rec.setResolutionNote("Chấp thuận khiếu nại: " + note);
+            suspensionRecordRepository.save(rec);
+        } else {
+            suspensionRecordRepository.findByTargetTypeAndTargetIdAndStatus(
+                    appeal.getTargetType(),
+                    appeal.getTargetId(),
+                    SuspensionStatus.ACTIVE
+            ).forEach(record -> {
+                record.setStatus(SuspensionStatus.LIFTED);
+                record.setLiftedBy(admin);
+                record.setLiftedAt(now);
+                record.setResolutionNote("Chấp thuận khiếu nại: " + note);
+                suspensionRecordRepository.save(record);
+            });
+        }
 
-        // 3. Reactivate target entity in same transaction
-        if (appeal.getTargetType() == SuspensionTargetType.USER) {
-            User user = userRepository.findById(appeal.getTargetId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User", "id", appeal.getTargetId()));
-            user.reactivate();
-            userRepository.save(user);
-            log.info("Reactivated user via appeal approval: userId={}", user.getId());
-        } else if (appeal.getTargetType() == SuspensionTargetType.COMPANY) {
-            Company company = companyRepository.findById(appeal.getTargetId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Company", "id", appeal.getTargetId()));
-            company.setVerificationStatus(CompanyVerification.VERIFIED);
-            company.setReviewedBy(admin);
-            company.setReviewedAt(now);
-            company.setReviewNotes("Gỡ đình chỉ thông qua khiếu nại: " + note);
-            companyRepository.save(company);
-            log.info("Reactivated company via appeal approval: companyId={}", company.getId());
+        // Reactivate the target only after all active suspensions have been lifted.
+        long remainingActive = suspensionRecordRepository.countByTargetTypeAndTargetIdAndStatus(
+                appeal.getTargetType(), appeal.getTargetId(), SuspensionStatus.ACTIVE);
+
+        if (remainingActive == 0) {
+            if (appeal.getTargetType() == SuspensionTargetType.USER) {
+                User user = userRepository.findById(appeal.getTargetId())
+                        .orElseThrow(() -> new ResourceNotFoundException("User", "id", appeal.getTargetId()));
+                user.reactivate();
+                userRepository.save(user);
+                log.info("Reactivated user via appeal approval: userId={}", user.getId());
+            } else if (appeal.getTargetType() == SuspensionTargetType.COMPANY) {
+                Company company = companyRepository.findById(appeal.getTargetId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Company", "id", appeal.getTargetId()));
+                company.setOperationalStatus(com.platform.recruitment.company.CompanyOperationalStatus.ACTIVE);
+                company.setReviewedBy(admin);
+                company.setReviewedAt(now);
+                company.setReviewNotes("Gỡ đình chỉ thông qua khiếu nại: " + note);
+                companyRepository.save(company);
+                log.info("Reactivated company operational status via appeal approval: companyId={}", company.getId());
+
+                // Restore only jobs suspended because of this company suspension.
+                jobRepository.findByCompanyId(company.getId()).forEach(job -> {
+                    if (job.getStatus() == JobStatus.SUSPENDED
+                            && "Doanh nghiệp bị tạm đình chỉ hoạt động".equals(job.getModerationReason())) {
+                        job.setStatus(JobStatus.PUBLISHED);
+                        job.setModerationReason(null);
+                        job.setSuspendedAt(null);
+                        jobRepository.save(job);
+                    }
+                });
+            }
+        } else {
+            log.warn("Target still has {} other active suspension(s); not reactivating target: id={}",
+                    remainingActive, appeal.getTargetId());
         }
 
         // 4. Audit Log

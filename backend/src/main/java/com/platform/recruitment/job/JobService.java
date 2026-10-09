@@ -42,6 +42,7 @@ public class JobService {
         if (suspensionGuard != null) {
             suspensionGuard.checkRecruiterOperationAllowed(recruiterUser);
         }
+
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 
@@ -94,12 +95,20 @@ public class JobService {
         recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 
-        // Company Verification Business Rule
+        // Company Verification and Operational Business Rule
         Company company = job.getCompany();
-        if (company != null && company.getVerificationStatus() != CompanyVerification.VERIFIED) {
+        if (company != null && (
+                company.getVerificationStatus() != CompanyVerification.VERIFIED ||
+                company.getOperationalStatus() != com.platform.recruitment.company.CompanyOperationalStatus.ACTIVE
+        )) {
             throw new CompanyNotVerifiedException(
-                    String.format("Company '%s' has verification status '%s'. Only VERIFIED companies can publish jobs.",
-                            company.getName(), company.getVerificationStatus()));
+                    String.format(
+                            "Company '%s' has verification status '%s' and operational status '%s'. Only VERIFIED and ACTIVE companies can publish jobs.",
+                            company.getName(),
+                            company.getVerificationStatus(),
+                            company.getOperationalStatus()
+                    )
+            );
         }
 
         if (suspensionGuard != null) {
@@ -172,6 +181,12 @@ public class JobService {
     public JobResponse getJobById(UUID jobId) {
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
+        if (job.getCompany() != null && job.getCompany().isSuspended()) {
+            // Suspended company jobs should not be publicly accessible
+            throw new com.platform.recruitment.common.CustomException(
+                    com.platform.recruitment.common.ErrorCode.COMPANY_SUSPENDED,
+                    "Công việc thuộc doanh nghiệp đang bị tạm đình chỉ hoạt động");
+        }
         return mapToResponse(job);
     }
 
@@ -193,9 +208,11 @@ public class JobService {
 
         org.springframework.data.domain.Page<Job> jobs;
         if (industry != null && !industry.isBlank()) {
-            jobs = jobRepository.findByStatusAndIndustry(JobStatus.PUBLISHED, industry, pageable);
+            jobs = jobRepository.findByStatusAndIndustryAndCompanyOperationalStatus(
+                    JobStatus.PUBLISHED, industry, com.platform.recruitment.company.CompanyOperationalStatus.ACTIVE, pageable);
         } else {
-            jobs = jobRepository.findByStatus(JobStatus.PUBLISHED, pageable);
+            jobs = jobRepository.findByStatusAndCompanyOperationalStatus(
+                    JobStatus.PUBLISHED, com.platform.recruitment.company.CompanyOperationalStatus.ACTIVE, pageable);
         }
 
         List<JobResponse> content = jobs.getContent().stream().map(this::mapToResponse).toList();

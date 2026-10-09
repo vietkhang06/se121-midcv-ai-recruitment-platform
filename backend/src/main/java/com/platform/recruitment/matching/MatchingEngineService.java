@@ -49,6 +49,9 @@ public class MatchingEngineService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.platform.recruitment.github.GitHubProfileRepository gitHubProfileRepository;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private JobMatchingPolicyRepository jobMatchingPolicyRepository;
+
     private final RequiredSkillMatcher requiredSkillMatcher;
     private final PreferredSkillMatcher preferredSkillMatcher;
     private final ExperienceMatcher experienceMatcher;
@@ -190,79 +193,197 @@ public class MatchingEngineService {
             semanticMethod = "TF_CONCEPT_COSINE_SIMILARITY";
         }
 
-        // AUDIT ENFORCEMENT: Never fabricate a default 50.00 score!
-        // If semantic similarity cannot be computed or lacks vector representation, mark NOT_AVAILABLE.
-        boolean semanticAvailable = (semanticScore != null && (cvRawText != null && !cvRawText.isBlank()));
-        String semanticStatus = semanticAvailable ? "AVAILABLE" : "NOT_AVAILABLE";
+        // AUDIT ENFORCEMENT: never invent a semantic score when the input is unavailable.
+        // The text-based cosine method above remains a valid fallback when it returns a score.
+        boolean semanticAvailable = semanticScore != null
+                && cvRawText != null && !cvRawText.isBlank()
+                && job.getDescription() != null && !job.getDescription().isBlank();
+        String semanticStatus = semanticAvailable
+                ? MatchFactorStatus.AVAILABLE.name()
+                : "NOT_AVAILABLE";
         if (!semanticAvailable) {
             semanticScore = null;
         }
 
-        // 3. Core Score Calculation with Transparent Dynamic Re-weighting
-        // Configured weights: SkillReq=0.32, SkillPref=0.08, Exp=0.25, Edu=0.10, Proj=0.10, Semantic=0.15
-        BigDecimal cfgReq = BigDecimal.valueOf(0.32);
-        BigDecimal cfgPref = BigDecimal.valueOf(0.08);
-        BigDecimal cfgExp = BigDecimal.valueOf(0.25);
-        BigDecimal cfgEdu = BigDecimal.valueOf(0.10);
-        BigDecimal cfgProj = BigDecimal.valueOf(0.10);
-        BigDecimal cfgSem = BigDecimal.valueOf(0.15);
-
-        BigDecimal effReq, effPref, effExp, effEdu, effProj, effSem;
-        BigDecimal contribReq, contribPref, contribExp, contribEdu, contribProj, contribSem;
-
-        if (semanticAvailable) {
-            effReq = cfgReq;
-            effPref = cfgPref;
-            effExp = cfgExp;
-            effEdu = cfgEdu;
-            effProj = cfgProj;
-            effSem = cfgSem;
-        } else {
-            // Re-normalize available core factor weights so their sum is exactly 1.0000
-            // Sum of available = 0.32 + 0.08 + 0.25 + 0.10 + 0.10 = 0.85
-            BigDecimal sumAvail = BigDecimal.valueOf(0.85);
-            effReq = cfgReq.divide(sumAvail, 4, RoundingMode.HALF_UP);   // ~0.3765
-            effPref = cfgPref.divide(sumAvail, 4, RoundingMode.HALF_UP); // ~0.0941
-            effExp = cfgExp.divide(sumAvail, 4, RoundingMode.HALF_UP);   // ~0.2941
-            effEdu = cfgEdu.divide(sumAvail, 4, RoundingMode.HALF_UP);   // ~0.1176
-            effProj = BigDecimal.ONE.subtract(effReq).subtract(effPref).subtract(effExp).subtract(effEdu); // balance to 1.0000
-            effSem = BigDecimal.ZERO;
+        // Load the job-specific matching policy, falling back to the documented defaults.
+        JobMatchingPolicy policy = (jobMatchingPolicyRepository != null)
+                ? jobMatchingPolicyRepository.findByJobId(jobId).orElse(null)
+                : null;
+        if (policy == null) {
+            policy = JobMatchingPolicy.createDefaultPolicy(job);
         }
 
-        contribReq = reqSkillScore.multiply(effReq).setScale(2, RoundingMode.HALF_UP);
-        contribPref = prefSkillScore.multiply(effPref).setScale(2, RoundingMode.HALF_UP);
-        contribExp = expScore.multiply(effExp).setScale(2, RoundingMode.HALF_UP);
-        contribEdu = eduScore.multiply(effEdu).setScale(2, RoundingMode.HALF_UP);
-        contribProj = projScore.multiply(effProj).setScale(2, RoundingMode.HALF_UP);
-        contribSem = semanticAvailable ? semanticScore.multiply(effSem).setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+        String policySnapshot = null;
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = this.objectMapper != null
+                    ? this.objectMapper
+                    : new com.fasterxml.jackson.databind.ObjectMapper();
+            policySnapshot = mapper.writeValueAsString(JobMatchingPolicyDto.fromEntity(policy));
+        } catch (Exception e) {
+            log.warn("Failed to serialize policy snapshot: {}", e.getMessage());
+        }
 
-        double coreVal = (effReq.doubleValue() * reqSkillScore.doubleValue()) +
-                         (effPref.doubleValue() * prefSkillScore.doubleValue()) +
-                         (effExp.doubleValue() * expScore.doubleValue()) +
-                         (effEdu.doubleValue() * eduScore.doubleValue()) +
-                         (effProj.doubleValue() * projScore.doubleValue()) +
-                         (semanticAvailable ? effSem.doubleValue() * semanticScore.doubleValue() : 0.0);
-        double boundedCoreVal = Math.max(0.0, Math.min(100.0, coreVal));
-        BigDecimal scoreCore = BigDecimal.valueOf(boundedCoreVal).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal cfgReq = policy.getSkillRequiredWeight();
+        BigDecimal cfgPref = policy.getSkillPreferredWeight();
+        BigDecimal cfgExp = policy.getExperienceWeight();
+        BigDecimal cfgEdu = policy.getEducationWeight();
+        BigDecimal cfgProj = policy.getProjectWeight();
+        BigDecimal cfgSem = policy.getSemanticWeight();
+        BigDecimal cfgCore = policy.getCoreWeight();
+        BigDecimal cfgGithub = policy.getGithubWeight();
+        boolean policyGithubActive = Boolean.TRUE.equals(policy.getIsGithubActive());
 
-        // 4. GitHub Supporting Score & Overall Formula
+        // SKILL_REQUIRED: missing evidence is scored as zero; an absent requirement is not applicable.
+        String statusReq;
+        BigDecimal scoreReq;
+        boolean applicableReq = true;
+        if (reqTotal == 0) {
+            statusReq = MatchFactorStatus.NOT_APPLICABLE.name();
+            scoreReq = BigDecimal.ZERO;
+            applicableReq = false;
+        } else if (reqMatched > 0) {
+            statusReq = MatchFactorStatus.AVAILABLE.name();
+            scoreReq = reqSkillScore;
+        } else {
+            statusReq = MatchFactorStatus.MISSING_EVIDENCE.name();
+            scoreReq = BigDecimal.ZERO;
+        }
+
+        // SKILL_PREFERRED
+        String statusPref;
+        BigDecimal scorePref;
+        boolean applicablePref = true;
+        if (prefTotal == 0) {
+            statusPref = MatchFactorStatus.NOT_APPLICABLE.name();
+            scorePref = BigDecimal.ZERO;
+            applicablePref = false;
+        } else if (prefMatched > 0) {
+            statusPref = MatchFactorStatus.AVAILABLE.name();
+            scorePref = prefSkillScore;
+        } else {
+            statusPref = MatchFactorStatus.MISSING_EVIDENCE.name();
+            scorePref = BigDecimal.ZERO;
+        }
+
+        // EXPERIENCE
+        String statusExp;
+        BigDecimal scoreExp;
+        boolean applicableExp = true;
+        if (expScore.compareTo(BigDecimal.ZERO) > 0) {
+            statusExp = MatchFactorStatus.AVAILABLE.name();
+            scoreExp = expScore;
+        } else {
+            statusExp = MatchFactorStatus.MISSING_EVIDENCE.name();
+            scoreExp = BigDecimal.ZERO;
+        }
+
+        // EDUCATION
+        String statusEdu;
+        BigDecimal scoreEdu;
+        boolean applicableEdu = true;
+        if (eduScore.compareTo(BigDecimal.ZERO) > 0) {
+            statusEdu = MatchFactorStatus.AVAILABLE.name();
+            scoreEdu = eduScore;
+        } else {
+            statusEdu = MatchFactorStatus.MISSING_EVIDENCE.name();
+            scoreEdu = BigDecimal.ZERO;
+        }
+
+        // PROJECT
+        String statusProj;
+        BigDecimal scoreProj;
+        boolean applicableProj = true;
+        if (projScore.compareTo(BigDecimal.ZERO) > 0) {
+            statusProj = MatchFactorStatus.AVAILABLE.name();
+            scoreProj = projScore;
+        } else {
+            statusProj = MatchFactorStatus.MISSING_EVIDENCE.name();
+            scoreProj = BigDecimal.ZERO;
+        }
+
+        // SEMANTIC: unavailable scores are excluded from the denominator rather than treated as zero evidence.
+        String statusSem = semanticAvailable
+                ? MatchFactorStatus.AVAILABLE.name()
+                : semanticStatus;
+        BigDecimal scoreSem = semanticAvailable ? semanticScore : BigDecimal.ZERO;
+        boolean applicableSem = semanticAvailable;
+
+        // Dynamic Re-weighting:
+        // ONLY factors marked NOT_APPLICABLE are dropped from the denominator.
+        // Factors with MISSING_EVIDENCE keep their weight with score = 0, preventing score inflation!
+        BigDecimal sumApplicableCore = BigDecimal.ZERO;
+        if (applicableReq) sumApplicableCore = sumApplicableCore.add(cfgReq);
+        if (applicablePref) sumApplicableCore = sumApplicableCore.add(cfgPref);
+        if (applicableExp) sumApplicableCore = sumApplicableCore.add(cfgExp);
+        if (applicableEdu) sumApplicableCore = sumApplicableCore.add(cfgEdu);
+        if (applicableProj) sumApplicableCore = sumApplicableCore.add(cfgProj);
+        if (applicableSem) sumApplicableCore = sumApplicableCore.add(cfgSem);
+
+        BigDecimal effReq = BigDecimal.ZERO;
+        BigDecimal effPref = BigDecimal.ZERO;
+        BigDecimal effExp = BigDecimal.ZERO;
+        BigDecimal effEdu = BigDecimal.ZERO;
+        BigDecimal effProj = BigDecimal.ZERO;
+        BigDecimal effSem = BigDecimal.ZERO;
+
+        if (sumApplicableCore.compareTo(BigDecimal.ZERO) > 0) {
+            if (applicableReq) effReq = cfgReq.divide(sumApplicableCore, 4, RoundingMode.HALF_UP);
+            if (applicablePref) effPref = cfgPref.divide(sumApplicableCore, 4, RoundingMode.HALF_UP);
+            if (applicableExp) effExp = cfgExp.divide(sumApplicableCore, 4, RoundingMode.HALF_UP);
+            if (applicableEdu) effEdu = cfgEdu.divide(sumApplicableCore, 4, RoundingMode.HALF_UP);
+            if (applicableProj) effProj = cfgProj.divide(sumApplicableCore, 4, RoundingMode.HALF_UP);
+
+            // Balance the last applicable factor so the exact sum of effective weights is 1.0000
+            if (applicableSem) {
+                effSem = BigDecimal.ONE.subtract(effReq).subtract(effPref).subtract(effExp).subtract(effEdu).subtract(effProj);
+            } else if (applicableProj) {
+                effProj = BigDecimal.ONE.subtract(effReq).subtract(effPref).subtract(effExp).subtract(effEdu);
+            }
+        }
+
+        BigDecimal contribReq = scoreReq.multiply(effReq).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal contribPref = scorePref.multiply(effPref).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal contribExp = scoreExp.multiply(effExp).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal contribEdu = scoreEdu.multiply(effEdu).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal contribProj = scoreProj.multiply(effProj).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal contribSem = scoreSem.multiply(effSem).setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal scoreCore = contribReq.add(contribPref).add(contribExp).add(contribEdu).add(contribProj).add(contribSem)
+                .setScale(2, RoundingMode.HALF_UP);
+        scoreCore = scoreCore.max(BigDecimal.ZERO).min(new BigDecimal("100.00"));
+
+        // 4. GitHub Supporting Factor Evaluation
         Optional<BigDecimal> githubScoreOpt = gitHubScoringService.calculateGitHubSupportingScore(candidateId, job.getIndustry(), job.getDescription());
-        
+
+        String statusGithub;
         BigDecimal scoreGithub = null;
-        BigDecimal weightCore = BigDecimal.valueOf(1.00);
-        BigDecimal weightGithub = BigDecimal.ZERO;
+        BigDecimal effCoreWeight;
+        BigDecimal effGithubWeight;
         BigDecimal scoreOverall;
 
-        if (githubScoreOpt.isPresent()) {
-            scoreGithub = githubScoreOpt.get();
-            weightCore = BigDecimal.valueOf(0.85);
-            weightGithub = BigDecimal.valueOf(0.15);
-            double overallVal = (0.85 * scoreCore.doubleValue()) + (0.15 * scoreGithub.doubleValue());
-            double boundedOverall = Math.max(0.0, Math.min(100.0, overallVal));
-            scoreOverall = BigDecimal.valueOf(boundedOverall).setScale(2, RoundingMode.HALF_UP);
-        } else {
-            // Fallback without penalty: S_overall = S_core
+        BigDecimal configuredOverallWeight = cfgCore.add(cfgGithub);
+        if (!policyGithubActive
+                || githubScoreOpt.isEmpty()
+                || cfgGithub.compareTo(BigDecimal.ZERO) <= 0
+                || configuredOverallWeight.compareTo(BigDecimal.ZERO) <= 0) {
+            statusGithub = MatchFactorStatus.NOT_APPLICABLE.name();
+            scoreGithub = null;
+            effCoreWeight = BigDecimal.ONE;
+            effGithubWeight = BigDecimal.ZERO;
+            // Fallback without a GitHub signal: do not penalize the candidate.
             scoreOverall = scoreCore;
+        } else {
+            statusGithub = MatchFactorStatus.AVAILABLE.name();
+            scoreGithub = githubScoreOpt.get();
+
+            // Respect policy-level core/GitHub weights and normalize them defensively.
+            effCoreWeight = cfgCore.divide(configuredOverallWeight, 4, RoundingMode.HALF_UP);
+            effGithubWeight = BigDecimal.ONE.subtract(effCoreWeight);
+
+            BigDecimal overall = scoreCore.multiply(effCoreWeight)
+                    .add(scoreGithub.multiply(effGithubWeight));
+            scoreOverall = overall.max(BigDecimal.ZERO).min(new BigDecimal("100.00"))
+                    .setScale(2, RoundingMode.HALF_UP);
         }
 
         // 5. Save or Update MatchResult
@@ -273,10 +394,10 @@ public class MatchingEngineService {
 
         result.setCoreScore(scoreCore);
         result.setGithubScore(scoreGithub);
-        result.setCoreWeight(weightCore);
-        result.setGithubWeight(weightGithub);
+        result.setCoreWeight(effCoreWeight);
+        result.setGithubWeight(effGithubWeight);
         result.setOverallScore(scoreOverall);
-        boolean githubActive = (scoreGithub != null && weightGithub.compareTo(BigDecimal.ZERO) > 0);
+        boolean githubActive = (scoreGithub != null && effGithubWeight.compareTo(BigDecimal.ZERO) > 0);
         result.setIsGithubActive(githubActive);
         result.setGithubFallbackApplied(!githubActive);
         result.setRequiredSkillsTotal(reqTotal);
@@ -287,6 +408,8 @@ public class MatchingEngineService {
         result.setPreferredSkillsMissing(prefMissing);
         result.setStatus("COMPLETED");
         result.setMatchingAlgorithmVersion("v2.0");
+        result.setPolicyVersion(policy.getPolicyVersion());
+        result.setPolicySnapshot(policySnapshot);
 
         MatchResult savedResult = matchResultRepository.save(result);
 
@@ -297,23 +420,25 @@ public class MatchingEngineService {
         }
 
         // 6. Save Grounded MatchFactors for Transparent Score Reconstruction
-        saveMatchFactor(savedResult, "SKILL_REQUIRED", "Kỹ năng bắt buộc", "CV", reqSkillScore, reqSkillScore, reqSkillScore,
-                cfgReq, effReq, contribReq, "AVAILABLE", "EXACT_AND_ALIAS_TAXONOMY_MATCH", null);
-        saveMatchFactor(savedResult, "SKILL_PREFERRED", "Kỹ năng ưu tiên", "CV", prefSkillScore, prefSkillScore, prefSkillScore,
-                cfgPref, effPref, contribPref, "AVAILABLE", "KEYWORD_FREQUENCY_MATCH", null);
-        saveMatchFactor(savedResult, "EXPERIENCE", "Kinh nghiệm làm việc", "CV", expScore, expScore, expScore,
-                cfgExp, effExp, contribExp, "AVAILABLE", "RELEVANT_YEARS_EXTRACTION", null);
-        saveMatchFactor(savedResult, "EDUCATION", "Học vấn & Bằng cấp", "CV", eduScore, eduScore, eduScore,
-                cfgEdu, effEdu, contribEdu, "AVAILABLE", "DEGREE_AND_MAJOR_RELEVANCE", null);
-        saveMatchFactor(savedResult, "PROJECT", "Dự án liên quan", "CV", projScore, projScore, projScore,
-                cfgProj, effProj, contribProj, "AVAILABLE", "PROJECT_STACK_KEYWORD_MATCH", null);
-        saveMatchFactor(savedResult, "SEMANTIC", "Mức độ phù hợp ngữ nghĩa", "CV", semanticScore, semanticScore, semanticScore,
-                cfgSem, effSem, contribSem, semanticStatus, semanticMethod, cvDocVersionId != null ? cvDocVersionId.toString() : null);
+        saveMatchFactor(savedResult, "SKILL_REQUIRED", "Kỹ năng bắt buộc", "CV", scoreReq, scoreReq, scoreReq,
+                cfgReq, effReq, contribReq, statusReq, "EXACT_AND_ALIAS_TAXONOMY_MATCH", null);
+        saveMatchFactor(savedResult, "SKILL_PREFERRED", "Kỹ năng ưu tiên", "CV", scorePref, scorePref, scorePref,
+                cfgPref, effPref, contribPref, statusPref, "KEYWORD_FREQUENCY_MATCH", null);
+        saveMatchFactor(savedResult, "EXPERIENCE", "Kinh nghiệm làm việc", "CV", scoreExp, scoreExp, scoreExp,
+                cfgExp, effExp, contribExp, statusExp, "RELEVANT_YEARS_EXTRACTION", null);
+        saveMatchFactor(savedResult, "EDUCATION", "Học vấn & Bằng cấp", "CV", scoreEdu, scoreEdu, scoreEdu,
+                cfgEdu, effEdu, contribEdu, statusEdu, "DEGREE_AND_MAJOR_RELEVANCE", null);
+        saveMatchFactor(savedResult, "PROJECT", "Dự án liên quan", "CV", scoreProj, scoreProj, scoreProj,
+                cfgProj, effProj, contribProj, statusProj, "PROJECT_STACK_KEYWORD_MATCH", null);
+        saveMatchFactor(savedResult, "SEMANTIC", "Mức độ phù hợp ngữ nghĩa", "CV", scoreSem, scoreSem, scoreSem,
+                cfgSem, effSem, contribSem, statusSem, semanticMethod,
+                cvDocVersionId != null ? cvDocVersionId.toString() : null);
 
-        if (scoreGithub != null && weightGithub.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal contribGithub = scoreGithub.multiply(weightGithub).setScale(2, RoundingMode.HALF_UP);
-            saveMatchFactor(savedResult, "GITHUB_SUPPORTING", "Đánh giá GitHub bổ trợ", "GITHUB", scoreGithub, scoreGithub, scoreGithub,
-                    weightGithub, weightGithub, contribGithub, "AVAILABLE", "GITHUB_PUBLIC_SIGNAL_ANALYSIS", candidateId != null ? candidateId.toString() : null);
+        if (scoreGithub != null && effGithubWeight.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal contribGithub = scoreGithub.multiply(effGithubWeight).setScale(2, RoundingMode.HALF_UP);
+            saveMatchFactor(savedResult, "GITHUB_SUPPORTING", "Đánh giá GitHub bổ trợ", "GITHUB",
+                    scoreGithub, scoreGithub, scoreGithub, cfgGithub, effGithubWeight, contribGithub,
+                    statusGithub, "GITHUB_PUBLIC_SIGNAL_ANALYSIS", candidateId != null ? candidateId.toString() : null);
         }
 
         // 7. Save Grounded Evidences into PostgreSQL evidences table
@@ -351,7 +476,7 @@ public class MatchingEngineService {
                         .build();
                 evidenceRepository.save(expEvidence);
             }
-            if (scoreGithub != null && weightGithub.compareTo(BigDecimal.ZERO) > 0) {
+            if (scoreGithub != null && effGithubWeight != null && effGithubWeight.compareTo(BigDecimal.ZERO) > 0) {
                 List<String> relevantRepos = gitHubScoringService.findRelevantRepositories(candidateId, job.getDescription());
                 for (String rName : relevantRepos) {
                     Evidence ghEvidence = Evidence.builder()

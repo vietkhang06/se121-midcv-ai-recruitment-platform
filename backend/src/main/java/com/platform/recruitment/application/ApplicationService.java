@@ -93,11 +93,19 @@ public class ApplicationService {
 
     @Transactional
     public ApplicationResponse submitApplication(User candidateUser, SubmitApplicationRequest request) {
+        if (suspensionGuard != null) {
+            suspensionGuard.checkCandidateOperationAllowed(candidateUser);
+        }
+
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
 
         Job job = jobRepository.findById(request.getJobId())
                 .orElseThrow(() -> new ResourceNotFoundException("Job", "id", request.getJobId()));
+
+        if (suspensionGuard != null && job.getCompany() != null) {
+            suspensionGuard.checkCompanyOperationAllowed(job.getCompany());
+        }
 
         // Business Rule Enforcement: Candidate can ONLY apply to PUBLISHED jobs
         if (job.getStatus() != JobStatus.PUBLISHED) {

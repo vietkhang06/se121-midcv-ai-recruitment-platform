@@ -1,77 +1,95 @@
 import json
 import logging
 from typing import Optional, Dict, Any, Tuple, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict, AliasChoices
 
 logger = logging.getLogger(__name__)
 
 
 class PersonalInfo(BaseModel):
-    fullName: Optional[str] = None
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+    fullName: Optional[str] = Field(default=None, validation_alias=AliasChoices("fullName", "full_name"))
     email: Optional[str] = None
     phone: Optional[str] = None
-    address: Optional[str] = None
+    address: Optional[str] = Field(default=None, validation_alias=AliasChoices("address", "location"))
     headline: Optional[str] = None
-    linkedinUrl: Optional[str] = None
-    githubUrl: Optional[str] = None
+    linkedinUrl: Optional[str] = Field(default=None, validation_alias=AliasChoices("linkedinUrl", "linkedin_url"))
+    githubUrl: Optional[str] = Field(default=None, validation_alias=AliasChoices("githubUrl", "github_url"))
 
 
 class ExtractedSkillItem(BaseModel):
-    name: str
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+    name: str = Field(validation_alias=AliasChoices("name", "skill_name"))
     level: Optional[str] = None
 
 
 class ExtractedEducationItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
     institution: str
     degree: Optional[str] = None
-    fieldOfStudy: Optional[str] = None
-    startYear: Optional[int] = None
-    endYear: Optional[int] = None
+    fieldOfStudy: Optional[str] = Field(default=None, validation_alias=AliasChoices("fieldOfStudy", "field_of_study"))
+    startYear: Optional[int] = Field(default=None, validation_alias=AliasChoices("startYear", "start_year"))
+    endYear: Optional[int] = Field(default=None, validation_alias=AliasChoices("endYear", "end_year"))
     gpa: Optional[float] = None
-    gpa_scale: Optional[float] = None
-    gpa_display: Optional[str] = None
+    gpa_scale: Optional[float] = Field(default=None, validation_alias=AliasChoices("gpa_scale", "gpaScale"))
+    gpa_display: Optional[str] = Field(default=None, validation_alias=AliasChoices("gpa_display", "gpaDisplay"))
 
 
 class ExtractedExperienceItem(BaseModel):
-    company: str
-    position: str
-    startDate: Optional[str] = None
-    endDate: Optional[str] = None
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+    company: str = Field(validation_alias=AliasChoices("company", "company_name"))
+    position: str = Field(validation_alias=AliasChoices("position", "role"))
+    startDate: Optional[str] = Field(default=None, validation_alias=AliasChoices("startDate", "start_date"))
+    endDate: Optional[str] = Field(default=None, validation_alias=AliasChoices("endDate", "end_date"))
+    is_current: bool = Field(default=False, validation_alias=AliasChoices("is_current", "isCurrent"))
     description: str = ""
-    technologies: List[str] = Field(default_factory=list)
+    technologies: List[str] = Field(default_factory=list, validation_alias=AliasChoices("technologies", "techStack", "tech_stack"))
 
 
 class ExtractedProjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
     name: str
     role: Optional[str] = None
     description: str = ""
-    techStack: List[str] = Field(default_factory=list)
+    techStack: List[str] = Field(default_factory=list, validation_alias=AliasChoices("techStack", "tech_stack", "technologies"))
 
 
 class ExtractedCertificationItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
     name: str
     issuer: Optional[str] = None
-    date: Optional[str] = None
+    date: Optional[str] = Field(default=None, validation_alias=AliasChoices("date", "issue_date", "issueDate"))
 
 
 class ExtractedLanguageItem(BaseModel):
-    language: str
-    proficiency: Optional[str] = None
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+    language: str = Field(validation_alias=AliasChoices("language", "language_name"))
+    proficiency: Optional[str] = Field(default=None, validation_alias=AliasChoices("proficiency", "proficiency_level", "proficiencyLevel"))
 
 
 class StructuredCVData(BaseModel):
-    personalInfo: PersonalInfo = Field(default_factory=PersonalInfo)
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+    personalInfo: PersonalInfo = Field(default_factory=PersonalInfo, validation_alias=AliasChoices("personalInfo", "personal_info"))
     headline: Optional[str] = None
-    summary: Optional[str] = None
+    summary: Optional[str] = Field(default=None, validation_alias=AliasChoices("summary", "professional_summary", "professionalSummary", "bio"))
     skills: List[ExtractedSkillItem] = Field(default_factory=list)
-    education: List[ExtractedEducationItem] = Field(default_factory=list)
-    experience: List[ExtractedExperienceItem] = Field(default_factory=list)
+    education: List[ExtractedEducationItem] = Field(default_factory=list, validation_alias=AliasChoices("education", "educations"))
+    experience: List[ExtractedExperienceItem] = Field(default_factory=list, validation_alias=AliasChoices("experience", "experiences", "work_experience", "workExperience"))
     projects: List[ExtractedProjectItem] = Field(default_factory=list)
     certifications: List[ExtractedCertificationItem] = Field(default_factory=list)
     languages: List[ExtractedLanguageItem] = Field(default_factory=list)
     links: List[str] = Field(default_factory=list)
     warnings: List[str] = Field(default_factory=list)
     evidence: Dict[str, Any] = Field(default_factory=dict)
+
 
 
 class StructuredCVValidator:

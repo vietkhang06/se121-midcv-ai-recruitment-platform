@@ -39,6 +39,11 @@ public class Company extends BaseEntity {
     @Column(name = "verification_status")
     private CompanyVerification verificationStatus = CompanyVerification.PENDING;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "operational_status", nullable = false)
+    private CompanyOperationalStatus operationalStatus = CompanyOperationalStatus.ACTIVE;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reviewed_by")
     private User reviewedBy;
@@ -53,4 +58,12 @@ public class Company extends BaseEntity {
     @Version
     @Column(name = "version", nullable = false)
     private Long version = 0L;
+
+    public boolean isOperational() {
+        return this.operationalStatus == CompanyOperationalStatus.ACTIVE;
+    }
+
+    public boolean isSuspended() {
+        return this.operationalStatus == CompanyOperationalStatus.SUSPENDED;
+    }
 }
