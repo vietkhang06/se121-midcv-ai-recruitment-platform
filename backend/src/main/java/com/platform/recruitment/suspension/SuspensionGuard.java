@@ -4,6 +4,7 @@ import com.platform.recruitment.common.CustomException;
 import com.platform.recruitment.common.ErrorCode;
 import com.platform.recruitment.common.UnauthorizedAccessException;
 import com.platform.recruitment.company.Company;
+import com.platform.recruitment.company.CompanyVerification;
 import com.platform.recruitment.company.RecruiterProfile;
 import com.platform.recruitment.company.RecruiterProfileRepository;
 import com.platform.recruitment.job.Job;

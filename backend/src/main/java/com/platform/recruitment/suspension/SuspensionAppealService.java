@@ -7,6 +7,7 @@ import com.platform.recruitment.common.ResourceNotFoundException;
 import com.platform.recruitment.common.UnauthorizedAccessException;
 import com.platform.recruitment.company.Company;
 import com.platform.recruitment.company.CompanyRepository;
+import com.platform.recruitment.company.CompanyVerification;
 import com.platform.recruitment.company.RecruiterProfile;
 import com.platform.recruitment.company.RecruiterProfileRepository;
 import com.platform.recruitment.job.JobRepository;
@@ -26,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -217,7 +219,7 @@ public class SuspensionAppealService {
             });
         }
 
-        // Reactivate the target only after all active suspensions have been lifted.
+        // 3. Reactivate target entity ONLY IF no other active suspensions remain
         long remainingActive = suspensionRecordRepository.countByTargetTypeAndTargetIdAndStatus(
                 appeal.getTargetType(), appeal.getTargetId(), SuspensionStatus.ACTIVE);
 
@@ -238,10 +240,10 @@ public class SuspensionAppealService {
                 companyRepository.save(company);
                 log.info("Reactivated company operational status via appeal approval: companyId={}", company.getId());
 
-                // Restore only jobs suspended because of this company suspension.
+                // Restore jobs that were suspended due to company suspension
                 jobRepository.findByCompanyId(company.getId()).forEach(job -> {
-                    if (job.getStatus() == JobStatus.SUSPENDED
-                            && "Doanh nghiệp bị tạm đình chỉ hoạt động".equals(job.getModerationReason())) {
+                    if (job.getStatus() == JobStatus.SUSPENDED &&
+                        "Doanh nghiệp bị tạm đình chỉ hoạt động".equals(job.getModerationReason())) {
                         job.setStatus(JobStatus.PUBLISHED);
                         job.setModerationReason(null);
                         job.setSuspendedAt(null);

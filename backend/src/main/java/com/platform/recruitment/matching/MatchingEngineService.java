@@ -193,19 +193,7 @@ public class MatchingEngineService {
             semanticMethod = "TF_CONCEPT_COSINE_SIMILARITY";
         }
 
-        // AUDIT ENFORCEMENT: never invent a semantic score when the input is unavailable.
-        // The text-based cosine method above remains a valid fallback when it returns a score.
-        boolean semanticAvailable = semanticScore != null
-                && cvRawText != null && !cvRawText.isBlank()
-                && job.getDescription() != null && !job.getDescription().isBlank();
-        String semanticStatus = semanticAvailable
-                ? MatchFactorStatus.AVAILABLE.name()
-                : "NOT_AVAILABLE";
-        if (!semanticAvailable) {
-            semanticScore = null;
-        }
-
-        // Load the job-specific matching policy, falling back to the documented defaults.
+        // 3. Load or Default Job Matching Policy
         JobMatchingPolicy policy = (jobMatchingPolicyRepository != null)
                 ? jobMatchingPolicyRepository.findByJobId(jobId).orElse(null)
                 : null;
@@ -215,9 +203,7 @@ public class MatchingEngineService {
 
         String policySnapshot = null;
         try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = this.objectMapper != null
-                    ? this.objectMapper
-                    : new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.ObjectMapper mapper = this.objectMapper != null ? this.objectMapper : new com.fasterxml.jackson.databind.ObjectMapper();
             policySnapshot = mapper.writeValueAsString(JobMatchingPolicyDto.fromEntity(policy));
         } catch (Exception e) {
             log.warn("Failed to serialize policy snapshot: {}", e.getMessage());
@@ -233,7 +219,8 @@ public class MatchingEngineService {
         BigDecimal cfgGithub = policy.getGithubWeight();
         boolean policyGithubActive = Boolean.TRUE.equals(policy.getIsGithubActive());
 
-        // SKILL_REQUIRED: missing evidence is scored as zero; an absent requirement is not applicable.
+        // Factor Statuses & Scores Evaluation:
+        // SKILL_REQUIRED
         String statusReq;
         BigDecimal scoreReq;
         boolean applicableReq = true;
@@ -245,6 +232,7 @@ public class MatchingEngineService {
             statusReq = MatchFactorStatus.AVAILABLE.name();
             scoreReq = reqSkillScore;
         } else {
+            // Required skills exist in JD, but candidate matched 0 -> MISSING_EVIDENCE!
             statusReq = MatchFactorStatus.MISSING_EVIDENCE.name();
             scoreReq = BigDecimal.ZERO;
         }
@@ -301,12 +289,17 @@ public class MatchingEngineService {
             scoreProj = BigDecimal.ZERO;
         }
 
-        // SEMANTIC: unavailable scores are excluded from the denominator rather than treated as zero evidence.
-        String statusSem = semanticAvailable
-                ? MatchFactorStatus.AVAILABLE.name()
-                : semanticStatus;
-        BigDecimal scoreSem = semanticAvailable ? semanticScore : BigDecimal.ZERO;
-        boolean applicableSem = semanticAvailable;
+        // SEMANTIC
+        String statusSem;
+        BigDecimal scoreSem;
+        boolean applicableSem = true;
+        if (semanticScore != null) {
+            statusSem = MatchFactorStatus.AVAILABLE.name();
+            scoreSem = semanticScore;
+        } else {
+            statusSem = MatchFactorStatus.MISSING_EVIDENCE.name();
+            scoreSem = BigDecimal.ZERO;
+        }
 
         // Dynamic Re-weighting:
         // ONLY factors marked NOT_APPLICABLE are dropped from the denominator.
@@ -361,29 +354,20 @@ public class MatchingEngineService {
         BigDecimal effGithubWeight;
         BigDecimal scoreOverall;
 
-        BigDecimal configuredOverallWeight = cfgCore.add(cfgGithub);
-        if (!policyGithubActive
-                || githubScoreOpt.isEmpty()
-                || cfgGithub.compareTo(BigDecimal.ZERO) <= 0
-                || configuredOverallWeight.compareTo(BigDecimal.ZERO) <= 0) {
+        if (!policyGithubActive || githubScoreOpt.isEmpty()) {
             statusGithub = MatchFactorStatus.NOT_APPLICABLE.name();
             scoreGithub = null;
-            effCoreWeight = BigDecimal.ONE;
+            effCoreWeight = BigDecimal.valueOf(1.00);
             effGithubWeight = BigDecimal.ZERO;
-            // Fallback without a GitHub signal: do not penalize the candidate.
             scoreOverall = scoreCore;
         } else {
             statusGithub = MatchFactorStatus.AVAILABLE.name();
             scoreGithub = githubScoreOpt.get();
-
-            // Respect policy-level core/GitHub weights and normalize them defensively.
-            effCoreWeight = cfgCore.divide(configuredOverallWeight, 4, RoundingMode.HALF_UP);
-            effGithubWeight = BigDecimal.ONE.subtract(effCoreWeight);
-
-            BigDecimal overall = scoreCore.multiply(effCoreWeight)
-                    .add(scoreGithub.multiply(effGithubWeight));
-            scoreOverall = overall.max(BigDecimal.ZERO).min(new BigDecimal("100.00"))
-                    .setScale(2, RoundingMode.HALF_UP);
+            effCoreWeight = BigDecimal.valueOf(0.85);
+            effGithubWeight = BigDecimal.valueOf(0.15);
+            double overallVal = (effCoreWeight.doubleValue() * scoreCore.doubleValue()) + (effGithubWeight.doubleValue() * scoreGithub.doubleValue());
+            double boundedOverall = Math.max(0.0, Math.min(100.0, overallVal));
+            scoreOverall = BigDecimal.valueOf(boundedOverall).setScale(2, RoundingMode.HALF_UP);
         }
 
         // 5. Save or Update MatchResult
@@ -431,14 +415,12 @@ public class MatchingEngineService {
         saveMatchFactor(savedResult, "PROJECT", "Dự án liên quan", "CV", scoreProj, scoreProj, scoreProj,
                 cfgProj, effProj, contribProj, statusProj, "PROJECT_STACK_KEYWORD_MATCH", null);
         saveMatchFactor(savedResult, "SEMANTIC", "Mức độ phù hợp ngữ nghĩa", "CV", scoreSem, scoreSem, scoreSem,
-                cfgSem, effSem, contribSem, statusSem, semanticMethod,
-                cvDocVersionId != null ? cvDocVersionId.toString() : null);
+                cfgSem, effSem, contribSem, statusSem, semanticMethod, cvDocVersionId != null ? cvDocVersionId.toString() : null);
 
         if (scoreGithub != null && effGithubWeight.compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal contribGithub = scoreGithub.multiply(effGithubWeight).setScale(2, RoundingMode.HALF_UP);
-            saveMatchFactor(savedResult, "GITHUB_SUPPORTING", "Đánh giá GitHub bổ trợ", "GITHUB",
-                    scoreGithub, scoreGithub, scoreGithub, cfgGithub, effGithubWeight, contribGithub,
-                    statusGithub, "GITHUB_PUBLIC_SIGNAL_ANALYSIS", candidateId != null ? candidateId.toString() : null);
+            saveMatchFactor(savedResult, "GITHUB_SUPPORTING", "Đánh giá GitHub bổ trợ", "GITHUB", scoreGithub, scoreGithub, scoreGithub,
+                    cfgGithub, effGithubWeight, contribGithub, statusGithub, "GITHUB_PUBLIC_SIGNAL_ANALYSIS", candidateId != null ? candidateId.toString() : null);
         }
 
         // 7. Save Grounded Evidences into PostgreSQL evidences table
