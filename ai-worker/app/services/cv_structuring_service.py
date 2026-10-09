@@ -1,3 +1,4 @@
+import re
 import time
 import json
 import uuid
@@ -19,20 +20,20 @@ from app.services.structured_cv_validator import StructuredCVValidator, Structur
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You extract structured information from CV text.
+SYSTEM_PROMPT = """You extract structured information from CV text for the MidCV recruitment platform.
 
-Return exactly one valid JSON object matching the supplied schema.
-Do not return Markdown.
-Do not use code fences.
-Do not add explanations.
-Do not infer information that is not explicitly supported by the CV.
-Use null for missing scalar values.
-Use empty arrays for missing collections.
-Preserve the meaning and language of the original CV.
-Every extracted fact must be supported by the supplied CV text."""
+STRICT INSTRUCTIONS:
+1. Return exactly ONE valid JSON object matching the target schema.
+2. Do not return Markdown or code fences (no ```json).
+3. Do not add explanations, preamble, or commentary.
+4. Extract ONLY facts explicitly supported by the supplied CV text. Do NOT fabricate, guess, or infer unsupported facts.
+5. If a date is just a year (e.g. 2021), keep it as "2021". NEVER invent days or months ("2021-01-01").
+6. If GPA or grading scale is not explicitly stated in the CV, set "gpa", "gpa_scale", and "gpa_display" to null. NEVER invent grades.
+7. If years of experience or proficiency levels are not explicitly stated, use null.
+8. Use null for missing scalar values. Use empty arrays [] for missing collections. Never output "N/A" or "Unknown"."""
 
-REPAIR_SYSTEM_PROMPT = """You are a JSON repair assistant.
-Fix the syntax and data types of the following malformed JSON object to strictly conform to the expected schema.
+REPAIR_SYSTEM_PROMPT = """You are a JSON schema repair assistant for structured CV profiles.
+Fix the syntax, structure, and data types of the malformed output to strictly conform to the expected schema.
 Do not add new facts, explanations, or markdown fences. Return ONLY the valid JSON object."""
 
 SCHEMA_TEMPLATE = """{
@@ -48,11 +49,31 @@ SCHEMA_TEMPLATE = """{
   "summary": null,
   "skills": [{"name": "string", "level": null}],
   "education": [{"institution": "string", "degree": null, "fieldOfStudy": null, "startYear": null, "endYear": null, "gpa": null, "gpa_scale": null, "gpa_display": null}],
-  "experience": [{"company": "string", "position": "string", "startDate": null, "endDate": null, "description": "", "technologies": []}],
+  "experience": [{"company": "string", "position": "string", "startDate": null, "endDate": null, "is_current": false, "description": "", "technologies": []}],
   "projects": [{"name": "string", "role": null, "description": "", "techStack": []}],
   "certifications": [{"name": "string", "issuer": null, "date": null}],
   "languages": [{"language": "string", "proficiency": null}]
 }"""
+
+
+
+def _sanitize_validation_error(err_msg: Optional[str]) -> str:
+    """Sanitizes validation error messages by stripping secrets, emails, phones, and truncating."""
+    if not err_msg:
+        return "Output must be valid JSON conforming to the expected schema."
+    text = str(err_msg)
+    # Redact API keys, tokens, bearer headers
+    text = re.sub(r"(?i)sk-[a-zA-Z0-9_\-]+", "[REDACTED_SECRET]", text)
+    text = re.sub(r"(?i)bearer\s+[a-zA-Z0-9._\-]+", "[REDACTED_SECRET]", text)
+    text = re.sub(r"(?i)(api[_-]?key[\s:=]+)[^\s,]+", r"\1[REDACTED_SECRET]", text)
+    text = re.sub(r"(?i)(password[\s:=]+)[^\s,]+", r"\1[REDACTED_SECRET]", text)
+    # Redact email addresses
+    text = re.sub(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", "[REDACTED_EMAIL]", text)
+    # Redact phone numbers
+    text = re.sub(r"(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}", "[REDACTED_PHONE]", text)
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    concise = " | ".join(lines[:4])
+    return concise[:400]
 
 
 class StructuringResponse(BaseModel):
@@ -65,8 +86,9 @@ class StructuringResponse(BaseModel):
     finishReason: Optional[str] = None
     usage: Dict[str, Any] = Field(default_factory=dict)
     validation: Dict[str, bool] = Field(default_factory=dict)
-    data: Dict[str, Any] = Field(default_factory=dict)
+    data: Optional[Dict[str, Any]] = None
     correlationId: str
+    error: Optional[str] = None
     error_message: Optional[str] = None
 
 
@@ -80,6 +102,8 @@ class CVStructuringService:
     - Executing at most one JSON repair attempt if LLM produces malformed output.
     - Never fabricating facts or guessing missing data.
     """
+
+    _sanitize_validation_error = staticmethod(_sanitize_validation_error)
 
     def __init__(
         self,
@@ -170,12 +194,13 @@ Target JSON schema structure:
         # 3. Parse and validate JSON
         json_valid, schema_valid, parsed_data, err_msg = self.validator.validate(llm_resp.content, raw_text=cleaned_text)
 
-        # 4. If JSON is invalid, attempt at most 1 repair
-        if not json_valid:
-            logger.warning(f"[{cid}] LLM returned invalid JSON. Attempting single repair request... [err={err_msg}]")
+        # 4. If JSON syntax or schema is invalid, attempt at most 1 bounded repair
+        if not (json_valid and schema_valid):
+            sanitized_err = self._sanitize_validation_error(err_msg)
+            logger.warning(f"[{cid}] LLM returned invalid output (json_valid={json_valid}, schema_valid={schema_valid}). Attempting single repair request... [err={sanitized_err}]")
             repair_messages = [
                 {"role": "system", "content": REPAIR_SYSTEM_PROMPT},
-                {"role": "user", "content": f"Schema:\n{SCHEMA_TEMPLATE}\n\nMalformed Output to Fix:\n{llm_resp.content}"}
+                {"role": "user", "content": f"Schema:\n{SCHEMA_TEMPLATE}\n\nValidation Errors:\n{sanitized_err}\n\nMalformed Output to Fix:\n{llm_resp.content}"}
             ]
             try:
                 repair_res = await self.orchestrator.execute(repair_messages, correlation_id=f"{cid}-repair")
@@ -185,15 +210,17 @@ Target JSON schema structure:
                     schema_valid = True
                     parsed_data = r_data
                     llm_resp = repair_res.response
+                    err_msg = None
                     logger.info(f"[{cid}] JSON repair succeeded.")
                 else:
-                    logger.error(f"[{cid}] JSON repair failed: {r_err}")
+                    err_msg = r_err or err_msg
+                    logger.error(f"[{cid}] JSON repair failed: {self._sanitize_validation_error(r_err)}")
             except Exception as repair_exc:
                 logger.error(f"[{cid}] JSON repair request encountered error: {repair_exc}")
 
             # If repair failed on PRIMARY, trigger fallback to Ollama per fallback rules
             if not (json_valid and schema_valid) and not exec_res.fallback_used and self.orchestrator.fallback_enabled and self.orchestrator.fallback_client:
-                logger.warning(f"[{cid}] Primary JSON repair unrecoverable. Engaging fallback Ollama client...")
+                logger.warning(f"[{cid}] Primary output unrecoverable after repair attempt. Engaging fallback Ollama client...")
                 try:
                     fb_resp = await self.orchestrator.fallback_client.chat(messages, correlation_id=f"{cid}-json-fallback")
                     fb_json_valid, fb_schema_valid, fb_data, fb_err = self.validator.validate(fb_resp.content, raw_text=cleaned_text)
@@ -202,16 +229,16 @@ Target JSON schema structure:
                         schema_valid = True
                         parsed_data = fb_data
                         llm_resp = fb_resp
+                        err_msg = None
                         exec_res.fallback_used = True
                         exec_res.provider_used = "fallback"
-                        exec_res.fallback_reason = "Primary output JSON invalid after repair attempt"
+                        exec_res.fallback_reason = "Primary output invalid after repair attempt"
                         logger.info(f"[{cid}] Fallback Ollama structuring succeeded.")
                     else:
-                        logger.error(f"[{cid}] Fallback Ollama output also invalid: {fb_err}")
+                        err_msg = fb_err or err_msg
+                        logger.error(f"[{cid}] Fallback Ollama output also invalid: {self._sanitize_validation_error(fb_err)}")
                 except Exception as fb_exc:
                     logger.error(f"[{cid}] Fallback Ollama structuring error: {fb_exc}")
-
-        data_dict = parsed_data.model_dump() if parsed_data else {}
 
         usage_dict = {
             "promptTokens": llm_resp.prompt_tokens,
@@ -223,6 +250,15 @@ Target JSON schema structure:
             "jsonValid": json_valid,
             "schemaValid": schema_valid
         }
+
+        if not (json_valid and schema_valid):
+            data_dict = None
+            err_code = "LLM_JSON_SYNTAX_FAILED" if not json_valid else "LLM_SCHEMA_VALIDATION_FAILED"
+            formatted_err = f"{err_code}: {_sanitize_validation_error(err_msg)}"
+        else:
+            data_dict = parsed_data.model_dump() if parsed_data else {}
+            err_code = None
+            formatted_err = None
 
         return StructuringResponse(
             success=bool(json_valid and schema_valid),
@@ -236,7 +272,8 @@ Target JSON schema structure:
             validation=validation_dict,
             data=data_dict,
             correlationId=cid,
-            error_message=err_msg if not (json_valid and schema_valid) else None
+            error=err_code,
+            error_message=formatted_err
         )
 
     def structure_raw_text_sync(
@@ -287,11 +324,12 @@ Target JSON schema structure:
 
         json_valid, schema_valid, parsed_data, err_msg = self.validator.validate(llm_resp.content)
 
-        if not json_valid:
-            logger.warning(f"[{cid}] LLM returned invalid JSON. Attempting single repair request... [err={err_msg}]")
+        if not (json_valid and schema_valid):
+            sanitized_err = self._sanitize_validation_error(err_msg)
+            logger.warning(f"[{cid}] LLM returned invalid output (json_valid={json_valid}, schema_valid={schema_valid}). Attempting single repair request... [err={sanitized_err}]")
             repair_messages = [
                 {"role": "system", "content": REPAIR_SYSTEM_PROMPT},
-                {"role": "user", "content": f"Schema:\n{SCHEMA_TEMPLATE}\n\nMalformed Output to Fix:\n{llm_resp.content}"}
+                {"role": "user", "content": f"Schema:\n{SCHEMA_TEMPLATE}\n\nValidation Errors:\n{sanitized_err}\n\nMalformed Output to Fix:\n{llm_resp.content}"}
             ]
             try:
                 repair_res = self.orchestrator.execute_sync(repair_messages, correlation_id=f"{cid}-repair")
@@ -301,13 +339,13 @@ Target JSON schema structure:
                     schema_valid = True
                     parsed_data = r_data
                     llm_resp = repair_res.response
+                    err_msg = None
                     logger.info(f"[{cid}] JSON repair succeeded.")
                 else:
-                    logger.error(f"[{cid}] JSON repair failed: {r_err}")
+                    err_msg = r_err or err_msg
+                    logger.error(f"[{cid}] JSON repair failed: {self._sanitize_validation_error(r_err)}")
             except Exception as repair_exc:
                 logger.error(f"[{cid}] JSON repair request encountered error: {repair_exc}")
-
-        data_dict = parsed_data.model_dump() if parsed_data else {}
 
         usage_dict = {
             "promptTokens": llm_resp.prompt_tokens,
@@ -319,6 +357,15 @@ Target JSON schema structure:
             "jsonValid": json_valid,
             "schemaValid": schema_valid
         }
+
+        if not (json_valid and schema_valid):
+            data_dict = None
+            err_code = "LLM_JSON_SYNTAX_FAILED" if not json_valid else "LLM_SCHEMA_VALIDATION_FAILED"
+            formatted_err = f"{err_code}: {_sanitize_validation_error(err_msg)}"
+        else:
+            data_dict = parsed_data.model_dump() if parsed_data else {}
+            err_code = None
+            formatted_err = None
 
         return StructuringResponse(
             success=bool(json_valid and schema_valid),
@@ -332,5 +379,7 @@ Target JSON schema structure:
             validation=validation_dict,
             data=data_dict,
             correlationId=cid,
-            error_message=err_msg if not (json_valid and schema_valid) else None
+            error=err_code,
+            error_message=formatted_err
         )
+
