@@ -127,177 +127,98 @@ export default function RecruiterJobsListPage() {
   const closedCount = jobs.filter((j) => j.status === 'CLOSED').length;
 
   return (
-    <div className="w-full max-w-7xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      {/* Header */}
-      <RecruiterPageHeader
-        categoryTag="REQUISITION MANAGEMENT"
-        title={t('recruiterPages.jobsTitle', 'Danh Sách Tin Tuyển Dụng Doanh Nghiệp')}
-        subtitle={t('recruiterPages.jobsSubtitle', 'Quản lý trạng thái xuất bản, xem số lượng hồ sơ nộp và truy cập Bảng xếp hạng AI Matching')}
-        actions={
-          <Link
-            href="/recruiter/jobs/new"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm transition active:scale-95 shrink-0"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>{t('recruiterNav.createJob', 'Tạo Tin Tuyển Dụng Mới')}</span>
-          </Link>
-        }
-      />
+    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors">
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 w-full">
+        {/* Page Header */}
+        <Reveal direction="up" delay={0}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider font-mono">
+                <Briefcase className="w-4 h-4" />
+                <span>Job Management Center</span>
+              </div>
+              <h1 className="text-3xl font-editorial font-bold text-slate-900 dark:text-white tracking-tight">
+                {t('recruiterPages.jobsTitle', 'Danh Sách Tin Tuyển Dụng Doanh Nghiệp')}
+              </h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {t('recruiterPages.jobsSubtitle', 'Quản lý nội dung JD, trạng thái xuất bản, xem ứng tuyển và Bảng xếp hạng AI Matching')}
+              </p>
+            </div>
 
-      {/* Filter and Search Controls */}
-      <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl p-4 shadow-xs space-y-4 w-full min-w-0">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-[#94A3B8]" />
-            <input
-              type="text"
-              placeholder={locale === 'vi' ? 'Tìm theo tên vị trí, địa điểm, ngành nghề...' : 'Search by job title, location, industry...'}
-              value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-[#F8FAFC] dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] rounded-xl text-[#0F2A52] dark:text-white text-xs focus:outline-none focus:border-[#2563EB]"
-            />
+            <Link
+              href="/recruiter/jobs/new"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-md shadow-blue-500/20 transition active:scale-95 flex-shrink-0"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>{t('recruiterNav.createJob', 'Tạo Bài Tuyển Dụng Mới')}</span>
+            </Link>
           </div>
+        </Reveal>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0 min-w-0">
-            {[
-              { id: 'ALL', label: locale === 'vi' ? 'Tất cả' : 'All', count: jobs.length },
-              { id: 'PUBLISHED', label: locale === 'vi' ? 'Đang tuyển' : 'Published', count: publishedCount },
-              { id: 'DRAFT', label: locale === 'vi' ? 'Bản nháp' : 'Drafts', count: draftCount },
-              { id: 'CLOSED', label: locale === 'vi' ? 'Đã đóng' : 'Closed', count: closedCount },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setSelectedStatus(tab.id)}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
-                  selectedStatus === tab.id
-                    ? 'bg-[#2563EB] text-white shadow-2xs'
-                    : 'bg-[#F8FAFC] dark:bg-[#13233F] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white hover:bg-[#F1F5F9]'
-                }`}
+        {/* Filter Bar */}
+        <Reveal direction="up" delay={80}>
+          <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-5 shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-4 transition-colors">
+            <div className="relative sm:col-span-2">
+              <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder={locale === 'vi' ? 'Tìm kiếm vị trí tuyển dụng...' : 'Search job requisitions...'}
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-xl text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[#2563EB]"
+              />
+            </div>
+
+            <div>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-xl text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[#2563EB]"
               >
-                <span>{tab.label}</span>
-                <span
-                  className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
-                    selectedStatus === tab.id
-                      ? 'bg-white/20 text-white'
-                      : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            ))}
+                <option value="">{locale === 'vi' ? 'Tất cả trạng thái' : 'All Statuses'}</option>
+                <option value="PUBLISHED">PUBLISHED {locale === 'vi' ? '(Đã xuất bản)' : '(Published)'}</option>
+                <option value="DRAFT">DRAFT {locale === 'vi' ? '(Bài nháp)' : '(Draft)'}</option>
+                <option value="CLOSED">CLOSED {locale === 'vi' ? '(Đã đóng)' : '(Closed)'}</option>
+              </select>
+            </div>
           </div>
-        </div>
-      </div>
+        </Reveal>
 
-      {/* Jobs Data Table / List */}
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-24 rounded-2xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] animate-pulse" />
-          ))}
-        </div>
-      ) : fetchError ? (
-        <EmptyState
-          type="ERROR"
-          title={locale === 'vi' ? 'Không thể tải danh sách tin tuyển dụng' : 'Failed to load job listings'}
-          description={fetchError}
-          primaryCtaText={locale === 'vi' ? 'Thử lại' : 'Retry'}
-          onPrimaryCtaClick={loadJobs}
-        />
-      ) : filteredJobs.length === 0 ? (
-        <EmptyState
-          type="EMPTY"
-          title={locale === 'vi' ? 'Không tìm thấy tin tuyển dụng nào' : 'No job postings found'}
-          description={
-            searchKeyword || selectedStatus !== 'ALL'
-              ? (locale === 'vi' ? 'Không có tin tuyển dụng nào phù hợp với bộ lọc hiện tại.' : 'No jobs matching current search filters.')
-              : (locale === 'vi' ? 'Doanh nghiệp chưa có bài tuyển dụng nào. Hãy bắt đầu tạo tin ngay.' : 'Your company has no active postings. Create your first job requisition.')
-          }
-          primaryCtaText={locale === 'vi' ? 'Tạo tin mới' : 'Create Job'}
-          onPrimaryCtaClick={() => (window.location.href = '/recruiter/jobs/new')}
-        />
-      ) : (
-        <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-[#E2E8F0] dark:border-[#1E293B] bg-[#F8FAFC] dark:bg-[#0B1528] text-[11px] font-mono uppercase font-bold text-[#64748B] dark:text-[#94A3B8]">
-                  <th className="py-3.5 px-4 sm:px-6">Vị trí & Ngành nghề</th>
-                  <th className="py-3.5 px-4">Địa điểm & Mức lương</th>
-                  <th className="py-3.5 px-4 text-center">Trạng thái</th>
-                  <th className="py-3.5 px-4 text-center">Hồ sơ ứng tuyển</th>
-                  <th className="py-3.5 px-4 sm:px-6 text-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E2E8F0] dark:divide-[#1E293B] text-xs">
-                {filteredJobs.map((job) => {
-                  const appCount = applicationCounts[job.id] ?? 0;
-                  const isBusy = actionInProgressId === job.id;
-
-                  return (
-                    <tr
-                      key={job.id}
-                      className="hover:bg-[#F8FBFF] dark:hover:bg-[#13233F]/60 transition-colors"
-                    >
-                      {/* Title & Industry */}
-                      <td className="py-4 px-4 sm:px-6">
-                        <div className="space-y-1">
-                          <Link
-                            href={`/recruiter/jobs/${job.id}`}
-                            className="font-bold text-sm text-[#0F2A52] dark:text-white hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition block"
-                          >
-                            {job.title}
-                          </Link>
-                          <div className="flex items-center gap-2 text-[11px] text-[#64748B] dark:text-[#94A3B8]">
-                            <span className="font-mono text-[#2563EB] dark:text-[#3B82F6]">
-                              {job.industry}
-                            </span>
-                            <span>•</span>
-                            <span>{job.employmentType}</span>
-                            {job.seniority && (
-                              <>
-                                <span>•</span>
-                                <span>{job.seniority}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Location & Salary */}
-                      <td className="py-4 px-4">
-                        <div className="space-y-1 text-[11px] text-[#64748B] dark:text-[#94A3B8]">
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5 text-[#94A3B8]" />
-                            <span>{job.location || 'Toàn quốc'}</span>
-                          </div>
-                          {(job.salaryMin > 0 || job.salaryMax > 0) ? (
-                            <div className="flex items-center gap-1 font-mono font-semibold text-[#0F2A52] dark:text-slate-200">
-                              <DollarSign className="w-3.5 h-3.5 text-[#00B14F]" />
-                              <span>
-                                ${job.salaryMin.toLocaleString()} - ${job.salaryMax.toLocaleString()}/tháng
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="italic text-[#94A3B8]">Thỏa thuận</span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Status Badge */}
-                      <td className="py-4 px-4 text-center">
-                        <span
-                          className={`inline-block px-2.5 py-1 rounded-md text-[10px] font-mono font-bold uppercase ${
-                            job.status === 'PUBLISHED'
-                              ? 'bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00B14F] dark:text-[#10B981] border border-[#00B14F]/30'
-                              : job.status === 'DRAFT'
-                              ? 'bg-[#FEF3C7] dark:bg-[#FACC15]/15 text-[#B45309] dark:text-[#FACC15] border border-[#FACC15]/30'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-700'
-                          }`}
-                        >
-                          {job.status}
+        {/* Job Grid or Loading / Error / Empty State */}
+        {isLoading ? (
+          <EmptyState
+            type="LOADING"
+            title={t('emptyStates.jobs.loading', 'Đang tải danh sách bài tuyển dụng...')}
+            description={locale === 'vi' ? 'Hệ thống đang kết nối dữ liệu việc làm...' : 'Connecting to requisitions catalog...'}
+          />
+        ) : fetchError ? (
+          <EmptyState
+            type="ERROR"
+            title={t('emptyStates.jobs.errorTitle', 'Không thể tải danh sách bài tuyển dụng')}
+            description={fetchError}
+            primaryCtaText={t('common.retry', 'Thử lại')}
+            onPrimaryCtaClick={loadJobs}
+          />
+        ) : jobs.length === 0 ? (
+          <EmptyState
+            type="EMPTY"
+            title={t('emptyStates.jobs.emptyTitle', 'Chưa có bài tuyển dụng nào')}
+            description={t('emptyStates.jobs.emptyDesc', 'Doanh nghiệp chưa tạo bài tuyển dụng nào. Hãy bắt đầu bằng cách tạo vị trí tuyển dụng mới.')}
+            primaryCtaText={t('recruiterNav.createJob', 'Tạo Bài Tuyển Dụng Mới')}
+            primaryCtaHref="/recruiter/jobs/new"
+          />
+        ) : filteredJobs.length > 0 ? (
+          <div className="space-y-4">
+            {filteredJobs.map((job, idx) => (
+              <Reveal key={job.id} delay={staggerDelay(idx)}>
+                <div
+                  className="p-6 rounded-2xl bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#2563EB] transition shadow-xs space-y-4"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-[#1E293B] pb-4">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-slate-700 dark:text-[#93C5FD]">
+                          {translateIndustry(job.industry, locale)}
                         </span>
                       </td>
 

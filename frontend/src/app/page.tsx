@@ -7,6 +7,7 @@ import { fetchJobs } from '@/lib/api';
 import { QuickApplyModal } from '@/components/application/QuickApplyModal';
 import { EmptyState } from '@/components/common/EmptyState';
 import { useLanguage } from '@/context/LanguageContext';
+import { Reveal, staggerDelay } from '@/components/motion';
 import {
   Sparkles,
   GitBranch,
@@ -72,77 +73,102 @@ export default function HomePage() {
 
         <div className="max-w-5xl mx-auto text-center space-y-6 relative z-10">
           
-          {/* Main Headline */}
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-[#173B73] dark:text-white drop-shadow-2xs">
-            midCV® -{' '}
-            <span className="text-[#2563EB] dark:text-[#3B82F6]">
-              {locale === 'vi' 
-                ? 'Tạo CV, Tìm việc làm, Tuyển dụng hiệu quả' 
-                : 'Author CVs, Find Jobs, Hire Effectively'}
-            </span>
-          </h1>
+          {/* Main Headline with progressive entrance */}
+          <Reveal direction="up" delay={0}>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-[#173B73] dark:text-white drop-shadow-2xs">
+              midCV® -{' '}
+              <span className="text-[#2563EB] dark:text-[#3B82F6]">
+                {locale === 'vi' 
+                  ? 'Tạo CV, Tìm việc làm, Tuyển dụng hiệu quả' 
+                  : 'Author CVs, Find Jobs, Hire Effectively'}
+              </span>
+            </h1>
+          </Reveal>
 
           {/* Prominent White Pill Search Bar */}
-          <form onSubmit={handleSearchSubmit} className="bg-white dark:bg-[#13233F] rounded-full p-2 pl-6 shadow-xl shadow-blue-500/8 flex flex-col md:flex-row items-center gap-3 border border-blue-200/90 dark:border-[#1E3A5F] max-w-4xl mx-auto transition-all hover:border-[#2563EB]/40">
-            {/* Input 1: Job title / Company keyword */}
-            <div className="flex items-center gap-3 flex-1 w-full text-slate-800 dark:text-slate-100">
-              <Search className="w-5 h-5 text-[#2563EB] shrink-0" />
-              <input
-                type="text"
-                placeholder={locale === 'vi' ? 'Vị trí tuyển dụng, tên công ty...' : 'Job title, company name...'}
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
-                className="w-full bg-transparent text-xs sm:text-sm font-medium text-slate-900 dark:text-white focus:outline-none placeholder-slate-400 py-1"
-              />
-            </div>
+          <Reveal direction="up" delay={80}>
+            <form onSubmit={handleSearchSubmit} className="bg-white dark:bg-[#13233F] rounded-full p-2 pl-6 shadow-xl shadow-blue-500/8 flex flex-col md:flex-row items-center gap-3 border border-blue-200/90 dark:border-[#1E3A5F] max-w-4xl mx-auto transition-[border-color,box-shadow,background-color,color] hover:border-[#2563EB]/40">
+              {/* Input 1: Job title / Company keyword */}
+              <div className="flex items-center gap-3 flex-1 w-full text-slate-800 dark:text-slate-100">
+                <Search className="w-5 h-5 text-[#2563EB] shrink-0" />
+                <input
+                  type="text"
+                  placeholder={locale === 'vi' ? 'Vị trí tuyển dụng, tên công ty...' : 'Job title, company name...'}
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  className="w-full bg-transparent text-xs sm:text-sm font-medium text-slate-900 dark:text-white focus:outline-none placeholder-slate-400 py-1"
+                />
+              </div>
 
-            {/* Divider */}
-            <div className="hidden md:block w-px h-8 bg-blue-100 dark:bg-[#1E3A5F]" />
+              {/* Divider */}
+              <div className="hidden md:block w-px h-8 bg-blue-100 dark:bg-[#1E3A5F]" />
 
-            {/* Input 2: Location selector */}
-            <div className="flex items-center gap-2 px-2 w-full md:w-52 text-slate-700 dark:text-slate-200">
-              <MapPin className="w-4 h-4 text-[#2563EB] shrink-0" />
-              <select
-                value={selectedLocation}
-                onChange={(e) => setSelectedLocation(e.target.value)}
-                className="w-full bg-transparent text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer py-1"
+              {/* Input 2: Location selector */}
+              <div className="flex items-center gap-2 px-2 w-full md:w-52 text-slate-700 dark:text-slate-200">
+                <MapPin className="w-4 h-4 text-[#2563EB] shrink-0" />
+                <select
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value)}
+                  className="w-full bg-transparent text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer py-1"
+                >
+                  <option value="" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[#13233F]">{locale === 'vi' ? 'Địa điểm' : 'Location'}</option>
+                  <option value="Toàn quốc" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[#13233F]">{locale === 'vi' ? 'Toàn quốc' : 'All Regions'}</option>
+                  <option value="Hà Nội" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[#13233F]">Hà Nội</option>
+                  <option value="TP. Hồ Chí Minh" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[#13233F]">TP. Hồ Chí Minh</option>
+                  <option value="Đà Nẵng" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[#13233F]">Đà Nẵng</option>
+                  <option value="Remote" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[#13233F]">Remote / Từ xa</option>
+                </select>
+              </div>
+
+              {/* Input 3: Primary Blue Submit Button (#2563EB) */}
+              <button
+                type="submit"
+                className="w-full md:w-auto px-8 py-3 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-600/25 transition flex items-center justify-center gap-2 cursor-pointer shrink-0 active:scale-95 whitespace-nowrap"
               >
-                <option value="" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[#13233F]">{locale === 'vi' ? 'Địa điểm' : 'Location'}</option>
-                <option value="Toàn quốc" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[#13233F]">{locale === 'vi' ? 'Toàn quốc' : 'All Regions'}</option>
-                <option value="Hà Nội" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[#13233F]">Hà Nội</option>
-                <option value="TP. Hồ Chí Minh" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[#13233F]">TP. Hồ Chí Minh</option>
-                <option value="Đà Nẵng" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[#13233F]">Đà Nẵng</option>
-                <option value="Remote" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[#13233F]">Remote / Từ xa</option>
-              </select>
-            </div>
-
-            {/* Input 3: Primary Blue Submit Button (#2563EB) */}
-            <button
-              type="submit"
-              className="w-full md:w-auto px-8 py-3 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-600/25 transition flex items-center justify-center gap-2 cursor-pointer shrink-0 active:scale-95 whitespace-nowrap"
-            >
-              <Search className="w-4 h-4" />
-              <span className="whitespace-nowrap">{locale === 'vi' ? 'Tìm kiếm' : 'Search'}</span>
-            </button>
-          </form>
+                <Search className="w-4 h-4" />
+                <span className="whitespace-nowrap">{locale === 'vi' ? 'Tìm kiếm' : 'Search'}</span>
+              </button>
+            </form>
+          </Reveal>
 
           {/* Quick trending tags below search bar */}
-          <div className="flex items-center justify-center gap-2 flex-wrap text-xs text-slate-600 dark:text-slate-300 pt-1">
-            <span className="font-semibold text-[#173B73] dark:text-blue-200">{locale === 'vi' ? 'Gợi ý tìm kiếm:' : 'Popular:'}</span>
-            {['Java', 'ReactJS', 'NodeJS', 'Frontend', 'Backend', 'DevOps', 'Data Engineer'].map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => {
-                  setSearchKeyword(tag);
-                  window.location.href = `/jobs?keyword=${encodeURIComponent(tag)}`;
-                }}
-                className="px-3 py-1 rounded-full bg-white hover:bg-blue-50 dark:bg-[#13233F] dark:hover:bg-[#1B3158] text-[#1E40AF] dark:text-blue-200 border border-blue-200/80 dark:border-blue-900/50 shadow-2xs transition cursor-pointer text-[11px] font-medium"
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
+          <Reveal direction="up" delay={140}>
+            <div className="flex items-center justify-center gap-2 flex-wrap text-xs text-slate-600 dark:text-slate-300 pt-1">
+              <span className="font-semibold text-[#173B73] dark:text-blue-200">{locale === 'vi' ? 'Gợi ý tìm kiếm:' : 'Popular:'}</span>
+              {['Java', 'ReactJS', 'NodeJS', 'Frontend', 'Backend', 'DevOps', 'Data Engineer'].map((tag, idx) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => {
+                    setSearchKeyword(tag);
+                    window.location.href = `/jobs?keyword=${encodeURIComponent(tag)}`;
+                  }}
+                  style={{ animationDelay: `${staggerDelay(idx)}ms` }}
+                  className="animate-chip-in px-3 py-1 rounded-full bg-white hover:bg-blue-50 dark:bg-[#13233F] dark:hover:bg-[#1B3158] text-[#1E40AF] dark:text-blue-200 border border-blue-200/80 dark:border-blue-900/50 shadow-2xs transition cursor-pointer text-[11px] font-medium"
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </Reveal>
+
+          {/* Trust & Transparency Feature Ribbon */}
+          <Reveal direction="up" delay={200}>
+            <div className="pt-2 flex items-center justify-center gap-3 sm:gap-6 flex-wrap text-[11px] text-slate-600 dark:text-slate-300 font-mono">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/70 dark:bg-[#13233F]/70 backdrop-blur-xs border border-blue-100 dark:border-[#1E3A5F] shadow-2xs">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#00B14F]" />
+                <span>{locale === 'vi' ? '100% Khách quan theo năng lực thực' : 'Objective Evidence-Based'}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/70 dark:bg-[#13233F]/70 backdrop-blur-xs border border-blue-100 dark:border-[#1E3A5F] shadow-2xs">
+                <Sparkles className="w-3.5 h-3.5 text-[#2563EB]" />
+                <span>{locale === 'vi' ? 'Đối soát vector chuẩn hóa NDCG@3 = 1.00' : 'Normalized NDCG@3 = 1.00'}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/70 dark:bg-[#13233F]/70 backdrop-blur-xs border border-blue-100 dark:border-[#1E3A5F] shadow-2xs">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#00B14F]" />
+                <span>{locale === 'vi' ? 'Quyết định cuối cùng thuộc về con người' : 'Human-in-the-loop Final Decision'}</span>
+              </div>
+            </div>
+          </Reveal>
 
         </div>
       </section>
@@ -151,20 +177,22 @@ export default function HomePage() {
       {/* 02 — SPECIALISED MATCHING SECTORS                            */}
       {/* ============================================================ */}
       <section id="indexes" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-widest text-[#2563EB] dark:text-[#3B82F6]">
-              {locale === 'vi' ? 'ĐA DẠNG LĨNH VỰC' : 'DIVERSE SECTORS'}
-            </span>
-            <h2 className="text-3xl font-editorial font-bold text-[#173B73] dark:text-[#F1F5F9] mt-1">
-              {locale === 'vi' ? 'Các Nhóm Ngành Định Hướng' : 'Focus Industry Sectors'}
-            </h2>
+        <Reveal direction="up" delay={0}>
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-[#2563EB] dark:text-[#3B82F6]">
+                {locale === 'vi' ? 'ĐA DẠNG LĨNH VỰC' : 'DIVERSE SECTORS'}
+              </span>
+              <h2 className="text-3xl font-editorial font-bold text-[#173B73] dark:text-[#F1F5F9] mt-1">
+                {locale === 'vi' ? 'Các Nhóm Ngành Định Hướng' : 'Focus Industry Sectors'}
+              </h2>
+            </div>
+            <Link href="/jobs" className="text-xs font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:underline flex items-center gap-1">
+              <span>{locale === 'vi' ? 'Xem Tất Cả Việc Làm' : 'View All Jobs'}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
-          <Link href="/jobs" className="text-xs font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:underline flex items-center gap-1">
-            <span>{locale === 'vi' ? 'Xem Tất Cả Việc Làm' : 'View All Jobs'}</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
+        </Reveal>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
@@ -175,14 +203,15 @@ export default function HomePage() {
             { title: 'Growth Marketing', sector: locale === 'vi' ? 'Tiếp thị' : 'Marketing', href: '/jobs?sector=Marketing' },
             { title: 'UI/UX Design Systems', sector: locale === 'vi' ? 'Thiết kế' : 'Design', href: '/jobs?sector=Design' },
           ].map((item, idx) => (
-            <Link
-              key={idx}
-              href={item.href}
-              className="bg-white dark:bg-[#111C38] p-4 rounded-xl border border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#3B82F6] hover:shadow-xs transition text-left"
-            >
-              <div className="font-semibold text-[#173B73] dark:text-[#F1F5F9] text-xs mb-1">{item.title}</div>
-              <div className="text-[10px] text-[#2563EB] dark:text-[#3B82F6] font-mono">{item.sector} {locale === 'vi' ? 'Ngành' : 'Sector'}</div>
-            </Link>
+            <Reveal key={item.title} delay={staggerDelay(idx)} className="h-full">
+              <Link
+                href={item.href}
+                className="motion-hover-lift h-full block bg-white dark:bg-[#111C38] p-4 rounded-xl border border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#3B82F6] hover:shadow-xs text-left"
+              >
+                <div className="font-semibold text-[#173B73] dark:text-[#F1F5F9] text-xs mb-1">{item.title}</div>
+                <div className="text-[10px] text-[#2563EB] dark:text-[#3B82F6] font-mono">{item.sector} {locale === 'vi' ? 'Ngành' : 'Sector'}</div>
+              </Link>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -191,51 +220,55 @@ export default function HomePage() {
       {/* 03 — DUAL ACTION CARDS                                       */}
       {/* ============================================================ */}
       <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-white dark:bg-[#111C38] p-8 rounded-2xl border border-slate-200 dark:border-[#1E293B] shadow-xs space-y-4">
-          <span className="text-[11px] font-mono uppercase text-[#2563EB] dark:text-[#3B82F6] font-bold">
-            {locale === 'vi' ? 'DÀNH CHO NHÀ TUYỂN DỤNG' : 'FOR RECRUITERS'}
-          </span>
-          <h3 className="text-2xl font-editorial font-bold text-[#173B73] dark:text-[#F1F5F9]">
-            {locale === 'vi' ? 'Tuyển dụng nhân sự dựa trên năng lực thực chứng' : 'Evidence-Based Technical Hiring'}
-          </h3>
-          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-            {locale === 'vi' 
-              ? 'Thiết lập bộ tiêu chí tuyển dụng chuẩn hóa, lọc ứng viên theo bảng xếp hạng AI minh bạch và kết nối nhanh chóng với nhân tài phù hợp nhất.' 
-              : 'Establish standardized hiring rubrics, screen candidates via transparent AI ranking, and connect with top talent rapidly.'}
-          </p>
-          <div className="pt-2">
-            <Link
-              href="/recruiter"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#2563EB] hover:bg-[#1D4ED8] text-white transition shadow-sm"
-            >
-              <span>{locale === 'vi' ? 'Vào Cổng Nhà Tuyển Dụng' : 'Enter Recruiter Portal'}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+        <Reveal direction="up" delay={0} className="h-full">
+          <div className="motion-hover-lift h-full bg-white dark:bg-[#111C38] p-8 rounded-2xl border border-slate-200 dark:border-[#1E293B] shadow-xs space-y-4 hover:border-[#2563EB] dark:hover:border-[#3B82F6] transition-colors">
+            <span className="text-[11px] font-mono uppercase text-[#2563EB] dark:text-[#3B82F6] font-bold">
+              {locale === 'vi' ? 'DÀNH CHO NHÀ TUYỂN DỤNG' : 'FOR RECRUITERS'}
+            </span>
+            <h3 className="text-2xl font-editorial font-bold text-[#173B73] dark:text-[#F1F5F9]">
+              {locale === 'vi' ? 'Tuyển dụng nhân sự dựa trên năng lực thực chứng' : 'Evidence-Based Technical Hiring'}
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              {locale === 'vi' 
+                ? 'Thiết lập bộ tiêu chí tuyển dụng chuẩn hóa, lọc ứng viên theo bảng xếp hạng AI minh bạch và kết nối nhanh chóng với nhân tài phù hợp nhất.' 
+                : 'Establish standardized hiring rubrics, screen candidates via transparent AI ranking, and connect with top talent rapidly.'}
+            </p>
+            <div className="pt-2">
+              <Link
+                href="/recruiter"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#2563EB] hover:bg-[#1D4ED8] text-white transition shadow-sm active:scale-95"
+              >
+                <span>{locale === 'vi' ? 'Vào Cổng Nhà Tuyển Dụng' : 'Enter Recruiter Portal'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
-        </div>
+        </Reveal>
 
-        <div className="bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0F172A] dark:to-[#1E293B] text-white p-8 rounded-2xl border border-[#2563EB]/20 dark:border-[#1E293B] shadow-xs space-y-4">
-          <span className="text-[11px] font-mono uppercase text-[#3B82F6] font-bold">
-            {locale === 'vi' ? 'DÀNH CHO ỨNG VIÊN' : 'FOR CANDIDATES'}
-          </span>
-          <h3 className="text-2xl font-editorial font-bold text-white">
-            {locale === 'vi' ? 'Xây dựng hồ sơ năng lực xác thực đa ngành' : 'Build Multi-Industry Verifiable Profiles'}
-          </h3>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            {locale === 'vi'
-              ? 'Tải lên CV hoặc tạo hồ sơ trực tuyến, liên kết GitHub để nhận điểm số phù hợp khách quan và ứng tuyển vào các doanh nghiệp hàng đầu.'
-              : 'Upload your CV or build an online profile, connect GitHub to receive objective match scores, and apply to top companies.'}
-          </p>
-          <div className="pt-2">
-            <Link
-              href="/candidate/cvs/builder"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#2563EB] hover:bg-[#1D4ED8] text-white transition shadow-sm"
-            >
-              <span>{locale === 'vi' ? 'Tạo CV Chuẩn Hóa' : 'Build Standardized CV'}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+        <Reveal direction="up" delay={120} className="h-full">
+          <div className="motion-hover-lift h-full bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0F172A] dark:to-[#1E293B] text-white p-8 rounded-2xl border border-[#2563EB]/20 dark:border-[#1E293B] shadow-xs space-y-4 hover:border-[#3B82F6] transition-colors">
+            <span className="text-[11px] font-mono uppercase text-[#3B82F6] font-bold">
+              {locale === 'vi' ? 'DÀNH CHO ỨNG VIÊN' : 'FOR CANDIDATES'}
+            </span>
+            <h3 className="text-2xl font-editorial font-bold text-white">
+              {locale === 'vi' ? 'Xây dựng hồ sơ năng lực xác thực đa ngành' : 'Build Multi-Industry Verifiable Profiles'}
+            </h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {locale === 'vi'
+                ? 'Tải lên CV hoặc tạo hồ sơ trực tuyến, liên kết GitHub để nhận điểm số phù hợp khách quan và ứng tuyển vào các doanh nghiệp hàng đầu.'
+                : 'Upload your CV or build an online profile, connect GitHub to receive objective match scores, and apply to top companies.'}
+            </p>
+            <div className="pt-2">
+              <Link
+                href="/candidate/cvs/builder"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#2563EB] hover:bg-[#1D4ED8] text-white transition shadow-sm active:scale-95"
+              >
+                <span>{locale === 'vi' ? 'Tạo CV Chuẩn Hóa' : 'Build Standardized CV'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* ============================================================ */}
@@ -243,6 +276,7 @@ export default function HomePage() {
       {/* ============================================================ */}
       <section className="py-16 bg-white dark:bg-[#0B1329] border-t border-slate-200 dark:border-[#1E293B]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Reveal direction="up" delay={0}>
           <div className="flex items-center justify-between mb-8">
             <div>
               <span className="text-xs font-semibold uppercase tracking-widest text-[#2563EB] dark:text-[#3B82F6]">
@@ -257,6 +291,7 @@ export default function HomePage() {
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
+        </Reveal>
 
           {isLoading ? (
             <EmptyState
@@ -274,8 +309,9 @@ export default function HomePage() {
             />
           ) : jobs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {jobs.slice(0, 6).map((job) => (
-                <div key={job.id} className="bg-[#F8FBFF] dark:bg-[#111C38] p-6 rounded-2xl border border-slate-200 dark:border-[#1E293B] flex flex-col justify-between hover:border-[#2563EB] dark:hover:border-[#3B82F6] hover:shadow-xs transition">
+              {jobs.slice(0, 6).map((job, idx) => (
+                <Reveal key={job.id} delay={staggerDelay(idx)} className="h-full">
+                <div className="motion-hover-lift h-full bg-[#F8FBFF] dark:bg-[#111C38] p-6 rounded-2xl border border-slate-200 dark:border-[#1E293B] flex flex-col justify-between hover:border-[#2563EB] dark:hover:border-[#3B82F6] hover:shadow-xs">
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400">{job.department || 'Engineering'}</span>
@@ -305,6 +341,7 @@ export default function HomePage() {
                     </button>
                   </div>
                 </div>
+                </Reveal>
               ))}
             </div>
           ) : (

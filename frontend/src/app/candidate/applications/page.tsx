@@ -7,6 +7,8 @@ import { fetchCandidateApplications, saveCandidateCV, fetchMatchInspection } fro
 import { CVUploadModal } from '@/components/cv/CVUploadModal';
 import { EmptyState } from '@/components/common/EmptyState';
 import { useLanguage } from '@/context/LanguageContext';
+import { Reveal } from '@/components/motion/Reveal';
+import { staggerDelay } from '@/components/motion/stagger';
 import {
   Send,
   Building2,
@@ -76,28 +78,30 @@ export default function ApplicationHistoryPage() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1E293B] pb-6">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-[11px] font-mono font-bold text-[#2563EB] dark:text-[#60A5FA] uppercase tracking-wider">
-              <ShieldCheck className="w-4 h-4 text-[#00B14F]" />
-              <span>midCV® AUDITABLE APPLICATION & MATCH REPORTS</span>
+        <Reveal direction="up" delay={0}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1E293B] pb-6">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-[11px] font-mono font-bold text-[#2563EB] dark:text-[#60A5FA] uppercase tracking-wider">
+                <ShieldCheck className="w-4 h-4 text-[#00B14F]" />
+                <span>midCV® AUDITABLE APPLICATION & MATCH REPORTS</span>
+              </div>
+              <h1 className="text-3xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9] tracking-tight">
+                {t('applications.title', 'Danh Sách Việc Làm Đã Nộp Đơn')}
+              </h1>
+              <p className="text-xs sm:text-sm text-[#64748B] dark:text-[#94A3B8] max-w-2xl">
+                {t('applications.subtitle', 'Theo dõi trạng thái nộp đơn, bản snapshot CV bất biến và báo cáo đối soát năng lực thuật toán.')}
+              </p>
             </div>
-            <h1 className="text-3xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9] tracking-tight">
-              {t('applications.title', 'Danh Sách Việc Làm Đã Nộp Đơn')}
-            </h1>
-            <p className="text-xs sm:text-sm text-[#64748B] dark:text-[#94A3B8] max-w-2xl">
-              {t('applications.subtitle', 'Theo dõi trạng thái nộp đơn, bản snapshot CV bất biến và báo cáo đối soát năng lực thuật toán.')}
-            </p>
-          </div>
 
-          <button
-            onClick={() => setIsUploadOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-sm cursor-pointer shrink-0 self-start sm:self-auto"
-          >
-            <UploadCloud className="w-4 h-4 text-[#D7F9FA]" />
-            <span>{locale === 'vi' ? 'Tải Lên & Phân Tích CV' : 'Upload & Analyze CV'}</span>
-          </button>
-        </div>
+            <button
+              onClick={() => setIsUploadOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-sm cursor-pointer shrink-0 self-start sm:self-auto"
+            >
+              <UploadCloud className="w-4 h-4 text-[#D7F9FA]" />
+              <span>{locale === 'vi' ? 'Tải Lên & Phân Tích CV' : 'Upload & Analyze CV'}</span>
+            </button>
+          </div>
+        </Reveal>
 
         {/* Applications List, Loading, Error or Genuine Empty State */}
         {isLoading ? (
@@ -116,14 +120,14 @@ export default function ApplicationHistoryPage() {
           />
         ) : applications.length > 0 ? (
           <div className="space-y-4">
-            {applications.map((app) => {
+            {applications.map((app, idx) => {
               const isExpanded = expandedAppId === app.id;
 
               return (
-                <div
-                  key={app.id}
-                  className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 shadow-xs hover:shadow-md transition-all space-y-4"
-                >
+                <Reveal key={app.id} delay={staggerDelay(idx)}>
+                  <div
+                    className="motion-hover-lift bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 shadow-xs hover:shadow-md space-y-4"
+                  >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2.5 flex-wrap">
@@ -271,8 +275,9 @@ export default function ApplicationHistoryPage() {
                     </div>
                   )}
                 </div>
-              );
-            })}
+              </Reveal>
+            );
+          })}
           </div>
         ) : (
           <EmptyState

@@ -334,3 +334,146 @@ class TestCVStructuringServiceAndDevEndpoint:
         client = TestClient(app)
         res = client.post("/internal/ai/dev/structure-cv", json={"rawText": "   "})
         assert res.status_code == 400
+
+    def test_dual_alias_canonical_schema_compatibility(self):
+        validator = StructuredCVValidator()
+        snake_case_json = """{
+            "personal_info": {
+                "full_name": "Tran Thi B",
+                "email": "b@example.com",
+                "phone": "+84912345678",
+                "location": "Da Nang, Vietnam",
+                "linkedin_url": "https://linkedin.com/in/ttb",
+                "github_url": "https://github.com/ttb"
+            },
+            "summary": "Senior Software Architect",
+            "skills": [{"name": "Go", "level": "Expert"}, {"skill_name": "Docker"}],
+            "education": [{
+                "institution": "Danang University",
+                "degree": "Bachelor of Engineering",
+                "field_of_study": "Information Technology",
+                "start_year": 2018,
+                "end_year": 2022,
+                "gpa": 3.8,
+                "gpa_scale": 4.0,
+                "gpa_display": "3.8/4.0"
+            }],
+            "experience": [{
+                "company_name": "Tech Corp",
+                "role": "Team Lead",
+                "start_date": "2022",
+                "end_date": "2024",
+                "is_current": false,
+                "description": "Led backend microservices",
+                "tech_stack": ["Go", "Kubernetes"]
+            }],
+            "projects": [{
+                "name": "Cloud Gate",
+                "role": "Lead Architect",
+                "description": "API Gateway",
+                "tech_stack": ["Go", "gRPC"]
+            }],
+            "certifications": [{"name": "AWS SAA", "issuer": "AWS", "date": "2023"}],
+            "languages": [{"language": "English", "proficiency": "Fluent"}]
+        }"""
+        j_val, s_val, data, err = validator.validate(snake_case_json)
+        assert j_val is True
+        assert s_val is True
+        assert err is None
+        assert data.personalInfo.fullName == "Tran Thi B"
+        assert data.personalInfo.address == "Da Nang, Vietnam"
+        assert data.skills[1].name == "Docker"
+        assert data.education[0].fieldOfStudy == "Information Technology"
+        assert data.education[0].gpa == 3.8
+        assert data.education[0].gpa_scale == 4.0
+        assert data.education[0].gpa_display == "3.8/4.0"
+        assert data.experience[0].company == "Tech Corp"
+        assert data.experience[0].position == "Team Lead"
+        assert data.experience[0].technologies == ["Go", "Kubernetes"]
+        assert data.projects[0].techStack == ["Go", "gRPC"]
+
+    @pytest.mark.asyncio
+    async def test_schema_type_mismatch_triggers_repair_and_succeeds(self):
+        primary = DummyLLMClient(provider="openai_compatible")
+        responses = [
+            LLMResponse(
+                content='{"personalInfo": {"fullName": "Candidate Schema Test"}, "skills": "invalid_string_not_list"}',
+                provider="openai_compatible",
+                requested_model="gpt-4o-mini"
+            ),
+            LLMResponse(
+                content='{"personalInfo": {"fullName": "Candidate Schema Test"}, "skills": [{"name": "Python"}], "education": [], "experience": [], "projects": [], "certifications": [], "languages": []}',
+                provider="openai_compatible",
+                requested_model="gpt-4o-mini"
+            )
+        ]
+        curr_idx = 0
+
+        async def mock_chat(messages, correlation_id=None):
+            nonlocal curr_idx
+            resp = responses[curr_idx]
+            curr_idx += 1
+            return resp
+
+        primary.chat = mock_chat
+        orchestrator = FallbackLLMClient(primary_client=primary, fallback_client=None, fallback_enabled=False)
+        service = CVStructuringService(fallback_orchestrator=orchestrator)
+
+        res = await service.structure_raw_text("Candidate profile text with sufficient length for structuring test.")
+        assert res.success is True
+        assert res.validation["schemaValid"] is True
+        assert res.data["personalInfo"]["fullName"] == "Candidate Schema Test"
+        assert res.data["skills"][0]["name"] == "Python"
+        assert curr_idx == 2
+
+    @pytest.mark.asyncio
+    async def test_bounded_retry_exhaustion_returns_terminal_failure(self):
+        primary = DummyLLMClient(provider="openai_compatible")
+        # Both initial and repair calls fail schema validation
+        responses = [
+            LLMResponse(
+                content='{"personalInfo": {"fullName": "Candidate Fail"}, "skills": "still_not_a_list"}',
+                provider="openai_compatible",
+                requested_model="gpt-4o-mini"
+            ),
+            LLMResponse(
+                content='{"personalInfo": {"fullName": "Candidate Fail"}, "skills": 12345}',
+                provider="openai_compatible",
+                requested_model="gpt-4o-mini"
+            )
+        ]
+        curr_idx = 0
+
+        async def mock_chat(messages, correlation_id=None):
+            nonlocal curr_idx
+            resp = responses[curr_idx]
+            curr_idx += 1
+            return resp
+
+        primary.chat = mock_chat
+        orchestrator = FallbackLLMClient(primary_client=primary, fallback_client=None, fallback_enabled=False)
+        service = CVStructuringService(fallback_orchestrator=orchestrator)
+
+        res = await service.structure_raw_text("Candidate profile text with sufficient length for exhaustion test.")
+        assert res.success is False
+        assert res.error == "LLM_SCHEMA_VALIDATION_FAILED"
+        assert res.data is None
+        assert res.validation["schemaValid"] is False
+        # Must be strictly bounded to max 2 attempts (1 initial + 1 repair)
+        assert curr_idx == 2
+
+    def test_sanitize_validation_error_redacts_sensitive_data(self):
+        from app.services.cv_structuring_service import _sanitize_validation_error
+        raw_error = (
+            "Validation error for email candidate.secret@domain.com and phone +84987654321 with "
+            "token sk-abcdef1234567890abcdef123456 and bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xyz.abc"
+        )
+        sanitized = _sanitize_validation_error(raw_error)
+        assert "candidate.secret@domain.com" not in sanitized
+        assert "[REDACTED_EMAIL]" in sanitized
+        assert "+84987654321" not in sanitized
+        assert "[REDACTED_PHONE]" in sanitized
+        assert "sk-abcdef1234567890abcdef123456" not in sanitized
+        assert "[REDACTED_SECRET]" in sanitized
+        assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xyz.abc" not in sanitized
+

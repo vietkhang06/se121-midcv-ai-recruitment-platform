@@ -4,10 +4,13 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CV } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
+import { translateIndustry } from '@/lib/i18n';
 import { fetchCandidateCVs, saveCandidateCV, deleteCandidateCV } from '@/lib/api';
 import { CVUploadModal } from '@/components/cv/CVUploadModal';
 import { CVExtractionReviewModal } from '@/components/cv/CVExtractionReviewModal';
 import { EmptyState } from '@/components/common/EmptyState';
+import { Reveal } from '@/components/motion/Reveal';
+import { staggerDelay } from '@/components/motion/stagger';
 import {
   FolderOpen,
   Plus,
@@ -24,7 +27,8 @@ import {
 } from 'lucide-react';
 
 export default function CVLibraryPage() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const isVi = locale === 'vi';
   const [cvList, setCvList] = useState<CV[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -69,34 +73,36 @@ export default function CVLibraryPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         {/* 06 — Header Section (Figma Screen 06) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1E293B] pb-4">
-          <div className="space-y-1">
-            <span className="text-[11px] font-mono font-semibold text-[#2563EB] dark:text-[#60A5FA] uppercase tracking-widest">
-              CANDIDATE ASSETS
-            </span>
-            <h1 className="text-3xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9]">
-              {t('candidatePages.myCvsTitle', 'Hồ Sơ & Bản Lưu Năng Lực midCV®')}
-              <span className="sr-only"> — Thư Viện CV Cá Nhân</span>
-            </h1>
-          </div>
+        <Reveal direction="up" delay={0}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1E293B] pb-4">
+            <div className="space-y-1">
+              <span className="text-[11px] font-mono font-semibold text-[#2563EB] dark:text-[#60A5FA] uppercase tracking-widest">
+                CANDIDATE ASSETS
+              </span>
+              <h1 className="text-3xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9]">
+                {t('candidatePages.myCvsTitle', 'Hồ Sơ & Bản Lưu Năng Lực midCV®')}
+                <span className="sr-only"> — Thư Viện CV Cá Nhân</span>
+              </h1>
+            </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              id="upload-cv-btn"
-              onClick={() => setIsUploadModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition cursor-pointer"
-            >
-              {t('candidatePages.uploadCv', 'Tải CV Lên / Ingest Repo')}
-            </button>
-            <Link
-              href="/candidate/cvs/builder"
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-xs flex items-center gap-1.5 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{t('candidatePages.createCv', 'Tạo Hồ Sơ Mới')}</span>
-            </Link>
+            <div className="flex items-center gap-3">
+              <button
+                id="upload-cv-btn"
+                onClick={() => setIsUploadModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition cursor-pointer"
+              >
+                {t('candidatePages.uploadCv', 'Tải CV Lên / Ingest Repo')}
+              </button>
+              <Link
+                href="/candidate/cvs/builder"
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{t('candidatePages.createCv', 'Tạo Hồ Sơ Mới')}</span>
+              </Link>
+            </div>
           </div>
-        </div>
+        </Reveal>
 
         {/* 06 — CV Cards Grid, Loading, Error or Genuine Empty State */}
         {isLoading ? (
@@ -115,100 +121,105 @@ export default function CVLibraryPage() {
           />
         ) : cvList.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {cvList.map((cv) => (
-              <div
-                key={cv.id}
-                className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#2563EB] rounded-2xl p-6 shadow-xs flex flex-col justify-between transition-all"
-              >
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-semibold text-[#0F2A52] dark:text-white text-sm truncate max-w-[220px]" title={cv.title}>
-                        {cv.title}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00873D] dark:text-[#10B981] border border-[#00B14F]/30">
-                          v{cv.currentVersionNumber || cv.versions?.[0]?.versionNumber || 1}.0
-                        </span>
-                        <button
-                          id={`version-history-btn-${cv.id}`}
-                          onClick={() => setSelectedCvForHistory(cv)}
-                          className="version-history-btn text-[11px] flex items-center gap-1 text-[#2563EB] dark:text-[#60A5FA] hover:underline font-semibold font-mono"
-                        >
-                          <GitBranch className="w-3 h-3" />
-                          <span>{cv.versions?.length || 1} phiên bản (Lịch sử)</span>
-                        </button>
+            {cvList.map((cv, idx) => (
+              <Reveal key={cv.id} delay={staggerDelay(idx)} className="h-full">
+                <div
+                  className="motion-hover-lift bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#2563EB] rounded-2xl p-6 shadow-xs flex flex-col justify-between h-full"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h3 className="font-semibold text-[#0F2A52] dark:text-white text-sm truncate max-w-[220px]" title={cv.title}>
+                          {cv.title}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00873D] dark:text-[#10B981] border border-[#00B14F]/30">
+                            v{cv.currentVersionNumber || cv.versions?.[0]?.versionNumber || 1}.0
+                          </span>
+                          <button
+                            id={`version-history-btn-${cv.id}`}
+                            onClick={() => setSelectedCvForHistory(cv)}
+                            className="version-history-btn text-[11px] flex items-center gap-1 text-[#2563EB] dark:text-[#60A5FA] hover:underline font-semibold font-mono"
+                          >
+                            <GitBranch className="w-3 h-3" />
+                            <span>{cv.versions?.length || 1} {isVi ? 'phiên bản (Lịch sử)' : 'versions (History)'}</span>
+                          </button>
+                        </div>
+                        <div className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-mono mt-0.5">
+                          {cv.updatedAt ? `${isVi ? 'Cập nhật' : 'Updated'}: ${cv.updatedAt}` : (isVi ? 'Mới cập nhật' : 'Recently updated')}
+                        </div>
                       </div>
-                      <div className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-mono mt-0.5">
-                        {cv.updatedAt ? `Cập nhật: ${cv.updatedAt}` : 'Mới cập nhật'}
+
+                      <div className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-[#EFF6FF] dark:bg-[#2563EB]/15 text-[#2563EB] dark:text-[#93C5FD] border border-[#BFDBFE] dark:border-[#2563EB]/30">
+                        {translateIndustry(cv.targetIndustry, locale)}
                       </div>
                     </div>
 
-                    <div className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-[#EFF6FF] dark:bg-[#2563EB]/15 text-[#2563EB] dark:text-[#93C5FD] border border-[#BFDBFE] dark:border-[#2563EB]/30">
-                      {cv.targetIndustry || 'Tech'}
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-1.5 text-[11px]">
+                      <span className="px-2 py-0.5 rounded-md bg-[#FEF9C3] dark:bg-[#FACC15]/15 text-[#92400E] dark:text-[#FACC15] border border-[#FACC15]/40">
+                        {cv.targetRole || (isVi ? 'Chuyên viên kỹ thuật' : 'Technical Specialist')}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-[#0B1329] text-[#64748B] dark:text-[#94A3B8] border border-slate-200 dark:border-[#1E293B]">
+                        {cv.creationPath === 'BUILDER' ? (isVi ? 'Hồ sơ có cấu trúc' : 'Structured Profile') : (isVi ? 'CV tải lên' : 'Uploaded Document')}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-1.5 text-[11px]">
-                    <span className="px-2 py-0.5 rounded-md bg-[#FEF9C3] dark:bg-[#FACC15]/15 text-[#92400E] dark:text-[#FACC15] border border-[#FACC15]/40">
-                      {cv.targetRole || 'Chuyên viên kỹ thuật'}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-[#0B1329] text-[#64748B] dark:text-[#94A3B8] border border-slate-200 dark:border-[#1E293B]">
-                      {cv.creationPath === 'BUILDER' ? 'Hồ sơ có cấu trúc' : 'CV tải lên'}
-                    </span>
+                  {/* Card Actions Footer */}
+                  <div className="pt-5 mt-4 border-t border-slate-100 dark:border-[#1E293B] flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => setSelectedCvForReview(cv)}
+                      title={isVi ? 'Chi Tiết Trích Xuất, Raw Text, JSON & Bằng Chứng' : 'Extracted Entities, Raw Text, JSON & Audit Evidence'}
+                      className="py-2 px-3 rounded-xl text-center text-xs font-semibold border border-blue-200 dark:border-blue-900/60 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>{isVi ? 'Trích Xuất & Evidence' : 'Extracted & Evidence'}</span>
+                    </button>
+
+                    <Link
+                      href={`/candidate/cvs/builder?edit=${cv.id}`}
+                      className="py-2 px-3 rounded-xl text-center text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition"
+                    >
+                      {t('common.edit', isVi ? 'Chỉnh Sửa' : 'Edit')}
+                    </Link>
+
+                    <button
+                      onClick={() => handleExport(cv)}
+                      title="Export / Download PDF"
+                      className="p-2 rounded-xl border border-slate-200 dark:border-[#1E293B] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#18294E] transition cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(cv)}
+                      title="Delete Profile"
+                      className="p-2 rounded-xl border border-slate-200 dark:border-[#1E293B] text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-
-                {/* Card Actions Footer */}
-                <div className="pt-5 mt-4 border-t border-slate-100 dark:border-[#1E293B] flex items-center justify-between gap-2">
-                  <button
-                    onClick={() => setSelectedCvForReview(cv)}
-                    title="Chi Tiết Trích Xuất, Raw Text, JSON & Bằng Chứng"
-                    className="py-2 px-3 rounded-xl text-center text-xs font-semibold border border-blue-200 dark:border-blue-900/60 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>Trích Xuất & Evidence</span>
-                  </button>
-
-                  <Link
-                    href={`/candidate/cvs/builder?edit=${cv.id}`}
-                    className="py-2 px-3 rounded-xl text-center text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition"
-                  >
-                    {t('common.edit', 'Chỉnh Sửa')}
-                  </Link>
-
-                  <button
-                    onClick={() => handleExport(cv)}
-                    title="Export / Download PDF"
-                    className="p-2 rounded-xl border border-slate-200 dark:border-[#1E293B] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#18294E] transition cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(cv)}
-                    title="Delete Profile"
-                    className="p-2 rounded-xl border border-slate-200 dark:border-[#1E293B] text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
+              </Reveal>
             ))}
 
             {/* Upload New / Ingest Repo Card (Dashed) */}
-            <div
-              onClick={() => setIsUploadModalOpen(true)}
-              className="border-2 border-dashed border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50/50 dark:hover:bg-[#18294E]/50 transition min-h-[220px] space-y-3"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-[#EFF6FF] dark:bg-[#0B1329] text-[#2563EB] flex items-center justify-center border border-[#BFDBFE] dark:border-[#1E293B]">
-                <Upload className="w-5 h-5" />
+            <Reveal delay={staggerDelay(cvList.length)} className="h-full">
+              <div
+                onClick={() => setIsUploadModalOpen(true)}
+                className="border-2 border-dashed border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50/50 dark:hover:bg-[#18294E]/50 transition min-h-[220px] h-full space-y-3"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-[#EFF6FF] dark:bg-[#0B1329] text-[#2563EB] flex items-center justify-center border border-[#BFDBFE] dark:border-[#1E293B]">
+                  <Upload className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-[#0F2A52] dark:text-white">{t('candidatePages.uploadCv', isVi ? 'Tải CV Mới Lên' : 'Upload New CV')}</div>
+                  <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1">
+                    {isVi ? 'Kéo thả PDF, DOCX hoặc trích xuất từ repository' : 'Drag & drop PDF, DOCX or extract from repository'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <div className="text-sm font-semibold text-[#0F2A52] dark:text-white">{t('candidatePages.uploadCv', 'Tải CV Mới Lên')}</div>
-                <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1">Kéo thả PDF, DOCX hoặc trích xuất từ repository</p>
-              </div>
-            </div>
+            </Reveal>
           </div>
         ) : (
           <EmptyState
@@ -254,7 +265,7 @@ export default function CVLibraryPage() {
 
       {/* Version History Modal */}
       {selectedCvForHistory && (
-        <div id="version-history-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4 animate-in fade-in duration-150">
+        <div id="version-history-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4 animate-fade-in duration-150">
           <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-5 text-[#0F2A52] dark:text-[#F1F5F9] max-h-[85vh] flex flex-col">
             <div className="flex items-start justify-between border-b border-slate-100 dark:border-[#1E293B] pb-4">
               <div>
@@ -284,7 +295,7 @@ export default function CVLibraryPage() {
                 return (
                   <div
                     key={ver.id}
-                    className={`p-4 rounded-xl border transition-all ${
+                    className={`p-4 rounded-xl border transition-[color,background-color,border-color,box-shadow] ${
                       isActive
                         ? 'bg-[#E8F8EE]/60 dark:bg-[#00B14F]/10 border-[#00B14F]/40'
                         : 'bg-slate-50 dark:bg-[#0B1329] border-slate-200 dark:border-[#1E293B]'
