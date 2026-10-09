@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Plus
 } from 'lucide-react';
+import { DeactivateAccountSection } from '@/components/common/DeactivateAccountSection';
 
 export default function CandidateProfilePage() {
   const { user } = useAuth();
@@ -647,6 +648,8 @@ export default function CandidateProfilePage() {
               </div>
 
             </form>
+
+            <DeactivateAccountSection />
           </div>
         )}
 

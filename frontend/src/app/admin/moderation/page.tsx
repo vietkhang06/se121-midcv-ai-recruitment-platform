@@ -18,13 +18,21 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  FileText
+  FileText,
+  Scale
 } from 'lucide-react';
-import { adminApi } from '@/lib/api';
-import { JobAdminDto, ReportAdminDto, ReportStatus, ReportTargetType } from '@/types';
+import {
+  adminApi,
+  fetchAdminAppeals,
+  startReviewAdminAppeal,
+  approveAdminAppeal,
+  rejectAdminAppeal
+} from '@/lib/api';
+import { JobAdminDto, ReportAdminDto, ReportStatus, ReportTargetType, SuspensionAppeal } from '@/types';
+import { ConfirmActionDialog } from '@/components/common/ConfirmActionDialog';
 
 export default function AdminModerationPage() {
-  const [activeTab, setActiveTab] = useState<'JOBS' | 'REPORTS'>('JOBS');
+  const [activeTab, setActiveTab] = useState<'JOBS' | 'REPORTS' | 'APPEALS'>('JOBS');
 
   // Jobs State
   const [jobs, setJobs] = useState<JobAdminDto[]>([]);
@@ -45,6 +53,21 @@ export default function AdminModerationPage() {
   const [reportsTypeFilter, setReportsTypeFilter] = useState<'ALL' | ReportTargetType>('ALL');
   const [reportsLoading, setReportsLoading] = useState(true);
   const [reportsError, setReportsError] = useState<string | null>(null);
+
+  // Appeals State
+  const [appeals, setAppeals] = useState<SuspensionAppeal[]>([]);
+  const [appealsTotalPages, setAppealsTotalPages] = useState(0);
+  const [appealsTotalElements, setAppealsTotalElements] = useState(0);
+  const [appealsPage, setAppealsPage] = useState(0);
+  const [appealsStatusFilter, setAppealsStatusFilter] = useState<'ALL' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED'>('ALL');
+  const [appealsLoading, setAppealsLoading] = useState(true);
+  const [appealsError, setAppealsError] = useState<string | null>(null);
+
+  // Selected Appeal Action Modal
+  const [selectedAppeal, setSelectedAppeal] = useState<SuspensionAppeal | null>(null);
+  const [appealAction, setAppealAction] =
+    useState<'APPROVE' | 'REJECT' | null>(null);
+  const [appealResolutionNote, setAppealResolutionNote] = useState('');
 
   // Action Modals
   const [selectedJob, setSelectedJob] = useState<JobAdminDto | null>(null);
@@ -100,13 +123,80 @@ export default function AdminModerationPage() {
     }
   }, [reportsPage, reportsStatusFilter, reportsTypeFilter]);
 
+  // Fetch Appeals
+  const fetchAppeals = useCallback(async () => {
+    setAppealsLoading(true);
+    setAppealsError(null);
+    try {
+      const res = await fetchAdminAppeals({
+        status: appealsStatusFilter === 'ALL' ? undefined : appealsStatusFilter,
+        page: appealsPage,
+        size: 10
+      });
+      setAppeals(res.content || []);
+      setAppealsTotalPages(res.totalPages || 0);
+      setAppealsTotalElements(res.totalElements || 0);
+    } catch (err: any) {
+      setAppealsError(err?.message || 'Không thể tải danh sách khiếu nại đình chỉ.');
+    } finally {
+      setAppealsLoading(false);
+    }
+  }, [appealsPage, appealsStatusFilter]);
+
   useEffect(() => {
     if (activeTab === 'JOBS') {
       fetchJobs();
-    } else {
+    } else if (activeTab === 'REPORTS') {
       fetchReports();
+    } else if (activeTab === 'APPEALS') {
+      fetchAppeals();
     }
-  }, [activeTab, fetchJobs, fetchReports]);
+  }, [activeTab, fetchJobs, fetchReports, fetchAppeals]);
+
+  // Handle Review Appeal
+  const handleStartReview = async (appeal: SuspensionAppeal) => {
+    setSubmitting(true);
+    setFeedback(null);
+    try {
+      await startReviewAdminAppeal(appeal.id);
+      setFeedback({ type: 'success', text: 'Đã chuyển đơn khiếu nại sang trạng thái đang xét duyệt.' });
+      fetchAppeals();
+    } catch (err: any) {
+      setFeedback({ type: 'error', text: err?.message || 'Không thể cập nhật trạng thái khiếu nại.' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Execute Appeal Resolution (Approve / Reject)
+  const handleExecuteAppealResolution = async () => {
+    if (!selectedAppeal || !appealAction) return;
+
+    if (!appealResolutionNote.trim()) {
+      setFeedback({ type: 'error', text: 'Vui lòng nhập lý do / ghi chú quyết định khiếu nại.' });
+      return;
+    }
+
+    setSubmitting(true);
+    setFeedback(null);
+    try {
+      if (appealAction === 'APPROVE') {
+        await approveAdminAppeal(selectedAppeal.id, appealResolutionNote.trim());
+        setFeedback({ type: 'success', text: 'Đã chấp thuận khiếu nại và gỡ bỏ trạng thái đình chỉ thành công!' });
+      } else if (appealAction === 'REJECT') {
+        await rejectAdminAppeal(selectedAppeal.id, appealResolutionNote.trim());
+        setFeedback({ type: 'success', text: 'Đã bác bỏ đơn khiếu nại đình chỉ.' });
+      }
+      setSelectedAppeal(null);
+      setAppealAction(null);
+      setAppealResolutionNote('');
+      fetchAppeals();
+    } catch (err: any) {
+      setFeedback({ type: 'error', text: err?.message || 'Lỗi khi xử lý quyết định khiếu nại.' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // Execute Job Moderation
   const handleExecuteJobModeration = async () => {
@@ -203,11 +293,10 @@ export default function AdminModerationPage() {
         {/* Feedback Alert */}
         {feedback && (
           <div
-            className={`p-4 rounded-xl flex items-center gap-3 text-sm font-medium transition-all ${
-              feedback.type === 'success'
-                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
-            }`}
+            className={`p-4 rounded-xl flex items-center gap-3 text-sm font-medium transition-all ${feedback.type === 'success'
+              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+              : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+              }`}
           >
             {feedback.type === 'success' ? (
               <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
@@ -222,25 +311,33 @@ export default function AdminModerationPage() {
         <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
           <button
             onClick={() => setActiveTab('JOBS')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-              activeTab === 'JOBS'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'bg-white dark:bg-[#0B1329] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-900'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'JOBS'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'bg-white dark:bg-[#0B1329] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-900'
+              }`}
           >
             <Briefcase className="w-4 h-4" />
             <span>Kiểm Duyệt Tin Tuyển Dụng</span>
           </button>
           <button
             onClick={() => setActiveTab('REPORTS')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-              activeTab === 'REPORTS'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'bg-white dark:bg-[#0B1329] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-900'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'REPORTS'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'bg-white dark:bg-[#0B1329] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-900'
+              }`}
           >
             <AlertTriangle className="w-4 h-4" />
             <span>Báo Cáo Vi Phạm Từ Người Dùng</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('APPEALS')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'APPEALS'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'bg-white dark:bg-[#0B1329] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-900'
+              }`}
+          >
+            <Scale className="w-4 h-4" />
+            <span>Khiếu Nại Đình Chỉ ({appealsTotalElements})</span>
           </button>
         </div>
 
@@ -276,11 +373,10 @@ export default function AdminModerationPage() {
                       setJobsStatusFilter(s.id as any);
                       setJobsPage(0);
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                      jobsStatusFilter === s.id
-                        ? 'bg-indigo-600 text-white shadow-xs'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${jobsStatusFilter === s.id
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
                   >
                     {s.label}
                   </button>
@@ -449,11 +545,10 @@ export default function AdminModerationPage() {
                       setReportsTypeFilter(t);
                       setReportsPage(0);
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      reportsTypeFilter === t
-                        ? 'bg-indigo-600 text-white shadow-xs'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${reportsTypeFilter === t
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                      }`}
                   >
                     {t === 'ALL' ? 'Tất cả' : t === 'JOB' ? 'Tin tuyển dụng' : t === 'COMPANY' ? 'Doanh nghiệp' : t === 'CANDIDATE' ? 'Ứng viên' : 'Nhà tuyển dụng'}
                   </button>
@@ -469,11 +564,10 @@ export default function AdminModerationPage() {
                       setReportsStatusFilter(s);
                       setReportsPage(0);
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      reportsStatusFilter === s
-                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-xs'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${reportsStatusFilter === s
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                      }`}
                   >
                     {s === 'ALL' ? 'Tất cả' : s === 'PENDING' ? 'Chưa xử lý' : s === 'RESOLVED' ? 'Đã giải quyết' : 'Đã bác bỏ'}
                   </button>
@@ -624,6 +718,238 @@ export default function AdminModerationPage() {
           </div>
         )}
 
+        {/* TAB 3: SUSPENSION APPEALS */}
+        {activeTab === 'APPEALS' && (
+          <div className="space-y-4">
+            {/* Filter Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs">
+              <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
+                {[
+                  { id: 'ALL', label: 'Tất cả' },
+                  { id: 'SUBMITTED', label: 'Mới gửi' },
+                  { id: 'UNDER_REVIEW', label: 'Đang xét duyệt' },
+                  { id: 'APPROVED', label: 'Đã chấp thuận' },
+                  { id: 'REJECTED', label: 'Đã từ chối' },
+                  { id: 'CANCELLED', label: 'Đã hủy' },
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      setAppealsStatusFilter(s.id as any);
+                      setAppealsPage(0);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${appealsStatusFilter === s.id
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => fetchAppeals()}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Làm mới</span>
+              </button>
+            </div>
+
+            {/* Appeals Table */}
+            {appealsLoading ? (
+              <div className="py-20 flex flex-col items-center justify-center gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+                <span className="text-xs text-slate-500">Đang tải danh sách khiếu nại...</span>
+              </div>
+            ) : appealsError ? (
+              <div className="p-6 rounded-2xl bg-rose-50 dark:bg-rose-950/20 text-center">
+                <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">{appealsError}</p>
+                <button
+                  onClick={() => fetchAppeals()}
+                  className="mt-3 px-4 py-2 text-xs font-bold rounded-xl bg-rose-600 text-white"
+                >
+                  Thử lại
+                </button>
+              </div>
+            ) : appeals.length === 0 ? (
+              <div className="py-16 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                <Scale className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">Không có đơn khiếu nại nào</h4>
+                <p className="text-xs text-slate-500 mt-1">Hiện không có đơn khiếu nại nào phù hợp với bộ lọc đã chọn.</p>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1329] overflow-hidden shadow-xs">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold">
+                    <tr>
+                      <th className="py-3.5 px-4">Người Khiếu Nại</th>
+                      <th className="py-3.5 px-4">Đối Tượng</th>
+                      <th className="py-3.5 px-4">Tiêu Đề & Nội Dung</th>
+                      <th className="py-3.5 px-4">Trạng Thái</th>
+                      <th className="py-3.5 px-4">Thời Gian</th>
+                      <th className="py-3.5 px-4 text-right">Thao Tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                    {appeals.map((a) => (
+                      <tr key={a.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition">
+                        <td className="py-4 px-4">
+                          <div className="font-semibold text-slate-900 dark:text-white">
+                            {a.appellantEmail || a.appellantUserId}
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${a.targetType === 'COMPANY'
+                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300'
+                            : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                            }`}>
+                            {a.targetType}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 max-w-xs">
+                          <div className="font-bold text-slate-900 dark:text-white">{a.subject}</div>
+                          <p className="text-slate-500 dark:text-slate-400 truncate mt-0.5">{a.content}</p>
+                          {a.evidenceAttachmentId && (
+                            <a
+                              href={a.evidenceAttachmentId}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] text-indigo-600 dark:text-indigo-400 underline mt-1 inline-block"
+                            >
+                              Xem minh chứng đính kèm
+                            </a>
+                          )}
+                          {a.resolutionNote && (
+                            <div className="mt-1 text-[11px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 p-1.5 rounded">
+                              <span className="font-semibold">Kết luận:</span> {a.resolutionNote}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${a.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
+                            a.status === 'UNDER_REVIEW' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' :
+                              a.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
+                                a.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300' :
+                                  'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
+                            }`}>
+                            {a.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-slate-500">
+                          {new Date(a.submittedAt || a.createdAt).toLocaleDateString('vi-VN')}
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {a.status === 'SUBMITTED' && (
+                              <button
+                                onClick={() => handleStartReview(a)}
+                                disabled={submitting}
+                                className="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold text-[11px] transition"
+                              >
+                                Xem xét
+                              </button>
+                            )}
+                            {(a.status === 'SUBMITTED' || a.status === 'UNDER_REVIEW') && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setSelectedAppeal(a);
+                                    setAppealAction('APPROVE');
+                                    setAppealResolutionNote('');
+                                  }}
+                                  className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition"
+                                >
+                                  Chấp thuận
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedAppeal(a);
+                                    setAppealAction('REJECT');
+                                    setAppealResolutionNote('');
+                                  }}
+                                  className="px-2.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-semibold text-[11px] transition"
+                                >
+                                  Từ chối
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Appeals Pagination */}
+                {appealsTotalPages > 1 && (
+                  <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <span className="text-xs text-slate-500">
+                      Trang {appealsPage + 1} / {appealsTotalPages} (Tổng {appealsTotalElements} khiếu nại)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setAppealsPage((p) => Math.max(0, p - 1))}
+                        disabled={appealsPage === 0}
+                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setAppealsPage((p) => Math.min(appealsTotalPages - 1, p + 1))}
+                        disabled={appealsPage >= appealsTotalPages - 1}
+                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Appeal Action Confirm Dialog */}
+        <ConfirmActionDialog
+          isOpen={selectedAppeal !== null && appealAction !== null}
+          title={
+            appealAction === 'APPROVE'
+              ? 'Xác nhận chấp thuận khiếu nại & Gỡ đình chỉ'
+              : 'Xác nhận từ chối khiếu nại'
+          }
+          description={
+            appealAction === 'APPROVE'
+              ? 'Hành động này sẽ chấp thuận giải trình của người dùng, tự động gỡ bỏ trạng thái đình chỉ và khôi phục hoạt động bình thường.'
+              : 'Đơn khiếu nại sẽ bị từ chối và trạng thái đình chỉ tiếp tục được duy trì.'
+          }
+          confirmLabel={appealAction === 'APPROVE' ? 'Chấp thuận & Gỡ đình chỉ' : 'Bác bỏ khiếu nại'}
+          cancelLabel="Hủy bỏ"
+          variant={appealAction === 'APPROVE' ? 'info' : 'danger'}
+          isLoading={submitting}
+          onConfirm={handleExecuteAppealResolution}
+          onCancel={() => {
+            setSelectedAppeal(null);
+            setAppealAction(null);
+            setAppealResolutionNote('');
+          }}
+        >
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Lý do / Căn cứ quyết định *
+            </label>
+            <textarea
+              rows={3}
+              required
+              value={appealResolutionNote}
+              onChange={(e) => setAppealResolutionNote(e.target.value)}
+              placeholder="Ghi rõ lý do chấp thuận hoặc căn cứ từ chối khiếu nại..."
+              className="w-full p-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </ConfirmActionDialog>
+
         {/* Job Action Modal */}
         {selectedJob && jobAction && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
@@ -662,9 +988,8 @@ export default function AdminModerationPage() {
                 <button
                   onClick={handleExecuteJobModeration}
                   disabled={submitting}
-                  className={`px-4 py-2 rounded-xl text-white text-xs font-bold transition flex items-center gap-1.5 ${
-                    jobAction === 'SUSPEND' ? 'bg-rose-600 hover:bg-rose-500' : 'bg-emerald-600 hover:bg-emerald-500'
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-white text-xs font-bold transition flex items-center gap-1.5 ${jobAction === 'SUSPEND' ? 'bg-rose-600 hover:bg-rose-500' : 'bg-emerald-600 hover:bg-emerald-500'
+                    }`}
                 >
                   {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Xác nhận
@@ -712,9 +1037,8 @@ export default function AdminModerationPage() {
                 <button
                   onClick={handleExecuteReportResolution}
                   disabled={submitting}
-                  className={`px-4 py-2 rounded-xl text-white text-xs font-bold transition flex items-center gap-1.5 ${
-                    reportAction === 'RESOLVE' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-slate-700 hover:bg-slate-600'
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-white text-xs font-bold transition flex items-center gap-1.5 ${reportAction === 'RESOLVE' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-slate-700 hover:bg-slate-600'
+                    }`}
                 >
                   {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Xác nhận

@@ -38,6 +38,7 @@ export interface Company {
   contactEmail: string;
   contactPhone?: string;
   verificationStatus: CompanyVerificationState;
+  operationalStatus?: 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
   verificationReason?: string;
 }
 
@@ -560,11 +561,39 @@ export interface SuspensionAppeal {
   status: 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
   evidenceAttachmentId?: string;
   submittedAt: string;
-  reviewedBy?: string;
   reviewerEmail?: string;
   reviewedAt?: string;
   resolutionNote?: string;
   createdAt: string;
+}
+
+export interface SuspensionNotice {
+  hasActiveSuspension: boolean;
+  userSuspended: boolean;
+  companySuspended: boolean;
+  suspensionRecordId?: string;
+  reason?: string;
+  startsAt?: string;
+  expiresAt?: string;
+  appealStatus?: 'NONE' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  appealId?: string;
+  appealSubmittedAt?: string;
+  appealResolutionNotes?: string;
+}
+
+export interface JobMatchingPolicy {
+  id?: string;
+  jobId: string;
+  skillRequiredWeight: number;
+  skillPreferredWeight: number;
+  experienceWeight: number;
+  educationWeight: number;
+  projectWeight: number;
+  semanticWeight: number;
+  coreWeight: number;
+  githubWeight: number;
+  isGithubActive: boolean;
+  policyVersion?: number;
 }
 
 

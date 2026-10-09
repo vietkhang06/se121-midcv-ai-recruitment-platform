@@ -19,9 +19,7 @@ public class AdminAuditLogService {
     private final AdminAuditLogRepository adminAuditLogRepository;
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public void log(User admin, String action, String targetType, UUID targetId,
-                    String previousState, String newState, String reason,
-                    String ipAddress, String correlationId) {
+    public void log(User admin, String action, String targetType, UUID targetId, String previousState, String newState, String reason, String ipAddress, String correlationId) {
         try {
             AdminAuditLog logEntry = AdminAuditLog.builder()
                     .admin(admin)

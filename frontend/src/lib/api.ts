@@ -25,7 +25,9 @@ import {
   ReportAdminDto,
   AdminAuditLogDto,
   TaxonomySkillAdminDto,
-  SuspensionAppeal
+  SuspensionAppeal,
+  SuspensionNotice,
+  JobMatchingPolicy
 } from '@/types';
 
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -134,17 +136,52 @@ export async function apiRequest<T>(
     } catch {
       // response is not JSON
     }
-    const errMsg = errBody?.message || res.statusText || `Request failed with status ${res.status}`;
 
-    // Auto-clean expired or invalid credentials on 401/403
-    if (typeof window !== 'undefined' && (res.status === 401 || (res.status === 403 && (!token || isJwtExpired(token))))) {
+    const errMsg =
+      errBody?.message ||
+      res.statusText ||
+      `Request failed with status ${res.status}`;
+
+    const isExpiredSessionResponse =
+      res.status === 401 ||
+      (res.status === 403 &&
+        /yêu cầu xác thực tài khoản|phiên làm việc đã hết hạn/i.test(
+          errMsg
+        ));
+
+    if (typeof window !== 'undefined' && isExpiredSessionResponse) {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
-      window.dispatchEvent(new CustomEvent('midcv:session_expired', { detail: { message: errMsg } }));
+
+      window.dispatchEvent(
+        new CustomEvent('midcv:session_expired', {
+          detail: { message: errMsg },
+        })
+      );
     }
 
-    console.error(`[API ERROR] method=${method} url=${url} status=${res.status} statusText=${res.statusText} message=${errMsg}`, errBody);
-    throw new ApiError(method, url, res.status, res.statusText, errMsg, errBody);
+    // Lỗi xác thực là tình huống cần xử lý phiên đăng nhập,
+    // không phải lúc nào cũng là lỗi lập trình.
+    const logMessage =
+      `[API ${isExpiredSessionResponse ? 'AUTH' : 'ERROR'}] ` +
+      `method=${method} url=${url} status=${res.status} ` +
+      `statusText=${res.statusText} message=${errMsg}`;
+
+    if (isExpiredSessionResponse) {
+      console.warn(logMessage);
+    } else {
+      console.error(logMessage, errBody);
+    }
+
+    throw new ApiError(
+      method,
+      url,
+      res.status,
+      res.statusText,
+      errMsg,
+      errBody
+    );
+
   }
 
   const json = await res.json();
@@ -1206,7 +1243,7 @@ export class RealApiClient implements ApiClient {
     if (!res.ok) {
       if (res.status === 404) return null;
       let errBody: any = null;
-      try { errBody = await res.json(); } catch {}
+      try { errBody = await res.json(); } catch { }
       const errMsg = errBody?.message || res.statusText || `GET /inspection thất bại: ${res.status}`;
       console.error(`[API ERROR] method=GET url=${url} status=${res.status} statusText=${res.statusText} message=${errMsg}`, errBody);
       throw new ApiError('GET', url, res.status, res.statusText, errMsg, errBody);
@@ -1405,7 +1442,7 @@ export const subscribeCVProcessingEvents = (
   identifier: { cvId?: string; jobId?: string },
   onEvent: (event: any) => void,
   onError?: (err: any) => void
-) => (currentApiClient.subscribeCVProcessingEvents ? currentApiClient.subscribeCVProcessingEvents(identifier, onEvent, onError) : () => {});
+) => (currentApiClient.subscribeCVProcessingEvents ? currentApiClient.subscribeCVProcessingEvents(identifier, onEvent, onError) : () => { });
 export const downloadCVFile = (cvId: string, format: string, defaultFilename: string) => currentApiClient.downloadCVFile(cvId, format, defaultFilename);
 export const retryCVExtraction = (cvId: string) => currentApiClient.retryCVExtraction(cvId);
 export const fetchCVDraft = (cvId: string) => currentApiClient.fetchCVDraft(cvId);
@@ -1850,31 +1887,14 @@ export const adminApi = {
 // 15. SUSPENSION APPEALS API
 // ============================================================
 
-export async function submitSuspensionAppeal(data: {
-  subject: string;
-  content: string;
-  evidenceAttachmentId?: string;
-}): Promise<SuspensionAppeal> {
-  const res = await apiRequest<any>('/api/v1/recruiter/appeals', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-  return res.data || res;
-}
 
 export async function fetchMyAppeals(): Promise<SuspensionAppeal[]> {
-  const res = await apiRequest<any>('/api/v1/recruiter/appeals', {
+  const res = await apiRequest<any>('/api/v1/appeals', {
     method: 'GET',
   });
   return res.data || res || [];
 }
 
-export async function cancelSuspensionAppeal(appealId: string): Promise<SuspensionAppeal> {
-  const res = await apiRequest<any>(`/api/v1/recruiter/appeals/${appealId}/cancel`, {
-    method: 'POST',
-  });
-  return res.data || res;
-}
 
 export async function fetchAdminAppeals(params?: {
   status?: string;
@@ -1912,6 +1932,107 @@ export async function rejectAdminAppeal(appealId: string, resolutionNote: string
   const res = await apiRequest<any>(`/api/v1/admin/appeals/${appealId}/reject`, {
     method: 'POST',
     body: JSON.stringify({ resolutionNote }),
+  });
+  return res.data || res;
+}
+
+
+export async function getMyActiveSuspension(): Promise<SuspensionNotice | null> {
+  const token = getAuthToken();
+
+  // Người chưa đăng nhập không cần kiểm tra trạng thái đình chỉ.
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const res = await apiRequest<any>('/api/v1/suspensions/my-active', {
+      method: 'GET',
+    });
+
+    return res?.data ?? res ?? null;
+  } catch (err: unknown) {
+    if (err instanceof ApiError) {
+      const message = String(
+        err.responseBody?.message ?? err.message
+      );
+
+      const isAuthenticationFailure =
+        err.status === 401 ||
+        (err.status === 403 &&
+          /yêu cầu xác thực tài khoản|phiên làm việc đã hết hạn/i.test(
+            message
+          ));
+
+      if (isAuthenticationFailure) {
+        return null;
+      }
+    }
+
+    // Các lỗi khác vẫn phải được báo ra để không che lỗi thật.
+    throw err;
+  }
+}
+
+
+export async function submitSuspensionAppeal(data: {
+  suspensionRecordId?: string;
+  targetType?: 'USER' | 'COMPANY';
+  targetId?: string;
+  subject: string;
+  content: string;
+  evidenceAttachmentId?: string;
+}): Promise<SuspensionAppeal> {
+  const res = await apiRequest<any>('/api/v1/appeals', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return res.data || res;
+}
+
+export async function cancelSuspensionAppeal(appealId: string, reason?: string): Promise<SuspensionAppeal> {
+  const res = await apiRequest<any>(`/api/v1/appeals/${appealId}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ reason: reason || 'Người dùng tự hủy khiếu nại' }),
+  });
+  return res.data || res;
+}
+
+export async function deactivateAccount(password: string, reason?: string): Promise<void> {
+  await apiRequest<any>('/api/v1/account/deactivate', {
+    method: 'POST',
+    body: JSON.stringify({ password, reason }),
+  });
+}
+
+export async function restoreUserAccount(userId: string, reason: string): Promise<void> {
+  await apiRequest<any>(`/api/v1/admin/users/${userId}/restore`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function getJobMatchingPolicy(jobId: string): Promise<JobMatchingPolicy> {
+  const res = await apiRequest<any>(`/api/v1/jobs/${jobId}/matching-policy`, {
+    method: 'GET',
+  });
+  return res.data || res;
+}
+
+export async function updateJobMatchingPolicy(
+  jobId: string,
+  policy: Partial<JobMatchingPolicy>
+): Promise<JobMatchingPolicy> {
+  const res = await apiRequest<any>(`/api/v1/jobs/${jobId}/matching-policy`, {
+    method: 'PUT',
+    body: JSON.stringify(policy),
+  });
+  return res.data || res;
+}
+
+export async function recalculateJobMatching(jobId: string): Promise<{ recalculatedCount: number }> {
+  const res = await apiRequest<any>(`/api/v1/jobs/${jobId}/matching/recalculate`, {
+    method: 'POST',
   });
   return res.data || res;
 }

@@ -19,8 +19,11 @@ import {
   AlertTriangle,
   ChevronRight,
   MapPin,
-  DollarSign
+  DollarSign,
+  Sliders
 } from 'lucide-react';
+import { ConfirmActionDialog } from '@/components/common/ConfirmActionDialog';
+import { JobMatchingPolicyModal } from '@/components/recruiter/JobMatchingPolicyModal';
 
 export default function RecruiterJobsListPage() {
   const { t, locale } = useLanguage();
@@ -32,6 +35,11 @@ export default function RecruiterJobsListPage() {
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [actionInProgressId, setActionInProgressId] = useState<string | null>(null);
+
+  // Policy and Action confirmation modals
+  const [policyModalJob, setPolicyModalJob] = useState<Job | null>(null);
+  const [confirmCloseJobId, setConfirmCloseJobId] = useState<string | null>(null);
+  const [confirmPublishJobId, setConfirmPublishJobId] = useState<string | null>(null);
 
   const loadJobs = () => {
     setIsLoading(true);
@@ -82,13 +90,15 @@ export default function RecruiterJobsListPage() {
     setFilteredJobs(result);
   }, [searchKeyword, selectedStatus, jobs]);
 
-  const handlePublish = async (jobId: string) => {
-    setActionInProgressId(jobId);
+  const handleExecutePublish = async () => {
+    if (!confirmPublishJobId) return;
+    setActionInProgressId(confirmPublishJobId);
     try {
-      const updated = await publishJob(jobId);
+      const updated = await publishJob(confirmPublishJobId);
       if (updated) {
-        setJobs((prev) => prev.map((j) => (j.id === jobId ? updated : j)));
+        setJobs((prev) => prev.map((j) => (j.id === confirmPublishJobId ? updated : j)));
       }
+      setConfirmPublishJobId(null);
     } catch (err: any) {
       alert(err.message || 'Xuất bản tin thất bại.');
     } finally {
@@ -96,16 +106,15 @@ export default function RecruiterJobsListPage() {
     }
   };
 
-  const handleClose = async (jobId: string) => {
-    if (!confirm(locale === 'vi' ? 'Bạn có chắc chắn muốn đóng tin tuyển dụng này? Ứng viên sẽ không thể nộp đơn tiếp.' : 'Are you sure you want to close this job posting? Candidates will no longer be able to apply.')) {
-      return;
-    }
-    setActionInProgressId(jobId);
+  const handleExecuteClose = async () => {
+    if (!confirmCloseJobId) return;
+    setActionInProgressId(confirmCloseJobId);
     try {
-      const updated = await closeJob(jobId);
+      const updated = await closeJob(confirmCloseJobId);
       if (updated) {
-        setJobs((prev) => prev.map((j) => (j.id === jobId ? updated : j)));
+        setJobs((prev) => prev.map((j) => (j.id === confirmCloseJobId ? updated : j)));
       }
+      setConfirmCloseJobId(null);
     } catch (err: any) {
       alert(err.message || 'Đóng tin tuyển dụng thất bại.');
     } finally {
@@ -323,10 +332,19 @@ export default function RecruiterJobsListPage() {
                             <span className="hidden sm:inline">Ranking</span>
                           </Link>
 
+                          <button
+                            type="button"
+                            onClick={() => setPolicyModalJob(job)}
+                            className="p-1.5 rounded-lg text-[#64748B] dark:text-[#94A3B8] hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-[#F1F5F9] dark:hover:bg-[#13233F] transition cursor-pointer"
+                            title="Cấu hình trọng số đối sánh"
+                          >
+                            <Sliders className="w-4 h-4" />
+                          </button>
+
                           {job.status === 'DRAFT' && (
                             <button
                               type="button"
-                              onClick={() => handlePublish(job.id)}
+                              onClick={() => setConfirmPublishJobId(job.id)}
                               disabled={isBusy}
                               className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#E8F8EE] text-[#00B14F] hover:bg-[#C9F2D8] border border-[#00B14F]/30 transition disabled:opacity-50 cursor-pointer"
                             >
@@ -337,7 +355,7 @@ export default function RecruiterJobsListPage() {
                           {job.status === 'PUBLISHED' && (
                             <button
                               type="button"
-                              onClick={() => handleClose(job.id)}
+                              onClick={() => setConfirmCloseJobId(job.id)}
                               disabled={isBusy}
                               className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-rose-50 hover:text-rose-600 border border-slate-200 dark:border-slate-700 transition disabled:opacity-50 cursor-pointer"
                             >
@@ -354,6 +372,43 @@ export default function RecruiterJobsListPage() {
           </div>
         </div>
       )}
+
+      {/* Matching Policy Configuration Modal */}
+      {policyModalJob && (
+        <JobMatchingPolicyModal
+          jobId={policyModalJob.id}
+          jobTitle={policyModalJob.title}
+          isOpen={true}
+          onClose={() => setPolicyModalJob(null)}
+          onPolicyUpdated={() => loadJobs()}
+        />
+      )}
+
+      {/* Confirm Publish Dialog */}
+      <ConfirmActionDialog
+        isOpen={confirmPublishJobId !== null}
+        title="Xác nhận xuất bản tin tuyển dụng"
+        description="Tin tuyển dụng sẽ được công khai cho ứng viên nộp hồ sơ. Hãy đảm bảo doanh nghiệp đã được xác thực và đang hoạt động bình thường."
+        confirmLabel="Xuất bản ngay"
+        cancelLabel="Hủy"
+        variant="info"
+        isLoading={actionInProgressId !== null}
+        onConfirm={handleExecutePublish}
+        onCancel={() => setConfirmPublishJobId(null)}
+      />
+
+      {/* Confirm Close Dialog */}
+      <ConfirmActionDialog
+        isOpen={confirmCloseJobId !== null}
+        title="Xác nhận đóng tin tuyển dụng"
+        description="Sau khi đóng tin, ứng viên sẽ không thể xem hoặc nộp đơn vào vị trí này nữa. Các hồ sơ đã nộp vẫn được lưu trữ an toàn."
+        confirmLabel="Đóng tin tuyển dụng"
+        cancelLabel="Quay lại"
+        variant="warning"
+        isLoading={actionInProgressId !== null}
+        onConfirm={handleExecuteClose}
+        onCancel={() => setConfirmCloseJobId(null)}
+      />
     </div>
   );
 }

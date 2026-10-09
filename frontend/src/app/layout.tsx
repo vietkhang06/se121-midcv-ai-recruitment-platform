@@ -8,6 +8,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { FirstVisitModal } from "@/components/onboarding/FirstVisitModal";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { SuspensionBanner } from "@/components/common/SuspensionBanner";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -54,6 +55,7 @@ export default function RootLayout({
           <LanguageProvider>
             <AuthProvider>
               <Navbar />
+              <SuspensionBanner />
               <main className="flex-1">
                 {children}
               </main>
