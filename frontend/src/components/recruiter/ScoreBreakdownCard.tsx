@@ -251,6 +251,85 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
           })}
         </div>
       </div>
+
+      {/* Evidence Audit Map: Grounded Evidence from PostgreSQL evidences table */}
+      <div id="evidence-audit-map" className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-7 shadow-xs space-y-5 transition-colors">
+        <div className="border-b border-slate-100 dark:border-[#1E293B] pb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-bold font-editorial text-slate-900 dark:text-white flex items-center gap-2">
+              <FileCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <span>
+                {locale === 'vi'
+                  ? 'Bản Đồ Minh Chứng Đã Lưu Bền Vững (Persistent Evidence Map)'
+                  : 'Persistent Grounded Evidence Map'}
+              </span>
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              {locale === 'vi'
+                ? 'Trích xuất trực tiếp từ bảng cơ sở dữ liệu evidences. Bằng chứng được lưu tại thời điểm tính điểm và bảo toàn sau mỗi lần tải lại trang.'
+                : 'Directly loaded from the PostgreSQL evidences table. Evidences are stored at scoring time and persist across reloads.'}
+            </p>
+          </div>
+          <span className="font-mono text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+            ✓ {data.evidences?.length || 0} {locale === 'vi' ? 'Minh chứng đã lưu' : 'Persisted Evidences'}
+          </span>
+        </div>
+
+        {data.evidences && data.evidences.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {data.evidences.map((ev, idx) => (
+              <div
+                key={ev.id || idx}
+                className="p-4 rounded-xl bg-slate-50/80 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] space-y-2.5 text-xs transition-colors"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700">
+                      {ev.sourceType}
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                      {ev.section}
+                    </span>
+                    {ev.requirementText && (
+                      <span className="font-semibold text-slate-900 dark:text-white font-mono text-[11px]">
+                        {ev.requirementText}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
+                    {ev.validationStatus || 'VERIFIED'}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-lg bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] space-y-1">
+                  <span className="text-[10px] uppercase font-mono text-slate-400 block font-semibold">
+                    {locale === 'vi' ? 'Trích đoạn văn bản gốc (Verbatim Quote):' : 'Verbatim Quote:'}
+                  </span>
+                  <p className="text-slate-800 dark:text-slate-200 italic font-serif leading-relaxed">
+                    "{ev.snippet}"
+                  </p>
+                </div>
+
+                {ev.normalizedValue !== undefined && (
+                  <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200/60 dark:border-[#1E293B]">
+                    <span>Trạng thái: <strong className="text-emerald-600 dark:text-emerald-400">{ev.matchStatus || 'MATCH'}</strong></span>
+                    <span>Độ tin cậy: <strong>{ev.normalizedValue}%</strong></span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-6 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-dashed border-slate-300 dark:border-[#1E293B] text-center text-xs text-slate-500 space-y-1">
+            <p className="font-medium">
+              {locale === 'vi' ? 'Chưa có bản ghi minh chứng nào được lưu trong bảng evidences.' : 'No persisted evidence records found in evidences table.'}
+            </p>
+            <p className="text-[11px] text-slate-400">
+              {locale === 'vi' ? 'Hệ thống đang sử dụng dữ liệu đối soát trực tiếp từ snapshot CV.' : 'System is using real-time grounding from CV snapshot.'}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

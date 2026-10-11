@@ -140,7 +140,8 @@ public class ProcessingLifecycleService {
     @Transactional
     public void processCandidateGithub(UUID candidateId) {
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateId)
-                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateId));
+                .or(() -> candidateProfileRepository.findById(candidateId))
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "id/userId", candidateId));
 
         if (candidate.getGithubUrl() == null || candidate.getGithubUrl().isBlank()) {
             log.info("No GitHub URL present for candidate_id: {}", candidateId);

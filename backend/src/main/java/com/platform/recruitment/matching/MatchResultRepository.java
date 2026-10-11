@@ -18,4 +18,6 @@ public interface MatchResultRepository extends JpaRepository<MatchResult, UUID> 
     List<MatchResult> findByApplicationJobIdWithCandidate(@Param("jobId") UUID jobId);
 
     List<MatchResult> findByApplicationJobId(UUID jobId);
+
+    List<MatchResult> findByApplicationCandidateId(UUID candidateId);
 }
