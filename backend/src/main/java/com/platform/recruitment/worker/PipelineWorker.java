@@ -49,6 +49,9 @@ public class PipelineWorker {
   private final CVVersionRepository cvVersionRepository;
   private final CVSectionRepository cvSectionRepository;
 
+  @org.springframework.beans.factory.annotation.Autowired(required = false)
+  private com.platform.recruitment.ai.ProcessingLifecycleService processingLifecycleService;
+
   @org.springframework.beans.factory.annotation.Autowired
   public PipelineWorker(
       JdbcTemplate jdbc,
@@ -116,6 +119,7 @@ public class PipelineWorker {
     int attempts = job.get("attempts") != null ? ((Number) job.get("attempts")).intValue() : 1;
     try {
       if (kind.equals("EXTRACT")) extract(id, owner, entity);
+      else if (kind.equals("GITHUB_ANALYSIS")) processGithub(id, owner, entity);
       else if (!match(id, owner, entity, kind.equals("SCREEN_MATCH"))) return;
       events.emit(
           id,
@@ -690,5 +694,13 @@ public class PipelineWorker {
           queue.complete(job, worker);
         });
     return true;
+  }
+
+  private void processGithub(UUID job, UUID owner, UUID candidateProfileId) {
+    queue.progress(job, worker, owner, "GITHUB_ANALYSIS", 20, "Bắt đầu thu thập và đối soát tín hiệu GitHub công khai.");
+    if (processingLifecycleService != null) {
+      processingLifecycleService.processCandidateGithub(candidateProfileId);
+    }
+    queue.complete(job, worker);
   }
 }
