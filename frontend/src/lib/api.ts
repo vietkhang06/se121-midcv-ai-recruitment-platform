@@ -2037,4 +2037,11 @@ export async function recalculateJobMatching(jobId: string): Promise<{ recalcula
   return res.data || res;
 }
 
+export async function triggerGithubAnalysis(): Promise<{ message: string; status: string }> {
+  const res = await apiRequest<any>('/api/v1/processing/candidate/github', {
+    method: 'POST',
+  });
+  return res.data || res;
+}
+
 
