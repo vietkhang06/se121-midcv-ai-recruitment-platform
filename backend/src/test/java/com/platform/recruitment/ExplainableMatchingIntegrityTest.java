@@ -64,6 +64,7 @@ class ExplainableMatchingIntegrityTest {
                 new ProjectRelevanceMatcher(),
                 gitHubScoringService
         );
+        org.springframework.test.util.ReflectionTestUtils.setField(matchingEngineService, "evidenceRepository", evidenceRepository);
 
         testJob = Job.builder()
                 .title("Fullstack Engineer")
@@ -156,6 +157,19 @@ class ExplainableMatchingIntegrityTest {
                 .build();
         when(matchFactorRepository.findByMatchResultId(any())).thenReturn(List.of(f1));
 
+        Evidence ev1 = Evidence.builder()
+                .sourceType("CV")
+                .section("SKILLS")
+                .snippet("Java developer with 3 years of hands-on Spring Boot experience.")
+                .normalizedValue(BigDecimal.valueOf(100.00))
+                .requirementText("Java")
+                .candidateValue("Java")
+                .matchStatus("MATCH")
+                .validationStatus("VERIFIED")
+                .build();
+        ev1.setId(UUID.randomUUID());
+        when(evidenceRepository.findByMatchResultId(any())).thenReturn(List.of(ev1));
+
         when(applicationRepository.findById(testApp.getId())).thenReturn(Optional.of(testApp));
 
         MatchInspectionResponse inspection = matchingEngineService.getMatchInspection(testApp.getId());
@@ -184,5 +198,18 @@ class ExplainableMatchingIntegrityTest {
             assertNotNull(factorItem.getWeightedContribution());
             assertEquals("v2.0", factorItem.getAlgorithmVersion());
         }
+
+        // Phase 2: Assert persisted evidences mapped to DTO
+        assertNotNull(inspection.getEvidences(), "Evidences list must not be null in inspection response");
+        assertEquals(1, inspection.getEvidences().size(), "Must contain 1 persisted evidence item");
+        MatchInspectionResponse.EvidenceItem evDto = inspection.getEvidences().get(0);
+        assertEquals("CV", evDto.getSourceType());
+        assertEquals("SKILLS", evDto.getSection());
+        assertEquals("Java", evDto.getCandidateValue());
+        assertEquals(BigDecimal.valueOf(100.00), evDto.getNormalizedValue());
+        assertEquals("MATCH", evDto.getMatchStatus());
+        assertEquals("VERIFIED", evDto.getValidationStatus());
+        assertNotNull(evDto.getSnippet());
+        assertTrue(evDto.getSnippet().contains("Java"));
     }
 }

@@ -3,15 +3,23 @@ package com.platform.recruitment.candidate;
 import com.platform.recruitment.common.ResourceNotFoundException;
 import com.platform.recruitment.user.User;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CandidateService {
 
     private final CandidateProfileRepository candidateProfileRepository;
     private final CandidateTargetIndustryRepository candidateTargetIndustryRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.platform.recruitment.worker.JobQueue jobQueue;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.platform.recruitment.ai.ProcessingLifecycleService processingLifecycleService;
 
     @Transactional
     public CandidateProfile getMyProfile(User candidateUser) {
@@ -41,6 +49,7 @@ public class CandidateService {
         CandidateProfile profile = candidateProfileRepository.findByUserId(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
 
+        String oldGithubUrl = profile.getGithubUrl();
         profile.setFullName(updateData.getFullName());
         profile.setAge(updateData.getAge());
         profile.setPhone(updateData.getPhone());
@@ -69,6 +78,24 @@ public class CandidateService {
             profile.setTargetIndustry(updateData.getTargetIndustry());
         }
 
-        return candidateProfileRepository.save(profile);
+        CandidateProfile saved = candidateProfileRepository.save(profile);
+
+        // Auto-enqueue background GitHub analysis when valid githubUrl is provided/updated
+        boolean isNewUrl = saved.getGithubUrl() != null && !saved.getGithubUrl().isBlank()
+                && !saved.getGithubUrl().trim().equalsIgnoreCase(oldGithubUrl != null ? oldGithubUrl.trim() : "");
+        if (isNewUrl) {
+            if (jobQueue != null) {
+                jobQueue.enqueue(candidateUser.getId(), "GITHUB_ANALYSIS", saved.getId());
+                log.info("Enqueued background GITHUB_ANALYSIS task for candidate {}", saved.getId());
+            } else if (processingLifecycleService != null) {
+                try {
+                    processingLifecycleService.processCandidateGithub(candidateUser.getId());
+                } catch (Exception ex) {
+                    log.warn("Non-blocking GitHub analysis failed for candidate user {}: {}", candidateUser.getId(), ex.getMessage());
+                }
+            }
+        }
+
+        return saved;
     }
 }

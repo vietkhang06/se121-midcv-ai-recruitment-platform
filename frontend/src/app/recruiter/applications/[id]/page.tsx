@@ -154,6 +154,12 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
   const candidateDisplayName = application?.candidateName || data?.candidateName || 'Ứng viên';
   const currentStatus = application?.status || (data ? 'MATCHED' : 'SUBMITTED');
   const statusCfg = STATUS_CONFIG[currentStatus] || STATUS_CONFIG.SUBMITTED;
+  // An application may exist before matching has produced an inspection result.
+  // Normalize the score once so the UI safely displays N/A in that case.
+  const overallScore =
+    typeof data?.overallScore === 'number' && Number.isFinite(data.overallScore)
+      ? data.overallScore
+      : null;
 
   const matchedSkillsCount = data?.requiredSkillsStatus?.filter((s) => s.status === 'MATCH').length || 0;
   const totalSkillsCount = data?.requiredSkillsStatus?.length || 0;
@@ -224,7 +230,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
             <div
               className="relative w-36 h-36 flex items-center justify-center"
               role="img"
-              aria-label={`${locale === 'vi' ? 'Điểm phù hợp' : 'Match score'} ${data.overallScore.toFixed(1)}%`}
+              aria-label={`${locale === 'vi' ? 'Điểm phù hợp' : 'Match score'} ${overallScore !== null ? `${overallScore.toFixed(1)}%` : 'N/A'}`}
             >
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle
@@ -243,7 +249,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                   stroke="#10B981"
                   strokeWidth="8"
                   strokeDasharray="251.2"
-                  strokeDashoffset={251.2 * (1 - Math.min(100, data.overallScore) / 100)}
+                  strokeDashoffset={251.2 * (1 - Math.min(100, overallScore ?? 0) / 100)}
                   strokeLinecap="round"
                   fill="transparent"
                   className="motion-score-ring"
@@ -251,7 +257,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
-                  {data.overallScore.toFixed(1)}%
+                  {overallScore !== null ? `${overallScore.toFixed(1)}%` : 'N/A'}
                 </span>
                 <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold font-mono">MATCH</span>
               </div>

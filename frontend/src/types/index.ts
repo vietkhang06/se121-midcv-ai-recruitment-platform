@@ -248,6 +248,21 @@ export interface CandidateRankingItem {
   gitHubConnected: boolean;
 }
 
+export interface EvidenceItem {
+  id?: string;
+  sourceType: 'CV' | 'JD' | 'GITHUB' | string;
+  sourceId?: string;
+  section: string;
+  snippet: string;
+  normalizedValue?: number;
+  requirementId?: string;
+  requirementText?: string;
+  candidateValue?: string;
+  matchStatus?: string;
+  similarityConfidence?: number;
+  validationStatus?: string;
+}
+
 export interface MatchInspectionData {
   applicationId: string;
   jobTitle: string;
@@ -263,6 +278,7 @@ export interface MatchInspectionData {
   matchFactors: MatchFactorItem[];
   humanReadableExplanation: string;
   githubAssessment: GitHubAssessmentData;
+  evidences?: EvidenceItem[];
 }
 
 export interface AiSettings {

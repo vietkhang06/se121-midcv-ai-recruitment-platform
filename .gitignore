@@ -8,11 +8,30 @@
 uploads/
 backend/uploads/
 
+# Dependencies and virtual environments
+node_modules/
+**/node_modules/
+.venv/
+**/.venv/
+venv/
+**/venv/
+
 # Frontend test and build artifacts
+test-results/
+playwright-report/
 frontend/test-results/
 frontend/playwright-report/
-frontend/.next/
+.next/
+**/.next/
 frontend/out/
+
+# Diagnostics and runtime logs
+diagnostics/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # Python cache and environments
 __pycache__/
@@ -22,12 +41,22 @@ __pycache__/
 **/*.py[cod]
 **/__pycache__/**
 .pytest_cache/
-ai-worker/**/__pycache__/
-ai-worker/.pytest_cache/
+**/.pytest_cache/
 ai-worker/test-output/
-.env*
+
+# Environment files and credentials
+.env
+.env.*
+.env*.local
+**/.env
+**/.env.*
+**/.env*.local
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Safe template preservation exceptions
 !.env.example
-ai-worker/.env
-ai-worker/.env.*
-!ai-worker/.env.example
-
+!*.env.example
+!**/.env.example

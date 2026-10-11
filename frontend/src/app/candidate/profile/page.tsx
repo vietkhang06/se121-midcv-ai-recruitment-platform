@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { fetchCandidateProfile, saveCandidateProfile, confirmCandidateCV, fetchCandidateCVs } from '@/lib/api';
+import { fetchCandidateProfile, saveCandidateProfile, confirmCandidateCV, fetchCandidateCVs, triggerGithubAnalysis } from '@/lib/api';
 import { Industry, CandidateProfile, CV } from '@/types';
 import { AnimatedStatus, Reveal, staggerDelay } from '@/components/motion';
 import {
@@ -39,6 +39,10 @@ export default function CandidateProfilePage() {
   const [cvStatus, setCvStatus] = useState<string>('DRAFT');
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
   const [confirmedSuccess, setConfirmedSuccess] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [githubUrlError, setGithubUrlError] = useState<string | null>(null);
+  const [isSyncingGithub, setIsSyncingGithub] = useState<boolean>(false);
+  const [githubSyncMessage, setGithubSyncMessage] = useState<string | null>(null);
 
   const loadProfile = () => {
     setIsLoading(true);
@@ -94,11 +98,87 @@ export default function CandidateProfilePage() {
     );
   }
 
+  const isItCandidate = Boolean(
+    profile && (
+      profile.targetIndustry === 'Technology' ||
+      profile.primaryIndustry === 'Technology' ||
+      (profile.additionalIndustries || []).includes('Technology')
+    )
+  );
+
+  const validateGithubUrl = (url?: string): boolean => {
+    if (!url || !url.trim()) return true; // Optional field
+    const trimmed = url.trim();
+    const githubRegex = /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9_-]+\/?$|^[a-zA-Z0-9_-]+$/;
+    return githubRegex.test(trimmed);
+  };
+
+  const handleGithubUrlChange = (val: string) => {
+    if (!profile) return;
+    setProfile({ ...profile, githubUrl: val });
+    if (val && !validateGithubUrl(val)) {
+      setGithubUrlError(
+        locale === 'vi'
+          ? 'Định dạng GitHub không hợp lệ (Ví dụ: https://github.com/username hoặc username).'
+          : 'Invalid GitHub format (e.g. https://github.com/username or username).'
+      );
+    } else {
+      setGithubUrlError(null);
+    }
+  };
+
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    await saveCandidateProfile(profile);
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+    if (!profile) return;
+    if (profile.githubUrl && !validateGithubUrl(profile.githubUrl)) {
+      setGithubUrlError(
+        locale === 'vi'
+          ? 'Vui lòng kiểm tra lại định dạng GitHub URL trước khi lưu.'
+          : 'Please correct GitHub URL format before saving.'
+      );
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const updated = await saveCandidateProfile(profile);
+      setProfile(updated || profile);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+      // NOTE: Automatic GitHub analysis is enqueued on the backend whenever githubUrl changes.
+      // No duplicate frontend trigger here.
+    } catch (err: any) {
+      alert(err.message || (locale === 'vi' ? 'Không thể lưu hồ sơ.' : 'Failed to save profile.'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSyncGithub = async () => {
+    if (!profile?.githubUrl || !validateGithubUrl(profile.githubUrl)) {
+      setGithubUrlError(
+        locale === 'vi'
+          ? 'Vui lòng kiểm tra định dạng GitHub URL trước khi đồng bộ.'
+          : 'Please enter a valid GitHub URL format before syncing.'
+      );
+      return;
+    }
+    setIsSyncingGithub(true);
+    setGithubSyncMessage(null);
+    try {
+      await triggerGithubAnalysis();
+      setGithubSyncMessage(
+        locale === 'vi'
+          ? 'Đã tiếp nhận yêu cầu phân tích GitHub vào hàng đợi xử lý nền.'
+          : 'GitHub analysis queued for background processing.'
+      );
+      setTimeout(() => setGithubSyncMessage(null), 5000);
+    } catch (err: any) {
+      setGithubSyncMessage(
+        err.message || (locale === 'vi' ? 'Không thể đồng bộ GitHub lúc này.' : 'Failed to sync GitHub at this time.')
+      );
+    } finally {
+      setIsSyncingGithub(false);
+    }
   };
 
   const handleConfirmProfile = async () => {
@@ -545,8 +625,160 @@ export default function CandidateProfilePage() {
                 )}
               </div>
 
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
+                    {locale === 'vi' ? 'Họ và Tên' : 'Full Name'}
+                  </label>
+                  <input
+                    type="text"
+                    value={profile.fullName || ''}
+                    onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]"
+                    placeholder="e.g. Doan Viet Khang"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
+                    {locale === 'vi' ? 'Tiêu đề Chuyên môn' : 'Professional Headline'}
+                  </label>
+                  <input
+                    type="text"
+                    value={profile.headline || ''}
+                    onChange={(e) => setProfile({ ...profile, headline: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]"
+                    placeholder="e.g. Senior Fullstack Engineer"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
+                    {locale === 'vi' ? 'Số Điện Thoại' : 'Phone Number'}
+                  </label>
+                  <input
+                    type="text"
+                    value={profile.phone || ''}
+                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]"
+                    placeholder="e.g. 0912345678"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
+                    {locale === 'vi' ? 'Địa Điểm Làm Việc' : 'Location'}
+                  </label>
+                  <input
+                    type="text"
+                    value={profile.location || ''}
+                    onChange={(e) => setProfile({ ...profile, location: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]"
+                    placeholder="e.g. Ho Chi Minh City, Vietnam"
+                  />
+                </div>
+              </div>
+
+              {/* GitHub Profile URL (Editable for IT Candidates) */}
+              <div className={`p-4 rounded-xl border transition-all space-y-3 ${
+                isItCandidate
+                  ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/50'
+                  : 'bg-slate-50/50 dark:bg-[#0E172E] border-slate-200 dark:border-[#1E293B]'
+              }`}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-slate-900 dark:bg-slate-800 text-white">
+                      <GitBranch className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">
+                        {locale === 'vi' ? 'Hồ Sơ GitHub (GitHub Profile URL)' : 'GitHub Profile URL'}
+                      </span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                        {locale === 'vi' ? 'Liên kết mã nguồn phục vụ đối soát năng lực IT' : 'Code repository link for IT competency analysis'}
+                      </span>
+                    </div>
+                  </div>
+                  {isItCandidate && (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700">
+                      {locale === 'vi' ? 'ƯU TIÊN ỨNG VIÊN IT / TECH' : 'IT / TECH CANDIDATE PRIORITY'}
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        id="candidate-github-url"
+                        name="githubUrl"
+                        value={profile.githubUrl || ''}
+                        onChange={(e) => handleGithubUrlChange(e.target.value)}
+                        placeholder="https://github.com/username hoặc username"
+                        className={`w-full px-3.5 py-2.5 text-xs font-mono bg-white dark:bg-[#0B1329] border rounded-lg focus:outline-none transition ${
+                          githubUrlError
+                            ? 'border-red-500 focus:border-red-600 text-red-900 dark:text-red-200'
+                            : 'border-slate-300 dark:border-[#1E293B] focus:border-blue-600 dark:focus:border-blue-500 text-slate-900 dark:text-slate-100'
+                        }`}
+                      />
+                      {profile.githubUrl && !githubUrlError && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500">
+                          <CheckCircle2 className="w-4 h-4" />
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      id="btn-sync-github"
+                      onClick={handleSyncGithub}
+                      disabled={isSyncingGithub || !profile.githubUrl || Boolean(githubUrlError)}
+                      className="px-3.5 py-2.5 rounded-lg text-xs font-semibold bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-700 disabled:opacity-50 text-white transition flex items-center gap-1.5 whitespace-nowrap shadow-xs"
+                    >
+                      <GitBranch className={`w-3.5 h-3.5 ${isSyncingGithub ? 'animate-spin' : ''}`} />
+                      <span>
+                        {isSyncingGithub
+                          ? (locale === 'vi' ? 'Đang phân tích...' : 'Analyzing...')
+                          : (locale === 'vi' ? 'Đồng bộ GitHub' : 'Sync GitHub')}
+                      </span>
+                    </button>
+                  </div>
+                  {githubSyncMessage && (
+                    <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                      {githubSyncMessage}
+                    </p>
+                  )}
+                  {githubUrlError ? (
+                    <p className="text-[11px] text-red-600 dark:text-red-400 font-medium">
+                      {githubUrlError}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      {locale === 'vi'
+                        ? 'Tín hiệu hoạt động từ GitHub công khai (repositories, commits, ngôn ngữ) sẽ hỗ trợ đối soát năng lực. Không áp dụng điểm phạt nếu để trống.'
+                        : 'Public GitHub signals (repositories, commits, languages) contribute to competency matching. Neutral fallback (no penalty) applies if empty.'}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Bio / Summary */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
+                  {locale === 'vi' ? 'Giới Thiệu Bản Thân' : 'Professional Summary / Bio'}
+                </label>
+                <textarea
+                  rows={3}
+                  value={profile.bio || ''}
+                  onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                  className="w-full px-3 py-2 text-xs bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]"
+                  placeholder="e.g. Specialized in high-concurrency systems, Go, React, and cloud architectures..."
+                />
+              </div>
+
               {/* Multi-Industry Selector */}
-              <div className="space-y-2">
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
                   {locale === 'vi' ? 'Định hướng Nghề nghiệp Đa ngành' : 'Multi-Industry Career Target'}
                 </label>
@@ -631,10 +863,11 @@ export default function CandidateProfilePage() {
                 <div className="flex items-center gap-3">
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-[#1E293B] hover:bg-slate-50 dark:hover:bg-[#1E293B] transition flex items-center gap-2"
+                    disabled={isSaving}
+                    className="px-5 py-2.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-[#1E293B] hover:bg-slate-50 dark:hover:bg-[#1E293B] disabled:opacity-50 transition flex items-center gap-2"
                   >
                     <Save className="w-3.5 h-3.5" />
-                    <span>{locale === 'vi' ? 'Lưu Bản Thảo' : 'Save Draft'}</span>
+                    <span>{isSaving ? (locale === 'vi' ? 'Đang lưu...' : 'Saving...') : (locale === 'vi' ? 'Lưu Bản Thảo' : 'Save Draft')}</span>
                   </button>
 
                   {activeCvId && (

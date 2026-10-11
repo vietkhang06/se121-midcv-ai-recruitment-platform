@@ -22,7 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -404,16 +407,29 @@ public class MatchingEngineService {
         }
 
         // 6. Save Grounded MatchFactors for Transparent Score Reconstruction
+        String skillReqEvidence = String.format("Xác thực %d/%d kỹ năng bắt buộc với đối soát từ khóa và taxonomy.",
+                reqMatched, reqTotal);
         saveMatchFactor(savedResult, "SKILL_REQUIRED", "Kỹ năng bắt buộc", "CV", scoreReq, scoreReq, scoreReq,
-                cfgReq, effReq, contribReq, statusReq, "EXACT_AND_ALIAS_TAXONOMY_MATCH", null);
+                cfgReq, effReq, contribReq, statusReq, "EXACT_AND_ALIAS_TAXONOMY_MATCH", skillReqEvidence);
+
+        String skillPrefEvidence = prefTotal > 0
+                ? String.format("Xác thực %d/%d kỹ năng ưu tiên mang lại điểm thưởng bổ trợ.", prefMatched, prefTotal)
+                : "Không có kỹ năng ưu tiên nào được yêu cầu trong JD.";
         saveMatchFactor(savedResult, "SKILL_PREFERRED", "Kỹ năng ưu tiên", "CV", scorePref, scorePref, scorePref,
-                cfgPref, effPref, contribPref, statusPref, "KEYWORD_FREQUENCY_MATCH", null);
+                cfgPref, effPref, contribPref, statusPref, "KEYWORD_FREQUENCY_MATCH", skillPrefEvidence);
+
+        String expEvidenceRef = String.format("Kinh nghiệm làm việc được ghi nhận trong CV với mức đánh giá %s%% phù hợp ngành %s.", expScore, job.getIndustry());
         saveMatchFactor(savedResult, "EXPERIENCE", "Kinh nghiệm làm việc", "CV", scoreExp, scoreExp, scoreExp,
-                cfgExp, effExp, contribExp, statusExp, "RELEVANT_YEARS_EXTRACTION", null);
+                cfgExp, effExp, contribExp, statusExp, "RELEVANT_YEARS_EXTRACTION", expEvidenceRef);
+
+        String eduEvidenceRef = String.format("Trình độ học vấn & bằng cấp ghi nhận trong CV với mức đánh giá %s%%.", eduScore);
         saveMatchFactor(savedResult, "EDUCATION", "Học vấn & Bằng cấp", "CV", scoreEdu, scoreEdu, scoreEdu,
-                cfgEdu, effEdu, contribEdu, statusEdu, "DEGREE_AND_MAJOR_RELEVANCE", null);
+                cfgEdu, effEdu, contribEdu, statusEdu, "DEGREE_AND_MAJOR_RELEVANCE", eduEvidenceRef);
+
+        String projEvidenceRef = String.format("Dự án liên quan và công nghệ bối cảnh ghi nhận trong CV với mức đánh giá %s%%.", projScore);
         saveMatchFactor(savedResult, "PROJECT", "Dự án liên quan", "CV", scoreProj, scoreProj, scoreProj,
-                cfgProj, effProj, contribProj, statusProj, "PROJECT_STACK_KEYWORD_MATCH", null);
+                cfgProj, effProj, contribProj, statusProj, "PROJECT_STACK_KEYWORD_MATCH", projEvidenceRef);
+
         saveMatchFactor(savedResult, "SEMANTIC", "Mức độ phù hợp ngữ nghĩa", "CV", scoreSem, scoreSem, scoreSem,
                 cfgSem, effSem, contribSem, statusSem, semanticMethod, cvDocVersionId != null ? cvDocVersionId.toString() : null);
 
@@ -508,17 +524,46 @@ public class MatchingEngineService {
             }
         }
 
+        List<Evidence> persistedEvidences = evidenceRepository != null
+                ? evidenceRepository.findByMatchResultId(result.getId())
+                : Collections.emptyList();
+
+        Map<String, Evidence> skillEvidenceMap = new HashMap<>();
+        Map<String, List<Evidence>> sectionEvidenceMap = new HashMap<>();
+        for (Evidence ev : persistedEvidences) {
+            if ("SKILLS".equalsIgnoreCase(ev.getSection()) && ev.getRequirementText() != null) {
+                skillEvidenceMap.put(ev.getRequirementText().toLowerCase().trim(), ev);
+            }
+            sectionEvidenceMap.computeIfAbsent(
+                    ev.getSection() != null ? ev.getSection().toUpperCase() : "GENERAL",
+                    k -> new ArrayList<>()
+            ).add(ev);
+        }
+
         List<MatchInspectionResponse.SkillItem> reqSkillItems = new ArrayList<>();
         List<MatchInspectionResponse.SkillItem> prefSkillItems = new ArrayList<>();
 
         for (JobRequirement req : allReqs) {
-            boolean matched = skillNormalizer.matchesSkill(req.getSkillName(), cvRawText);
-            String grounded = matched ? extractGroundedSnippet(cvRawText, req.getSkillName()) : null;
+            Evidence persistedSkillEv = skillEvidenceMap.get(req.getSkillName().toLowerCase().trim());
+            boolean matched;
+            String evidenceText;
+
+            if (persistedSkillEv != null) {
+                matched = !"MISSING".equalsIgnoreCase(persistedSkillEv.getMatchStatus());
+                evidenceText = (persistedSkillEv.getSnippet() != null && !persistedSkillEv.getSnippet().isBlank())
+                        ? persistedSkillEv.getSnippet()
+                        : (matched ? "Kỹ năng được ghi nhận và xác thực trong hồ sơ CV ứng viên." : "Không tìm thấy minh chứng trực tiếp trong CV.");
+            } else {
+                matched = skillNormalizer.matchesSkill(req.getSkillName(), cvRawText);
+                String grounded = matched ? extractGroundedSnippet(cvRawText, req.getSkillName()) : null;
+                evidenceText = grounded != null ? grounded : (matched ? "Kỹ năng được ghi nhận trong hồ sơ CV ứng viên." : "Không tìm thấy minh chứng trực tiếp trong CV.");
+            }
+
             MatchInspectionResponse.SkillItem item = MatchInspectionResponse.SkillItem.builder()
                     .skillName(req.getSkillName())
                     .requirementType(req.getRequirementType().name())
                     .status(matched ? "MATCH" : "MISSING")
-                    .evidenceText(grounded != null ? grounded : (matched ? "Kỹ năng được ghi nhận trong hồ sơ CV ứng viên." : "Không tìm thấy minh chứng trực tiếp trong CV."))
+                    .evidenceText(evidenceText)
                     .build();
             if (req.getRequirementType() == RequirementType.REQUIRED) {
                 reqSkillItems.add(item);
@@ -531,6 +576,21 @@ public class MatchingEngineService {
         List<MatchInspectionResponse.FactorItem> factorItems = new ArrayList<>();
         for (MatchFactor f : factors) {
             String status = f.getStatus() != null ? f.getStatus() : "AVAILABLE";
+            String factorEvidence = f.getEvidenceReference();
+            if (factorEvidence == null || factorEvidence.isBlank()) {
+                if ("EXPERIENCE".equalsIgnoreCase(f.getFactorType()) && sectionEvidenceMap.containsKey("EXPERIENCE")) {
+                    factorEvidence = sectionEvidenceMap.get("EXPERIENCE").get(0).getSnippet();
+                } else if ("GITHUB_SUPPORTING".equalsIgnoreCase(f.getFactorType()) && sectionEvidenceMap.containsKey("REPOSITORIES")) {
+                    factorEvidence = sectionEvidenceMap.get("REPOSITORIES").get(0).getSnippet();
+                } else if ("SKILL_REQUIRED".equalsIgnoreCase(f.getFactorType())) {
+                    long matchedCount = reqSkillItems.stream().filter(s -> "MATCH".equals(s.getStatus())).count();
+                    factorEvidence = String.format("Xác thực %d/%d kỹ năng bắt buộc với minh chứng đối soát từ CV.", matchedCount, reqSkillItems.size());
+                } else if ("SKILL_PREFERRED".equalsIgnoreCase(f.getFactorType())) {
+                    long matchedPref = prefSkillItems.stream().filter(s -> "MATCH".equals(s.getStatus())).count();
+                    factorEvidence = String.format("Xác thực %d/%d kỹ năng ưu tiên mang lại điểm thưởng bổ trợ.", matchedPref, prefSkillItems.size());
+                }
+            }
+
             factorItems.add(MatchInspectionResponse.FactorItem.builder()
                     .factorName(f.getFactorType())
                     .score(f.getScore())
@@ -545,9 +605,27 @@ public class MatchingEngineService {
                             f.getFactorName() != null ? f.getFactorName() : f.getFactorType(),
                             status,
                             f.getEffectiveWeight() != null ? f.getEffectiveWeight() : f.getWeight()))
-                    .evidence(f.getEvidenceReference())
+                    .evidence(factorEvidence)
                     .build());
         }
+
+        // Map persisted evidences to EvidenceItem DTOs
+        List<MatchInspectionResponse.EvidenceItem> evidenceItems = persistedEvidences.stream()
+                .map(ev -> MatchInspectionResponse.EvidenceItem.builder()
+                        .id(ev.getId())
+                        .sourceType(ev.getSourceType())
+                        .sourceId(ev.getSourceId())
+                        .section(ev.getSection())
+                        .snippet(ev.getSnippet())
+                        .normalizedValue(ev.getNormalizedValue())
+                        .requirementId(ev.getRequirementId())
+                        .requirementText(ev.getRequirementText())
+                        .candidateValue(ev.getCandidateValue())
+                        .matchStatus(ev.getMatchStatus())
+                        .similarityConfidence(ev.getSimilarityConfidence())
+                        .validationStatus(ev.getValidationStatus())
+                        .build())
+                .toList();
 
         // GitHub Assessment
         MatchInspectionResponse.GitHubAssessmentInfo ghInfo;
@@ -592,6 +670,7 @@ public class MatchingEngineService {
                 .matchFactors(factorItems)
                 .humanReadableExplanation(explanation)
                 .githubAssessment(ghInfo)
+                .evidences(evidenceItems)
                 .build();
     }
 

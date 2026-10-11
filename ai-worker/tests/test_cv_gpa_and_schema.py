@@ -147,3 +147,115 @@ def test_structured_cv_validator_gpa_and_grounding():
     assert data.education[0].gpa_display == "8.3/10"
     # No false positive skill warnings
     assert len([w for w in data.warnings if "Spring Boot" in w]) == 0
+
+
+def test_gpa_extraction_comma_decimal():
+    """Verify parser correctly extracts GPA with Vietnamese comma decimal (e.g. 3,45/4.0)."""
+    parser = CVParser()
+    raw_text = """
+    NGUYEN VAN C
+    Email: nguyen.c@example.com
+    Phone: 0981112233
+
+    HỌC VẤN:
+    Đại học Bách Khoa TP.HCM
+    Kỹ sư Công nghệ Thông tin (2018 - 2022)
+    Điểm trung bình: 3,45/4.0
+
+    KỸ NĂNG:
+    Python, FastAPI, Docker
+    """
+    req = CVExtractRequest(
+        cv_id="cv-gpa-comma",
+        cv_version_id="v1",
+        file_type="PDF",
+        raw_text=raw_text
+    )
+    res = parser.parse_cv_document(req)
+    assert res.status == "SUCCESS"
+    assert len(res.educations) >= 1
+    edu = res.educations[0]
+    assert edu.gpa == 3.45
+    assert edu.gpa_scale == 4.0
+    assert "3.45/4" in (edu.gpa_display or "")
+
+
+def test_gpa_extraction_unspecified_scale_decision_1():
+    """Verify Decision 1: when no scale is specified, val <= 4.0 defaults to 4.0, val > 4.0 defaults to 10.0."""
+    parser = CVParser()
+    raw_text_4 = """
+    LE THI D
+    Email: led@example.com
+    Phone: 0912223344
+
+    EDUCATION:
+    VNU University of Science
+    Computer Science (2019 - 2023)
+    GPA: 3.75
+
+    SKILLS:
+    Java, Spring Boot
+    """
+    res_4 = parser.parse_cv_document(CVExtractRequest(
+        cv_id="cv-gpa-unspec-4",
+        cv_version_id="v1",
+        file_type="PDF",
+        raw_text=raw_text_4
+    ))
+    assert res_4.status == "SUCCESS"
+    assert res_4.educations[0].gpa == 3.75
+    assert res_4.educations[0].gpa_scale == 4.0
+
+    raw_text_10 = """
+    HOANG VAN E
+    Email: hoange@example.com
+    Phone: 0933334455
+
+    HỌC VẤN:
+    Đại học Kinh tế - Luật
+    Hệ thống Thông tin Quản lý (2017 - 2021)
+    Điểm tích lũy: 8,6
+
+    KỸ NĂNG:
+    SQL, Tableau
+    """
+    res_10 = parser.parse_cv_document(CVExtractRequest(
+        cv_id="cv-gpa-unspec-10",
+        cv_version_id="v1",
+        file_type="PDF",
+        raw_text=raw_text_10
+    ))
+    assert res_10.status == "SUCCESS"
+    assert res_10.educations[0].gpa == 8.6
+    assert res_10.educations[0].gpa_scale == 10.0
+
+
+def test_cpa_keyword_and_non_hallucination_from_projects():
+    """Verify CPA keyword is extracted, and numbers in projects (e.g. 3.5x boost) do not hallucinate into empty education GPA."""
+    parser = CVParser()
+    raw_text = """
+    TRAN VAN F
+    Email: tranf@example.com
+    Phone: 0944445566
+
+    EDUCATION:
+    Hanoi University of Science and Technology
+    Software Engineering (2016 - 2020)
+    CPA: 3.65/4.0
+
+    EXPERIENCE:
+    Startup ABC (2020 - 2023)
+    Increased microservice transaction throughput by 4.5x and optimized latency by 2.8x.
+
+    SKILLS:
+    Golang, Redis
+    """
+    res = parser.parse_cv_document(CVExtractRequest(
+        cv_id="cv-cpa-test",
+        cv_version_id="v1",
+        file_type="PDF",
+        raw_text=raw_text
+    ))
+    assert res.status == "SUCCESS"
+    assert res.educations[0].gpa == 3.65
+    assert res.educations[0].gpa_scale == 4.0

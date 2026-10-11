@@ -29,6 +29,26 @@ public class MatchInspectionResponse {
     private List<FactorItem> matchFactors;
     private String humanReadableExplanation;
     private GitHubAssessmentInfo githubAssessment;
+    private List<EvidenceItem> evidences;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class EvidenceItem {
+        private UUID id;
+        private String sourceType;
+        private String sourceId;
+        private String section;
+        private String snippet;
+        private BigDecimal normalizedValue;
+        private String requirementId;
+        private String requirementText;
+        private String candidateValue;
+        private String matchStatus;
+        private BigDecimal similarityConfidence;
+        private String validationStatus;
+    }
 
     @Data
     @Builder

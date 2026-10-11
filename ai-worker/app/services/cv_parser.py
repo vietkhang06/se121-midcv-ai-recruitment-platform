@@ -433,22 +433,7 @@ OUTPUT JSON SCHEMA:
             i_snip, i_loc = self._find_verbatim_evidence(inst, raw_text, pages) if inst else (None, {})
 
             if i_snip or (inst and any(part in lower_text for part in inst.lower().split() if len(part) > 4)):
-                edu_gpa = edu.get("gpa")
-                edu_scale = edu.get("gpa_scale")
-                edu_display = edu.get("gpa_display")
-
-                # If LLM didn't catch explicit GPA in raw text around education, check regex
-                if edu_gpa is None:
-                    gpa_match = re.search(r'\b(?:GPA|Điểm\s*(?:TB|trung\s*bình)?)\s*[:=\-]?\s*([0-9]+(?:\.[0-9]+)?)\s*(?:/\s*([0-9]+(?:\.[0-9]+)?))?', raw_text, re.IGNORECASE)
-                    if gpa_match:
-                        try:
-                            val = float(gpa_match.group(1))
-                            scale = float(gpa_match.group(2)) if gpa_match.group(2) else (10.0 if val > 4.0 else 4.0 if val <= 4.0 and "/4" in gpa_match.group(0) else None)
-                            edu_gpa = val
-                            edu_scale = scale
-                            edu_display = f"{val}/{int(scale) if scale and scale.is_integer() else scale}" if scale else str(val)
-                        except Exception:
-                            pass
+                edu_gpa, edu_scale, edu_display = self._extract_edu_gpa(edu, raw_text, i_loc)
 
                 educations.append(ExtractedEducation(
                     institution=inst,
@@ -775,3 +760,118 @@ OUTPUT JSON SCHEMA:
     def _extract_regex_linkedin(self, text: str) -> Optional[str]:
         m = re.search(r"https?://(?:www\.)?linkedin\.com/in/[a-zA-Z0-9_-]+", text)
         return m.group(0) if m else None
+
+    def _extract_edu_gpa(
+        self,
+        edu_dict: dict,
+        raw_text: str,
+        i_loc: Optional[dict] = None
+    ) -> Tuple[Optional[float], Optional[float], Optional[str]]:
+        """
+        Extract and normalize GPA, gpa_scale, and gpa_display according to Decision 1.
+        - Preserves explicit GPA if already extracted by LLM.
+        - Supports Vietnamese comma decimals (e.g. 3,45 or 8,6) and keywords (GPA, CPA, Điểm TB, Điểm tích lũy).
+        - Context-bounded: looks near institution occurrence first to avoid picking random numbers from projects/experience.
+        - Decision 1 approved default scaling rules:
+          * If scale explicitly mentioned (/4, /10, /100), preserve it.
+          * If scale missing: val <= 4.0 -> default 4.0; 4.0 < val <= 10.0 -> default 10.0.
+        """
+        edu_gpa = edu_dict.get("gpa")
+        edu_scale = edu_dict.get("gpa_scale")
+        edu_display = edu_dict.get("gpa_display")
+
+        parsed_val: Optional[float] = None
+        parsed_scale: Optional[float] = None
+
+        # 1. Parse LLM-provided fields if present
+        if edu_gpa is not None:
+            if isinstance(edu_gpa, (int, float)):
+                parsed_val = float(edu_gpa)
+            elif isinstance(edu_gpa, str) and edu_gpa.strip():
+                clean_str = edu_gpa.strip().replace(",", ".")
+                if "/" in clean_str:
+                    parts = clean_str.split("/", 1)
+                    try:
+                        parsed_val = float(parts[0].strip())
+                        if not edu_scale:
+                            parsed_scale = float(parts[1].strip())
+                    except ValueError:
+                        pass
+                else:
+                    try:
+                        parsed_val = float(clean_str)
+                    except ValueError:
+                        pass
+
+        if edu_scale is not None:
+            if isinstance(edu_scale, (int, float)):
+                parsed_scale = float(edu_scale)
+            elif isinstance(edu_scale, str) and edu_scale.strip():
+                try:
+                    parsed_scale = float(edu_scale.strip().replace(",", "."))
+                except ValueError:
+                    pass
+
+        # 2. If GPA not found by LLM, scan raw_text within education window or section
+        if parsed_val is None:
+            gpa_regex = re.compile(
+                r'\b(?:GPA|CPA|Điểm\s*(?:TB|trung\s*bình|tích\s*lũy)?|Grade\s*(?:Point\s*Average)?)\s*[:=\-]?\s*([0-9]+(?:[\.,][0-9]+)?)\s*(?:/\s*([0-9]+(?:[\.,][0-9]+)?))?',
+                re.IGNORECASE
+            )
+
+            # Search in context window near institution first (350 chars before and after)
+            target_text = ""
+            if i_loc and "start_char" in i_loc and "end_char" in i_loc:
+                start = max(0, i_loc["start_char"] - 350)
+                end = min(len(raw_text), i_loc["end_char"] + 350)
+                target_text = raw_text[start:end]
+
+            gpa_match = gpa_regex.search(target_text) if target_text else None
+
+            # If not found near institution, check if education section exists in raw_text
+            if not gpa_match:
+                edu_section_match = re.search(
+                    r'(?i)(?:education|học\s*vấn|trình\s*độ\s*học\s*vấn)[\s\S]{1,800}?(?=(?:experience|kinh\s*nghiệm|skills|kỹ\s*năng|projects|dự\s*án|$))',
+                    raw_text
+                )
+                if edu_section_match:
+                    gpa_match = gpa_regex.search(edu_section_match.group(0))
+                else:
+                    gpa_match = gpa_regex.search(raw_text)
+
+            if gpa_match:
+                try:
+                    val_str = gpa_match.group(1).replace(",", ".")
+                    parsed_val = float(val_str)
+                    if gpa_match.group(2):
+                        scale_str = gpa_match.group(2).replace(",", ".")
+                        parsed_scale = float(scale_str)
+                except Exception:
+                    pass
+
+        # 3. Apply Decision 1 scale defaulting and consistency checks
+        if parsed_val is not None:
+            if parsed_scale is None:
+                if 0.0 <= parsed_val <= 4.0:
+                    parsed_scale = 4.0
+                elif 4.0 < parsed_val <= 10.0:
+                    parsed_scale = 10.0
+                elif 10.0 < parsed_val <= 100.0:
+                    parsed_scale = 100.0
+
+            # Guard against invalid negative values
+            if parsed_val < 0:
+                parsed_val = None
+                parsed_scale = None
+                edu_display = None
+            else:
+                if parsed_scale:
+                    scale_fmt = int(parsed_scale) if parsed_scale.is_integer() else parsed_scale
+                    edu_display = f"{parsed_val}/{scale_fmt}"
+                else:
+                    edu_display = str(parsed_val)
+        else:
+            parsed_scale = None
+            edu_display = None
+
+        return parsed_val, parsed_scale, edu_display
