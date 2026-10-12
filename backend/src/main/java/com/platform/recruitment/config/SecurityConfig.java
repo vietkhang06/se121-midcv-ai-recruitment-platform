@@ -60,6 +60,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/jobs", "/api/v1/jobs/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/taxonomy/skills/search", "/api/v1/taxonomy/industries", "/api/v1/taxonomy/categories").permitAll()
                         // OpenAPI / Swagger UI
                         .requestMatchers(
                                 "/v3/api-docs",
