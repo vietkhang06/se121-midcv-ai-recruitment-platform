@@ -17,6 +17,7 @@ import com.platform.recruitment.job.Job;
 import com.platform.recruitment.job.JobRepository;
 import com.platform.recruitment.job.JobStatus;
 import com.platform.recruitment.taxonomy.TaxonomyService;
+import com.platform.recruitment.user.AccountPlan;
 import com.platform.recruitment.user.Role;
 import com.platform.recruitment.user.User;
 import com.platform.recruitment.user.UserRepository;
@@ -197,6 +198,7 @@ public class AdminService {
                     .isActive(user.getIsActive())
                     .accountStatus(user.getAccountStatus())
                     .emailVerified(user.getEmailVerified())
+                    .accountPlan(user.getAccountPlan())
                     .fullName(profileOpt.map(CandidateProfile::getFullName).orElse(null))
                     .phone(profileOpt.map(CandidateProfile::getPhone).orElse(null))
                     .targetIndustry(profileOpt.map(CandidateProfile::getTargetIndustry).orElse(null))
@@ -231,6 +233,7 @@ public class AdminService {
                     .isActive(user.getIsActive())
                     .accountStatus(user.getAccountStatus())
                     .emailVerified(user.getEmailVerified())
+                    .accountPlan(user.getAccountPlan())
                     .fullName(profileOpt.map(RecruiterProfile::getFullName).orElse(null))
                     .phone(profileOpt.map(RecruiterProfile::getPhone).orElse(null))
                     .companyId(company != null ? company.getId() : null)
@@ -577,5 +580,19 @@ public class AdminService {
                 .correlationId(log.getCorrelationId())
                 .createdAt(log.getCreatedAt())
                 .build();
+    }
+
+    @Transactional
+    public void updateUserPlan(UUID userId, String planStr) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        try {
+            AccountPlan plan = AccountPlan.valueOf(planStr.trim().toUpperCase());
+            user.setAccountPlan(plan);
+            userRepository.save(user);
+            log.info("Admin updated user {} account plan to {}", userId, plan);
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Invalid plan. Allowed: STANDARD, PRO");
+        }
     }
 }

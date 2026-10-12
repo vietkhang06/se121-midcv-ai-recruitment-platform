@@ -37,6 +37,15 @@ public class User extends BaseEntity {
     @Column(name = "email_verified", nullable = false)
     private Boolean emailVerified = false;
 
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Column(name = "account_plan", nullable = false)
+    private AccountPlan accountPlan = AccountPlan.STANDARD;
+
+    public AccountPlan getAccountPlan() {
+        return this.accountPlan != null ? this.accountPlan : AccountPlan.STANDARD;
+    }
+
     public void setAccountStatus(AccountStatus status) {
         this.accountStatus = status;
         this.isActive = (status == AccountStatus.ACTIVE);

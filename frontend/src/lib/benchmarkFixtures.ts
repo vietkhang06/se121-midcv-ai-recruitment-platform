@@ -12,7 +12,8 @@ import {
   MatchInspectionData,
   Industry,
   CVReviewData,
-  CVProcessingStatus
+  CVProcessingStatus,
+  CVQuota
 } from '@/types';
 import {
   ApiClient,
@@ -305,6 +306,17 @@ export class BenchmarkFixtureClient implements ApiClient {
     return [...SEED_CVS];
   }
 
+  async fetchCVQuota(): Promise<CVQuota> {
+    const count = SEED_CVS.length;
+    return {
+      plan: 'STANDARD',
+      currentCount: count,
+      maxLimit: 3,
+      remainingSlots: Math.max(0, 3 - count),
+      canUpload: count < 3
+    };
+  }
+
   async saveCandidateCV(cv: CV): Promise<CV> {
     return { ...cv };
   }
@@ -413,7 +425,7 @@ export class BenchmarkFixtureClient implements ApiClient {
     ];
   }
 
-  async searchTaxonomySkills(query: string, limit?: number): Promise<any[]> {
+  async searchTaxonomySkills(query: string, limit?: number, _category?: string): Promise<any[]> {
     const list = [
       { id: 'sk-1', name: 'Java', normalizedName: 'java', category: 'Backend' },
       { id: 'sk-2', name: 'Spring Boot', normalizedName: 'spring boot', category: 'Backend' },
@@ -576,5 +588,17 @@ export class BenchmarkFixtureClient implements ApiClient {
       emailVerified: true
     };
     return { user, accessToken: 'benchmark-jwt-token' };
+  }
+
+  async fetchFavoriteSkills(): Promise<any[]> {
+    return [];
+  }
+
+  async addFavoriteSkill(skillId: string): Promise<any> {
+    return { id: skillId, canonicalName: 'Java', category: 'BACKEND' };
+  }
+
+  async removeFavoriteSkill(_skillId: string): Promise<any> {
+    return { success: true };
   }
 }

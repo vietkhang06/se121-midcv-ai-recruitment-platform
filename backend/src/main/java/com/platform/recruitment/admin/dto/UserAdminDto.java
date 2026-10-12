@@ -20,6 +20,7 @@ public class UserAdminDto {
     private Boolean emailVerified;
     private String fullName;
     private String phone;
+    private com.platform.recruitment.user.AccountPlan accountPlan;
     private ZonedDateTime createdAt;
 
     // Specific to Candidate

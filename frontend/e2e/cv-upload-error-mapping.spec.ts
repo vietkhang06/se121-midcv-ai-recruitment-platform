@@ -35,6 +35,25 @@ test.describe('CV Upload Error Mapping & Accurate Messaging', () => {
         await route.continue();
       }
     });
+
+    // Mock GET CV quota
+    await page.route('**/api/v1/candidate/cvs/quota', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          code: 'SUCCESS',
+          message: 'OK',
+          data: {
+            plan: 'STANDARD',
+            currentCount: 1,
+            maxLimit: 3,
+            remainingSlots: 2,
+            canUpload: true
+          }
+        })
+      });
+    });
   });
 
   test('1. FILE_STORAGE_FAILED: Displays accurate storage error, not misleading format error', async ({ page }) => {
@@ -182,6 +201,72 @@ test.describe('CV Upload Error Mapping & Accurate Messaging', () => {
 
     // Modal closes upon successful upload completion
     await expect(modal).not.toBeVisible({ timeout: 10000 });
+  });
+
+  test('5. CV_QUOTA_EXCEEDED: Displays accurate quota rejection error from server', async ({ page }) => {
+    await page.route('**/api/v1/candidate/cvs/upload', async (route) => {
+      await route.fulfill({
+        status: 429,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          code: 'CV_QUOTA_EXCEEDED',
+          message: 'Bạn đã đạt giới hạn tối đa 3 CV của gói STANDARD. Vui lòng nâng cấp gói hoặc xóa bớt CV cũ.',
+          requestId: 'req-err-quota-789'
+        })
+      });
+    });
+
+    await page.goto('/candidate/cvs');
+    await page.locator('#upload-cv-btn').click();
+
+    const modal = page.locator('#cv-upload-modal');
+    await expect(modal).toBeVisible();
+
+    const fileChooserInput = modal.locator('#cv-file-modal-input');
+    await fileChooserInput.setInputFiles({
+      name: 'resume_exceed.pdf',
+      mimeType: 'application/pdf',
+      buffer: Buffer.from('%PDF-1.4 Minimal PDF')
+    });
+
+    await modal.locator('button[type="submit"]').click();
+
+    // Verify accurate quota rejection message is displayed inside modal
+    await expect(modal.getByText('Bạn đã đạt giới hạn tối đa 3 CV của gói STANDARD')).toBeVisible();
+    await expect(modal.getByText('req-err-quota-789')).toBeVisible();
+  });
+
+  test('6. Quota badge rendering & disabled state when quota is exhausted', async ({ page }) => {
+    // Override quota to exhausted (3/3 CV)
+    await page.route('**/api/v1/candidate/cvs/quota', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          code: 'SUCCESS',
+          message: 'OK',
+          data: {
+            plan: 'STANDARD',
+            currentCount: 3,
+            maxLimit: 3,
+            remainingSlots: 0,
+            canUpload: false
+          }
+        })
+      });
+    });
+
+    await page.goto('/candidate/cvs');
+
+    // Verify quota badge displays STANDARD | 3/3 CV
+    const badge = page.locator('#cv-quota-badge');
+    await expect(badge).toBeVisible();
+    await expect(badge).toContainText('STANDARD');
+    await expect(badge).toContainText('3/3 CV');
+
+    // Verify upload button is disabled
+    const uploadBtn = page.locator('#upload-cv-btn');
+    await expect(uploadBtn).toBeDisabled();
   });
 
 });
