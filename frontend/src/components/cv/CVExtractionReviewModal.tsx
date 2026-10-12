@@ -332,13 +332,13 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
       status: draftRes.status || review?.status || 'DRAFT',
       confirmed_at: draftRes.confirmed_at,
       personal_info: draftRes.personal_info || {
-        fullName: review?.structured?.personalInfo?.fullName || review?.structured?.name || '',
-        headline: review?.structured?.headline || review?.structured?.targetRole || '',
-        email: review?.structured?.personalInfo?.email || review?.structured?.email || '',
-        phone: review?.structured?.personalInfo?.phone || review?.structured?.phone || '',
-        address: review?.structured?.personalInfo?.address || review?.structured?.address || '',
-        githubUrl: review?.structured?.personalInfo?.githubUrl || review?.structured?.githubUrl || '',
-        linkedinUrl: review?.structured?.personalInfo?.linkedinUrl || review?.structured?.linkedinUrl || ''
+        fullName: review?.structured?.personalInfo?.fullName || review?.structured?.personal_info?.fullName || review?.structured?.personalInfo?.full_name || review?.structured?.fullName || review?.structured?.full_name || review?.structured?.name || '',
+        headline: review?.structured?.personalInfo?.headline || review?.structured?.personal_info?.headline || review?.structured?.headline || review?.structured?.targetRole || review?.structured?.target_role || '',
+        email: review?.structured?.personalInfo?.email || review?.structured?.personal_info?.email || review?.structured?.email || '',
+        phone: review?.structured?.personalInfo?.phone || review?.structured?.personal_info?.phone || review?.structured?.phone || '',
+        address: review?.structured?.personalInfo?.address || review?.structured?.personal_info?.address || review?.structured?.address || '',
+        githubUrl: review?.structured?.personalInfo?.githubUrl || review?.structured?.personal_info?.githubUrl || review?.structured?.githubUrl || '',
+        linkedinUrl: review?.structured?.personalInfo?.linkedinUrl || review?.structured?.personal_info?.linkedinUrl || review?.structured?.linkedinUrl || ''
       },
       summary: draftRes.summary || {
         content: review?.structured?.summary || ''
@@ -391,13 +391,13 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
       title: review.title || 'Hồ sơ CV',
       status: review.status || 'DRAFT',
       personal_info: {
-        fullName: personalInfo.fullName || personalInfo.full_name || structured.fullName || structured.name || '',
-        headline: structured.headline || structured.targetRole || '',
-        email: personalInfo.email || structured.email || '',
-        phone: personalInfo.phone || structured.phone || '',
-        address: personalInfo.address || structured.address || '',
-        githubUrl: personalInfo.githubUrl || structured.githubUrl || '',
-        linkedinUrl: personalInfo.linkedinUrl || structured.linkedinUrl || ''
+        fullName: personalInfo.fullName || personalInfo.full_name || structured.personalInfo?.fullName || structured.personal_info?.full_name || structured.fullName || structured.full_name || structured.name || '',
+        headline: personalInfo.headline || personalInfo.title || structured.personalInfo?.headline || structured.personal_info?.headline || structured.headline || structured.targetRole || structured.target_role || '',
+        email: personalInfo.email || structured.personalInfo?.email || structured.email || '',
+        phone: personalInfo.phone || structured.personalInfo?.phone || structured.phone || '',
+        address: personalInfo.address || personalInfo.location || structured.personalInfo?.address || structured.address || '',
+        githubUrl: personalInfo.githubUrl || personalInfo.github_url || structured.personalInfo?.githubUrl || structured.githubUrl || '',
+        linkedinUrl: personalInfo.linkedinUrl || personalInfo.linkedin_url || structured.personalInfo?.linkedinUrl || structured.linkedinUrl || ''
       },
       summary: {
         content: structured.summary || ''
@@ -826,14 +826,14 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                       <div>
                         <h3 className="text-xl font-bold text-[#0F2A52] dark:text-white">
-                          {structured.full_name || structured.name || 'Chưa xác định họ tên'}
+                          {personalInfo.fullName || personalInfo.full_name || structured.personalInfo?.fullName || structured.personal_info?.full_name || structured.fullName || structured.full_name || structured.name || 'Chưa xác định họ tên'}
                         </h3>
                         <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mt-0.5">
-                          {structured.headline || structured.target_role || 'Chuyên viên kỹ thuật'}
+                          {personalInfo.headline || structured.personalInfo?.headline || structured.personal_info?.headline || structured.headline || structured.targetRole || structured.target_role || 'Chuyên viên kỹ thuật'}
                         </p>
-                        {structured.address && (
+                        {(personalInfo.address || structured.personalInfo?.address || structured.address) && (
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                            📍 {structured.address}
+                            📍 {personalInfo.address || structured.personalInfo?.address || structured.address}
                           </p>
                         )}
                       </div>

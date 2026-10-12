@@ -222,41 +222,27 @@ export default function CandidateProfilePage() {
     <div className="bg-[#F8FAF9] dark:bg-[#0B1329] min-h-screen py-8 text-slate-800 dark:text-slate-100 space-y-8 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
-        {/* Recruiter / Candidate Mode Alert Banner (Figma Screen 09) */}
-        <div className="bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-amber-900 dark:text-amber-200">
-          <div className="flex items-center gap-2">
-            <span className="font-bold uppercase tracking-wider text-[10px] bg-amber-200/80 dark:bg-amber-900/60 px-2 py-0.5 rounded">
-              Recruiter Portal
-            </span>
-            <span>
-              {locale === 'vi' 
-                ? `Bạn đang xem hồ sơ đã xác thực của ${profile.fullName}. Tất cả điểm số năng lực đều đối soát trực tiếp từ commits và bài nộp thực tế.` 
-                : `You are viewing ${profile.fullName}'s validated profile. All skill scores trace directly to production commits and verified submissions.`}
-            </span>
-          </div>
-          <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-emerald-800 dark:text-[#3B82F6] font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>{locale === 'vi' ? 'Trạng thái: Sẵn sàng nhận cơ hội mới' : 'Visible Mode: Open to offers'}</span>
-          </div>
-        </div>
-
-        {/* Tab Switcher: Dashboard Telemetry vs. Profile Editing */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1E293B] pb-2">
-          <div className="flex items-center gap-6 text-sm font-medium">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`pb-2 transition ${activeTab === 'dashboard' ? 'border-b-2 border-[#0C2B24] dark:border-[#3B82F6] text-[#2563EB] dark:text-[#3B82F6] font-semibold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+        {/* Navigation Breadcrumb & Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1E293B] pb-4">
+          <div className="space-y-1">
+            <Link
+              href="/candidate"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:underline mb-1"
             >
-              {locale === 'vi' ? 'Tổng Quan Ứng Viên (Dashboard)' : 'Candidate Dashboard (04)'}
-            </button>
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`pb-2 transition ${activeTab === 'profile' ? 'border-b-2 border-[#0C2B24] dark:border-[#3B82F6] text-[#2563EB] dark:text-[#3B82F6] font-semibold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
-            >
-              {locale === 'vi' ? 'Hồ Sơ Cá Nhân Ứng Viên (09)' : 'Candidate Profile (09)'}
-            </button>
+              <span>← {locale === 'vi' ? 'Về Bảng Điều Khiển Tổng Quan' : 'Back to Candidate Dashboard'}</span>
+            </Link>
+            <h1 className="text-2xl sm:text-3xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9] tracking-tight">
+              {locale === 'vi' ? 'Hồ Sơ Năng Lực & Thiết Lập Ứng Viên' : 'Candidate Competency Profile & Settings'}
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {locale === 'vi'
+                ? 'Quản lý thông tin định danh, kỹ năng chuyên môn, liên kết GitHub và định hướng đa ngành nghề.'
+                : 'Manage credentials, technical skills, GitHub telemetry, and multi-industry target sectors.'}
+            </p>
           </div>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">ID: {profile.id || 'usr-cand-01'}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-mono self-start sm:self-auto">
+            ID: {profile.id || 'usr-cand-01'}
+          </span>
         </div>
 
         {/* Header Title (Preserved for E2E Test Compatibility) */}
@@ -264,345 +250,82 @@ export default function CandidateProfilePage() {
           <h1>Hồ Sơ Cá Nhân Ứng Viên - Candidate Dashboard</h1>
         </div>
 
-        {/* 04 — Dark Forest Green Welcome Banner (Figma Screen 04) */}
-        <Reveal direction="up" delay={0}>
-          <div className="bg-[#111C38] text-white rounded-2xl p-8 sm:p-10 border border-[#1E293B] shadow-md relative overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-              <div className="space-y-3 max-w-2xl">
-                <h2 className="text-3xl sm:text-4xl font-editorial font-normal tracking-tight text-white">
-                  {locale === 'vi' ? `Chào mừng trở lại, ${profile.fullName || user?.fullName || 'Ứng viên'}` : `Welcome back, ${profile.fullName || user?.fullName || 'Andrew'}`}
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-300 font-light leading-relaxed">
-                  {locale === 'vi'
-                    ? 'Hồ sơ kỹ năng có cấu trúc của bạn đã được xác thực và sẵn sàng. Hệ thống tuyển dụng có thể xem xét trực tiếp minh chứng năng lực của bạn.'
-                    : 'Your structural skills profile is verified and active. Hiring systems matching distributed infrastructure roles can view your evidence vectors.'}
-                </p>
-                <div className="flex items-center gap-3 pt-2">
-                  <Link
-                    href="/candidate/cvs"
-                    className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#10B981] hover:bg-[#059669] text-[#081C15] transition shadow-xs"
-                  >
-                    {locale === 'vi' ? 'Cập nhật CV / Nạp Repos' : 'Update CV / Ingest Repos'}
-                  </Link>
-                  <button
-                    onClick={() => setActiveTab('profile')}
-                    className="px-4 py-2 rounded-lg text-xs font-medium border border-slate-400/40 text-white hover:bg-white/10 transition cursor-pointer"
-                  >
-                    {locale === 'vi' ? 'Xem Chỉ Số Đối Sánh' : 'View Match Metrics'}
-                  </button>
+        <div className="space-y-8">
+
+          {/* Candidate Identity Card & Telemetry */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Candidate Info */}
+            <div className="lg:col-span-8 bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 sm:p-8 shadow-xs space-y-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h3 className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">{profile.fullName || user?.fullName || 'Ứng viên'}</h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-[#93C5FD] border border-emerald-300 dark:border-emerald-800/40">
+                  {locale === 'vi' ? 'NGUỒN ĐÃ XÁC THỰC' : 'VERIFIED SOURCE'}
+                </span>
+              </div>
+
+              <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                {profile.headline || (locale === 'vi' ? 'Chưa cập nhật tiêu đề chuyên môn' : 'No professional headline set')} • {profile.location || (locale === 'vi' ? 'Chưa cập nhật địa điểm' : 'Location not set')}
+              </div>
+
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                {profile.bio || (locale === 'vi' ? 'Chưa có thông tin giới thiệu tóm tắt. Vui lòng cập nhật bên dưới để tăng độ chính xác đối sánh.' : 'No biography provided yet. Update below to improve automated matching accuracy.')}
+              </p>
+
+              {/* Work Experience Summary */}
+              <div className="pt-4 border-t border-slate-100 dark:border-[#1E293B] space-y-3">
+                <div className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  {locale === 'vi' ? 'Tóm Tắt Kinh Nghiệm Làm Việc' : 'Work Experience Summary'}
                 </div>
-              </div>
 
-              {/* Profile Strength Gauge */}
-              <div className="flex items-center gap-4 bg-[#13233F] border border-[#1E3A5F] rounded-xl p-4 shrink-0">
-                <div className="relative w-16 h-16 flex items-center justify-center">
-                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                    <path
-                      className="text-slate-700"
-                      strokeWidth="3.5"
-                      stroke="currentColor"
-                      fill="none"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                    <path
-                      className="text-[#10B981]"
-                      strokeDasharray="85, 100"
-                      strokeWidth="3.5"
-                      strokeLinecap="round"
-                      stroke="currentColor"
-                      fill="none"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                  </svg>
-                  <span className="absolute font-bold font-editorial text-lg text-white">85%</span>
-                </div>
-                <div className="text-left space-y-0.5">
-                  <div className="text-xs font-semibold text-white">
-                    {locale === 'vi' ? 'Độ hoàn thiện hồ sơ' : 'Profile Strength'}
-                  </div>
-                  <div className="text-[11px] text-emerald-400 font-mono">
-                    {locale === 'vi' ? 'Thêm mẫu mã nguồn (+15%)' : 'Add Code samples (+15%)'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Reveal>
-
-        {/* 04 — 4 KPI Stat Cards (Figma Screen 04) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-          <Reveal delay={staggerDelay(0)}>
-            <div className="motion-hover-lift bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-              <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-                {locale === 'vi' ? 'ĐƠN ĐÃ ỨNG TUYỂN' : 'APPLICATIONS SENT'}
-              </span>
-              <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">12</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
-                {locale === 'vi' ? '2 đánh giá mới hôm nay' : '2 new reviews today'}
-              </div>
-            </div>
-          </Reveal>
-
-          <Reveal delay={staggerDelay(1)}>
-            <div className="motion-hover-lift bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-              <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-                {locale === 'vi' ? 'LỊCH PHỎNG VẤN' : 'INTERVIEWS SCHEDULED'}
-              </span>
-              <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">3</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
-                {locale === 'vi' ? 'Kế tiếp: CloudScale ngày mai' : 'Next: cloud scale tomorrow'}
-              </div>
-            </div>
-          </Reveal>
-
-          <Reveal delay={staggerDelay(2)}>
-            <div className="motion-hover-lift bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-              <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-                {locale === 'vi' ? 'LƯỢT XEM HỒ SƠ' : 'PROFILE VIEWS'}
-              </span>
-              <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">184</div>
-              <div className="text-[11px] text-emerald-600 dark:text-[#3B82F6] font-medium pt-1">
-                {locale === 'vi' ? '+24% so với tuần trước' : '+24% compared to last week'}
-              </div>
-            </div>
-          </Reveal>
-
-          <Reveal delay={staggerDelay(3)}>
-            <div className="motion-hover-lift bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-              <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-                {locale === 'vi' ? 'ĐIỂM ĐỐI SÁNH TB' : 'AVERAGE MATCH SCORE'}
-              </span>
-              <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">86%</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
-                {locale === 'vi' ? 'Chỉ số ứng viên năng lực cao' : 'Highly qualified candidate index'}
-              </div>
-            </div>
-          </Reveal>
-        </div>
-
-        {/* 04 — Active Application Pipeline Stepper (Figma Screen 04) */}
-        <Reveal direction="up" delay={120}>
-          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
-          <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-            {locale === 'vi' 
-              ? 'Tiến độ nộp đơn đang xử lý: Kỹ sư Hạ tầng Cao cấp (CloudScale Systems)' 
-              : 'Active Application Pipeline: Senior Infrastructure Engineer (CloudScale Systems)'}
-          </div>
-
-          <div className="pt-3 pb-2">
-            <div className="flex items-center justify-between relative">
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-slate-200 dark:bg-[#1B3D34] w-full z-0"></div>
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-[#111C38] dark:bg-emerald-500 w-3/4 z-0"></div>
-
-              {[
-                { label: locale === 'vi' ? 'Đã nộp' : 'Applied', done: true },
-                { label: locale === 'vi' ? 'Đã xem' : 'Reviewed', done: true },
-                { label: locale === 'vi' ? 'Chọn lọc' : 'Shortlisted', done: true },
-                { label: locale === 'vi' ? 'Phỏng vấn' : 'Interview Mode', active: true },
-                { label: locale === 'vi' ? 'Nhận Offer' : 'Offer Generation', pending: true },
-              ].map((step, idx) => (
-                <div key={idx} className="flex flex-col items-center gap-1.5 relative z-10 bg-white dark:bg-[#111C38] px-2">
-                  <div
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                      step.done
-                        ? 'bg-[#111C38] dark:bg-[#2563EB] text-white'
-                        : step.active
-                        ? 'bg-amber-400 text-slate-900 ring-4 ring-amber-100 dark:ring-amber-950/40'
-                        : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
-                    }`}
-                  >
-                    {step.done ? '✓' : idx + 1}
-                  </div>
-                  <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">
-                    {step.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </Reveal>
-
-        {/* Dynamic Content based on Active Tab */}
-        {activeTab === 'dashboard' ? (
-          /* 04 — Recommended Jobs & Recent Activity Feed */
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
-            {/* Left: Recommended Jobs */}
-            <div className="lg:col-span-8 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
-                  {locale === 'vi' ? 'Việc Làm Gợi Ý' : 'Recommended Jobs'}
-                </h3>
-                <Link href="/jobs" className="text-xs font-semibold text-amber-700 dark:text-amber-400 hover:underline">
-                  {locale === 'vi' ? 'XEM TẤT CẢ' : 'BROWSE ALL'}
-                </Link>
-              </div>
-
-              {[
-                { title: 'Senior Cloud Infrastructure Architect', company: 'SystemSpace Ltd', salary: '£100,000 - £125,000', score: 94 },
-                { title: 'Kubernetes Systems Lead', company: 'AeroStorage', salary: '£110,000 - £130,000', score: 91 },
-                { title: 'Go Software Architect', company: 'NeoCore', salary: '£90,000 - £115,000', score: 87 },
-              ].map((job, idx) => (
-                <div key={idx} className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-5 shadow-xs flex items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-slate-900 dark:text-white text-sm">{job.title}</span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800/40">
-                        {job.score}% MATCH
-                      </span>
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">{job.company}</div>
-                    <div className="text-xs font-mono text-slate-700 dark:text-slate-300">{job.salary}</div>
-                  </div>
-                  <Link
-                    href="/jobs"
-                    className="px-3.5 py-1.5 rounded-md text-xs font-medium border border-[#E2E8F0] dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#133E34] transition shrink-0"
-                  >
-                    {locale === 'vi' ? 'Chi Tiết Đối Sánh' : 'Match Analytics'}
-                  </Link>
-                </div>
-              ))}
-            </div>
-
-            {/* Right: Recent Activity Feed */}
-            <div className="lg:col-span-4 bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
-              <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
-                {locale === 'vi' ? 'Hoạt Động Gần Đây' : 'Recent Activity Feed'}
-              </h3>
-              <div className="space-y-4 text-xs">
-                <div className="border-b border-slate-100 dark:border-[#1E293B] pb-3 space-y-1">
-                  <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
-                    {locale === 'vi' ? '2 giờ trước' : '2 hours ago'}
-                  </span>
-                  <p className="text-slate-700 dark:text-slate-300">
-                    {locale === 'vi' 
-                      ? 'Báo cáo Kiểm tra Đối sánh được tải xuống bởi quản lý CloudScale.' 
-                      : 'Match Audit report downloaded by CloudScale systems manager.'}
+                {profile.experienceSummary ? (
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pl-3 border-l-2 border-[#2563EB]">
+                    {profile.experienceSummary}
                   </p>
-                </div>
-                <div className="border-b border-slate-100 dark:border-[#1E293B] pb-3 space-y-1">
-                  <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
-                    {locale === 'vi' ? 'Hôm qua' : 'Yesterday'}
-                  </span>
-                  <p className="text-slate-700 dark:text-slate-300">
-                    {locale === 'vi'
-                      ? "Hệ thống AI đã cập nhật điểm đối sánh cho vị trí 'Senior Systems Architect' từ 84% lên 88% dựa trên commit mới."
-                      : "AI pipeline updated matching score for 'Senior Systems Architect' position from 84% to 88% based on updated repository commits."}
+                ) : (
+                  <p className="text-xs text-slate-400 italic">
+                    {locale === 'vi' ? 'Chưa có thông tin tóm tắt kinh nghiệm làm việc.' : 'No experience summary recorded yet.'}
                   </p>
+                )}
+              </div>
+            </div>
+
+            {/* Right Side: GitHub Repos Telemetry Card */}
+            <div className="lg:col-span-4 space-y-4">
+              <div className="bg-[#13233F] text-white border border-[#1E3A5F] rounded-xl p-6 shadow-xs space-y-3">
+                <div className="flex items-center gap-2 text-[10px] font-mono uppercase text-emerald-400">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <span>{locale === 'vi' ? 'Dữ Liệu Repos GitHub' : 'GitHub Repository Signal'}</span>
                 </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
-                    {locale === 'vi' ? '3 ngày trước' : '3 days ago'}
-                  </span>
-                  <p className="text-slate-700 dark:text-slate-300">
-                    {locale === 'vi'
-                      ? 'Đơn ứng tuyển đã nộp thành công tới DevOpsCloud LLC.'
-                      : 'Application submitted successfully to DevOpsCloud LLC.'}
-                  </p>
+                <div className="space-y-2 text-xs divide-y divide-[#1E3A5F]">
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-slate-400">{locale === 'vi' ? 'Tài khoản:' : 'Account:'}</span>
+                    <span className="font-mono text-amber-400">
+                      {profile.githubUsername ? `@${profile.githubUsername}` : (locale === 'vi' ? 'Chưa liên kết' : 'Not linked')}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-slate-400">{locale === 'vi' ? 'Trạng thái đối soát:' : 'Audit Status:'}</span>
+                    <span className="font-mono font-bold text-white">
+                      {profile.githubUrl ? (locale === 'vi' ? 'Đã liên kết URL' : 'URL Linked') : (locale === 'vi' ? 'Chưa cấu hình' : 'Pending Config')}
+                    </span>
+                  </div>
+                  {profile.githubUrl && (
+                    <div className="pt-2">
+                      <a
+                        href={profile.githubUrl.startsWith('http') ? profile.githubUrl : `https://github.com/${profile.githubUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-300 hover:underline flex items-center gap-1 font-mono"
+                      >
+                        <span>{locale === 'vi' ? 'Mở kho mã nguồn' : 'Open Repository'} →</span>
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
           </div>
-        ) : (
-          /* 09 — Validated Profile View & Multi-Industry / Skills Editor */
-          <div className="space-y-8">
-            
-            {/* Candidate Identity Card & Telemetry (Figma Screen 09) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              
-              {/* Candidate Info */}
-              <div className="lg:col-span-8 bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 sm:p-8 shadow-xs space-y-4">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h3 className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">{profile.fullName}</h3>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-[#93C5FD] border border-emerald-300 dark:border-emerald-800/40">
-                    {locale === 'vi' ? 'NGUỒN ĐÃ XÁC THỰC' : 'VERIFIED SOURCE'}
-                  </span>
-                </div>
-
-                <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">
-                  Staff Systems Infrastructure Architect • {profile.location || 'London, UK'}
-                </div>
-
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  {profile.bio || 'Specialized in deep container orchestration architectures, automated service meshes, and high-concurrency systems development in Go. Proponent of explainable infrastructure configurations.'}
-                </p>
-
-                {/* Verified Work Experience Timeline */}
-                <div className="pt-4 border-t border-slate-100 dark:border-[#1E293B] space-y-4">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    {locale === 'vi' ? 'Dòng Thời Gian Kinh Nghiệm Làm Việc Đã Xác Thực' : 'Verified Work Experience Timeline'}
-                  </div>
-
-                  <div className="space-y-3 pl-4 border-l-2 border-[#0C2B24] dark:border-emerald-500 text-xs">
-                    <div className="space-y-1 relative">
-                      <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-[#111C38] dark:bg-emerald-400"></span>
-                      <div className="flex items-center justify-between font-semibold text-slate-900 dark:text-white">
-                        <span>CloudScale Systems — Lead Systems Architect</span>
-                        <span className="text-[10px] font-mono text-slate-400">2022 - PRESENT</span>
-                      </div>
-                      <p className="text-slate-600 dark:text-slate-300">Rebuilt transit microservice models in production clusters using concurrent Go mechanisms. Implemented Terraform infrastructure definitions mapping AWS VPC networks safely.</p>
-                    </div>
-
-                    <div className="space-y-1 relative pt-2">
-                      <span className="absolute -left-[21px] top-3 w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
-                      <div className="flex items-center justify-between font-semibold text-slate-900 dark:text-white">
-                        <span>TechCorp — Infrastructure Engineer</span>
-                        <span className="text-[10px] font-mono text-slate-400">2019 - 2022</span>
-                      </div>
-                      <p className="text-slate-600 dark:text-slate-300">Spearheaded transition from bare metal clusters to AWS Kubernetes setups. Configured custom routing metrics using basic Prometheus instrumentation nodes.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Side: Evaluation Actions & Repos Telemetry */}
-              <div className="lg:col-span-4 space-y-4">
-                
-                {/* Actions Box */}
-                <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-3">
-                  <div className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400">
-                    {locale === 'vi' ? 'THAO TÁC ĐÁNH GIÁ' : 'EVALUATION ACTIONS'}
-                  </div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {locale === 'vi' ? 'Kênh Tuyển Dụng Bảo Mật' : 'Secure Recruitment Channel'}
-                  </div>
-                  <div className="space-y-2 pt-2">
-                    <button className="w-full py-2.5 px-4 rounded-lg text-xs font-semibold text-white bg-[#111C38] dark:bg-[#2563EB] hover:bg-[#133E34] dark:hover:bg-[#1D4ED8] transition">
-                      {locale === 'vi' ? 'Mở Bản Đồ Minh Chứng' : 'Unlock Evidence Map'}
-                    </button>
-                    <button className="w-full py-2.5 px-4 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 border border-[#E2E8F0] dark:border-[#1E293B] hover:bg-slate-50 dark:hover:bg-[#133E34] transition">
-                      {locale === 'vi' ? `Liên Hệ ${profile.fullName || 'Ứng Viên'} Trực Tiếp` : `Contact ${profile.fullName || 'Candidate'} Directly`}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Ingested Repos Telemetry Card */}
-                <div className="bg-[#13233F] text-white border border-[#1E3A5F] rounded-xl p-6 shadow-xs space-y-3">
-                  <div className="flex items-center gap-2 text-[10px] font-mono uppercase text-emerald-400">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                    <span>{locale === 'vi' ? 'Dữ Liệu Repos Đã Tích Hợp' : 'Ingested Repos Telemetry'}</span>
-                  </div>
-                  <div className="space-y-2 text-xs divide-y divide-[#133E34]/80">
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-slate-400">{locale === 'vi' ? 'Repository Hàng Đầu:' : 'Top Repository:'}</span>
-                      <span className="font-mono text-amber-400">{profile.githubUsername ? `${profile.githubUsername}/k8s-mesh` : 'k8s-engine-mesh'}</span>
-                    </div>
-                    <div className="flex items-center justify-between pt-2">
-                      <span className="text-slate-400">{locale === 'vi' ? 'Chuỗi Đóng Góp Liên Tục:' : 'Contribution Streak:'}</span>
-                      <span className="font-mono font-bold text-white">42 {locale === 'vi' ? 'ngày' : 'days'}</span>
-                    </div>
-                    <div className="flex items-center justify-between pt-2">
-                      <span className="text-slate-400">{locale === 'vi' ? 'Tổng Commits Đã Xác Thực:' : 'Total Verifiable Commits:'}</span>
-                      <span className="font-mono font-bold text-emerald-400">1,248 commits</span>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
 
             {/* Profile Editing Form (Preserved for E2E Test Compatibility) */}
             <form onSubmit={handleSaveProfile} className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 sm:p-8 shadow-xs space-y-6">
@@ -897,8 +620,7 @@ export default function CandidateProfilePage() {
             </form>
 
             <DeactivateAccountSection />
-          </div>
-        )}
+        </div>
 
       </div>
     </div>

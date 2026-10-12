@@ -17,8 +17,7 @@ import {
   AlertTriangle,
   Tags,
   History,
-  Check,
-  XCircle
+  Check
 } from 'lucide-react';
 import { fetchAdminDashboardStats, testAiSettings } from '@/lib/api';
 import { AdminDashboardStats } from '@/types';
@@ -46,7 +45,10 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
-    loadData();
+    const timer = setTimeout(() => {
+      loadData();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleQuickAiCheck = async () => {
@@ -81,10 +83,27 @@ export default function AdminDashboardPage() {
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase">
                   Central Admin Command
                 </span>
-                <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  Hệ Thống Hoạt Động (Production Active)
-                </span>
+                {error ? (
+                  <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                    <span className="w-2 h-2 rounded-full bg-rose-400" />
+                    Mất kết nối máy chủ quản trị
+                  </span>
+                ) : loading ? (
+                  <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/20 text-slate-300 border border-slate-500/30">
+                    <span className="w-2 h-2 rounded-full bg-slate-400 animate-pulse" />
+                    Đang đồng bộ...
+                  </span>
+                ) : stats?.aiStatus?.provider ? (
+                  <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Hệ Thống Hoạt Động (Production Active)
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                    Cần kiểm tra động cơ AI
+                  </span>
+                )}
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
                 Bảng Điều Khiển Quản Trị Hệ Thống MidCV
@@ -470,6 +489,69 @@ export default function AdminDashboardPage() {
               >
                 Cấu hình chuyên sâu →
               </Link>
+            </div>
+
+            {/* SLA Priority Tasks (Adapted from SE347 AdminOverviewView) */}
+            <div className="p-6 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="w-5 h-5 text-amber-500" />
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                    Nhiệm Vụ SLA Cần Xử Lý
+                  </h3>
+                </div>
+                <span className="text-[10px] font-mono text-slate-400">Live Queue</span>
+              </div>
+
+              <div className="space-y-2.5">
+                {(stats?.pendingReportsCount || 0) > 0 && (
+                  <Link href="/admin/moderation" className="block">
+                    <div className="priority-alert-card danger space-y-1">
+                      <div className="flex items-center justify-between">
+                        <strong className="text-xs text-rose-600 dark:text-rose-400 font-bold">
+                          {stats?.pendingReportsCount} Báo cáo vi phạm
+                        </strong>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">
+                          SLA Ưu tiên
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Nội dung tin đăng hoặc tài khoản bị người dùng báo cáo vi phạm tiêu chuẩn.
+                      </p>
+                    </div>
+                  </Link>
+                )}
+
+                {(stats?.companiesPendingCount || 0) > 0 && (
+                  <Link href="/admin/companies" className="block">
+                    <div className="priority-alert-card warning space-y-1">
+                      <div className="flex items-center justify-between">
+                        <strong className="text-xs text-amber-600 dark:text-amber-400 font-bold">
+                          {stats?.companiesPendingCount} Doanh nghiệp chờ duyệt
+                        </strong>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
+                          Đang đợi
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Hồ sơ pháp lý và thẩm quyền đăng tuyển cần đối soát trước khi kích hoạt.
+                      </p>
+                    </div>
+                  </Link>
+                )}
+
+                {(stats?.pendingReportsCount || 0) === 0 && (stats?.companiesPendingCount || 0) === 0 && (
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 text-center space-y-1">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500 mx-auto" />
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Hàng đợi SLA đang trống
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      Không có báo cáo vi phạm hoặc hồ sơ doanh nghiệp tồn đọng cần xử lý.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Security Architecture Invariant Box */}

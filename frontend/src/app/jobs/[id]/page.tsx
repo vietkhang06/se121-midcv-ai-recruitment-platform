@@ -310,75 +310,43 @@ export default function JobDetailPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-[#1E293B] text-[#0F2A52] dark:text-slate-200">
-                <tr>
-                  <td className="py-3.5 px-4 font-medium text-[#0F2A52] dark:text-white">
-                    <div className="font-semibold">Go (Golang)</div>
-                    <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">{isVi ? '3+ năm thiết kế microservices đồng thời' : '3+ years concurrent microservices design'}</div>
-                  </td>
-                  <td className="py-3.5 px-4 text-[#64748B] dark:text-[#94A3B8]">{isVi ? '4 năm kinh nghiệm Go production tại CloudScale' : '4 years production Go at CloudScale'}</td>
-                  <td className="py-3.5 px-4">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00873D] dark:text-[#10B981] border border-[#00B14F]/30">
-                      {isVi ? 'Đạt chuẩn' : 'Verified'}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#00B14F]">98% ({isVi ? 'Cao' : 'High'})</td>
-                </tr>
-
-                <tr>
-                  <td className="py-3.5 px-4 font-medium text-[#0F2A52] dark:text-white">
-                    <div className="font-semibold">Kubernetes</div>
-                    <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">{isVi ? 'Cấu hình Ingress, StatefulSets & Service Mesh' : 'Ingress, StatefulSets & Service Mesh config'}</div>
-                  </td>
-                  <td className="py-3.5 px-4 text-[#64748B] dark:text-[#94A3B8]">{isVi ? 'Viết production Helm Charts cho cluster migration' : 'Authored production Helm Charts for cluster migration'}</td>
-                  <td className="py-3.5 px-4">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00873D] dark:text-[#10B981] border border-[#00B14F]/30">
-                      {isVi ? 'Đạt chuẩn' : 'Verified'}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#00B14F]">94% ({isVi ? 'Cao' : 'High'})</td>
-                </tr>
-
-                <tr>
-                  <td className="py-3.5 px-4 font-medium text-[#0F2A52] dark:text-white">
-                    <div className="font-semibold">AWS Infrastructure</div>
-                    <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">{isVi ? 'IAM policies, VPC peering, và RDS clusters' : 'IAM policies, VPC peering, and RDS clusters'}</div>
-                  </td>
-                  <td className="py-3.5 px-4 text-[#64748B] dark:text-[#94A3B8]">{isVi ? 'Tự động hóa Terraform cho 12 VPC cốt lõi' : 'Terraform automation for 12 core VPCs'}</td>
-                  <td className="py-3.5 px-4">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00873D] dark:text-[#10B981] border border-[#00B14F]/30">
-                      {isVi ? 'Đạt chuẩn' : 'Verified'}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#00B14F]">91% ({isVi ? 'Cao' : 'High'})</td>
-                </tr>
-
-                <tr>
-                  <td className="py-3.5 px-4 font-medium text-[#0F2A52] dark:text-white">
-                    <div className="font-semibold">Prometheus / Grafana</div>
-                    <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">{isVi ? 'Tùy biến Dashboard giám sát & truy vấn PromQL' : 'Custom monitoring dashboards & PromQL'}</div>
-                  </td>
-                  <td className="py-3.5 px-4 text-[#64748B] dark:text-[#94A3B8]">{isVi ? 'Thiết lập pipeline metrics cơ bản' : 'Basic telemetry metrics pipeline'}</td>
-                  <td className="py-3.5 px-4">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FEF9C3] dark:bg-[#FACC15]/20 text-[#92400E] dark:text-[#FACC15] border border-[#FACC15]/40">
-                      {isVi ? 'Một phần' : 'Partial'}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-semibold text-amber-600 dark:text-amber-400">64% ({isVi ? 'Trung bình' : 'Medium'})</td>
-                </tr>
-
-                <tr>
-                  <td className="py-3.5 px-4 font-medium text-[#0F2A52] dark:text-white">
-                    <div className="font-semibold">Rust Development</div>
-                    <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">{isVi ? 'Mẫu kiến trúc tích hợp cấp hệ thống' : 'System-level integration patterns'}</div>
-                  </td>
-                  <td className="py-3.5 px-4 text-slate-400 dark:text-slate-500">{isVi ? 'Chưa có dữ liệu trực tiếp trong hồ sơ CV' : 'No direct evidence found in CV profile'}</td>
-                  <td className="py-3.5 px-4">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40">
-                      {isVi ? 'Chưa có' : 'Missing'}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-right font-mono text-slate-400 dark:text-slate-500">--</td>
-                </tr>
+                {job.requirements && job.requirements.length > 0 ? (
+                  job.requirements.map((req) => (
+                    <tr key={req.id || req.skillName}>
+                      <td className="py-3.5 px-4 font-medium text-[#0F2A52] dark:text-white">
+                        <div className="font-semibold">{req.skillName}</div>
+                        <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">
+                          {req.minYearsExperience || req.minExperienceYears
+                            ? `${req.minYearsExperience || req.minExperienceYears}+ ${isVi ? 'năm kinh nghiệm yêu cầu' : 'years required'}`
+                            : (isVi ? 'Yêu cầu năng lực chuyên môn' : 'Domain competency required')}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400">
+                        {isVi ? 'Nộp hồ sơ để AI đối soát tự động từ CV' : 'Submit application for automated AI extraction'}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {req.requirementType === 'REQUIRED' ? (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#EFF6FF] dark:bg-[#1E3A5F]/40 text-[#2563EB] dark:text-[#93C5FD] border border-[#BFDBFE] dark:border-[#1E3A5F]">
+                            {isVi ? 'Bắt buộc' : 'Required'}
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FEF9C3] dark:bg-[#FACC15]/20 text-[#92400E] dark:text-[#FACC15] border border-[#FACC15]/40">
+                            {isVi ? 'Ưu tiên' : 'Preferred'}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#2563EB] dark:text-[#60A5FA]">
+                        {req.weight ? `${Math.round(req.weight * 100)}%` : '—'}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="py-6 px-4 text-center text-slate-500 font-sans">
+                      {isVi ? 'Chưa có yêu cầu kỹ thuật nào được cấu hình cho vị trí này.' : 'No technical requirements configured for this position.'}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

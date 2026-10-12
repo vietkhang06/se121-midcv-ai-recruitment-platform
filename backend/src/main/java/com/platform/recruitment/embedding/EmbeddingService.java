@@ -55,4 +55,19 @@ public class EmbeddingService {
         log.info("Persisting 1024-dim vector embedding into centralized 'embeddings' table for entityType: {}, entityId: {}", entityType, entityId);
         return embeddingRepository.save(embedding);
     }
+
+    @Transactional
+    public void invalidateEmbedding(String entityType, UUID entityId) {
+        if (entityType == null || entityId == null) {
+            return;
+        }
+        Optional<Embedding> existing = embeddingRepository.findByEntityTypeAndEntityId(entityType, entityId);
+        if (existing.isPresent()) {
+            Embedding current = existing.get();
+            current.setStatus("INACTIVE");
+            current.setUpdatedAt(ZonedDateTime.now());
+            embeddingRepository.save(current);
+            log.info("Invalidated embedding for entityType: {}, entityId: {}", entityType, entityId);
+        }
+    }
 }

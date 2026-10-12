@@ -109,6 +109,16 @@ export const Navbar: React.FC = () => {
           {isCandidate && (
             /* CANDIDATE Desktop Links */
             <>
+              {/* Tổng quan / Dashboard */}
+              <Link
+                href="/candidate"
+                className={`px-2.5 xl:px-3 py-1.5 rounded-lg hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition-colors whitespace-nowrap shrink-0 ${
+                  pathname === '/candidate' ? 'text-[#2563EB] font-bold' : ''
+                }`}
+              >
+                {locale === 'vi' ? 'Tổng quan' : 'Dashboard'}
+              </Link>
+
               {/* Tạo CV Dropdown */}
               <div className="relative group py-3 shrink-0">
                 <Link
@@ -214,6 +224,13 @@ export const Navbar: React.FC = () => {
                 >
                   {locale === 'vi' ? 'Cổng Tuyển dụng (HR)' : 'Recruiter Portal'}
                 </Link>
+              ) : isCandidate ? (
+                <Link
+                  href="/candidate"
+                  className="hidden xl:inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-[#2563EB] dark:text-[#3B82F6] border border-blue-200 dark:border-blue-800/60 transition whitespace-nowrap shrink-0"
+                >
+                  {locale === 'vi' ? 'Bảng Điều Khiển' : 'Candidate Portal'}
+                </Link>
               ) : null}
 
               {/* User Name & Role */}
@@ -233,11 +250,15 @@ export const Navbar: React.FC = () => {
               </div>
 
               {/* Avatar */}
-              <div className="relative w-8 h-8 rounded-full overflow-hidden border border-[#CBD5E1] dark:border-[#1E293B] shadow-xs shrink-0">
+              <Link
+                href={isAdmin ? '/admin' : isRecruiter ? '/recruiter' : '/candidate'}
+                title={locale === 'vi' ? 'Về Bảng Điều Khiển' : 'Go to Dashboard'}
+                className="relative w-8 h-8 rounded-full overflow-hidden border border-[#CBD5E1] dark:border-[#1E293B] shadow-xs shrink-0 hover:border-[#2563EB] transition"
+              >
                 <div className="w-full h-full bg-blue-50 dark:bg-[#152342] text-[#2563EB] text-xs font-bold flex items-center justify-center select-none">
                   {user?.fullName ? user.fullName.trim().charAt(0).toUpperCase() : 'U'}
                 </div>
-              </div>
+              </Link>
 
               {/* Desktop Logout Button */}
               <button
@@ -372,6 +393,18 @@ export const Navbar: React.FC = () => {
               </>
             ) : (
               <>
+                {/* 0. Tổng quan / Dashboard (Candidate Portal) */}
+                {isCandidate && (
+                  <Link
+                    href="/candidate"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/candidate') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
+                  >
+                    <Briefcase className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                    <span>{locale === 'vi' ? 'Tổng Quan Ứng Viên' : 'Candidate Dashboard'}</span>
+                  </Link>
+                )}
+
                 {/* 1. Tìm việc / Find Jobs */}
                 <Link
                   href="/jobs"
