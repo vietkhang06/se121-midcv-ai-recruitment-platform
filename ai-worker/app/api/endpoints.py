@@ -65,6 +65,7 @@ skill_gap_service = SkillGapService(normalizer=taxonomy_normalizer, llm_client=p
 
 from app.services.tesseract_runtime import tesseract_runtime
 from app.services.ocr_exceptions import OcrBaseException
+from app.services.provider_health import get_llm_providers_health
 
 import httpx
 
@@ -73,31 +74,14 @@ def health_check():
     ocr_health = tesseract_runtime.get_health()
     ocr_status = ocr_health.get("status")
 
-    primary_configured = bool(
-        settings.LLM_PRIMARY_BASE_URL and settings.LLM_PRIMARY_API_KEY and settings.LLM_PRIMARY_MODEL
-    )
-    
-    primary_reachable = False
-    if primary_configured:
-        try:
-            with httpx.Client(timeout=1.0) as http_client:
-                headers = {"Authorization": f"Bearer {settings.LLM_PRIMARY_API_KEY}"}
-                resp = http_client.get(f"{settings.LLM_PRIMARY_BASE_URL}/models", headers=headers)
-                primary_reachable = resp.status_code in [200, 404]
-        except Exception:
-            primary_reachable = False
-
-    ollama_reachable = False
-    if settings.LLM_FALLBACK_ENABLED:
-        try:
-            with httpx.Client(timeout=1.0) as http_client:
-                resp = http_client.get(f"{settings.OLLAMA_BASE_URL}/api/tags")
-                ollama_reachable = resp.status_code == 200
-        except Exception:
-            ollama_reachable = False
+    providers_health = get_llm_providers_health()
+    primary_reachable = providers_health.get("primary", {}).get("reachable", False)
+    ollama_reachable = providers_health.get("fallback", {}).get("reachable", False)
 
     overall_status = "UP"
     if ocr_status in ["BINARY_NOT_FOUND", "LANGUAGE_MISSING", "UNHEALTHY"]:
+        overall_status = "DEGRADED"
+    elif not primary_reachable and not ollama_reachable:
         overall_status = "DEGRADED"
 
     return {
@@ -112,20 +96,7 @@ def health_check():
             "dimension": settings.EMBEDDING_DIMENSION,
             "provider": "LOCAL_OLLAMA"
         },
-        "llm": {
-            "primary": {
-                "provider": settings.LLM_PRIMARY_PROVIDER,
-                "configured": primary_configured,
-                "reachable": primary_reachable,
-                "model": settings.LLM_PRIMARY_MODEL
-            },
-            "fallback": {
-                "provider": settings.LLM_FALLBACK_PROVIDER,
-                "enabled": settings.LLM_FALLBACK_ENABLED,
-                "reachable": ollama_reachable,
-                "model": settings.OLLAMA_CHAT_MODEL
-            }
-        }
+        "llm": providers_health
     }
 
 @router.post("/extract-document", response_model=DocumentExtractResponse)
