@@ -8,26 +8,26 @@ import { useLanguage } from '@/context/LanguageContext';
 import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
 import { MetricCard } from '@/components/recruiter/MetricCard';
 import {
-  BarChart3,
   TrendingUp,
   Users,
   Award,
-  CheckCircle2,
   Calendar,
-  Briefcase,
-  ChevronRight,
   Sparkles,
+  Briefcase,
   ArrowRight
 } from 'lucide-react';
 import { EmptyState } from '@/components/common/EmptyState';
 
 export default function RecruiterAnalyticsPage() {
-  const { t, locale } = useLanguage();
+  const { locale } = useLanguage();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [allApplications, setAllApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadData = () => {
+    setLoading(true);
+    setError(null);
     fetchRecruiterJobs()
       .then(async (jobList) => {
         setJobs(jobList);
@@ -36,8 +36,15 @@ export default function RecruiterAnalyticsPage() {
         const flattened = results.flat();
         setAllApplications(flattened);
       })
-      .catch(console.error)
+      .catch((err: any) => {
+        console.error('Failed to load analytics:', err);
+        setError(err?.message || (locale === 'vi' ? 'Không thể tải dữ liệu phân tích tuyển dụng' : 'Failed to load recruitment analytics'));
+      })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   if (loading) {
@@ -52,8 +59,25 @@ export default function RecruiterAnalyticsPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] p-12 text-center flex flex-col items-center justify-center space-y-4">
+        <EmptyState
+          type="ERROR"
+          title={locale === 'vi' ? 'Lỗi tải phân tích' : 'Analytics Load Error'}
+          description={error}
+        />
+        <button
+          onClick={loadData}
+          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition"
+        >
+          {locale === 'vi' ? 'Thử lại' : 'Retry'}
+        </button>
+      </div>
+    );
+  }
+
   const totalApps = allApplications.length;
-  const submittedCount = allApplications.filter(a => a.status === 'SUBMITTED').length;
   const shortlistedCount = allApplications.filter(a => a.status === 'SHORTLISTED').length;
   const interviewingCount = allApplications.filter(a => a.status === 'INTERVIEWING').length;
   const hiredCount = allApplications.filter(a => a.status === 'HIRED').length;
@@ -126,6 +150,38 @@ export default function RecruiterAnalyticsPage() {
             <span className="text-xs font-mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-3 py-1 rounded-full font-semibold">
               Live Pipeline Data
             </span>
+          </div>
+
+          {/* Visual SVG Funnel Graph (Adapted from SE347 RecruitmentFunnelChart) */}
+          <div className="bg-slate-50/70 dark:bg-[#13233F]/60 border border-slate-200/80 dark:border-slate-800 p-5 rounded-xl space-y-4">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <span>{locale === 'vi' ? 'Biểu Đồ Tỷ Lệ Chuyển Đổi Phễu (Funnel Velocity)' : 'Conversion Velocity Chart'}</span>
+              <span className="font-mono text-slate-500">{totalApps} {locale === 'vi' ? 'ứng viên đầu vào' : 'inbound applicants'}</span>
+            </div>
+
+            <div className="space-y-3">
+              {[
+                { name: locale === 'vi' ? '1. Nộp hồ sơ' : '1. Applied', count: totalApps, pct: 100, color: 'bg-blue-600 dark:bg-blue-500' },
+                { name: locale === 'vi' ? '2. Duyệt hồ sơ' : '2. Shortlisted', count: shortlistedCount, pct: totalApps > 0 ? (shortlistedCount / totalApps) * 100 : 0, color: 'bg-emerald-600 dark:bg-emerald-500' },
+                { name: locale === 'vi' ? '3. Phỏng vấn' : '3. Interviewing', count: interviewingCount, pct: totalApps > 0 ? (interviewingCount / totalApps) * 100 : 0, color: 'bg-purple-600 dark:bg-purple-500' },
+                { name: locale === 'vi' ? '4. Tuyển dụng' : '4. Hired', count: hiredCount, pct: totalApps > 0 ? (hiredCount / totalApps) * 100 : 0, color: 'bg-green-700 dark:bg-green-400' },
+              ].map((stage) => (
+                <div key={stage.name} className="space-y-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{stage.name}</span>
+                    <span className="font-mono font-bold text-slate-900 dark:text-white">
+                      {stage.count} <span className="text-slate-400 font-normal">({stage.pct.toFixed(1)}%)</span>
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-200/70 dark:bg-slate-700/50 h-3 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${stage.color}`}
+                      style={{ width: `${Math.max(stage.pct, stage.count > 0 ? 3 : 0)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">

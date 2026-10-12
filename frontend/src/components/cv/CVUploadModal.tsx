@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Industry, CV } from '@/types';
+import { Industry, CV, CVQuota } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
 import { AnimatedModalShell, AnimatedStatus } from '@/components/motion';
@@ -24,11 +24,12 @@ interface CVUploadModalProps {
   onClose: () => void;
   onUploadSuccess?: (cv: CV) => void;
   onSuccess?: () => void;
+  quota?: CVQuota | null;
 }
 
 type ProcessingStatus = 'IDLE' | 'UPLOADING' | 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'REVIEW' | 'FAILED';
 
-export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, onUploadSuccess, onSuccess }) => {
+export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, onUploadSuccess, onSuccess, quota }) => {
   const { t } = useLanguage();
   const [file, setFile] = useState<File | null>(null);
   const [uploadedCv, setUploadedCv] = useState<CV | null>(null);
@@ -106,6 +107,8 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
     let msg = '';
     if (code === 'INVALID_FILE' || code === 'INVALID_FILE_TYPE') {
       msg = t('cvUpload.errors.invalidFileType', 'Định dạng tệp không được hỗ trợ. Vui lòng tải lên PDF, DOCX, DOC hoặc ảnh PNG/JPG.');
+    } else if (code === 'CV_QUOTA_EXCEEDED') {
+      msg = err?.responseBody?.message || t('cvUpload.errors.quotaExceeded', 'Tài khoản của bạn đã đạt giới hạn tối đa số lượng CV cho phép.');
     } else if (code === 'FILE_SIZE_EXCEEDED' || code === 'FILE_TOO_LARGE') {
       msg = t('cvUpload.errors.fileTooLarge', 'Dung lượng tệp vượt quá giới hạn tối đa 10MB.');
     } else if (code === 'FILE_STORAGE_FAILED') {
@@ -269,6 +272,11 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
     e.preventDefault();
     if (!file) return;
 
+    if (quota && !quota.canUpload) {
+      setErrorMessage(t('cvUpload.errors.quotaExceeded', 'Tài khoản của bạn đã đạt giới hạn tối đa số lượng CV cho phép. Vui lòng xóa bớt CV cũ hoặc nâng cấp gói PRO.'));
+      return;
+    }
+
     setStatus('UPLOADING');
     setErrorMessage('');
     setProcessingProgress(5);
@@ -412,6 +420,21 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
         {/* STEP: IDLE */}
         {status === 'IDLE' && (
           <form onSubmit={handleStartProcessing} className="space-y-5">
+            {quota && !quota.canUpload && (
+              <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                <div className="space-y-1">
+                  <p className="font-semibold">
+                    {t('cvUpload.quotaExhaustedTitle', 'Đã đạt giới hạn số lượng CV')} ({quota.currentCount}/{quota.maxLimit} CV — Gói {quota.plan})
+                  </p>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
+                    {quota.plan === 'STANDARD'
+                      ? t('cvUpload.quotaExhaustedStandard', 'Gói STANDARD hỗ trợ tối đa 3 CV. Vui lòng nâng cấp gói PRO (5 CV) hoặc xóa bớt CV cũ để giải phóng dung lượng trước khi tải lên CV mới.')
+                      : t('cvUpload.quotaExhaustedPro', 'Gói PRO đã đạt mức tối đa 5 CV. Vui lòng xóa bớt CV cũ để giải phóng dung lượng trước khi tải lên CV mới.')}
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -476,7 +499,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
 
             <button
               type="submit"
-              disabled={!file}
+              disabled={!file || Boolean(quota && !quota.canUpload)}
               className="w-full py-3 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
               <Sparkles className="w-4 h-4 text-white" />

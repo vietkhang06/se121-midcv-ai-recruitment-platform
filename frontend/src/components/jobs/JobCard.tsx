@@ -1,12 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Job } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { translateIndustry, translateWorkMode, formatSalary } from '@/lib/i18n';
-import { Briefcase, Bookmark, ShieldCheck, HelpCircle, Info } from 'lucide-react';
+import { Briefcase, Bookmark, ShieldCheck, Info } from 'lucide-react';
 
 interface JobCardProps {
   job: Job;
@@ -24,6 +24,7 @@ export const JobCard: React.FC<JobCardProps> = ({
   const { user } = useAuth();
   const { t, locale } = useLanguage();
   const isVi = locale === 'vi';
+  const [isSaved, setIsSaved] = useState(false);
 
   const isCandidate = user?.role === 'CANDIDATE';
   const hasInsufficientData =
@@ -40,16 +41,16 @@ export const JobCard: React.FC<JobCardProps> = ({
   const percentVerified = totalReqs > 0 ? Math.round((verifiedCount / totalReqs) * 100) : 0;
 
   return (
-    <div className="motion-hover-lift bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#3B82F6] rounded-2xl p-6 shadow-xs hover:shadow-md">
+    <div className="motion-hover-lift bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#3B82F6] rounded-2xl p-6 shadow-xs hover:shadow-md transition-all">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         
         {/* Left: Company Icon + Details */}
         <div className="flex items-start gap-4 flex-1">
-          <div className="w-12 h-12 rounded-xl bg-[#EFF6FF] dark:bg-[#13233F] border border-[#BFDBFE] dark:border-[#1E3A5F] flex items-center justify-center text-[#2563EB] shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-[#EFF6FF] dark:bg-[#13233F] border border-[#BFDBFE] dark:border-[#1E3A5F] flex items-center justify-center text-[#2563EB] dark:text-[#60A5FA] shrink-0 font-bold">
             <Briefcase className="w-6 h-6" />
           </div>
 
-          <div className="space-y-1.5 flex-1">
+          <div className="space-y-2 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-base sm:text-lg font-semibold text-[#0F2A52] dark:text-[#F1F5F9] hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition">
                 <Link href={`/jobs/${job.id}`}>{job.title}</Link>
@@ -65,9 +66,20 @@ export const JobCard: React.FC<JobCardProps> = ({
             <div className="text-xs text-[#64748B] dark:text-[#94A3B8]">
               <span className="font-semibold text-[#0F2A52] dark:text-slate-200">{job.companyName}</span>
               <span className="mx-2 text-slate-300 dark:text-slate-600">•</span>
-              <span>{job.location} ({translateWorkMode(job.employmentType, locale)})</span>
-              <span className="mx-2 text-slate-300 dark:text-slate-600">•</span>
-              <span className="font-mono text-[#2563EB] dark:text-[#3B82F6]">{translateIndustry(job.industry, locale)}</span>
+              <span>{job.location}</span>
+            </div>
+
+            {/* SE347 Adapted Highlight Badges (Salary, Mode, Industry) */}
+            <div className="job-highlight-group pt-1">
+              <span className="job-highlight-badge badge-salary">
+                {formatSalary(job.salaryMin, job.salaryMax, job.salaryRange, locale)}
+              </span>
+              <span className="job-highlight-badge">
+                {translateWorkMode(job.employmentType, locale)}
+              </span>
+              <span className="job-highlight-badge">
+                {translateIndustry(job.industry, locale)}
+              </span>
             </div>
 
             {/* Matching Technical Skills Bar */}
@@ -84,18 +96,14 @@ export const JobCard: React.FC<JobCardProps> = ({
               </div>
               <div className="w-full bg-slate-100 dark:bg-[#13233F] rounded-full h-1.5 overflow-hidden">
                 <div
-                  className="bg-[#2563EB] h-1.5 rounded-full origin-left transition-transform duration-500 motion-reduce:transition-none"
+                  className="bg-[#2563EB] dark:bg-[#3B82F6] h-1.5 rounded-full origin-left transition-transform duration-500 motion-reduce:transition-none"
                   style={{ transform: `scaleX(${percentVerified / 100})` }}
                 />
               </div>
             </div>
 
-            {/* Salary & Date */}
-            <div className="pt-2 text-xs text-[#64748B] dark:text-[#94A3B8] font-mono">
-              <span className="font-semibold text-[#0F2A52] dark:text-slate-200">
-                {formatSalary(job.salaryMin, job.salaryMax, job.salaryRange, locale)}
-              </span>
-              <span className="mx-2 text-slate-300 dark:text-slate-600">•</span>
+            {/* Date line */}
+            <div className="pt-1 text-[11px] text-[#64748B] dark:text-[#94A3B8] font-mono">
               <span>{isVi ? `Đăng ${job.publishedDate || 'gần đây'}` : `Posted ${job.publishedDate || 'recently'}`}</span>
             </div>
           </div>
@@ -132,8 +140,16 @@ export const JobCard: React.FC<JobCardProps> = ({
               </span>
             )}
 
-            <button className="text-slate-400 hover:text-[#0F2A52] dark:hover:text-white p-1 cursor-pointer transition" title={isVi ? 'Lưu công việc' : 'Save job'}>
-              <Bookmark className="w-4 h-4" />
+            <button
+              onClick={() => setIsSaved(!isSaved)}
+              className={`p-1.5 rounded-full border transition cursor-pointer ${
+                isSaved
+                  ? 'border-rose-400 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400'
+                  : 'border-slate-200 dark:border-slate-700 text-slate-400 hover:text-rose-500'
+              }`}
+              title={isSaved ? (isVi ? 'Bỏ lưu' : 'Unsave') : (isVi ? 'Lưu công việc' : 'Save job')}
+            >
+              <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
             </button>
           </div>
 

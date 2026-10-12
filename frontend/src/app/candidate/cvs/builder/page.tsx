@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Industry, CV, CVVersion } from '@/types';
-import { fetchCandidateCVs, saveCandidateCV } from '@/lib/api';
+import { fetchCandidateCVs, saveCandidateCV, fetchCandidateProfile } from '@/lib/api';
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
 import { useLanguage } from '@/context/LanguageContext';
 import {
@@ -21,24 +21,15 @@ import {
 
 export default function CVBuilderPage() {
   const { t, locale } = useLanguage();
-  const [cvTitle, setCvTitle] = useState<string>('CV Senior Java Backend Engineer');
-  const [fullName, setFullName] = useState<string>('Andrew Sterling');
-  const [email, setEmail] = useState<string>('andrew@devops.sterling.io');
-  const [location, setLocation] = useState<string>('London, United Kingdom');
-  const [companyName, setCompanyName] = useState<string>('CloudScale Systems');
-  const [roleTitle, setRoleTitle] = useState<string>('Systems Engineer');
-  const [timelineDates, setTimelineDates] = useState<string>('Jan 2022 - Present');
-  const [bulletPoints, setBulletPoints] = useState<string>(
-    'Rewrote the core microservices in Go. Handled massive scaling. Managed deployment clusters with high-concurrency cloud environments and automated cluster scaling structures. Over 4 years deployment infrastructure development experience.'
-  );
-  const [skills, setSkills] = useState<string[]>([
-    'Go (Golang)',
-    'Kubernetes',
-    'AWS Infrastructure',
-    'Terraform',
-    'Docker',
-    'Prometheus'
-  ]);
+  const [cvTitle, setCvTitle] = useState<string>('');
+  const [fullName, setFullName] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [location, setLocation] = useState<string>('');
+  const [companyName, setCompanyName] = useState<string>('');
+  const [roleTitle, setRoleTitle] = useState<string>('');
+  const [timelineDates, setTimelineDates] = useState<string>('');
+  const [bulletPoints, setBulletPoints] = useState<string>('');
+  const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState<string>('');
   const [aiSuggestions, setAiSuggestions] = useState<boolean>(true);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
@@ -46,7 +37,7 @@ export default function CVBuilderPage() {
   const [existingCv, setExistingCv] = useState<CV | null>(null);
   const [currentVersionNumber, setCurrentVersionNumber] = useState<number>(1);
 
-  // Load existing CV if query parameter ?edit= is provided
+  // Load existing CV if query parameter ?edit= is provided, otherwise load candidate profile
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -77,9 +68,28 @@ export default function CVBuilderPage() {
             }
           }
         });
+        fetchCandidateProfile().then((prof) => {
+          if (prof) {
+            setFullName(prof.fullName || '');
+            setEmail(prof.email || '');
+            setLocation(prof.location || '');
+          }
+        }).catch(() => {});
+      } else {
+        fetchCandidateProfile().then((prof) => {
+          if (prof) {
+            setFullName(prof.fullName || '');
+            setEmail(prof.email || '');
+            setLocation(prof.location || '');
+            if (prof.skills && prof.skills.length > 0) {
+              setSkills(prof.skills);
+            }
+          }
+        }).catch(() => {});
+        setCvTitle(locale === 'vi' ? 'Hồ Sơ Chuyên Môn Kỹ Thuật' : 'Technical Professional Resume');
       }
     }
-  }, []);
+  }, [locale]);
 
   const handleAddSkill = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && newSkill.trim()) {
@@ -96,13 +106,19 @@ export default function CVBuilderPage() {
   };
 
   const handleStrengthenBullet = () => {
-    setBulletPoints(
-      'Architected and deployed resilient high-concurrency Go microservices scaling across 12 Kubernetes regional nodes. Reduced p99 latency by 42% through optimized connection pooling.'
+    setBulletPoints((prev) =>
+      prev.trim()
+        ? `${prev}\n• Đóng góp chủ chốt: Tối ưu hóa kiến trúc và nâng cao độ ổn định hệ thống.`
+        : '• Đóng góp chủ chốt: Thiết kế và vận hành hệ thống phần mềm đáp ứng yêu cầu kỹ thuật.'
     );
   };
 
   const handleAddMetric = () => {
-    setBulletPoints((prev) => `${prev} Achieved 99.99% system availability while cutting cloud egress spend by 28%.`);
+    setBulletPoints((prev) =>
+      prev.trim()
+        ? `${prev} (Chỉ số định lượng: tối ưu hóa thời gian xử lý và giảm thiểu sai sót).`
+        : '• Đạt chỉ số cải thiện hiệu suất vận hành đo lường được trong dự án.'
+    );
   };
 
   const handleSaveCV = async () => {
@@ -385,7 +401,9 @@ export default function CVBuilderPage() {
                 {locale === 'vi' ? 'TÓM TẮT HỒ SƠ CHUYÊN MÔN' : 'PROFESSIONAL SUMMARY'}
               </div>
               <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-light">
-                Systems engineer specializing in high-concurrency cloud environments and automated cluster scaling structures. Over 4 years deployment infrastructure development experience.
+                {roleTitle
+                  ? (locale === 'vi' ? `Kỹ sư chuyên ngành ${roleTitle} với kỹ năng giải quyết bài toán kỹ thuật và triển khai giải pháp thực tế.` : `Professional specializing in ${roleTitle} focused on engineering solutions and production reliability.`)
+                  : (locale === 'vi' ? 'Hồ sơ năng lực chuyên môn kỹ thuật.' : 'Technical competence and professional background summary.')}
               </p>
             </div>
 
@@ -396,11 +414,11 @@ export default function CVBuilderPage() {
               </div>
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-900 dark:text-white">
-                  <span>{companyName} — {roleTitle}</span>
-                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{timelineDates}</span>
+                  <span>{companyName || roleTitle ? `${companyName || (locale === 'vi' ? 'Doanh nghiệp' : 'Company')} — ${roleTitle || (locale === 'vi' ? 'Vị trí' : 'Role')}` : (locale === 'vi' ? 'Chưa nhập thông tin công tác' : 'No experience entered yet')}</span>
+                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{timelineDates || ''}</span>
                 </div>
                 <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pl-3 border-l-2 border-slate-200 dark:border-[#1E293B]">
-                  {bulletPoints}
+                  {bulletPoints || (locale === 'vi' ? 'Chưa có nội dung mô tả kinh nghiệm & thành tựu.' : 'No experience or achievement descriptions provided yet.')}
                 </p>
               </div>
             </div>

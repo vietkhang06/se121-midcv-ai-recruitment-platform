@@ -10,6 +10,10 @@ import com.platform.recruitment.common.ErrorCode;
 import com.platform.recruitment.common.ResourceNotFoundException;
 import com.platform.recruitment.common.UnauthorizedAccessException;
 import com.platform.recruitment.document.Documents;
+import com.platform.recruitment.embedding.EmbeddingService;
+import com.platform.recruitment.matching.MatchResult;
+import com.platform.recruitment.matching.MatchResultRepository;
+import com.platform.recruitment.user.AccountPlan;
 import com.platform.recruitment.user.User;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +50,20 @@ public class CVService {
 
     public void setCvEvidenceAttachmentRepository(CVEvidenceAttachmentRepository cvEvidenceAttachmentRepository) {
         this.cvEvidenceAttachmentRepository = cvEvidenceAttachmentRepository;
+    }
+
+    @Autowired(required = false)
+    private EmbeddingService embeddingService;
+
+    public void setEmbeddingService(EmbeddingService embeddingService) {
+        this.embeddingService = embeddingService;
+    }
+
+    @Autowired(required = false)
+    private MatchResultRepository matchResultRepository;
+
+    public void setMatchResultRepository(MatchResultRepository matchResultRepository) {
+        this.matchResultRepository = matchResultRepository;
     }
 
     @Autowired
@@ -98,8 +116,19 @@ public class CVService {
 
     @Transactional
     public CVResponse createCV(User candidateUser, CreateCVRequest request) {
-        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+        CandidateProfile candidate = candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        AccountPlan plan = candidate.getUser() != null && candidate.getUser().getAccountPlan() != null
+                ? candidate.getUser().getAccountPlan()
+                : (candidateUser.getAccountPlan() != null ? candidateUser.getAccountPlan() : AccountPlan.STANDARD);
+
+        int maxLimit = plan.getMaxCvLimit();
+        long currentCount = cvRepository.countActiveByCandidateId(candidate.getId());
+        if (currentCount >= maxLimit) {
+            throw new CustomException(ErrorCode.CV_QUOTA_EXCEEDED,
+                    String.format("Bạn đã đạt giới hạn tối đa %d CV của gói %s. Vui lòng nâng cấp gói hoặc xóa bớt CV cũ.", maxLimit, plan.name()));
+        }
 
         CV cv = CV.builder()
                 .candidate(candidate)
@@ -177,6 +206,29 @@ public class CVService {
         return mapToResponse(cv);
     }
 
+    @Transactional(readOnly = true)
+    public CVQuotaResponse getCVQuota(User candidateUser) {
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        AccountPlan plan = candidate.getUser() != null && candidate.getUser().getAccountPlan() != null
+                ? candidate.getUser().getAccountPlan()
+                : (candidateUser.getAccountPlan() != null ? candidateUser.getAccountPlan() : AccountPlan.STANDARD);
+
+        int maxLimit = plan.getMaxCvLimit();
+        long currentCount = cvRepository.countActiveByCandidateId(candidate.getId());
+        long remainingSlots = Math.max(0, maxLimit - currentCount);
+        boolean canUpload = currentCount < maxLimit;
+
+        return CVQuotaResponse.builder()
+                .plan(plan)
+                .currentCount(currentCount)
+                .maxLimit(maxLimit)
+                .remainingSlots(remainingSlots)
+                .canUpload(canUpload)
+                .build();
+    }
+
     @Transactional
     public CVResponse updateCVRawText(User candidateUser, UUID cvId, String newRawText) {
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
@@ -196,8 +248,19 @@ public class CVService {
 
     @Transactional
     public CVResponse uploadCV(User candidateUser, MultipartFile file, String title, String targetIndustry, Boolean isDefault) {
-        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+        CandidateProfile candidate = candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        AccountPlan plan = candidate.getUser() != null && candidate.getUser().getAccountPlan() != null
+                ? candidate.getUser().getAccountPlan()
+                : (candidateUser.getAccountPlan() != null ? candidateUser.getAccountPlan() : AccountPlan.STANDARD);
+
+        int maxLimit = plan.getMaxCvLimit();
+        long currentCount = cvRepository.countActiveByCandidateId(candidate.getId());
+        if (currentCount >= maxLimit) {
+            throw new CustomException(ErrorCode.CV_QUOTA_EXCEEDED,
+                    String.format("Bạn đã đạt giới hạn tối đa %d CV của gói %s. Vui lòng nâng cấp gói hoặc xóa bớt CV cũ.", maxLimit, plan.name()));
+        }
 
         String originalFileName = Optional.ofNullable(file != null ? file.getOriginalFilename() : null).orElse("document");
         String cvTitle = (title != null && !title.isBlank()) ? title : originalFileName;
@@ -284,6 +347,7 @@ public class CVService {
         };
     }
 
+    @Transactional
     public CVUploadAsyncResponse uploadCVAsync(User candidateUser, MultipartFile file, String title, String targetIndustry, Boolean isDefault) {
         if (file == null || file.isEmpty()) {
             throw new CustomException(ErrorCode.INVALID_FILE, "FILE_EMPTY: File rỗng hoặc không tồn tại");
@@ -292,8 +356,19 @@ public class CVService {
             throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED, "FILE_TOO_LARGE: Dung lượng tệp vượt quá 10MB");
         }
 
-        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+        CandidateProfile candidate = candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        AccountPlan plan = candidate.getUser() != null && candidate.getUser().getAccountPlan() != null
+                ? candidate.getUser().getAccountPlan()
+                : (candidateUser.getAccountPlan() != null ? candidateUser.getAccountPlan() : AccountPlan.STANDARD);
+
+        int maxLimit = plan.getMaxCvLimit();
+        long currentCount = cvRepository.countActiveByCandidateId(candidate.getId());
+        if (currentCount >= maxLimit) {
+            throw new CustomException(ErrorCode.CV_QUOTA_EXCEEDED,
+                    String.format("Bạn đã đạt giới hạn tối đa %d CV của gói %s. Vui lòng nâng cấp gói hoặc xóa bớt CV cũ.", maxLimit, plan.name()));
+        }
 
         String originalFileName = Optional.ofNullable(file.getOriginalFilename()).orElse("document");
         String cvTitle = (title != null && !title.isBlank()) ? title : originalFileName;
@@ -1281,8 +1356,52 @@ public class CVService {
                 .build();
     }
 
+    private void validateCVDraftRequest(UpdateCVDraftRequest request) {
+        if (request == null) {
+            return;
+        }
+        if (request.getPersonalInfo() != null) {
+            Object emailObj = request.getPersonalInfo().get("email");
+            if (emailObj instanceof String email && !email.isBlank()) {
+                if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+                    throw new CustomException(ErrorCode.VALIDATION_ERROR, "Invalid email format in personal info");
+                }
+            }
+        }
+        if (request.getEducation() != null) {
+            for (Map<String, Object> edu : request.getEducation()) {
+                if (edu == null) continue;
+                Double gpaVal = null;
+                Double scaleVal = null;
+                if (edu.get("gpa") instanceof Number num) {
+                    gpaVal = num.doubleValue();
+                } else if (edu.get("gpa") instanceof String str && !str.isBlank()) {
+                    try { gpaVal = Double.parseDouble(str.replace(',', '.').trim()); } catch (NumberFormatException ignored) {}
+                }
+                Object scaleObj = edu.get("gpa_scale");
+                if (scaleObj == null) scaleObj = edu.get("gpaScale");
+                if (scaleObj instanceof Number num) {
+                    scaleVal = num.doubleValue();
+                } else if (scaleObj instanceof String str && !str.isBlank()) {
+                    try { scaleVal = Double.parseDouble(str.replace(',', '.').trim()); } catch (NumberFormatException ignored) {}
+                }
+                if (gpaVal != null && gpaVal < 0) {
+                    throw new CustomException(ErrorCode.VALIDATION_ERROR, "GPA không được là số âm.");
+                }
+                if (scaleVal != null && scaleVal <= 0) {
+                    throw new CustomException(ErrorCode.VALIDATION_ERROR, "Thang điểm GPA phải lớn hơn 0.");
+                }
+                if (gpaVal != null && scaleVal != null && gpaVal > scaleVal) {
+                    throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                            "GPA (" + gpaVal + ") không được lớn hơn thang điểm (" + scaleVal + ").");
+                }
+            }
+        }
+    }
+
     @Transactional
     public CVDraftResponse updateCVDraft(User candidateUser, UUID cvId, UpdateCVDraftRequest request) {
+        validateCVDraftRequest(request);
         String correlationId = UUID.randomUUID().toString();
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
@@ -1440,6 +1559,20 @@ public class CVService {
 
         cv.setStatus("CONFIRMED");
         cvRepository.save(cv);
+
+        // Invalidate cached embeddings for this CV
+        if (embeddingService != null) {
+            embeddingService.invalidateEmbedding("CV", cvId);
+        }
+
+        // Downstream freshness: Flag candidate's existing match results as STALE
+        if (matchResultRepository != null) {
+            List<MatchResult> existingMatches = matchResultRepository.findByApplicationCandidateId(candidate.getId());
+            for (MatchResult mr : existingMatches) {
+                mr.setStatus("STALE");
+                matchResultRepository.save(mr);
+            }
+        }
 
         log.info("CV_DRAFT_CONFIRMED correlation_id={} cv_id={} version_id={}",
                 correlationId, cvId, targetVersion.getId());
@@ -1711,13 +1844,24 @@ public class CVService {
 
             if (gpaVal != null && !gpaVal.toString().isBlank()) {
                 try {
-                    double gpa = Double.parseDouble(gpaVal.toString().trim());
+                    double gpa = Double.parseDouble(gpaVal.toString().replace(',', '.').trim());
                     if (gpa < 0.0) {
                         throw new CustomException(ErrorCode.VALIDATION_ERROR, "GPA không được là số âm.");
                     }
                     copy.put("gpa", gpa);
+                    Double scale = null;
                     if (scaleVal != null && !scaleVal.toString().isBlank()) {
-                        double scale = Double.parseDouble(scaleVal.toString().trim());
+                        scale = Double.parseDouble(scaleVal.toString().replace(',', '.').trim());
+                    } else {
+                        // Apply Decision 1 default scaling
+                        if (gpa <= 4.0) {
+                            scale = 4.0;
+                        } else if (gpa <= 10.0) {
+                            scale = 10.0;
+                        }
+                    }
+
+                    if (scale != null) {
                         if (gpa > scale) {
                             throw new CustomException(ErrorCode.VALIDATION_ERROR,
                                     "GPA (" + gpa + ") không được lớn hơn thang điểm (" + scale + ").");
@@ -1976,6 +2120,9 @@ public class CVService {
                     if (copy.get("is_current") == null) {
                         copy.put("is_current", eDate == null && eDateSnake == null);
                     }
+                    if (copy.get("isCurrent") == null) {
+                        copy.put("isCurrent", copy.get("is_current"));
+                    }
 
                     if (copy.get("description") != null) {
                         copy.put("description", sanitizeRichText(copy.get("description").toString()));
@@ -1995,6 +2142,13 @@ public class CVService {
                     Map<String, Object> copy = new LinkedHashMap<>((Map<String, Object>) m);
                     ensureValidUuidId(copy, null, "PROJECT");
                     if (!copy.containsKey("origin")) copy.put("origin", "CV_EXTRACTED");
+                    Object ts = copy.get("techStack");
+                    Object tsSnake = copy.get("tech_stack");
+                    Object techs = copy.get("technologies");
+                    if (ts == null && tsSnake != null) copy.put("techStack", tsSnake);
+                    if (tsSnake == null && ts != null) copy.put("tech_stack", ts);
+                    if (ts == null && techs != null) copy.put("techStack", techs);
+                    if (tsSnake == null && techs != null) copy.put("tech_stack", techs);
                     if (copy.get("description") != null) {
                         copy.put("description", sanitizeRichText(copy.get("description").toString()));
                     }
@@ -2038,10 +2192,20 @@ public class CVService {
 
                     if (gpa != null && !gpa.toString().isBlank()) {
                         try {
-                            double gpaNum = Double.parseDouble(gpa.toString().trim());
+                            double gpaNum = Double.parseDouble(gpa.toString().replace(',', '.').trim());
                             copy.put("gpa", gpaNum);
+                            Double scaleNum = null;
                             if (scale != null && !scale.toString().isBlank()) {
-                                double scaleNum = Double.parseDouble(scale.toString().trim());
+                                scaleNum = Double.parseDouble(scale.toString().replace(',', '.').trim());
+                            } else {
+                                if (gpaNum <= 4.0) {
+                                    scaleNum = 4.0;
+                                } else if (gpaNum <= 10.0) {
+                                    scaleNum = 10.0;
+                                }
+                            }
+
+                            if (scaleNum != null) {
                                 copy.put("gpa_scale", scaleNum);
                                 Object explicitDisplay = copy.get("gpa_display");
                                 if (explicitDisplay == null) explicitDisplay = copy.get("gpaDisplay");
@@ -2064,6 +2228,13 @@ public class CVService {
                         copy.put("gpa", null);
                         copy.put("gpa_scale", null);
                         copy.put("gpa_display", null);
+                    }
+
+                    if (copy.get("gpa_scale") != null && copy.get("gpaScale") == null) {
+                        copy.put("gpaScale", copy.get("gpa_scale"));
+                    }
+                    if (copy.get("gpa_display") != null && copy.get("gpaDisplay") == null) {
+                        copy.put("gpaDisplay", copy.get("gpa_display"));
                     }
 
                     if (copy.get("description") != null) {

@@ -45,7 +45,7 @@ function LoginFormContent() {
       if (user?.role === 'RECRUITER') {
         router.push('/recruiter');
       } else {
-        router.push('/candidate/profile');
+        router.push('/candidate');
       }
     }
   }, [isAuthenticated, user, router]);

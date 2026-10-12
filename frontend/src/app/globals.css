@@ -354,6 +354,253 @@ h1, h2, h3, .font-editorial {
   }
 }
 
+/* ========================================================
+   MODERNIZED DESIGN SYSTEM TOKENS & UTILITIES (ADAPTED FROM SE347)
+   Mapped 100% to SE121 Brand Tokens (--primary: #2563EB, --brand-green: #00B14F)
+   ======================================================== */
+
+.badge-midcv {
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border-radius: 9999px;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border: 1px solid var(--border-soft);
+}
+
+.job-highlight-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.job-highlight-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background-color: var(--surface-secondary);
+  color: var(--foreground);
+  white-space: nowrap;
+  transition: all var(--motion-fast) var(--ease-standard);
+}
+
+.job-highlight-badge.badge-salary {
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--border-soft);
+  font-weight: 700;
+}
+
+.job-highlight-badge.badge-match {
+  background-color: var(--accent-yellow-light);
+  color: #92400E;
+  border-color: rgba(250, 204, 21, 0.4);
+  font-weight: 700;
+}
+
+.dark .job-highlight-badge.badge-match {
+  background-color: rgba(250, 204, 21, 0.15);
+  color: var(--accent-yellow);
+  border-color: rgba(250, 204, 21, 0.3);
+}
+
+.status-chip {
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1;
+  border: 1px solid transparent;
+}
+
+.status-chip.is-success {
+  background: var(--success-bg);
+  color: var(--success);
+  border-color: rgba(0, 177, 79, 0.25);
+}
+
+.status-chip.is-warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.status-chip.is-danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.status-chip.is-primary {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--border-soft);
+}
+
+.status-chip.is-neutral {
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+/* Timeline Components */
+.timeline-step {
+  position: relative;
+  padding-bottom: 1.5rem;
+  padding-left: 2rem;
+}
+
+.timeline-step::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 10px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+
+.timeline-step:last-child::before {
+  display: none;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  border: 2px solid var(--surface);
+}
+
+.timeline-step.completed .timeline-dot {
+  background: var(--brand-green);
+  box-shadow: 0 0 0 3px var(--brand-green-soft);
+}
+
+.timeline-step.completed::before {
+  background: var(--brand-green);
+}
+
+.timeline-step.active .timeline-dot {
+  background: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+/* Kanban Board Primitives */
+.kanban-col {
+  background-color: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  min-width: 260px;
+}
+
+.kanban-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  transition: transform var(--motion-fast) var(--ease-standard),
+              box-shadow var(--motion-fast) var(--ease-standard),
+              border-color var(--motion-fast) var(--ease-standard);
+}
+
+.kanban-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px 0 rgba(37, 99, 235, 0.08);
+}
+
+.dark .kanban-card:hover {
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Priority Alert Cards (Admin & Employer Dashboards) */
+.priority-alert-card {
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  transition: all var(--motion-fast) var(--ease-standard);
+  cursor: pointer;
+}
+
+.priority-alert-card:hover {
+  transform: translateX(3px);
+  border-color: var(--primary);
+}
+
+.priority-alert-card.danger {
+  border-left: 4px solid var(--danger);
+}
+
+.priority-alert-card.warning {
+  border-left: 4px solid var(--warning);
+}
+
+.priority-alert-card.info {
+  border-left: 4px solid var(--primary);
+}
+
+/* Pronounced Dashboard Motion System */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.stagger-1 { animation-delay: 60ms; }
+.stagger-2 { animation-delay: 120ms; }
+.stagger-3 { animation-delay: 180ms; }
+.stagger-4 { animation-delay: 240ms; }
+.stagger-5 { animation-delay: 300ms; }
+.stagger-6 { animation-delay: 360ms; }
+
+.card-hover-lift {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+}
+
+.card-hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px -4px rgba(37, 99, 235, 0.12);
+  border-color: #2563EB;
+}
+
+.dark .card-hover-lift:hover {
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.55);
+  border-color: #3B82F6;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html:focus-within { scroll-behavior: auto; }
 

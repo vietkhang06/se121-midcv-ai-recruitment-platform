@@ -24,12 +24,22 @@ export default function RecruiterProfilePage() {
   const { t, locale } = useLanguage();
   const [profile, setProfile] = useState<RecruiterProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadData = () => {
+    setLoading(true);
+    setError(null);
     fetchRecruiterProfile()
       .then(setProfile)
-      .catch(console.error)
+      .catch((err: any) => {
+        console.error('Failed to load recruiter profile:', err);
+        setError(err?.message || (locale === 'vi' ? 'Không thể tải thông tin hồ sơ nhà tuyển dụng' : 'Failed to load recruiter profile'));
+      })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   if (loading) {
@@ -44,9 +54,27 @@ export default function RecruiterProfilePage() {
     );
   }
 
-  const displayName = profile?.fullName || user?.fullName || user?.email?.split('@')[0] || 'Nhà tuyển dụng';
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] p-12 text-center flex flex-col items-center justify-center space-y-4">
+        <EmptyState
+          type="ERROR"
+          title={locale === 'vi' ? 'Lỗi tải hồ sơ' : 'Profile Load Error'}
+          description={error}
+        />
+        <button
+          onClick={loadData}
+          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition"
+        >
+          {locale === 'vi' ? 'Thử lại' : 'Retry'}
+        </button>
+      </div>
+    );
+  }
+
+  const displayName = profile?.fullName || user?.fullName || user?.email?.split('@')[0] || (locale === 'vi' ? 'Nhà tuyển dụng' : 'Recruiter');
   const email = profile?.email || user?.email || '';
-  const companyName = profile?.company?.name || 'Doanh nghiệp MidCV';
+  const companyName = profile?.company?.name || (locale === 'vi' ? 'Chưa liên kết doanh nghiệp' : 'No company linked');
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-20 w-full min-w-0">

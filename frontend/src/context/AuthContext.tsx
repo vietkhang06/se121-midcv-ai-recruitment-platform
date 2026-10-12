@@ -139,7 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         if (result.user.role === 'CANDIDATE') {
-          window.location.href = (target.startsWith('/recruiter') || target.startsWith('/admin')) ? '/candidate/profile' : target;
+          window.location.href = (target.startsWith('/recruiter') || target.startsWith('/admin')) ? '/candidate' : target;
           return;
         }
         window.location.href = target;
@@ -154,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         // If candidate logged in from an HR route, Admin route or auth route, redirect to candidate portal
         if (currentPath.startsWith('/recruiter') || currentPath.startsWith('/admin') || currentPath === '/login' || currentPath === '/register') {
-          window.location.href = '/candidate/profile';
+          window.location.href = '/candidate';
         }
       }
     }

@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CV } from '@/types';
+import { CV, CVQuota } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { translateIndustry } from '@/lib/i18n';
-import { fetchCandidateCVs, saveCandidateCV, deleteCandidateCV } from '@/lib/api';
+import { fetchCandidateCVs, saveCandidateCV, deleteCandidateCV, fetchCVQuota } from '@/lib/api';
 import { CVUploadModal } from '@/components/cv/CVUploadModal';
 import { CVExtractionReviewModal } from '@/components/cv/CVExtractionReviewModal';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -30,6 +30,7 @@ export default function CVLibraryPage() {
   const { t, locale } = useLanguage();
   const isVi = locale === 'vi';
   const [cvList, setCvList] = useState<CV[]>([]);
+  const [quota, setQuota] = useState<CVQuota | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
@@ -38,9 +39,16 @@ export default function CVLibraryPage() {
 
   const loadCVs = () => {
     setIsLoading(true);
-    fetchCandidateCVs()
-      .then((data) => {
+    Promise.all([
+      fetchCandidateCVs(),
+      fetchCVQuota().catch((err) => {
+        console.warn('Failed to fetch CV quota:', err);
+        return null;
+      }),
+    ])
+      .then(([data, quotaData]) => {
         setCvList(data);
+        if (quotaData) setQuota(quotaData);
         setFetchError(null);
       })
       .catch((err) => {
@@ -86,16 +94,44 @@ export default function CVLibraryPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              {quota && (
+                <div
+                  id="cv-quota-badge"
+                  className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold border flex items-center gap-1.5 transition ${
+                    quota.remainingSlots === 0
+                      ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300'
+                      : 'bg-blue-50 dark:bg-[#13233F] border-blue-200 dark:border-blue-900/50 text-[#2563EB] dark:text-[#60A5FA]'
+                  }`}
+                  title={`${isVi ? 'Gói tài khoản' : 'Account plan'}: ${quota.plan} (${quota.currentCount}/${quota.maxLimit} CV)`}
+                >
+                  <span className="font-bold">{quota.plan}</span>
+                  <span className="opacity-40">|</span>
+                  <span>{quota.currentCount}/{quota.maxLimit} CV</span>
+                </div>
+              )}
               <button
                 id="upload-cv-btn"
                 onClick={() => setIsUploadModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition cursor-pointer"
+                disabled={quota?.canUpload === false}
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
+                title={quota?.canUpload === false ? (isVi ? 'Đã đạt giới hạn số lượng CV' : 'CV quota limit reached') : undefined}
               >
                 {t('candidatePages.uploadCv', 'Tải CV Lên / Ingest Repo')}
               </button>
               <Link
-                href="/candidate/cvs/builder"
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                href={quota?.canUpload === false ? '#' : '/candidate/cvs/builder'}
+                onClick={(e) => {
+                  if (quota?.canUpload === false) {
+                    e.preventDefault();
+                    alert(isVi ? 'Bạn đã đạt giới hạn tối đa số lượng CV cho gói tài khoản này. Vui lòng xóa bớt CV cũ hoặc liên hệ nâng cấp PRO.' : 'You have reached the maximum CV quota for this account plan.');
+                  }
+                }}
+                className={`px-4 py-2.5 rounded-xl text-xs font-semibold text-white transition shadow-xs flex items-center gap-1.5 ${
+                  quota?.canUpload === false
+                    ? 'bg-slate-400 dark:bg-slate-600 opacity-50 cursor-not-allowed'
+                    : 'bg-[#2563EB] hover:bg-[#1D4ED8] cursor-pointer'
+                }`}
+                title={quota?.canUpload === false ? (isVi ? 'Đã đạt giới hạn số lượng CV' : 'CV quota limit reached') : undefined}
               >
                 <Plus className="w-4 h-4" />
                 <span>{t('candidatePages.createCv', 'Tạo Hồ Sơ Mới')}</span>
@@ -206,8 +242,18 @@ export default function CVLibraryPage() {
             {/* Upload New / Ingest Repo Card (Dashed) */}
             <Reveal delay={staggerDelay(cvList.length)} className="h-full">
               <div
-                onClick={() => setIsUploadModalOpen(true)}
-                className="border-2 border-dashed border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50/50 dark:hover:bg-[#18294E]/50 transition min-h-[220px] h-full space-y-3"
+                onClick={() => {
+                  if (quota?.canUpload === false) {
+                    alert(isVi ? 'Bạn đã đạt giới hạn tối đa số lượng CV cho gói tài khoản này.' : 'You have reached the maximum CV quota for your account.');
+                    return;
+                  }
+                  setIsUploadModalOpen(true);
+                }}
+                className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center transition min-h-[220px] h-full space-y-3 ${
+                  quota?.canUpload === false
+                    ? 'border-slate-200 dark:border-[#1E293B] opacity-50 cursor-not-allowed bg-slate-50/20 dark:bg-[#18294E]/20'
+                    : 'border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] cursor-pointer hover:bg-slate-50/50 dark:hover:bg-[#18294E]/50'
+                }`}
               >
                 <div className="w-12 h-12 rounded-2xl bg-[#EFF6FF] dark:bg-[#0B1329] text-[#2563EB] flex items-center justify-center border border-[#BFDBFE] dark:border-[#1E293B]">
                   <Upload className="w-5 h-5" />
@@ -240,6 +286,7 @@ export default function CVLibraryPage() {
       {isUploadModalOpen && (
         <CVUploadModal
           isOpen={true}
+          quota={quota}
           onClose={() => setIsUploadModalOpen(false)}
           onUploadSuccess={(newCv) => {
             setIsUploadModalOpen(false);

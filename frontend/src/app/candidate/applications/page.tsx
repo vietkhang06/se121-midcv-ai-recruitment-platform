@@ -10,7 +10,6 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Reveal } from '@/components/motion/Reveal';
 import { staggerDelay } from '@/components/motion/stagger';
 import {
-  Send,
   Building2,
   Calendar,
   FileText,
@@ -21,9 +20,7 @@ import {
   DollarSign,
   UploadCloud,
   ShieldCheck,
-  Sparkles,
   BarChart2,
-  ExternalLink,
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
@@ -51,7 +48,10 @@ export default function ApplicationHistoryPage() {
   };
 
   useEffect(() => {
-    loadApplications();
+    const timer = setTimeout(() => {
+      loadApplications();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleUploadSuccess = (newCv: CV) => {
@@ -188,6 +188,78 @@ export default function ApplicationHistoryPage() {
                     </div>
                   </div>
 
+                  {/* 4-Step Interactive Progress Timeline (Adapted from SE347 MatchaJob) */}
+                  {(() => {
+                    const statusStr = app.status || 'SUBMITTED';
+                    const isRejected = statusStr === 'REJECTED';
+                    const isHired = statusStr === 'HIRED';
+                    const currentStep = (isHired || isRejected) ? 4 : (statusStr === 'INTERVIEWING' ? 3 : (statusStr === 'SHORTLISTED' ? 2 : 1));
+                    const progressPercent = ((currentStep - 1) / 3) * 100;
+
+                    const timelineSteps = [
+                      { labelVi: 'Đã nộp hồ sơ', labelEn: 'Submitted' },
+                      { labelVi: 'Sàng lọc hồ sơ', labelEn: 'Screening' },
+                      { labelVi: 'Phỏng vấn', labelEn: 'Interview' },
+                      {
+                        labelVi: isRejected ? 'Chưa phù hợp' : (isHired ? 'Trúng tuyển' : 'Quyết định'),
+                        labelEn: isRejected ? 'Rejected' : (isHired ? 'Hired' : 'Decision')
+                      }
+                    ];
+
+                    return (
+                      <div className="pt-3 pb-1 border-t border-slate-100 dark:border-slate-800/80">
+                        <div className="relative flex justify-between items-center my-3 max-w-2xl mx-auto px-4">
+                          {/* Background Track */}
+                          <div className="absolute top-1/2 left-6 right-6 -translate-y-1/2 h-1 bg-slate-200 dark:bg-slate-700/60 z-0 rounded-full" />
+                          {/* Active Filled Track */}
+                          <div
+                            className={`absolute top-1/2 left-6 -translate-y-1/2 h-1 z-0 rounded-full transition-all duration-500 ${
+                              isRejected ? 'bg-rose-500' : 'bg-[#2563EB] dark:bg-[#3B82F6]'
+                            }`}
+                            style={{ width: `calc(${progressPercent}% * 0.88)` }}
+                          />
+
+                          {timelineSteps.map((stepItem, stepIdx) => {
+                            const stepNumber = stepIdx + 1;
+                            const isStepPassed = currentStep >= stepNumber;
+                            const isCurrent = currentStep === stepNumber;
+
+                            return (
+                              <div key={stepItem.labelVi} className="flex flex-col items-center relative z-10">
+                                <div
+                                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all shadow-xs ${
+                                    isCurrent && isRejected
+                                      ? 'bg-rose-500 text-white ring-4 ring-rose-100 dark:ring-rose-950/50'
+                                      : isStepPassed
+                                        ? 'bg-[#2563EB] text-white ring-4 ring-blue-50 dark:ring-blue-950/40'
+                                        : 'bg-white dark:bg-[#13233F] text-slate-400 border border-slate-300 dark:border-slate-700'
+                                  }`}
+                                >
+                                  {isStepPassed ? (
+                                    <CheckCircle2 className="w-4 h-4 text-white" />
+                                  ) : (
+                                    <span>{stepNumber}</span>
+                                  )}
+                                </div>
+                                <span
+                                  className={`text-[11px] mt-1.5 text-center font-medium ${
+                                    isCurrent && isRejected
+                                      ? 'text-rose-600 dark:text-rose-400 font-bold'
+                                      : isStepPassed
+                                        ? 'text-[#2563EB] dark:text-[#60A5FA] font-bold'
+                                        : 'text-slate-400 dark:text-slate-500'
+                                  }`}
+                                >
+                                  {locale === 'vi' ? stepItem.labelVi : stepItem.labelEn}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* CV Snapshot Metadata Banner */}
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-xs text-[#64748B] dark:text-[#94A3B8] space-y-1">
                     <div className="flex items-center gap-2">
@@ -198,7 +270,7 @@ export default function ApplicationHistoryPage() {
                     </div>
                     {app.candidateNotes && (
                       <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] italic">
-                        "{app.candidateNotes}"
+                        &ldquo;{app.candidateNotes}&rdquo;
                       </p>
                     )}
                   </div>

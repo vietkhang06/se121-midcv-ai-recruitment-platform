@@ -612,4 +612,50 @@ export interface JobMatchingPolicy {
   policyVersion?: number;
 }
 
+export interface CVQuota {
+  plan: 'STANDARD' | 'PRO';
+  currentCount: number;
+  maxLimit: number;
+  remainingSlots: number;
+  canUpload: boolean;
+}
 
+export type SkillType = 'TECHNICAL' | 'SOFT_SKILL' | 'TOOL_PLATFORM' | 'DOMAIN_KNOWLEDGE' | 'LANGUAGE' | 'CERTIFICATION';
+
+export interface TaxonomyCatalogSkill {
+  id: string;
+  canonicalName: string;
+  normalizedKey: string;
+  category: string;
+  skillType: SkillType;
+  viName: string;
+  enName: string;
+  aliases: string[];
+  industryIds: string[];
+  roleIds?: string[];
+  description?: string;
+}
+
+export interface TaxonomyIndustry {
+  id: string;
+  canonicalName: string;
+  vi: string;
+  en: string;
+  active: boolean;
+}
+
+export interface TaxonomyJobFamily {
+  id: string;
+  canonicalName: string;
+  vi: string;
+  en: string;
+  industryId: string;
+  associatedSkillIds: string[];
+}
+
+export interface FavoriteSkillsResponse {
+  userId?: string;
+  total: number;
+  maxLimit: number;
+  favorites: TaxonomySkillItem[];
+}

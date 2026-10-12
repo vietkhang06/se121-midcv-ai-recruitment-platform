@@ -232,10 +232,10 @@ function Test-PortOccupied([int]$port) {
 }
 
 # Helper function to test HTTP URL and return detailed status
-function Test-HttpUrl([string]$url) {
+function Test-HttpUrl([string]$url, [int]$timeoutMs = 5000) {
     try {
         $req = [System.Net.HttpWebRequest]::Create($url)
-        $req.Timeout = 2000
+        $req.Timeout = $timeoutMs
         $res = $req.GetResponse()
         $code = [int]$res.StatusCode
         $res.Close()

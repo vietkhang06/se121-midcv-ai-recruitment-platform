@@ -108,6 +108,19 @@ public class AdminPortalController {
         return ResponseEntity.ok(ApiResponse.success("Khôi phục tài khoản thành công", null));
     }
 
+    @PutMapping("/users/{id}/plan")
+    public ResponseEntity<ApiResponse<Void>> updateUserPlan(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> request) {
+        String planStr = request.get("plan");
+        if (planStr == null || planStr.isBlank()) {
+            throw new com.platform.recruitment.common.CustomException(
+                    com.platform.recruitment.common.ErrorCode.VALIDATION_ERROR, "Plan is required");
+        }
+        adminService.updateUserPlan(id, planStr);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật gói tài khoản thành công", null));
+    }
+
     // ==========================================
     // 4. JOB MODERATION
     // ==========================================

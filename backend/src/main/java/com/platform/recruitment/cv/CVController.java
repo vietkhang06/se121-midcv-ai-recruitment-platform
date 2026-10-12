@@ -51,6 +51,13 @@ public class CVController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/quota")
+    public ResponseEntity<ApiResponse<CVQuotaResponse>> getQuota(
+            @AuthenticationPrincipal User currentUser) {
+        CVQuotaResponse response = cvService.getCVQuota(currentUser);
+        return ResponseEntity.ok(ApiResponse.success("CV quota retrieved successfully", response));
+    }
+
     @PostMapping(value = "/upload", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<CVUploadAsyncResponse>> uploadCV(
             @AuthenticationPrincipal User currentUser,
@@ -140,7 +147,7 @@ public class CVController {
     public ResponseEntity<ApiResponse<CVDraftResponse>> updateCVDraft(
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID id,
-            @RequestBody UpdateCVDraftRequest request) {
+            @Valid @RequestBody UpdateCVDraftRequest request) {
         CVDraftResponse response = cvService.updateCVDraft(currentUser, id, request);
         return ResponseEntity.ok(ApiResponse.success("CV draft updated successfully", response));
     }

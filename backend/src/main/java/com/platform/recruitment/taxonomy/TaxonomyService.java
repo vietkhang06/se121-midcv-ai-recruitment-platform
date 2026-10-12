@@ -258,6 +258,18 @@ public class TaxonomyService {
     return new ArrayList<>(results.values());
   }
 
+  public List<TaxonomySearchResult> searchSkills(String query, String category, int limit) {
+    int max = (limit <= 0) ? 10 : Math.min(limit, 30);
+    List<TaxonomySearchResult> all = searchSkills(query, max * 2);
+    if (category != null && !category.isBlank() && !"ALL".equalsIgnoreCase(category)) {
+      return all.stream()
+          .filter(s -> s.category() != null && s.category().equalsIgnoreCase(category.trim()))
+          .limit(max)
+          .toList();
+    }
+    return all.stream().limit(max).toList();
+  }
+
 
   public void normalizeDocumentSkills(JsonNode document) {
     if (document == null) return;

@@ -55,6 +55,8 @@ public class CandidateCvConfirmationIntegrationTest {
     @Mock private com.platform.recruitment.document.Documents documents;
     @Mock private TextReader textReader;
     @Mock private JdbcTemplate jdbcTemplate;
+    @Mock private com.platform.recruitment.embedding.EmbeddingService embeddingService;
+    @Mock private com.platform.recruitment.matching.MatchResultRepository matchResultRepository;
 
     private ObjectMapper objectMapper;
     private CVService cvService;
@@ -87,6 +89,8 @@ public class CandidateCvConfirmationIntegrationTest {
                 null,
                 objectMapper
         );
+        cvService.setEmbeddingService(embeddingService);
+        cvService.setMatchResultRepository(matchResultRepository);
 
         candidateMatchController = new CandidateMatchController(
                 candidateProfileRepository,
@@ -358,5 +362,62 @@ public class CandidateCvConfirmationIntegrationTest {
         assertThrows(UnauthorizedAccessException.class, () ->
                 cvService.getCVVersions(candidateUserB, testCv.getId())
         );
+    }
+
+    @Test
+    @DisplayName("Freshness Policy: confirmCV invalidates cached embedding and marks candidate match results as STALE")
+    void testConfirmCV_InvalidatesEmbeddingAndMarksExistingMatchesStale() {
+        when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(testCv.getId()))
+                .thenReturn(List.of(draftVersion1));
+
+        MatchResult existingMatch = MatchResult.builder()
+                .status("ACTIVE")
+                .overallScore(BigDecimal.valueOf(85.0))
+                .build();
+        when(matchResultRepository.findByApplicationCandidateId(profileA.getId()))
+                .thenReturn(List.of(existingMatch));
+
+        cvService.confirmCV(candidateUserA, testCv.getId());
+
+        // Verify embedding invalidation
+        verify(embeddingService).invalidateEmbedding("CV", testCv.getId());
+
+        // Verify downstream match result marked as STALE
+        assertEquals("STALE", existingMatch.getStatus());
+        verify(matchResultRepository).save(existingMatch);
+    }
+
+    @Test
+    @DisplayName("Validation Policy: updateCVDraft enforces email format and GPA bounds")
+    void testUpdateCVDraft_ValidatesEmailAndGpaBounds() {
+        when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(testCv.getId()))
+                .thenReturn(List.of(draftVersion1));
+
+        // 1. Invalid email format
+        UpdateCVDraftRequest invalidEmailReq = UpdateCVDraftRequest.builder()
+                .personalInfo(Map.of("email", "not-an-email"))
+                .build();
+        CustomException emailEx = assertThrows(CustomException.class, () ->
+                cvService.updateCVDraft(candidateUserA, testCv.getId(), invalidEmailReq)
+        );
+        assertEquals(ErrorCode.VALIDATION_ERROR, emailEx.getErrorCode());
+
+        // 2. Negative GPA
+        UpdateCVDraftRequest negGpaReq = UpdateCVDraftRequest.builder()
+                .education(List.of(Map.of("institution", "MIT", "gpa", -1.0)))
+                .build();
+        CustomException negGpaEx = assertThrows(CustomException.class, () ->
+                cvService.updateCVDraft(candidateUserA, testCv.getId(), negGpaReq)
+        );
+        assertEquals(ErrorCode.VALIDATION_ERROR, negGpaEx.getErrorCode());
+
+        // 3. GPA exceeding scale
+        UpdateCVDraftRequest gpaOverScaleReq = UpdateCVDraftRequest.builder()
+                .education(List.of(Map.of("institution", "MIT", "gpa", 4.5, "gpa_scale", 4.0)))
+                .build();
+        CustomException overScaleEx = assertThrows(CustomException.class, () ->
+                cvService.updateCVDraft(candidateUserA, testCv.getId(), gpaOverScaleReq)
+        );
+        assertEquals(ErrorCode.VALIDATION_ERROR, overScaleEx.getErrorCode());
     }
 }

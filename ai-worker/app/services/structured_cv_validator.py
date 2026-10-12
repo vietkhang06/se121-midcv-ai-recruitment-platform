@@ -90,6 +90,14 @@ class StructuredCVData(BaseModel):
     warnings: List[str] = Field(default_factory=list)
     evidence: Dict[str, Any] = Field(default_factory=dict)
 
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.headline is None and self.personalInfo and self.personalInfo.headline:
+            self.headline = self.personalInfo.headline
+        elif self.personalInfo and self.personalInfo.headline is None and self.headline:
+            self.personalInfo.headline = self.headline
+
+
 
 
 class StructuredCVValidator:

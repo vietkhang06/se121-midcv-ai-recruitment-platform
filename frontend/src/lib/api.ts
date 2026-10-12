@@ -27,7 +27,8 @@ import {
   TaxonomySkillAdminDto,
   SuspensionAppeal,
   SuspensionNotice,
-  JobMatchingPolicy
+  JobMatchingPolicy,
+  CVQuota
 } from '@/types';
 
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -301,6 +302,7 @@ export interface ApiClient {
   fetchCandidateProfile(): Promise<CandidateProfile>;
   saveCandidateProfile(profile: CandidateProfile): Promise<CandidateProfile>;
   fetchCandidateCVs(): Promise<CV[]>;
+  fetchCVQuota(): Promise<CVQuota>;
   saveCandidateCV(cv: CV): Promise<CV>;
   uploadCandidateCV(file: File, title?: string, targetIndustry?: string, isDefault?: boolean): Promise<CV>;
   deleteCandidateCV(cvId: string): Promise<void>;
@@ -317,7 +319,10 @@ export interface ApiClient {
   updateCVDraft(cvId: string, draftData: any): Promise<any>;
   confirmCandidateCV(cvId: string): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }>;
   fetchCVVersions(cvId: string): Promise<any[]>;
-  searchTaxonomySkills(query: string, limit?: number): Promise<any[]>;
+  searchTaxonomySkills(query: string, limit?: number, category?: string): Promise<any[]>;
+  fetchFavoriteSkills(): Promise<any[]>;
+  addFavoriteSkill(skillId: string): Promise<any>;
+  removeFavoriteSkill(skillId: string): Promise<any>;
   uploadCVEvidence(cvId: string, file: File, itemType: string, itemId: string): Promise<any>;
   deleteCVEvidence(cvId: string, attachmentId: string): Promise<void>;
   downloadCVEvidence(cvId: string, attachmentId: string, fileName: string): Promise<void>;
@@ -480,6 +485,19 @@ export class RealApiClient implements ApiClient {
 
     const rawList: any[] = Array.isArray(json) ? json : (json?.data?.content ?? (Array.isArray(json?.data) ? json.data : []));
     return rawList.map(mapBackendCVToFrontend);
+  }
+
+  async fetchCVQuota(): Promise<CVQuota> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('GET', '/api/v1/candidate/cvs/quota', 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
+    }
+
+    const json: any = await apiRequest('/api/v1/candidate/cvs/quota', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    return json.data as CVQuota;
   }
 
   async saveCandidateCV(cv: CV): Promise<CV> {
@@ -689,10 +707,49 @@ export class RealApiClient implements ApiClient {
     return Array.isArray(json) ? json : (json?.data ?? []);
   }
 
-  async searchTaxonomySkills(query: string, limit = 10): Promise<any[]> {
-    const json: any = await apiRequest(`/api/v1/taxonomy/skills/search?query=${encodeURIComponent(query)}&limit=${limit}`);
+  async searchTaxonomySkills(query: string, limit = 10, category?: string): Promise<any[]> {
+    const categoryParam = category ? `&category=${encodeURIComponent(category)}` : '';
+    const json: any = await apiRequest(`/api/v1/taxonomy/skills/search?query=${encodeURIComponent(query)}&limit=${limit}${categoryParam}`);
     const data = json?.data;
     return data?.skills || [];
+  }
+
+  async fetchFavoriteSkills(): Promise<any[]> {
+    const token = getAuthToken();
+    if (!token) return [];
+    try {
+      const json: any = await apiRequest('/api/v1/taxonomy/favorites', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return json?.data?.favorites || [];
+    } catch (err) {
+      console.warn('Failed to load user favorite skills:', err);
+      return [];
+    }
+  }
+
+  async addFavoriteSkill(skillId: string): Promise<any> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('POST', `/api/v1/taxonomy/favorites/${skillId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập.');
+    }
+    const json: any = await apiRequest(`/api/v1/taxonomy/favorites/${skillId}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return json?.data;
+  }
+
+  async removeFavoriteSkill(skillId: string): Promise<any> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('DELETE', `/api/v1/taxonomy/favorites/${skillId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập.');
+    }
+    const json: any = await apiRequest(`/api/v1/taxonomy/favorites/${skillId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return json?.data;
   }
 
   async uploadCVEvidence(cvId: string, file: File, itemType: string, itemId: string): Promise<any> {
@@ -1432,6 +1489,7 @@ export const fetchJobById = (id: string) => currentApiClient.fetchJobById(id);
 export const fetchCandidateProfile = () => currentApiClient.fetchCandidateProfile();
 export const saveCandidateProfile = (profile: CandidateProfile) => currentApiClient.saveCandidateProfile(profile);
 export const fetchCandidateCVs = () => currentApiClient.fetchCandidateCVs();
+export const fetchCVQuota = () => currentApiClient.fetchCVQuota();
 export const saveCandidateCV = (cv: CV) => currentApiClient.saveCandidateCV(cv);
 export const uploadCandidateCV = (file: File, title?: string, targetIndustry?: string, isDefault?: boolean) =>
   currentApiClient.uploadCandidateCV(file, title, targetIndustry, isDefault);
@@ -1449,7 +1507,10 @@ export const fetchCVDraft = (cvId: string) => currentApiClient.fetchCVDraft(cvId
 export const updateCVDraft = (cvId: string, draftData: any) => currentApiClient.updateCVDraft(cvId, draftData);
 export const confirmCandidateCV = (cvId: string) => currentApiClient.confirmCandidateCV(cvId);
 export const fetchCVVersions = (cvId: string) => currentApiClient.fetchCVVersions(cvId);
-export const searchTaxonomySkills = (query: string, limit?: number) => currentApiClient.searchTaxonomySkills(query, limit);
+export const searchTaxonomySkills = (query: string, limit?: number, category?: string) => currentApiClient.searchTaxonomySkills(query, limit, category);
+export const fetchFavoriteSkills = () => currentApiClient.fetchFavoriteSkills();
+export const addFavoriteSkill = (skillId: string) => currentApiClient.addFavoriteSkill(skillId);
+export const removeFavoriteSkill = (skillId: string) => currentApiClient.removeFavoriteSkill(skillId);
 export const uploadCVEvidence = (cvId: string, file: File, itemType: string, itemId: string) => currentApiClient.uploadCVEvidence(cvId, file, itemType, itemId);
 export const deleteCVEvidence = (cvId: string, attachmentId: string) => currentApiClient.deleteCVEvidence(cvId, attachmentId);
 export const downloadCVEvidence = (cvId: string, attachmentId: string, fileName: string) => currentApiClient.downloadCVEvidence(cvId, attachmentId, fileName);
