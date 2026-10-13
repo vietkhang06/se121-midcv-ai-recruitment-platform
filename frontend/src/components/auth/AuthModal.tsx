@@ -1,202 +1,202 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/context/AuthContext';
-import { Industry, EmailCheckStatus } from '@/types';
 import {
-  checkEmailAvailability,
-  registerCandidateAccount,
-  registerRecruiterAccount,
-  resendVerificationToken
-} from '@/lib/api';
-import { getImageSlot } from '@/config/imageConfig';
-import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter';
-import { useLanguage } from '@/context/LanguageContext';
-import { BrandLogo } from '@/components/common/BrandLogo';
-import {
-  X,
-  LogIn,
-  UserPlus,
-  ShieldCheck,
-  CheckCircle2,
-  AlertCircle,
-  Mail,
-  Lock,
-  Building2,
-  User,
-  ArrowRight,
-  RefreshCw,
-  ExternalLink,
-  Sparkles,
-  Award,
-  Layers,
-  Check
+  AlertCircle, ArrowRight, BriefcaseBusiness, Building2, CheckCircle2,
+  Eye, EyeOff, ExternalLink, Globe, Mail, RefreshCw, User, X,
 } from 'lucide-react';
+import { AnimatedModalShell } from '@/components/motion/AnimatedModalShell';
+import { BrandLogo } from '@/components/common/BrandLogo';
+import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter';
+import { GitHubIcon, GoogleIcon, LinkedInIcon } from '@/components/auth/SocialIcons';
+import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
+import {
+  checkEmailAvailability, registerCandidateAccount, registerRecruiterAccount, resendVerificationToken,
+} from '@/lib/api';
+import { EmailCheckStatus, Industry } from '@/types';
 
 const TARGET_INDUSTRIES_LIST = [
-  'Information Technology',
-  'Marketing',
-  'Finance',
-  'Human Resources',
-  'Design',
-  'Education',
-  'Sales',
-  'Engineering',
-  'Healthcare',
-  'Other'
+  'Information Technology', 'Marketing', 'Finance', 'Human Resources', 'Design',
+  'Education', 'Sales', 'Engineering', 'Healthcare', 'Other',
 ];
+
+type AuthView = 'LOGIN' | 'REGISTER' | 'VERIFICATION_PENDING';
+type OAuthProvider = 'google' | 'github' | 'linkedin';
+
+const inputClass = 'h-12 w-full rounded-xl border border-[#cbdcff] bg-white px-4 text-sm text-[#09266e] outline-none transition placeholder:text-[#7894c8] hover:border-[#9bbcff] focus:border-[#0759f9] focus:ring-4 focus:ring-[#0759f9]/12 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:opacity-70';
+const labelClass = 'mb-1.5 block text-xs font-semibold text-[#16356f]';
+
+function SocialButtons({
+  oauthLoading,
+  onOAuth,
+}: {
+  oauthLoading: OAuthProvider | null;
+  onOAuth: (provider: OAuthProvider) => void;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+      {(['google', 'github', 'linkedin'] as OAuthProvider[]).map((provider) => {
+        const icon = provider === 'google'
+          ? <GoogleIcon className="h-4 w-4 shrink-0" />
+          : provider === 'github'
+            ? <GitHubIcon className="h-4 w-4 shrink-0" />
+            : <LinkedInIcon className="h-4 w-4 shrink-0 text-[#0a66c2]" />;
+        const label = provider === 'google' ? 'Google' : provider === 'github' ? 'GitHub' : 'LinkedIn';
+        return (
+          <button key={provider} type="button" onClick={() => onOAuth(provider)} disabled={oauthLoading !== null}
+            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#cfddf7] bg-white px-3 text-xs font-semibold text-[#173b73] shadow-[0_3px_10px_rgba(37,99,235,0.05)] transition hover:-translate-y-0.5 hover:border-[#8eb4ff] hover:bg-[#f8fbff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0759f9]/15 disabled:translate-y-0 disabled:opacity-60">
+            {oauthLoading === provider ? <RefreshCw className="h-4 w-4 animate-spin text-[#0759f9]" /> : icon}
+            <span>{label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, authModalMode, closeAuthModal, login, quickOnboardingData, intendedAction } = useAuth();
-  const { t, locale } = useLanguage();
-
-  // Active view: LOGIN | REGISTER | VERIFICATION_PENDING
-  const [activeTab, setActiveTab] = useState<'LOGIN' | 'REGISTER' | 'VERIFICATION_PENDING'>('LOGIN');
+  const { locale, toggleLocale } = useLanguage();
+  const [activeTab, setActiveTab] = useState<AuthView>('LOGIN');
   const [registerRole, setRegisterRole] = useState<'CANDIDATE' | 'RECRUITER'>('CANDIDATE');
 
-  // Login Form States (strictly controlled)
-  const [loginEmail, setLoginEmail] = useState<string>('');
-  const [loginPassword, setLoginPassword] = useState<string>('');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [isLoginLoading, setIsLoginLoading] = useState<boolean>(false);
-  const [isEmailUnverified, setIsEmailUnverified] = useState<boolean>(false);
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
+  const [isEmailUnverified, setIsEmailUnverified] = useState(false);
 
-  // Register Form States (strictly controlled)
-  const [regFullName, setRegFullName] = useState<string>('');
-  const [regEmail, setRegEmail] = useState<string>('');
-  const [regPassword, setRegPassword] = useState<string>('');
-  const [regConfirmPassword, setRegConfirmPassword] = useState<string>('');
-  const [regAge, setRegAge] = useState<number>(22);
+  const [regFullName, setRegFullName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [regAge, setRegAge] = useState(22);
   const [regTargetIndustries, setRegTargetIndustries] = useState<string[]>(['Information Technology']);
-  
-  const toggleRegIndustry = (ind: string) => {
-    if (regTargetIndustries.includes(ind)) {
-      if (regTargetIndustries.length > 1) {
-        setRegTargetIndustries(regTargetIndustries.filter(x => x !== ind));
-      }
-    } else {
-      setRegTargetIndustries([...regTargetIndustries, ind]);
-    }
-  };
-
-  // Recruiter fields
-  const [regCompanyName, setRegCompanyName] = useState<string>('');
+  const [regCompanyName, setRegCompanyName] = useState('');
   const [regCompanyIndustry, setRegCompanyIndustry] = useState<Industry>('Technology');
-
-  // Validation & UX States
+  const [acceptedTerms, setAcceptedTerms] = useState(true);
   const [emailCheckStatus, setEmailCheckStatus] = useState<EmailCheckStatus>('UNKNOWN');
   const [registerError, setRegisterError] = useState<string | null>(null);
-  const [isRegisterLoading, setIsRegisterLoading] = useState<boolean>(false);
+  const [isRegisterLoading, setIsRegisterLoading] = useState(false);
 
-  // Verification Screen States
-  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string>('');
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState('');
   const [devVerificationToken, setDevVerificationToken] = useState<string | null>(null);
-  const [resendCooldown, setResendCooldown] = useState<number>(0);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [resendMessage, setResendMessage] = useState<string | null>(null);
-
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Auth hero slot from image architecture
-  const authHeroSlot = getImageSlot('IMAGE_PLACEHOLDER_AUTH_HERO');
+  const [oauthNotice, setOauthNotice] = useState<string | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (!isAuthModalOpen) return;
+    // The global auth trigger is the source of truth whenever a new modal session opens.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveTab(authModalMode);
     setLoginError(null);
     setRegisterError(null);
+    setOauthNotice(null);
     setIsEmailUnverified(false);
   }, [authModalMode, isAuthModalOpen]);
 
-  // Prefill quick onboarding data from FirstVisitModal
   useEffect(() => {
-    if (quickOnboardingData) {
-      if (typeof quickOnboardingData.age === 'number') {
-        setRegAge(quickOnboardingData.age);
-      }
-      if (quickOnboardingData.targetIndustry) {
-        setRegTargetIndustries([quickOnboardingData.targetIndustry]);
-      }
-    }
+    // First-visit onboarding intentionally pre-fills the registration form.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (quickOnboardingData?.age) setRegAge(quickOnboardingData.age);
+    if (quickOnboardingData?.targetIndustry) setRegTargetIndustries([quickOnboardingData.targetIndustry]);
   }, [quickOnboardingData]);
 
-  // Resend cooldown timer
   useEffect(() => {
-    if (resendCooldown > 0) {
-      const timer = setTimeout(() => setResendCooldown(c => c - 1), 1000);
-      return () => clearTimeout(timer);
-    }
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((current) => current - 1), 1000);
+    return () => clearTimeout(timer);
   }, [resendCooldown]);
 
-  // Debounced Email Existence Check on registration
-  const handleEmailChange = (val: string) => {
-    setRegEmail(val);
+  useEffect(() => () => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+  }, []);
+
+  const switchView = (view: 'LOGIN' | 'REGISTER') => {
+    setActiveTab(view);
+    setLoginError(null);
     setRegisterError(null);
+    setOauthNotice(null);
+  };
 
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
+  const toggleRegIndustry = (industry: string) => {
+    setRegTargetIndustries((current) => {
+      if (current.includes(industry)) return current.length > 1 ? current.filter((item) => item !== industry) : current;
+      return [...current, industry];
+    });
+  };
 
-    const trimmed = val.trim();
+  const handleEmailChange = (value: string) => {
+    setRegEmail(value);
+    setRegisterError(null);
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    const trimmed = value.trim();
     if (!trimmed || !trimmed.includes('@') || !trimmed.includes('.')) {
       setEmailCheckStatus('UNKNOWN');
       return;
     }
-
     setEmailCheckStatus('CHECKING');
     debounceTimerRef.current = setTimeout(async () => {
       try {
         const check = await checkEmailAvailability(trimmed);
         setEmailCheckStatus(check.status);
-        if (check.status === 'ALREADY_EXISTS') {
-          setRegisterError('Email này đã được sử dụng. Hãy đăng nhập hoặc sử dụng email khác.');
-        } else {
-          setRegisterError(null);
-        }
+        setRegisterError(check.status === 'ALREADY_EXISTS'
+          ? locale === 'vi' ? 'Email này đã được sử dụng. Hãy đăng nhập hoặc sử dụng email khác.' : 'This email is already in use. Please sign in or use another email.'
+          : null);
       } catch {
         setEmailCheckStatus('UNKNOWN');
       }
     }, 450);
   };
 
-  if (!isAuthModalOpen) return null;
-
-  // Handle Login Submission
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLoginSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoginError(null);
+    setOauthNotice(null);
     setIsEmailUnverified(false);
     setIsLoginLoading(true);
-
     try {
-      await login(loginEmail, loginPassword);
-    } catch (err: any) {
-      if (err.code === 'EMAIL_NOT_VERIFIED' || err.message?.includes('EMAIL_NOT_VERIFIED') || err.message?.toLowerCase().includes('not verified')) {
+      await login(loginEmail.trim(), loginPassword);
+    } catch (error: unknown) {
+      const authError = error as { code?: string; message?: string } | undefined;
+      const message = authError?.message ?? '';
+      if (authError?.code === 'EMAIL_NOT_VERIFIED' || message.includes('EMAIL_NOT_VERIFIED') || message.toLowerCase().includes('not verified')) {
         setIsEmailUnverified(true);
         setPendingVerificationEmail(loginEmail.trim());
         setLoginError(locale === 'vi' ? 'Email của bạn chưa được xác thực. Vui lòng xác thực tài khoản để đăng nhập.' : 'Your email is not verified yet. Please verify your email before signing in.');
       } else {
-        setLoginError(err.message || (locale === 'vi' ? 'Tài khoản hoặc mật khẩu không chính xác.' : 'Invalid email or password.'));
+        setLoginError(message || (locale === 'vi' ? 'Tài khoản hoặc mật khẩu không chính xác.' : 'Invalid email or password.'));
       }
     } finally {
       setIsLoginLoading(false);
     }
   };
 
-  // Handle Registration Submission
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRegisterSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setRegisterError(null);
-
+    setOauthNotice(null);
+    if (!acceptedTerms) {
+      setRegisterError(locale === 'vi' ? 'Vui lòng đồng ý với Điều khoản dịch vụ và Chính sách bảo mật.' : 'Please accept the Terms of Service and Privacy Policy.');
+      return;
+    }
     if (regPassword !== regConfirmPassword) {
       setRegisterError(locale === 'vi' ? 'Mật khẩu xác nhận không khớp.' : 'Passwords do not match.');
       return;
     }
-
     if (regPassword.length < 6) {
       setRegisterError(locale === 'vi' ? 'Mật khẩu phải chứa ít nhất 6 ký tự.' : 'Password must be at least 6 characters.');
       return;
     }
-
     if (emailCheckStatus === 'ALREADY_EXISTS') {
       setRegisterError(locale === 'vi' ? 'Email này đã được sử dụng. Hãy đăng nhập hoặc sử dụng email khác.' : 'This email is already in use. Please sign in or use another email.');
       return;
@@ -205,608 +205,302 @@ export const AuthModal: React.FC = () => {
     setIsRegisterLoading(true);
     try {
       if (registerRole === 'CANDIDATE') {
-        const res = await registerCandidateAccount({
-          email: regEmail.trim(),
-          password: regPassword,
-          fullName: regFullName.trim(),
-          age: regAge,
-          targetIndustry: (regTargetIndustries[0] as Industry) || 'Technology',
-          targetIndustries: regTargetIndustries
+        const response = await registerCandidateAccount({
+          email: regEmail.trim(), password: regPassword, fullName: regFullName.trim(), age: regAge,
+          targetIndustry: (regTargetIndustries[0] as Industry) || 'Technology', targetIndustries: regTargetIndustries,
         });
-        setPendingVerificationEmail(res.email);
-        if (res.devVerificationToken) {
-          setDevVerificationToken(res.devVerificationToken);
-        }
+        setPendingVerificationEmail(response.email);
+        if (response.devVerificationToken) setDevVerificationToken(response.devVerificationToken);
       } else {
-        const res = await registerRecruiterAccount({
-          email: regEmail.trim(),
-          password: regPassword,
-          fullName: regFullName.trim(),
-          companyName: regCompanyName.trim(),
-          companyIndustry: regCompanyIndustry
+        const response = await registerRecruiterAccount({
+          email: regEmail.trim(), password: regPassword, fullName: regFullName.trim(),
+          companyName: regCompanyName.trim(), companyIndustry: regCompanyIndustry,
         });
-        setPendingVerificationEmail(res.email);
-        if (res.devVerificationToken) {
-          setDevVerificationToken(res.devVerificationToken);
-        }
+        setPendingVerificationEmail(response.email);
+        if (response.devVerificationToken) setDevVerificationToken(response.devVerificationToken);
       }
-
       setResendCooldown(60);
       setActiveTab('VERIFICATION_PENDING');
-    } catch (err: any) {
-      setRegisterError(err.message || (locale === 'vi' ? 'Đăng ký tài khoản thất bại. Vui lòng thử lại.' : 'Registration failed. Please try again.'));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : '';
+      setRegisterError(message || (locale === 'vi' ? 'Đăng ký tài khoản thất bại. Vui lòng thử lại.' : 'Registration failed. Please try again.'));
     } finally {
       setIsRegisterLoading(false);
     }
   };
 
-  // Handle Resend Verification Email
   const handleResend = async () => {
     if (resendCooldown > 0) return;
     setResendMessage(null);
-
-    const emailToSend = pendingVerificationEmail || loginEmail.trim() || regEmail.trim();
-    if (!emailToSend) return;
-
+    const email = pendingVerificationEmail || loginEmail.trim() || regEmail.trim();
+    if (!email) return;
     try {
-      const res = await resendVerificationToken(emailToSend);
-      if (res.success) {
+      const response = await resendVerificationToken(email);
+      if (response.success) {
         setResendMessage(locale === 'vi' ? 'Đã gửi lại email xác thực thành công.' : 'Verification email resent successfully.');
         setResendCooldown(60);
-        if (res.devVerificationToken) {
-          setDevVerificationToken(res.devVerificationToken);
-        }
-      } else {
-        setResendMessage(res.message);
-      }
-    } catch (err: any) {
-      setResendMessage(err.message || (locale === 'vi' ? 'Lỗi gửi lại email xác thực.' : 'Failed to resend verification email.'));
+        if (response.devVerificationToken) setDevVerificationToken(response.devVerificationToken);
+      } else setResendMessage(response.message);
+    } catch (error: unknown) {
+      setResendMessage(error instanceof Error ? error.message : locale === 'vi' ? 'Lỗi gửi lại email xác thực.' : 'Failed to resend verification email.');
     }
   };
 
+  const handleOAuth = (provider: OAuthProvider) => {
+    setOauthLoading(provider);
+    setOauthNotice(null);
+    setLoginError(null);
+    setRegisterError(null);
+    window.setTimeout(() => {
+      const providerNames = { google: 'Google', github: 'GitHub', linkedin: 'LinkedIn' };
+      setOauthLoading(null);
+      setOauthNotice(locale === 'vi'
+        ? `Đang kết nối với ${providerNames[provider]}... (Chế độ mô phỏng giao diện)`
+        : `Connecting to ${providerNames[provider]}... (UI simulation mode)`);
+    }, 1200);
+  };
+
+  const title = activeTab === 'LOGIN'
+    ? locale === 'vi' ? 'Chào mừng quay trở lại!' : 'Welcome back!'
+    : activeTab === 'REGISTER'
+      ? locale === 'vi' ? 'Tạo tài khoản midCV' : 'Create your midCV account'
+      : locale === 'vi' ? 'Xác thực tài khoản email' : 'Verify your email';
+  const subtitle = activeTab === 'LOGIN'
+    ? locale === 'vi' ? 'Đăng nhập để tiếp tục hành trình nghề nghiệp của bạn cùng midCV' : 'Sign in to continue your career journey with midCV'
+    : activeTab === 'REGISTER'
+      ? locale === 'vi' ? 'Tạo hồ sơ miễn phí và bắt đầu hành trình nghề nghiệp thông minh.' : 'Create a free profile and begin a smarter career journey.'
+      : locale === 'vi' ? `Liên kết xác thực đã được gửi đến ${pendingVerificationEmail}` : `A verification link was sent to ${pendingVerificationEmail}`;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-4xl bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl shadow-2xl text-[#0F2A52] dark:text-[#F1F5F9] relative overflow-hidden max-h-[92vh] flex flex-col md:flex-row">
-        
-        {/* Close Button */}
-        <button
-          onClick={closeAuthModal}
-          className="absolute top-4 right-4 z-20 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#18294E] transition"
-          aria-label="Close"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <AnimatedModalShell isOpen={isAuthModalOpen} onRequestClose={closeAuthModal}
+      titleId="auth-modal-title" descriptionId="auth-modal-description" testId="auth-modal"
+      overlayClassName="auth-modal-overlay"
+      panelClassName="auth-modal-panel relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-[820px] flex-col overflow-hidden rounded-[26px] bg-[#f8fbff] text-[#09266e] shadow-[0_32px_90px_rgba(8,47,120,0.28)] sm:max-h-[calc(100dvh-2.5rem)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-[radial-gradient(circle_at_50%_0%,rgba(14,165,233,0.12),transparent_68%)]" />
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-5 pb-6 pt-5 sm:px-10 sm:pb-7 sm:pt-7 md:px-14">
+        <header className="relative grid min-h-12 grid-cols-[1fr_auto_1fr] items-start">
+          <div aria-hidden="true" />
+          <div className="auth-modal-brand justify-self-center"><BrandLogo size="lg" onClick={closeAuthModal} /></div>
+          <div className="flex items-center justify-end gap-2">
+            <button type="button" onClick={toggleLocale}
+              className="flex h-10 items-center gap-1.5 rounded-full border border-[#cbdcff] bg-white/85 px-3 text-xs font-bold text-[#0759f9] shadow-sm transition hover:border-[#7eabff] hover:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0759f9]/15"
+              aria-label={locale === 'vi' ? 'Chuyển sang tiếng Anh' : 'Switch to Vietnamese'} title={locale === 'vi' ? 'Chuyển sang English' : 'Chuyển sang Tiếng Việt'}>
+              <Globe className="h-4 w-4" /><span>{locale.toUpperCase()}</span>
+            </button>
+            <button type="button" onClick={closeAuthModal}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-[#cbdcff] bg-white/90 text-[#173b73] shadow-sm transition hover:rotate-6 hover:border-[#7eabff] hover:text-[#0759f9] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0759f9]/15"
+              aria-label={locale === 'vi' ? 'Đóng cửa sổ đăng nhập' : 'Close authentication dialog'}>
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </header>
 
-        {/* LEFT COLUMN: midCV® Editorial Brand Visual & Hero Placeholder */}
-        <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0F172A] dark:to-[#1E293B] p-8 text-white flex-col justify-between relative overflow-hidden select-none">
-          {/* Subtle background radial accent */}
-          <div className="absolute -top-24 -left-24 w-72 h-72 bg-[#2563EB]/25 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-[#00B14F]/15 rounded-full blur-3xl pointer-events-none" />
-
-          {/* Top Brand Identity */}
-          <div className="relative z-10 space-y-6">
-            <BrandLogo size="md" />
-
-            <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#2563EB]/25 text-[#D7F9FA] border border-[#2563EB]/40">
-                <Sparkles className="w-3 h-3 text-[#D7F9FA]" />
-                Evidence-Based Recruitment
-              </span>
-              <h2 className="font-editorial text-2xl lg:text-3xl text-white leading-tight">
-                {locale === 'vi' ? 'Hồ Sơ Xác Thực. Tuyển Dụng Không Thiên Vị.' : 'Verified Profiles. Unbiased Hiring.'}
-              </h2>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                {locale === 'vi'
-                  ? 'Đối sánh chuẩn xác năng lực thực của ứng viên với tiêu chí tuyển dụng thông qua vector embeddings đa chiều và minh chứng số.'
-                  : 'Accurate matching of candidate skills with job criteria via multidimensional vector embeddings and digital evidence.'}
-              </p>
-            </div>
+        <section className="mx-auto mt-3 w-full max-w-[635px]">
+          <div className="text-center">
+            <h2 id="auth-modal-title" className="font-editorial text-[clamp(1.8rem,4vw,2.35rem)] font-bold leading-tight tracking-[-0.025em] text-[#09266e]">{title}</h2>
+            <p id="auth-modal-description" className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#6688d5]">{subtitle}</p>
           </div>
 
-          {/* Center Graphic: IMAGE_PLACEHOLDER_AUTH_HERO */}
-          <div className="relative z-10 my-6 py-4 px-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-xs">
-            {authHeroSlot.placeholderUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={authHeroSlot.placeholderUrl}
-                alt={authHeroSlot.label}
-                className="w-full h-36 object-cover rounded-lg"
-              />
-            ) : (
-              /* Vector Geometric Match Graph Illustration */
-              <div className="h-32 w-full flex flex-col justify-center items-center relative">
-                <svg className="w-full h-full text-[#00B14F]" viewBox="0 0 300 120" fill="none">
-                  {/* Background Grid Pattern */}
-                  <line x1="20" y1="60" x2="280" y2="60" stroke="#2563EB" strokeOpacity="0.25" strokeDasharray="3 3" />
-                  <line x1="150" y1="10" x2="150" y2="110" stroke="#2563EB" strokeOpacity="0.25" strokeDasharray="3 3" />
-                  {/* Semantic Connection Arcs */}
-                  <path d="M 50 60 Q 150 15 250 60" stroke="#00B14F" strokeWidth="2" strokeOpacity="0.9" />
-                  <path d="M 50 60 Q 150 105 250 60" stroke="#2563EB" strokeWidth="1.5" strokeOpacity="0.8" strokeDasharray="4 2" />
-                  {/* Nodes */}
-                  <circle cx="50" cy="60" r="14" fill="#0F2A52" stroke="#00B14F" strokeWidth="2" />
-                  <circle cx="250" cy="60" r="14" fill="#0F2A52" stroke="#2563EB" strokeWidth="2" />
-                  <circle cx="150" cy="60" r="18" fill="#1E3A5F" stroke="#00B14F" strokeWidth="2.5" />
-                  {/* Inner node symbols */}
-                  <text x="50" y="64" fontSize="9" fill="#00B14F" textAnchor="middle" fontWeight="bold">CV</text>
-                  <text x="250" y="64" fontSize="9" fill="#93C5FD" textAnchor="middle" fontWeight="bold">JD</text>
-                  <text x="150" y="64" fontSize="10" fill="#FFFFFF" textAnchor="middle" fontWeight="bold">94%</text>
-                </svg>
-                <div className="absolute bottom-1 text-[10px] font-mono text-[#D7F9FA]">
-                  Semantic Vector Cosine Similarity
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Bottom Trust Indicators */}
-          <div className="relative z-10 space-y-2 pt-2 border-t border-white/10">
-            <div className="flex items-center gap-2 text-[11px] text-slate-300">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#00B14F] flex-shrink-0" />
-              <span>{locale === 'vi' ? 'Bản lưu CV bất biến (Immutable Snapshot)' : 'Immutable CV Snapshot'}</span>
+          {intendedAction && activeTab !== 'VERIFICATION_PENDING' && (
+            <div className="mt-4 rounded-xl border border-[#bcd2ff] bg-[#eef5ff] px-4 py-2.5 text-xs text-[#2455a4]">
+              {locale === 'vi' ? 'Vui lòng đăng nhập để tiếp tục thao tác đang thực hiện.' : 'Please sign in to continue your current action.'}
             </div>
-            <div className="flex items-center gap-2 text-[11px] text-slate-300">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#00B14F] flex-shrink-0" />
-              <span>{locale === 'vi' ? 'Đối soát khách quan, bảo vệ quyền riêng tư' : 'Objective audit, privacy protected'}</span>
-            </div>
-          </div>
-        </div>
+          )}
 
-        {/* RIGHT COLUMN: Form Controls & Interactive States */}
-        <div className="w-full md:w-7/12 p-6 sm:p-8 bg-white dark:bg-[#111C38] flex flex-col justify-between overflow-y-auto max-h-[92vh]">
-          <div>
-            {/* Header Title based on Active View */}
-            <div className="mb-5 space-y-1">
-              <h3 className="font-editorial text-2xl font-bold text-[#0F2A52] dark:text-[#F1F5F9] tracking-tight">
-                {activeTab === 'LOGIN'
-                  ? (locale === 'vi' ? 'Đăng Nhập Tài Khoản' : 'Account Sign In')
-                  : activeTab === 'REGISTER'
-                  ? (locale === 'vi' ? 'Đăng Ký Tài Khoản Mới' : 'Create New Account')
-                  : (locale === 'vi' ? 'Xác Thực Tài Khoản Email' : 'Email Account Verification')}
-              </h3>
-              <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
-                {activeTab === 'LOGIN'
-                  ? (locale === 'vi' ? 'Nhập email và mật khẩu của bạn để truy cập midCV®.' : 'Enter your email and password to access midCV®.')
-                  : activeTab === 'REGISTER'
-                  ? (locale === 'vi' ? 'Tạo tài khoản để đối sánh năng lực thực và ứng tuyển.' : 'Create an account to match real competencies and apply.')
-                  : (locale === 'vi' ? `Mã xác thực đã được gửi đến ${pendingVerificationEmail}` : `Verification token sent to ${pendingVerificationEmail}`)}
-              </p>
-            </div>
-
-            {/* Tab Switcher (Visible on Login & Register) */}
-            {activeTab !== 'VERIFICATION_PENDING' && (
-              <div className="flex bg-slate-100 dark:bg-[#13233F] p-1 rounded-xl mb-5 border border-slate-200 dark:border-[#1E3A5F]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('LOGIN');
-                    setLoginError(null);
-                  }}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition ${
-                    activeTab === 'LOGIN'
-                      ? 'bg-[#2563EB] text-white shadow-xs'
-                      : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white'
-                  }`}
-                >
-                  {locale === 'vi' ? 'Đăng nhập' : 'Sign in'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('REGISTER');
-                    setRegisterError(null);
-                  }}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition ${
-                    activeTab === 'REGISTER'
-                      ? 'bg-[#2563EB] text-white shadow-xs'
-                      : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white'
-                  }`}
-                >
-                  {locale === 'vi' ? 'Đăng ký tài khoản' : 'Register'}
-                </button>
-              </div>
-            )}
-
-            {/* Intended Action Notice */}
-            {intendedAction && activeTab !== 'VERIFICATION_PENDING' && (
-              <div className="mb-4 p-3 rounded-xl bg-[#EFF6FF] dark:bg-[#2563EB]/15 border border-[#2563EB]/30 text-xs text-[#1E40AF] dark:text-[#93C5FD] flex items-center gap-2">
-                <Sparkles className="w-4 h-4 flex-shrink-0 text-[#2563EB]" />
-                <span>{locale === 'vi' ? 'Đăng nhập để tiếp tục thao tác nộp đơn ứng tuyển của bạn.' : 'Sign in to proceed with your job application.'}</span>
-              </div>
-            )}
-
-            {/* 1. LOGIN FORM */}
-            {activeTab === 'LOGIN' && (
+          {activeTab === 'LOGIN' && (
+            <div className="mt-6">
               <form onSubmit={handleLoginSubmit} className="space-y-4">
                 {loginError && (
-                  <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-300 text-xs flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                      <span>{loginError}</span>
-                      {isEmailUnverified && (
-                        <div className="pt-1">
-                          <button
-                            type="button"
-                            onClick={handleResend}
-                            disabled={resendCooldown > 0}
-                            className="text-[#2563EB] dark:text-[#60A5FA] underline font-semibold hover:text-[#1D4ED8]"
-                          >
-                            {resendCooldown > 0
-                              ? (locale === 'vi' ? `Gửi lại sau ${resendCooldown}s` : `Resend in ${resendCooldown}s`)
-                              : (locale === 'vi' ? 'Bấm vào đây để gửi lại email xác thực' : 'Click here to resend verification email')}
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                  <div role="alert" className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-xs text-rose-700">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div><p>{loginError}</p>{isEmailUnverified && (
+                      <button type="button" onClick={handleResend} disabled={resendCooldown > 0} className="mt-1 font-semibold text-[#0759f9] underline disabled:opacity-60">
+                        {resendCooldown > 0 ? (locale === 'vi' ? `Gửi lại sau ${resendCooldown}s` : `Resend in ${resendCooldown}s`) : (locale === 'vi' ? 'Gửi lại email xác thực' : 'Resend verification email')}
+                      </button>
+                    )}</div>
                   </div>
                 )}
-
                 <div>
-                  <label className="block text-xs font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 flex items-center gap-1">
-                    <Mail className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
-                    <span>{locale === 'vi' ? 'Email đăng nhập' : 'Login Email'}</span>
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="name@example.com"
-                    value={loginEmail ?? ''}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500 transition"
-                    required
-                  />
+                  <label htmlFor="auth-login-email" className={labelClass}>{locale === 'vi' ? 'Email / Số điện thoại' : 'Email / Phone number'} <span className="text-rose-500">*</span></label>
+                  <input id="auth-login-email" data-autofocus="true" type="email" inputMode="email" autoComplete="username"
+                    value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)}
+                    placeholder={locale === 'vi' ? 'you@example.com hoặc 0901234567' : 'you@example.com or 0901234567'} className={inputClass} required />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 flex items-center gap-1">
-                    <Lock className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
-                    <span>{locale === 'vi' ? 'Mật khẩu' : 'Password'}</span>
-                  </label>
-                  <input
-                    type="password"
-                    placeholder={locale === 'vi' ? 'Nhập mật khẩu...' : 'Enter your password...'}
-                    value={loginPassword ?? ''}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500 transition"
-                    required
-                  />
+                  <label htmlFor="auth-login-password" className={labelClass}>{locale === 'vi' ? 'Mật khẩu' : 'Password'} <span className="text-rose-500">*</span></label>
+                  <div className="relative">
+                    <input id="auth-login-password" type={showLoginPassword ? 'text' : 'password'} autoComplete="current-password"
+                      value={loginPassword} onChange={(event) => setLoginPassword(event.target.value)}
+                      placeholder={locale === 'vi' ? 'Nhập mật khẩu...' : 'Enter your password...'} className={`${inputClass} pr-12`} required />
+                    <button type="button" onClick={() => setShowLoginPassword((current) => !current)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-[#0759f9] transition hover:bg-[#eef5ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0759f9]/30"
+                      aria-label={showLoginPassword ? (locale === 'vi' ? 'Ẩn mật khẩu' : 'Hide password') : (locale === 'vi' ? 'Hiện mật khẩu' : 'Show password')}>
+                      {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoginLoading}
-                  className="w-full py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span>{isLoginLoading 
-                    ? (locale === 'vi' ? 'Đang đăng nhập...' : 'Signing in...') 
-                    : (locale === 'vi' ? 'Đăng nhập ngay' : 'Sign In Now')}</span>
+                <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <label className="flex cursor-pointer items-center gap-2 text-[#536f9f]">
+                    <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} className="h-4 w-4 cursor-pointer rounded border-[#a7bde7] accent-[#0759f9]" />
+                    <span>{locale === 'vi' ? 'Ghi nhớ đăng nhập' : 'Remember me'}</span>
+                  </label>
+                  <button type="button" onClick={() => setLoginError(locale === 'vi' ? 'Tính năng cấp lại mật khẩu đang được nâng cấp.' : 'Password reset is currently being updated.')}
+                    className="font-semibold text-[#0759f9] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0759f9]/30">
+                    {locale === 'vi' ? 'Quên mật khẩu?' : 'Forgot password?'}
+                  </button>
+                </div>
+                <button id="auth-login-submit" type="submit" disabled={isLoginLoading}
+                  className="flex h-13 w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#0759f9] to-[#0aa8ff] px-5 text-sm font-bold text-white shadow-[0_10px_25px_rgba(7,89,249,0.24)] transition hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0759f9]/25 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60">
+                  {isLoginLoading && <RefreshCw className="h-4 w-4 animate-spin" />}
+                  <span>{isLoginLoading ? (locale === 'vi' ? 'Đang đăng nhập...' : 'Signing in...') : (locale === 'vi' ? 'Đăng nhập ngay' : 'Sign in now')}</span>
+                  {!isLoginLoading && <ArrowRight className="h-5 w-5" />}
                 </button>
               </form>
-            )}
+              <div className="my-5 flex items-center gap-4 text-xs text-[#7894c8]"><span className="h-px flex-1 bg-[#cbdcff]" /><span>{locale === 'vi' ? 'Hoặc tiếp tục với' : 'Or continue with'}</span><span className="h-px flex-1 bg-[#cbdcff]" /></div>
+              <SocialButtons oauthLoading={oauthLoading} onOAuth={handleOAuth} />
+              {oauthNotice && <p role="status" className="mt-3 text-center text-xs text-[#6688d5]">{oauthNotice}</p>}
+              <p className="mt-5 text-center text-xs text-[#6688a8]">
+                {locale === 'vi' ? 'Chưa có tài khoản?' : "Don't have an account?"}{' '}
+                <button type="button" onClick={() => switchView('REGISTER')} className="font-bold text-[#0759f9] hover:underline">{locale === 'vi' ? 'Đăng ký ngay' : 'Register now'}</button>
+              </p>
+            </div>
+          )}
 
-            {/* 2. REGISTER FORM */}
-            {activeTab === 'REGISTER' && (
-              <form onSubmit={handleRegisterSubmit} className="space-y-3.5 text-xs">
-                {registerError && (
-                  <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-300 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
-                    <span>{registerError}</span>
+          {activeTab === 'REGISTER' && (
+            <div className="mt-5">
+              <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
+                {registerError && <div role="alert" className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-xs text-rose-700"><AlertCircle className="h-4 w-4 shrink-0" /><span>{registerError}</span></div>}
+                <div className="grid grid-cols-2 rounded-xl border border-[#d5e2f8] bg-[#edf2f8] p-1">
+                  <button type="button" onClick={() => setRegisterRole('CANDIDATE')}
+                    aria-pressed={registerRole === 'CANDIDATE'}
+                    className={`flex h-10 items-center justify-center gap-2 rounded-lg text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0759f9]/30 ${registerRole === 'CANDIDATE' ? 'bg-white text-[#0759f9] shadow-sm ring-1 ring-[#c5d8fb]' : 'text-[#53657f] hover:text-[#173b73]'}`}>
+                    <User className="h-4 w-4" />{locale === 'vi' ? 'Ứng viên' : 'Candidate'}
+                  </button>
+                  <button type="button" onClick={() => setRegisterRole('RECRUITER')}
+                    aria-pressed={registerRole === 'RECRUITER'}
+                    className={`flex h-10 items-center justify-center gap-2 rounded-lg text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0759f9]/30 ${registerRole === 'RECRUITER' ? 'bg-white text-[#0759f9] shadow-sm ring-1 ring-[#c5d8fb]' : 'text-[#53657f] hover:text-[#173b73]'}`}>
+                    <BriefcaseBusiness className="h-4 w-4" />{locale === 'vi' ? 'Nhà tuyển dụng' : 'Recruiter'}
+                  </button>
+                </div>
+                <div className="grid gap-3.5 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="auth-register-name" className={labelClass}>{locale === 'vi' ? 'Họ và tên' : 'Full name'} <span className="text-rose-500">*</span></label>
+                    <input id="auth-register-name" data-autofocus="true" type="text" autoComplete="name" value={regFullName} onChange={(event) => setRegFullName(event.target.value)} placeholder={locale === 'vi' ? 'Nguyễn Văn A' : 'Alex Sterling'} className={inputClass} required />
                   </div>
-                )}
-
-                {/* Role Switcher */}
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setRegisterRole('CANDIDATE')}
-                    className={`p-2 rounded-xl border text-center font-semibold transition ${
-                      registerRole === 'CANDIDATE'
-                        ? 'border-[#2563EB] bg-[#2563EB] text-white shadow-xs'
-                        : 'border-slate-200 dark:border-[#1E3A5F] bg-white dark:bg-[#13233F] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white'
-                    }`}
-                  >
-                    {locale === 'vi' ? 'Ứng viên tìm việc' : 'Job Candidate'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRegisterRole('RECRUITER')}
-                    className={`p-2 rounded-xl border text-center font-semibold transition ${
-                      registerRole === 'RECRUITER'
-                        ? 'border-[#2563EB] bg-[#2563EB] text-white shadow-xs'
-                        : 'border-slate-200 dark:border-[#1E3A5F] bg-white dark:bg-[#13233F] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white'
-                    }`}
-                  >
-                    {locale === 'vi' ? 'Nhà tuyển dụng (HR)' : 'Recruiter (HR)'}
-                  </button>
-                </div>
-
-                {/* Full Name */}
-                <div>
-                  <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 flex items-center gap-1">
-                    <User className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
-                    <span>{registerRole === 'CANDIDATE' 
-                      ? (locale === 'vi' ? 'Họ và tên ứng viên' : 'Candidate Full Name') 
-                      : (locale === 'vi' ? 'Họ và tên người tuyển dụng' : 'Recruiter Full Name')}</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder={locale === 'vi' ? 'Nguyễn Văn A' : 'Alex Sterling'}
-                    value={regFullName ?? ''}
-                    onChange={(e) => setRegFullName(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500"
-                    required
-                  />
-                </div>
-
-                {/* Email with Debounced Existence Check */}
-                <div>
-                  <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 flex items-center gap-1">
-                    <Mail className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
-                    <span>{locale === 'vi' ? 'Email tài khoản' : 'Account Email'}</span>
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="name@example.com"
-                    value={regEmail ?? ''}
-                    onChange={(e) => handleEmailChange(e.target.value)}
-                    className={`w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 ${
-                      emailCheckStatus === 'ALREADY_EXISTS'
-                        ? 'border-rose-500'
-                        : emailCheckStatus === 'AVAILABLE'
-                        ? 'border-[#00B14F]'
-                        : 'border-slate-200 dark:border-[#1E3A5F] focus:border-[#2563EB]'
-                    }`}
-                    required
-                  />
-                  {/* Email Feedback Badge */}
-                  <div className="pt-1 text-[11px]">
-                    {emailCheckStatus === 'CHECKING' && (
-                      <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                        <RefreshCw className="w-3 h-3 animate-spin text-[#2563EB]" />
-                        <span>{locale === 'vi' ? 'Đang kiểm tra email...' : 'Checking email...'}</span>
-                      </span>
-                    )}
-                    {emailCheckStatus === 'AVAILABLE' && (
-                      <span className="text-[#00B14F] dark:text-[#10B981] flex items-center gap-1 font-medium">
-                        <CheckCircle2 className="w-3 h-3 text-[#00B14F]" />
-                        <span>{locale === 'vi' ? 'Email có thể sử dụng.' : 'Email is available.'}</span>
-                      </span>
-                    )}
-                    {emailCheckStatus === 'ALREADY_EXISTS' && (
-                      <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1 font-medium">
-                        <AlertCircle className="w-3 h-3 text-rose-600" />
-                        <span>{locale === 'vi' ? 'Email đã tồn tại trong hệ thống.' : 'Email already exists.'}</span>
-                      </span>
+                  <div>
+                    <label htmlFor="auth-register-email" className={labelClass}>Email <span className="text-rose-500">*</span></label>
+                    <input id="auth-register-email" type="email" autoComplete="email" value={regEmail} onChange={(event) => handleEmailChange(event.target.value)} placeholder="name@example.com"
+                      className={`${inputClass} ${emailCheckStatus === 'AVAILABLE' ? 'border-emerald-400' : emailCheckStatus === 'ALREADY_EXISTS' ? 'border-rose-400' : ''}`} required />
+                    {emailCheckStatus !== 'UNKNOWN' && (
+                      <p className={`mt-1 flex items-center gap-1 text-[11px] ${emailCheckStatus === 'AVAILABLE' ? 'text-emerald-600' : emailCheckStatus === 'ALREADY_EXISTS' ? 'text-rose-600' : 'text-[#6688a8]'}`}>
+                        {emailCheckStatus === 'CHECKING' && <RefreshCw className="h-3 w-3 animate-spin" />}
+                        {emailCheckStatus === 'AVAILABLE' && <CheckCircle2 className="h-3 w-3" />}
+                        {emailCheckStatus === 'ALREADY_EXISTS' && <AlertCircle className="h-3 w-3" />}
+                        {emailCheckStatus === 'CHECKING' ? (locale === 'vi' ? 'Đang kiểm tra email...' : 'Checking email...') : emailCheckStatus === 'AVAILABLE' ? (locale === 'vi' ? 'Email có thể sử dụng.' : 'Email is available.') : (locale === 'vi' ? 'Email đã tồn tại.' : 'Email already exists.')}
+                      </p>
                     )}
                   </div>
                 </div>
-
-                {/* Role Specific Fields */}
                 {registerRole === 'CANDIDATE' ? (
                   <div className="space-y-3">
-                    <div>
-                      <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 text-xs">
-                        {locale === 'vi' ? 'Độ tuổi' : 'Age'}
-                      </label>
-                      <input
-                        type="number"
-                        min={18}
-                        max={70}
-                        value={regAge || ''}
-                        onChange={(e) => setRegAge(parseInt(e.target.value) || 22)}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
-                        required
-                      />
+                    <div className="flex items-start gap-2.5 rounded-xl border border-[#cbdcff] bg-[#eef5ff] px-3.5 py-2.5 text-[11px] leading-5 text-[#536f9f]">
+                      <User className="mt-0.5 h-4 w-4 shrink-0 text-[#0759f9]" />
+                      <p>
+                        <strong className="text-[#173b73]">{locale === 'vi' ? 'Hồ sơ ứng viên' : 'Candidate profile'}:</strong>{' '}
+                        {locale === 'vi' ? 'chọn ngành nghề mục tiêu để midCV cá nhân hóa cơ hội phù hợp.' : 'choose target industries so midCV can personalize relevant opportunities.'}
+                      </p>
                     </div>
-                    <div>
-                      <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1.5 text-xs">
-                        {locale === 'vi' ? 'Ngành mục tiêu (Có thể chọn nhiều ngành)' : 'Target Industries (Multiple selection)'}
-                      </label>
-                      <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl">
-                        {TARGET_INDUSTRIES_LIST.map((ind) => {
-                          const isChecked = regTargetIndustries.includes(ind);
-                          return (
-                            <label
-                              key={ind}
-                              className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition select-none ${
-                                isChecked
-                                  ? 'bg-[#2563EB] text-white font-medium shadow-xs'
-                                  : 'text-[#64748B] dark:text-[#94A3B8] hover:bg-slate-200/60 dark:hover:bg-[#18294E]'
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => toggleRegIndustry(ind)}
-                                className="accent-[#2563EB] rounded cursor-pointer"
-                              />
-                              <span className="truncate">{ind}</span>
-                            </label>
-                          );
-                        })}
+                    <div className="grid gap-3.5 sm:grid-cols-[140px_1fr]">
+                      <div>
+                        <label htmlFor="auth-register-age" className={labelClass}>{locale === 'vi' ? 'Độ tuổi' : 'Age'} <span className="text-rose-500">*</span></label>
+                        <input id="auth-register-age" type="number" min={18} max={70} value={regAge} onChange={(event) => setRegAge(Number.parseInt(event.target.value, 10) || 22)} className={inputClass} required />
                       </div>
+                      <fieldset>
+                        <legend className={labelClass}>{locale === 'vi' ? 'Ngành nghề mục tiêu' : 'Target industries'}</legend>
+                        <div className="flex max-h-[104px] flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-[#cbdcff] bg-white p-2.5">
+                          {TARGET_INDUSTRIES_LIST.map((industry) => {
+                            const selected = regTargetIndustries.includes(industry);
+                            return <label key={industry} className={`cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${selected ? 'border-[#0759f9] bg-[#0759f9] text-white' : 'border-[#d7e2f5] text-[#536f9f] hover:border-[#8eb4ff]'}`}>
+                              <input type="checkbox" checked={selected} onChange={() => toggleRegIndustry(industry)} className="sr-only" />{industry}
+                            </label>;
+                          })}
+                        </div>
+                      </fieldset>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <div>
-                      <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 flex items-center gap-1 text-xs">
-                        <Building2 className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
-                        <span>{locale === 'vi' ? 'Tên công ty / Doanh nghiệp' : 'Company / Organization Name'}</span>
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="CloudScale Systems Corp"
-                        value={regCompanyName ?? ''}
-                        onChange={(e) => setRegCompanyName(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500"
-                        required
-                      />
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2.5 rounded-xl border border-[#bfe7dc] bg-[#f1fbf7] px-3.5 py-2.5 text-[11px] leading-5 text-[#4b6f67]">
+                      <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-[#008f64]" />
+                      <p>
+                        <strong className="text-[#155c4b]">{locale === 'vi' ? 'Tài khoản nhà tuyển dụng' : 'Recruiter account'}:</strong>{' '}
+                        {locale === 'vi' ? 'thông tin doanh nghiệp giúp xác minh hồ sơ và xây dựng độ tin cậy với ứng viên.' : 'company details support profile verification and build candidate trust.'}
+                      </p>
                     </div>
-                    <div>
-                      <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 text-xs">
-                        {locale === 'vi' ? 'Lĩnh vực hoạt động' : 'Industry Sector'}
-                      </label>
-                      <select
-                        value={regCompanyIndustry ?? 'Technology'}
-                        onChange={(e) => setRegCompanyIndustry(e.target.value as Industry)}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB]"
-                      >
-                        <option value="Technology">{locale === 'vi' ? 'Công nghệ (IT)' : 'Technology (IT)'}</option>
-                        <option value="Finance">{locale === 'vi' ? 'Tài chính - Fintech' : 'Finance - Fintech'}</option>
-                        <option value="Marketing">{locale === 'vi' ? 'Truyền thông - Quảng cáo' : 'Marketing & Ads'}</option>
-                        <option value="Healthcare">{locale === 'vi' ? 'Y tế' : 'Healthcare'}</option>
-                        <option value="General">{locale === 'vi' ? 'Khác' : 'Other'}</option>
-                      </select>
+                    <div className="grid gap-3.5 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="auth-company-name" className={labelClass}>{locale === 'vi' ? 'Tên công ty / Doanh nghiệp' : 'Company name'} <span className="text-rose-500">*</span></label>
+                        <div className="relative"><Building2 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7894c8]" />
+                          <input id="auth-company-name" type="text" autoComplete="organization" value={regCompanyName} onChange={(event) => setRegCompanyName(event.target.value)} placeholder="CloudScale Systems Corp" className={`${inputClass} pl-11`} required />
+                        </div>
+                      </div>
+                      <div>
+                        <label htmlFor="auth-company-industry" className={labelClass}>{locale === 'vi' ? 'Lĩnh vực hoạt động' : 'Industry sector'}</label>
+                        <select id="auth-company-industry" value={regCompanyIndustry} onChange={(event) => setRegCompanyIndustry(event.target.value as Industry)} className={inputClass}>
+                          <option value="Technology">{locale === 'vi' ? 'Công nghệ (IT)' : 'Technology (IT)'}</option><option value="Finance">{locale === 'vi' ? 'Tài chính - Fintech' : 'Finance - Fintech'}</option><option value="Marketing">{locale === 'vi' ? 'Truyền thông - Quảng cáo' : 'Marketing & Ads'}</option><option value="Healthcare">{locale === 'vi' ? 'Y tế' : 'Healthcare'}</option><option value="General">{locale === 'vi' ? 'Khác' : 'Other'}</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 )}
-
-                {/* Password Fields */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid gap-3.5 sm:grid-cols-2">
                   <div>
-                    <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 flex items-center gap-1 text-xs">
-                      <Lock className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
-                      <span>{locale === 'vi' ? 'Mật khẩu' : 'Password'}</span>
-                    </label>
-                    <input
-                      type="password"
-                      placeholder={locale === 'vi' ? 'Ít nhất 8 ký tự' : 'At least 8 chars'}
-                      value={regPassword ?? ''}
-                      onChange={(e) => setRegPassword(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500"
-                      required
-                    />
+                    <label htmlFor="auth-register-password" className={labelClass}>{locale === 'vi' ? 'Mật khẩu' : 'Password'} <span className="text-rose-500">*</span></label>
+                    <div className="relative">
+                      <input id="auth-register-password" type={showRegisterPassword ? 'text' : 'password'} autoComplete="new-password" value={regPassword} onChange={(event) => setRegPassword(event.target.value)} placeholder={locale === 'vi' ? 'Tối thiểu 6 ký tự' : 'At least 6 characters'} className={`${inputClass} pr-11`} required />
+                      <button type="button" onClick={() => setShowRegisterPassword((current) => !current)} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-[#0759f9]" aria-label={showRegisterPassword ? 'Hide password' : 'Show password'}>{showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+                    </div>
                   </div>
                   <div>
-                    <label className="block font-semibold text-[#0F2A52] dark:text-[#E2E8F0] mb-1 text-xs">
-                      {locale === 'vi' ? 'Nhập lại mật khẩu' : 'Confirm Password'}
-                    </label>
-                    <input
-                      type="password"
-                      placeholder={locale === 'vi' ? 'Xác nhận mật khẩu' : 'Confirm password'}
-                      value={regConfirmPassword ?? ''}
-                      onChange={(e) => setRegConfirmPassword(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50/50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-[#0F2A52] dark:text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 placeholder-slate-400 dark:placeholder-slate-500"
-                      required
-                    />
+                    <label htmlFor="auth-register-confirm" className={labelClass}>{locale === 'vi' ? 'Nhập lại mật khẩu' : 'Confirm password'} <span className="text-rose-500">*</span></label>
+                    <div className="relative">
+                      <input id="auth-register-confirm" type={showConfirmPassword ? 'text' : 'password'} autoComplete="new-password" value={regConfirmPassword} onChange={(event) => setRegConfirmPassword(event.target.value)} placeholder={locale === 'vi' ? 'Xác nhận lại mật khẩu' : 'Confirm your password'} className={`${inputClass} pr-11`} required />
+                      <button type="button" onClick={() => setShowConfirmPassword((current) => !current)} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-[#0759f9]" aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}>{showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+                    </div>
                   </div>
                 </div>
-
-                {/* Password Strength Meter */}
-                {regPassword && (
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F]">
-                    <PasswordStrengthMeter password={regPassword} />
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={isRegisterLoading || emailCheckStatus === 'ALREADY_EXISTS'}
-                  className="w-full py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span>{isRegisterLoading 
-                    ? (locale === 'vi' ? 'Đang tạo tài khoản...' : 'Creating account...') 
-                    : (locale === 'vi' ? 'Tạo tài khoản & nhận link xác thực' : 'Create account & get verification link')}</span>
+                {regPassword && <PasswordStrengthMeter password={regPassword} />}
+                <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-5 text-[#536f9f]">
+                  <input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#0759f9]" />
+                  <span>{locale === 'vi' ? 'Tôi đồng ý với Điều khoản dịch vụ và Chính sách bảo mật của midCV.' : 'I agree to the midCV Terms of Service and Privacy Policy.'}</span>
+                </label>
+                <button type="submit" disabled={isRegisterLoading || emailCheckStatus === 'ALREADY_EXISTS'}
+                  className="flex h-13 w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#0759f9] to-[#0aa8ff] px-5 text-sm font-bold text-white shadow-[0_10px_25px_rgba(7,89,249,0.24)] transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0759f9]/25 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60">
+                  {isRegisterLoading && <RefreshCw className="h-4 w-4 animate-spin" />}<span>{isRegisterLoading ? (locale === 'vi' ? 'Đang tạo tài khoản...' : 'Creating account...') : (locale === 'vi' ? 'Tạo tài khoản & nhận link xác thực' : 'Create account & get verification link')}</span>{!isRegisterLoading && <ArrowRight className="h-5 w-5" />}
                 </button>
               </form>
-            )}
+              <div className="my-4 flex items-center gap-4 text-xs text-[#7894c8]"><span className="h-px flex-1 bg-[#cbdcff]" /><span>{locale === 'vi' ? 'Hoặc đăng ký với' : 'Or register with'}</span><span className="h-px flex-1 bg-[#cbdcff]" /></div>
+              <SocialButtons oauthLoading={oauthLoading} onOAuth={handleOAuth} />
+              {oauthNotice && <p role="status" className="mt-3 text-center text-xs text-[#6688d5]">{oauthNotice}</p>}
+              <p className="mt-4 text-center text-xs text-[#6688a8]">{locale === 'vi' ? 'Đã có tài khoản?' : 'Already have an account?'}{' '}<button type="button" onClick={() => switchView('LOGIN')} className="font-bold text-[#0759f9] hover:underline">{locale === 'vi' ? 'Đăng nhập ngay' : 'Sign in now'}</button></p>
+            </div>
+          )}
 
-            {/* 3. EMAIL VERIFICATION PENDING SCREEN */}
-            {activeTab === 'VERIFICATION_PENDING' && (
-              <div className="space-y-4 py-2">
-                <div className="p-4 rounded-xl bg-[#E8F8EE] dark:bg-[#00B14F]/15 border border-[#00B14F]/30 text-[#00873D] dark:text-[#10B981] space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#00B14F] flex items-center justify-center text-white flex-shrink-0">
-                      <Mail className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-sm text-[#0F2A52] dark:text-white">
-                        {locale === 'vi' ? 'Kiểm tra hộp thư email của bạn' : 'Check your email inbox'}
-                      </h4>
-                      <p className="text-xs text-[#64748B] dark:text-slate-300">
-                        {locale === 'vi' 
-                          ? 'Một email xác thực tài khoản kèm liên kết bảo mật đã được gửi tới:' 
-                          : 'A verification email with a secure link was sent to:'}
-                      </p>
-                      <strong className="text-xs text-[#00B14F] dark:text-[#10B981] break-all">{pendingVerificationEmail}</strong>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-[#64748B] dark:text-slate-300 border-t border-[#00B14F]/20 dark:border-[#00B14F]/30 pt-2">
-                    {locale === 'vi'
-                      ? 'Vui lòng bấm vào liên kết trong email để kích hoạt tài khoản của bạn. Sau khi xác thực, bạn có thể đăng nhập bình thường.'
-                      : 'Please click the link in your email to activate your account. Once verified, you can sign in normally.'}
-                  </p>
-                </div>
-
-                {/* Dev Environment Direct Verification Link Helper */}
-                {devVerificationToken && (
-                  <div className="p-3.5 rounded-xl bg-[#FEF9C3] dark:bg-[#FACC15]/15 border border-[#FACC15]/40 text-[#92400E] dark:text-[#FACC15] text-xs space-y-2">
-                    <div className="flex items-center gap-1.5 font-bold text-[11px] text-[#92400E] dark:text-[#FACC15] uppercase tracking-wide">
-                      <Sparkles className="w-3.5 h-3.5 text-[#FACC15]" />
-                      <span>{locale === 'vi' ? '[Môi trường phát triển & Test] Mã Token Xác Thực' : '[Development & Test] Verification Token'}</span>
-                    </div>
-                    <div className="font-mono text-[11px] bg-white dark:bg-[#13233F] p-2 rounded border border-[#FACC15]/40 break-all text-[#0F2A52] dark:text-slate-100">
-                      {devVerificationToken}
-                    </div>
-                    <Link
-                      href={`/verify-email?token=${devVerificationToken}`}
-                      onClick={closeAuthModal}
-                      className="inline-flex items-center gap-1.5 font-semibold text-[#2563EB] hover:text-[#1D4ED8] dark:text-[#60A5FA] underline pt-1"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>{locale === 'vi' ? 'Xác thực ngay (mở liên kết)' : 'Verify immediately (open link)'}</span>
-                    </Link>
-                  </div>
-                )}
-
-                {/* Resend Status Message */}
-                {resendMessage && (
-                  <div className="p-2.5 rounded-lg bg-slate-100 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-xs text-[#64748B] dark:text-[#94A3B8]">
-                    {resendMessage}
-                  </div>
-                )}
-
-                {/* Resend Action */}
-                <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-                  <button
-                    type="button"
-                    onClick={handleResend}
-                    disabled={resendCooldown > 0}
-                    className="w-full sm:w-auto px-4 py-2 rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#13233F] hover:bg-slate-50 dark:hover:bg-[#18294E] font-semibold text-[#0F2A52] dark:text-slate-200 disabled:opacity-50 transition cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${resendCooldown > 0 ? 'animate-spin' : ''}`} />
-                    <span>
-                      {resendCooldown > 0
-                        ? (locale === 'vi' ? `Gửi lại sau ${resendCooldown}s` : `Resend in ${resendCooldown}s`)
-                        : (locale === 'vi' ? 'Gửi lại email xác thực' : 'Resend verification email')}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('LOGIN');
-                      setLoginError(null);
-                    }}
-                    className="text-[#2563EB] dark:text-[#60A5FA] hover:text-[#1D4ED8] font-semibold underline"
-                  >
-                    {locale === 'vi' ? 'Quay lại màn hình đăng nhập' : 'Back to sign in'}
-                  </button>
-                </div>
+          {activeTab === 'VERIFICATION_PENDING' && (
+            <div className="mt-7 space-y-4">
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-800">
+                <div className="flex items-start gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white"><Mail className="h-5 w-5" /></div><div><h3 className="font-bold text-[#09266e]">{locale === 'vi' ? 'Kiểm tra hộp thư của bạn' : 'Check your inbox'}</h3><p className="mt-1 text-xs leading-5 text-emerald-700">{locale === 'vi' ? 'Nhấn liên kết bảo mật trong email để kích hoạt tài khoản.' : 'Use the secure link in the email to activate your account.'}</p><strong className="mt-1 block break-all text-xs">{pendingVerificationEmail}</strong></div></div>
               </div>
-            )}
-          </div>
-
-          {/* Footer Note */}
-          <div className="mt-6 pt-3 border-t border-slate-200 dark:border-[#1E293B] text-[11px] text-[#64748B] dark:text-[#94A3B8] text-center flex items-center justify-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#00B14F]" />
-            <span>{locale === 'vi' ? 'midCV® bảo vệ quyền riêng tư & chuẩn hóa đối sánh năng lực thực.' : 'midCV® protects privacy & standardizes competency matching.'}</span>
-          </div>
-        </div>
-
+              {devVerificationToken && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900"><p className="font-bold">{locale === 'vi' ? 'Môi trường phát triển: mã xác thực' : 'Development verification token'}</p><code className="mt-2 block break-all rounded-lg bg-white p-2 text-[#09266e]">{devVerificationToken}</code><Link href={`/verify-email?token=${devVerificationToken}`} onClick={closeAuthModal} className="mt-2 inline-flex items-center gap-1 font-semibold text-[#0759f9] underline"><ExternalLink className="h-3.5 w-3.5" />{locale === 'vi' ? 'Xác thực ngay (mở liên kết)' : 'Verify now (open link)'}</Link></div>}
+              {resendMessage && <p role="status" className="rounded-xl bg-[#eef5ff] p-3 text-xs text-[#2455a4]">{resendMessage}</p>}
+              <div className="flex flex-col-reverse items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+                <button type="button" onClick={() => switchView('LOGIN')} className="text-xs font-semibold text-[#0759f9] hover:underline">{locale === 'vi' ? 'Quay lại đăng nhập' : 'Back to sign in'}</button>
+                <button type="button" onClick={handleResend} disabled={resendCooldown > 0} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#cbdcff] bg-white px-4 text-xs font-semibold text-[#173b73] hover:border-[#8eb4ff] disabled:opacity-60"><RefreshCw className={`h-3.5 w-3.5 ${resendCooldown > 0 ? 'animate-spin' : ''}`} />{resendCooldown > 0 ? (locale === 'vi' ? `Gửi lại sau ${resendCooldown}s` : `Resend in ${resendCooldown}s`) : (locale === 'vi' ? 'Gửi lại email xác thực' : 'Resend verification email')}</button>
+              </div>
+            </div>
+          )}
+        </section>
       </div>
-    </div>
+    </AnimatedModalShell>
   );
 };
