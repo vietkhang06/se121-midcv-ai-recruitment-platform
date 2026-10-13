@@ -103,7 +103,9 @@ class CVParser:
                 base_url=settings.OLLAMA_BASE_URL,
                 model=settings.OLLAMA_CHAT_MODEL,
                 timeout_seconds=settings.OLLAMA_TIMEOUT_SECONDS,
-                max_retries=settings.OLLAMA_MAX_RETRIES
+                max_retries=settings.OLLAMA_MAX_RETRIES,
+                num_predict=settings.OLLAMA_NUM_PREDICT,
+                think=settings.OLLAMA_THINK
             ) if settings.LLM_FALLBACK_ENABLED else None
 
             self.orchestrator = FallbackLLMClient(

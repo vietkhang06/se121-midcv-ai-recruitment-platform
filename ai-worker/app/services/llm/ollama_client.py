@@ -1,4 +1,5 @@
 import time
+import asyncio
 import logging
 from typing import Optional, Dict, Any, List
 import httpx
@@ -36,13 +37,18 @@ class OllamaClient:
         model: str,
         timeout_seconds: float = 180.0,
         max_retries: int = 0,
-        temperature: float = 0.0
+        temperature: float = 0.0,
+        num_predict: Optional[int] = None,
+        think: Optional[bool] = None
     ):
         self.base_url = (base_url or "http://127.0.0.1:11434").rstrip("/")
         self.model = model or "dna5rm/granite4.2:3b-8k"
         self.timeout_seconds = timeout_seconds
         self.max_retries = max(0, max_retries)
         self.temperature = temperature
+        import os
+        self.num_predict = num_predict if num_predict is not None else int(os.getenv("OLLAMA_NUM_PREDICT", "2048"))
+        self.think = think if think is not None else (os.getenv("OLLAMA_THINK", "false").lower() == "true")
         self.provider = "ollama"
 
     def _classify_body(self, content_type: str, raw_bytes: bytes) -> str:
@@ -61,18 +67,20 @@ class OllamaClient:
         return "UNKNOWN"
 
     def _build_payload(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
-        import os
-        num_predict = int(os.getenv("OLLAMA_NUM_PREDICT", "4096"))
-        return {
+        payload: Dict[str, Any] = {
             "model": self.model,
             "messages": messages,
             "format": "json",
             "stream": False,
             "options": {
                 "temperature": self.temperature,
-                "num_predict": num_predict
+                "num_predict": self.num_predict
             }
         }
+        if not self.think:
+            # Disable thinking for models like Granite 4.2 / Qwen / DeepSeek-R1 that support thinking mode
+            payload["think"] = False
+        return payload
 
     def _parse_response_data(self, res_data: Any, latency_ms: int) -> LLMResponse:
         if not isinstance(res_data, dict):
@@ -136,24 +144,34 @@ class OllamaClient:
 
         attempts = 0
         last_error = None
+        timeout_config = httpx.Timeout(
+            timeout=self.timeout_seconds,
+            connect=10.0,
+            read=self.timeout_seconds,
+            write=15.0,
+            pool=10.0
+        )
 
         while attempts <= self.max_retries:
             attempts += 1
             t0 = time.time()
             try:
-                async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
-                    resp = await client.post(url, json=payload)
-            except (httpx.ConnectError, httpx.NetworkError) as conn_err:
-                last_error = LLMNetworkError(
-                    f"Connection failed to Ollama at {self.base_url}: {str(conn_err)}",
+                async with httpx.AsyncClient(timeout=timeout_config) as client:
+                    resp = await asyncio.wait_for(
+                        client.post(url, json=payload),
+                        timeout=self.timeout_seconds + 5.0
+                    )
+            except (asyncio.TimeoutError, httpx.TimeoutException, httpx.ReadTimeout, httpx.ConnectTimeout) as to_err:
+                last_error = LLMTimeoutError(
+                    f"Ollama request timed out after {self.timeout_seconds}s: {str(to_err)}",
                     provider=self.provider
                 )
                 if attempts <= self.max_retries:
                     continue
                 raise last_error
-            except (httpx.TimeoutException, httpx.ReadTimeout, httpx.ConnectTimeout) as to_err:
-                last_error = LLMTimeoutError(
-                    f"Ollama request timed out after {self.timeout_seconds}s: {str(to_err)}",
+            except (httpx.ConnectError, httpx.NetworkError) as conn_err:
+                last_error = LLMNetworkError(
+                    f"Connection failed to Ollama at {self.base_url}: {str(conn_err)}",
                     provider=self.provider
                 )
                 if attempts <= self.max_retries:
@@ -217,24 +235,31 @@ class OllamaClient:
 
         attempts = 0
         last_error = None
+        timeout_config = httpx.Timeout(
+            timeout=self.timeout_seconds,
+            connect=10.0,
+            read=self.timeout_seconds,
+            write=15.0,
+            pool=10.0
+        )
 
         while attempts <= self.max_retries:
             attempts += 1
             t0 = time.time()
             try:
-                with httpx.Client(timeout=self.timeout_seconds) as client:
+                with httpx.Client(timeout=timeout_config) as client:
                     resp = client.post(url, json=payload)
-            except (httpx.ConnectError, httpx.NetworkError) as conn_err:
-                last_error = LLMNetworkError(
-                    f"Connection failed to Ollama at {self.base_url}: {str(conn_err)}",
+            except (httpx.TimeoutException, httpx.ReadTimeout, httpx.ConnectTimeout) as to_err:
+                last_error = LLMTimeoutError(
+                    f"Ollama request timed out after {self.timeout_seconds}s: {str(to_err)}",
                     provider=self.provider
                 )
                 if attempts <= self.max_retries:
                     continue
                 raise last_error
-            except (httpx.TimeoutException, httpx.ReadTimeout, httpx.ConnectTimeout) as to_err:
-                last_error = LLMTimeoutError(
-                    f"Ollama request timed out after {self.timeout_seconds}s: {str(to_err)}",
+            except (httpx.ConnectError, httpx.NetworkError) as conn_err:
+                last_error = LLMNetworkError(
+                    f"Connection failed to Ollama at {self.base_url}: {str(conn_err)}",
                     provider=self.provider
                 )
                 if attempts <= self.max_retries:
