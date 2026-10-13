@@ -372,6 +372,7 @@ export const AuthModal: React.FC = () => {
                 {registerError && <div role="alert" className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-xs text-rose-700"><AlertCircle className="h-4 w-4 shrink-0" /><span>{registerError}</span></div>}
                 <div className="grid grid-cols-2 rounded-xl border border-[#d5e2f8] bg-[#edf2f8] p-1">
                   <button type="button" onClick={() => setRegisterRole('CANDIDATE')}
+                    aria-pressed={registerRole === 'CANDIDATE'}
                     className={`flex h-10 items-center justify-center gap-2 rounded-lg text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0759f9]/30 ${registerRole === 'CANDIDATE' ? 'bg-white text-[#0759f9] shadow-sm ring-1 ring-[#c5d8fb]' : 'text-[#53657f] hover:text-[#173b73]'}`}>
                     <User className="h-4 w-4" />{locale === 'vi' ? 'Ứng viên' : 'Candidate'}
                   </button>
@@ -400,22 +401,31 @@ export const AuthModal: React.FC = () => {
                   </div>
                 </div>
                 {registerRole === 'CANDIDATE' ? (
-                  <div className="grid gap-3.5 sm:grid-cols-[140px_1fr]">
-                    <div>
-                      <label htmlFor="auth-register-age" className={labelClass}>{locale === 'vi' ? 'Độ tuổi' : 'Age'} <span className="text-rose-500">*</span></label>
-                      <input id="auth-register-age" type="number" min={18} max={70} value={regAge} onChange={(event) => setRegAge(Number.parseInt(event.target.value, 10) || 22)} className={inputClass} required />
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2.5 rounded-xl border border-[#cbdcff] bg-[#eef5ff] px-3.5 py-2.5 text-[11px] leading-5 text-[#536f9f]">
+                      <User className="mt-0.5 h-4 w-4 shrink-0 text-[#0759f9]" />
+                      <p>
+                        <strong className="text-[#173b73]">{locale === 'vi' ? 'Hồ sơ ứng viên' : 'Candidate profile'}:</strong>{' '}
+                        {locale === 'vi' ? 'chọn ngành nghề mục tiêu để midCV cá nhân hóa cơ hội phù hợp.' : 'choose target industries so midCV can personalize relevant opportunities.'}
+                      </p>
                     </div>
-                    <fieldset>
-                      <legend className={labelClass}>{locale === 'vi' ? 'Ngành nghề mục tiêu' : 'Target industries'}</legend>
-                      <div className="flex max-h-[104px] flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-[#cbdcff] bg-white p-2.5">
-                        {TARGET_INDUSTRIES_LIST.map((industry) => {
-                          const selected = regTargetIndustries.includes(industry);
-                          return <label key={industry} className={`cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${selected ? 'border-[#0759f9] bg-[#0759f9] text-white' : 'border-[#d7e2f5] text-[#536f9f] hover:border-[#8eb4ff]'}`}>
-                            <input type="checkbox" checked={selected} onChange={() => toggleRegIndustry(industry)} className="sr-only" />{industry}
-                          </label>;
-                        })}
+                    <div className="grid gap-3.5 sm:grid-cols-[140px_1fr]">
+                      <div>
+                        <label htmlFor="auth-register-age" className={labelClass}>{locale === 'vi' ? 'Độ tuổi' : 'Age'} <span className="text-rose-500">*</span></label>
+                        <input id="auth-register-age" type="number" min={18} max={70} value={regAge} onChange={(event) => setRegAge(Number.parseInt(event.target.value, 10) || 22)} className={inputClass} required />
                       </div>
-                    </fieldset>
+                      <fieldset>
+                        <legend className={labelClass}>{locale === 'vi' ? 'Ngành nghề mục tiêu' : 'Target industries'}</legend>
+                        <div className="flex max-h-[104px] flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-[#cbdcff] bg-white p-2.5">
+                          {TARGET_INDUSTRIES_LIST.map((industry) => {
+                            const selected = regTargetIndustries.includes(industry);
+                            return <label key={industry} className={`cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${selected ? 'border-[#0759f9] bg-[#0759f9] text-white' : 'border-[#d7e2f5] text-[#536f9f] hover:border-[#8eb4ff]'}`}>
+                              <input type="checkbox" checked={selected} onChange={() => toggleRegIndustry(industry)} className="sr-only" />{industry}
+                            </label>;
+                          })}
+                        </div>
+                      </fieldset>
+                    </div>
                   </div>
                 ) : (
                   <div className="grid gap-3.5 sm:grid-cols-2">
