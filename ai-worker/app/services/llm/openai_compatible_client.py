@@ -1,4 +1,6 @@
 import time
+import json
+import asyncio
 import logging
 from typing import Optional, Dict, Any, List
 import httpx
@@ -6,6 +8,7 @@ import httpx
 from app.services.llm.types import (
     LLMResponse,
     LLMClientProtocol,
+    LLMError,
     LLMAuthenticationError,
     LLMAuthorizationError,
     LLMModelNotFoundError,
@@ -19,6 +22,110 @@ from app.services.llm.types import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def classify_openai_compatible_error(
+    status_code: int,
+    response_text: str,
+    provider: str = "openai_compatible"
+) -> LLMError:
+    """
+    Defensively classifies HTTP errors from OpenAI-compatible gateways.
+    Distinguishes deterministic conditions (model not found, invalid auth, bad request)
+    from transient failures (network drop, gateway timeout, true 5xx server outage).
+
+    Crucially detects when an intermediate gateway (e.g. 9Router, LiteLLM, reverse proxies)
+    wraps an upstream 404 NOT_FOUND into an HTTP 500/502/503/504 response, classifying it
+    as LLMModelNotFoundError to prevent futile retries or inappropriate Ollama fallbacks.
+    """
+    sanitized_detail = sanitize_sensitive_string(response_text[:400]) if response_text else ""
+    msg = f"HTTP {status_code}: {sanitized_detail}".strip()
+
+    # Direct deterministic status codes
+    if status_code == 400:
+        return LLMBadRequestError(msg, provider=provider)
+    elif status_code == 401:
+        return LLMAuthenticationError(msg, provider=provider)
+    elif status_code == 403:
+        return LLMAuthorizationError(msg, provider=provider)
+    elif status_code == 404:
+        return LLMModelNotFoundError(msg, provider=provider)
+    elif status_code == 408:
+        return LLMTimeoutError(msg, provider=provider)
+    elif status_code == 429:
+        return LLMRateLimitError(msg, provider=provider)
+
+    # For 5xx status codes, inspect structured error payloads for upstream signals
+    if 500 <= status_code <= 599 and response_text:
+        try:
+            parsed = json.loads(response_text)
+            err_data = parsed.get("error") if isinstance(parsed, dict) else None
+            if isinstance(err_data, dict):
+                code = str(err_data.get("code", "")).strip().lower()
+                err_status = str(err_data.get("status", "")).strip().upper()
+                type_ = str(err_data.get("type", "")).strip().lower()
+                message = str(err_data.get("message", "")).strip().lower()
+
+                # Upstream Model Not Found indicators
+                is_model_not_found = (
+                    err_status == "NOT_FOUND"
+                    or code in ("404", "model_not_found", "resource_not_found")
+                    or type_ == "model_not_found_error"
+                    or "[404]" in message
+                    or "requested entity was not found" in message
+                    or "does not exist" in message
+                    or "model_not_found" in message
+                )
+                if is_model_not_found:
+                    return LLMModelNotFoundError(
+                        f"HTTP {status_code} (Upstream 404 NOT_FOUND): {sanitized_detail}",
+                        provider=provider
+                    )
+
+                # Upstream Authentication Failure indicators
+                is_auth_error = (
+                    err_status in ("UNAUTHENTICATED", "UNAUTHORIZED")
+                    or code in ("401", "invalid_api_key", "unauthenticated", "invalid_token")
+                    or type_ == "authentication_error"
+                    or "[401]" in message
+                    or "invalid api key" in message
+                    or "incorrect api key" in message
+                )
+                if is_auth_error:
+                    return LLMAuthenticationError(
+                        f"HTTP {status_code} (Upstream 401 UNAUTHENTICATED): {sanitized_detail}",
+                        provider=provider
+                    )
+
+                # Upstream Authorization Failure indicators
+                is_forbidden = (
+                    err_status in ("PERMISSION_DENIED", "FORBIDDEN")
+                    or code in ("403", "permission_denied", "forbidden")
+                    or "[403]" in message
+                    or "permission denied" in message
+                )
+                if is_forbidden:
+                    return LLMAuthorizationError(
+                        f"HTTP {status_code} (Upstream 403 PERMISSION_DENIED): {sanitized_detail}",
+                        provider=provider
+                    )
+
+                # Upstream Bad Request / Schema Failure indicators
+                is_bad_request = (
+                    err_status in ("INVALID_ARGUMENT", "BAD_REQUEST")
+                    or code in ("400", "invalid_request_error", "bad_request")
+                    or "[400]" in message
+                )
+                if is_bad_request:
+                    return LLMBadRequestError(
+                        f"HTTP {status_code} (Upstream 400 INVALID_ARGUMENT): {sanitized_detail}",
+                        provider=provider
+                    )
+        except Exception:
+            pass
+
+    return LLMServerError(msg, status_code=status_code, provider=provider)
+
 
 
 class OpenAICompatibleClient:
@@ -119,24 +226,7 @@ class OpenAICompatibleClient:
         )
 
     def _map_http_error(self, status_code: int, response_text: str) -> None:
-        sanitized_detail = sanitize_sensitive_string(response_text[:300])
-        msg = f"HTTP {status_code}: {sanitized_detail}"
-        if status_code == 400:
-            raise LLMBadRequestError(msg, provider=self.provider)
-        elif status_code == 401:
-            raise LLMAuthenticationError(msg, provider=self.provider)
-        elif status_code == 403:
-            raise LLMAuthorizationError(msg, provider=self.provider)
-        elif status_code == 404:
-            raise LLMModelNotFoundError(msg, provider=self.provider)
-        elif status_code == 408:
-            raise LLMTimeoutError(msg, provider=self.provider)
-        elif status_code == 429:
-            raise LLMRateLimitError(msg, provider=self.provider)
-        elif 500 <= status_code <= 599:
-            raise LLMServerError(msg, status_code=status_code, provider=self.provider)
-        else:
-            raise LLMServerError(msg, status_code=status_code, provider=self.provider)
+        raise classify_openai_compatible_error(status_code, response_text, provider=self.provider)
 
     def _classify_body(self, content_type: str, raw_bytes: bytes) -> str:
         if not raw_bytes:
@@ -164,13 +254,23 @@ class OpenAICompatibleClient:
 
         attempts = 0
         last_error = None
+        timeout_config = httpx.Timeout(
+            timeout=self.timeout_seconds,
+            connect=min(10.0, self.timeout_seconds),
+            read=self.timeout_seconds,
+            write=min(15.0, self.timeout_seconds),
+            pool=min(10.0, self.timeout_seconds)
+        )
 
         while attempts <= self.max_retries:
             attempts += 1
             t0 = time.time()
             try:
-                async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
-                    resp = await client.post(url, headers=headers, json=payload)
+                async with httpx.AsyncClient(timeout=timeout_config) as client:
+                    resp = await asyncio.wait_for(
+                        client.post(url, headers=headers, json=payload),
+                        timeout=self.timeout_seconds
+                    )
             except (httpx.ConnectError, httpx.NetworkError) as conn_err:
                 logger.warning(
                     f"[{self.provider}] Connection error (attempt {attempts}/{self.max_retries + 1}): "
@@ -183,7 +283,7 @@ class OpenAICompatibleClient:
                 if attempts <= self.max_retries:
                     continue
                 raise last_error
-            except (httpx.TimeoutException, httpx.ReadTimeout, httpx.ConnectTimeout) as to_err:
+            except (httpx.TimeoutException, httpx.ReadTimeout, httpx.ConnectTimeout, asyncio.TimeoutError) as to_err:
                 logger.warning(
                     f"[{self.provider}] Timeout error (attempt {attempts}/{self.max_retries + 1}): "
                     f"{sanitize_sensitive_string(str(to_err))}"
@@ -266,12 +366,19 @@ class OpenAICompatibleClient:
 
         attempts = 0
         last_error = None
+        timeout_config = httpx.Timeout(
+            timeout=self.timeout_seconds,
+            connect=min(10.0, self.timeout_seconds),
+            read=self.timeout_seconds,
+            write=min(15.0, self.timeout_seconds),
+            pool=min(10.0, self.timeout_seconds)
+        )
 
         while attempts <= self.max_retries:
             attempts += 1
             t0 = time.time()
             try:
-                with httpx.Client(timeout=self.timeout_seconds) as client:
+                with httpx.Client(timeout=timeout_config) as client:
                     resp = client.post(url, headers=headers, json=payload)
             except (httpx.ConnectError, httpx.NetworkError) as conn_err:
                 logger.warning(

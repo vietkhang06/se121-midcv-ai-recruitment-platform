@@ -16,6 +16,7 @@ from app.services.llm.types import (
     LLMServerError,
     LLMNetworkError,
     LLMInvalidResponseError,
+    sanitize_sensitive_string,
 )
 
 logger = logging.getLogger(__name__)
@@ -73,11 +74,18 @@ class FallbackLLMClient:
         correlation_id: Optional[str] = None
     ) -> FallbackExecutionResult:
         cid = correlation_id or str(uuid.uuid4())
+        logger.info(
+            f"[fallback_orchestrator] event='primary_attempt_started' correlation_id='{cid}'"
+        )
 
         saved_primary_error: Optional[Exception] = None
         # 1. Always call PRIMARY first
         try:
             primary_resp = await self.primary_client.chat(messages, correlation_id=cid)
+            logger.info(
+                f"[fallback_orchestrator] event='primary_attempt_succeeded' correlation_id='{cid}' "
+                f"provider='{primary_resp.provider}' model='{primary_resp.requested_model}' latency_ms={primary_resp.latency_ms}"
+            )
             return FallbackExecutionResult(
                 response=primary_resp,
                 provider_used="primary",
@@ -87,29 +95,41 @@ class FallbackLLMClient:
             )
         except Exception as primary_err:
             saved_primary_error = primary_err
-            if not self._is_fallback_eligible(primary_err):
+            is_eligible = self._is_fallback_eligible(primary_err)
+            err_cat = getattr(primary_err, "error_code", type(primary_err).__name__)
+            primary_msg = sanitize_sensitive_string(str(primary_err))
+
+            logger.warning(
+                f"[fallback_orchestrator] event='primary_attempt_failed' correlation_id='{cid}' "
+                f"error_category='{err_cat}' fallback_eligible={is_eligible} error='{primary_msg}'"
+            )
+
+            if not is_eligible:
                 logger.error(
-                    f"[{cid}] Primary LLM failed with non-fallback-eligible error: {primary_err}. "
-                    "Re-raising without invoking fallback."
+                    f"[fallback_orchestrator] event='fallback_ineligible_abort' correlation_id='{cid}' "
+                    f"error_category='{err_cat}'. Re-raising without invoking fallback."
                 )
                 raise primary_err
 
             if not self.fallback_enabled or not self.fallback_client:
                 logger.warning(
-                    f"[{cid}] Primary LLM encountered transient error ({primary_err}) "
-                    "but fallback is disabled or unconfigured."
+                    f"[fallback_orchestrator] event='fallback_disabled_abort' correlation_id='{cid}' "
+                    f"error_category='{err_cat}'. Fallback is disabled or unconfigured."
                 )
                 raise primary_err
 
-            logger.warning(
-                f"[{cid}] Primary LLM failed with transient error: {primary_err}. "
-                "Engaging fallback Ollama client..."
+            logger.info(
+                f"[fallback_orchestrator] event='fallback_attempt_started' correlation_id='{cid}' "
+                f"fallback_reason='{err_cat}'. Engaging fallback provider..."
             )
 
         # 2. Call Fallback (Ollama)
-        primary_msg = str(saved_primary_error)
         try:
             fallback_resp = await self.fallback_client.chat(messages, correlation_id=cid)
+            logger.info(
+                f"[fallback_orchestrator] event='fallback_attempt_succeeded' correlation_id='{cid}' "
+                f"provider='{fallback_resp.provider}' model='{fallback_resp.requested_model}' latency_ms={fallback_resp.latency_ms}"
+            )
             return FallbackExecutionResult(
                 response=fallback_resp,
                 provider_used="fallback",
@@ -118,13 +138,14 @@ class FallbackLLMClient:
                 correlation_id=cid
             )
         except Exception as fallback_err:
+            sanitized_fallback_err = sanitize_sensitive_string(str(fallback_err))
             logger.error(
-                f"[{cid}] Both Primary LLM and Fallback LLM failed! "
-                f"Primary: {primary_msg}; Fallback: {fallback_err}"
+                f"[fallback_orchestrator] event='all_providers_failed' correlation_id='{cid}' "
+                f"primary_error='{primary_msg}' fallback_error='{sanitized_fallback_err}'"
             )
             raise LLMServerError(
                 f"All configured LLM providers failed for request [correlation_id={cid}]. "
-                f"Primary: {primary_msg}; Fallback: {str(fallback_err)}",
+                f"Primary: {primary_msg}; Fallback: {sanitized_fallback_err}",
                 status_code=502,
                 provider="fallback_orchestrator"
             )
@@ -135,11 +156,18 @@ class FallbackLLMClient:
         correlation_id: Optional[str] = None
     ) -> FallbackExecutionResult:
         cid = correlation_id or str(uuid.uuid4())
+        logger.info(
+            f"[fallback_orchestrator] event='primary_attempt_started' correlation_id='{cid}'"
+        )
 
         saved_primary_error: Optional[Exception] = None
         # 1. Always call PRIMARY first
         try:
             primary_resp = self.primary_client.chat_sync(messages, correlation_id=cid)
+            logger.info(
+                f"[fallback_orchestrator] event='primary_attempt_succeeded' correlation_id='{cid}' "
+                f"provider='{primary_resp.provider}' model='{primary_resp.requested_model}' latency_ms={primary_resp.latency_ms}"
+            )
             return FallbackExecutionResult(
                 response=primary_resp,
                 provider_used="primary",
@@ -149,29 +177,41 @@ class FallbackLLMClient:
             )
         except Exception as primary_err:
             saved_primary_error = primary_err
-            if not self._is_fallback_eligible(primary_err):
+            is_eligible = self._is_fallback_eligible(primary_err)
+            err_cat = getattr(primary_err, "error_code", type(primary_err).__name__)
+            primary_msg = sanitize_sensitive_string(str(primary_err))
+
+            logger.warning(
+                f"[fallback_orchestrator] event='primary_attempt_failed' correlation_id='{cid}' "
+                f"error_category='{err_cat}' fallback_eligible={is_eligible} error='{primary_msg}'"
+            )
+
+            if not is_eligible:
                 logger.error(
-                    f"[{cid}] Primary LLM failed with non-fallback-eligible error: {primary_err}. "
-                    "Re-raising without invoking fallback."
+                    f"[fallback_orchestrator] event='fallback_ineligible_abort' correlation_id='{cid}' "
+                    f"error_category='{err_cat}'. Re-raising without invoking fallback."
                 )
                 raise primary_err
 
             if not self.fallback_enabled or not self.fallback_client:
                 logger.warning(
-                    f"[{cid}] Primary LLM encountered transient error ({primary_err}) "
-                    "but fallback is disabled or unconfigured."
+                    f"[fallback_orchestrator] event='fallback_disabled_abort' correlation_id='{cid}' "
+                    f"error_category='{err_cat}'. Fallback is disabled or unconfigured."
                 )
                 raise primary_err
 
-            logger.warning(
-                f"[{cid}] Primary LLM failed with transient error: {primary_err}. "
-                "Engaging fallback Ollama client..."
+            logger.info(
+                f"[fallback_orchestrator] event='fallback_attempt_started' correlation_id='{cid}' "
+                f"fallback_reason='{err_cat}'. Engaging fallback provider..."
             )
 
         # 2. Call Fallback (Ollama)
-        primary_msg = str(saved_primary_error)
         try:
             fallback_resp = self.fallback_client.chat_sync(messages, correlation_id=cid)
+            logger.info(
+                f"[fallback_orchestrator] event='fallback_attempt_succeeded' correlation_id='{cid}' "
+                f"provider='{fallback_resp.provider}' model='{fallback_resp.requested_model}' latency_ms={fallback_resp.latency_ms}"
+            )
             return FallbackExecutionResult(
                 response=fallback_resp,
                 provider_used="fallback",
@@ -180,13 +220,14 @@ class FallbackLLMClient:
                 correlation_id=cid
             )
         except Exception as fallback_err:
+            sanitized_fallback_err = sanitize_sensitive_string(str(fallback_err))
             logger.error(
-                f"[{cid}] Both Primary LLM and Fallback LLM failed! "
-                f"Primary: {primary_msg}; Fallback: {fallback_err}"
+                f"[fallback_orchestrator] event='all_providers_failed' correlation_id='{cid}' "
+                f"primary_error='{primary_msg}' fallback_error='{sanitized_fallback_err}'"
             )
             raise LLMServerError(
                 f"All configured LLM providers failed for request [correlation_id={cid}]. "
-                f"Primary: {primary_msg}; Fallback: {str(fallback_err)}",
+                f"Primary: {primary_msg}; Fallback: {sanitized_fallback_err}",
                 status_code=502,
                 provider="fallback_orchestrator"
             )
