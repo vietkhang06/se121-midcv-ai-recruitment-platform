@@ -377,6 +377,7 @@ export const AuthModal: React.FC = () => {
                     <User className="h-4 w-4" />{locale === 'vi' ? 'Ứng viên' : 'Candidate'}
                   </button>
                   <button type="button" onClick={() => setRegisterRole('RECRUITER')}
+                    aria-pressed={registerRole === 'RECRUITER'}
                     className={`flex h-10 items-center justify-center gap-2 rounded-lg text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0759f9]/30 ${registerRole === 'RECRUITER' ? 'bg-white text-[#0759f9] shadow-sm ring-1 ring-[#c5d8fb]' : 'text-[#53657f] hover:text-[#173b73]'}`}>
                     <BriefcaseBusiness className="h-4 w-4" />{locale === 'vi' ? 'Nhà tuyển dụng' : 'Recruiter'}
                   </button>
@@ -428,18 +429,27 @@ export const AuthModal: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="grid gap-3.5 sm:grid-cols-2">
-                    <div>
-                      <label htmlFor="auth-company-name" className={labelClass}>{locale === 'vi' ? 'Tên công ty / Doanh nghiệp' : 'Company name'} <span className="text-rose-500">*</span></label>
-                      <div className="relative"><Building2 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7894c8]" />
-                        <input id="auth-company-name" type="text" value={regCompanyName} onChange={(event) => setRegCompanyName(event.target.value)} placeholder="CloudScale Systems Corp" className={`${inputClass} pl-11`} required />
-                      </div>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2.5 rounded-xl border border-[#bfe7dc] bg-[#f1fbf7] px-3.5 py-2.5 text-[11px] leading-5 text-[#4b6f67]">
+                      <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-[#008f64]" />
+                      <p>
+                        <strong className="text-[#155c4b]">{locale === 'vi' ? 'Tài khoản nhà tuyển dụng' : 'Recruiter account'}:</strong>{' '}
+                        {locale === 'vi' ? 'thông tin doanh nghiệp giúp xác minh hồ sơ và xây dựng độ tin cậy với ứng viên.' : 'company details support profile verification and build candidate trust.'}
+                      </p>
                     </div>
-                    <div>
-                      <label htmlFor="auth-company-industry" className={labelClass}>{locale === 'vi' ? 'Lĩnh vực hoạt động' : 'Industry sector'}</label>
-                      <select id="auth-company-industry" value={regCompanyIndustry} onChange={(event) => setRegCompanyIndustry(event.target.value as Industry)} className={inputClass}>
-                        <option value="Technology">{locale === 'vi' ? 'Công nghệ (IT)' : 'Technology (IT)'}</option><option value="Finance">{locale === 'vi' ? 'Tài chính - Fintech' : 'Finance - Fintech'}</option><option value="Marketing">{locale === 'vi' ? 'Truyền thông - Quảng cáo' : 'Marketing & Ads'}</option><option value="Healthcare">{locale === 'vi' ? 'Y tế' : 'Healthcare'}</option><option value="General">{locale === 'vi' ? 'Khác' : 'Other'}</option>
-                      </select>
+                    <div className="grid gap-3.5 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="auth-company-name" className={labelClass}>{locale === 'vi' ? 'Tên công ty / Doanh nghiệp' : 'Company name'} <span className="text-rose-500">*</span></label>
+                        <div className="relative"><Building2 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7894c8]" />
+                          <input id="auth-company-name" type="text" autoComplete="organization" value={regCompanyName} onChange={(event) => setRegCompanyName(event.target.value)} placeholder="CloudScale Systems Corp" className={`${inputClass} pl-11`} required />
+                        </div>
+                      </div>
+                      <div>
+                        <label htmlFor="auth-company-industry" className={labelClass}>{locale === 'vi' ? 'Lĩnh vực hoạt động' : 'Industry sector'}</label>
+                        <select id="auth-company-industry" value={regCompanyIndustry} onChange={(event) => setRegCompanyIndustry(event.target.value as Industry)} className={inputClass}>
+                          <option value="Technology">{locale === 'vi' ? 'Công nghệ (IT)' : 'Technology (IT)'}</option><option value="Finance">{locale === 'vi' ? 'Tài chính - Fintech' : 'Finance - Fintech'}</option><option value="Marketing">{locale === 'vi' ? 'Truyền thông - Quảng cáo' : 'Marketing & Ads'}</option><option value="Healthcare">{locale === 'vi' ? 'Y tế' : 'Healthcare'}</option><option value="General">{locale === 'vi' ? 'Khác' : 'Other'}</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 )}
