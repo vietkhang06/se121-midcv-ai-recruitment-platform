@@ -275,20 +275,22 @@ export const Navbar: React.FC = () => {
           ) : (
             <div className="hidden sm:flex items-center gap-2 xl:gap-2.5 shrink-0">
               {/* Đăng nhập */}
-              <Link
-                href="/login"
+              <button
+                type="button"
+                onClick={() => openAuthModal('LOGIN')}
                 className="px-3.5 py-2 rounded-full text-xs font-bold text-[#173B73] dark:text-slate-200 hover:text-[#2563EB] dark:hover:text-[#3B82F6] hover:bg-blue-50/70 dark:hover:bg-[#152342] transition cursor-pointer whitespace-nowrap shrink-0"
               >
                 {locale === 'vi' ? 'Đăng nhập' : 'Sign In'}
-              </Link>
+              </button>
 
               {/* Đăng ký */}
-              <Link
-                href="/register"
+              <button
+                type="button"
+                onClick={() => openAuthModal('REGISTER')}
                 className="px-5 py-2 rounded-full text-xs font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-xs cursor-pointer whitespace-nowrap shrink-0 active:scale-95"
               >
                 {locale === 'vi' ? 'Đăng ký' : 'Register'}
-              </Link>
+              </button>
 
               {/* Dành cho Doanh nghiệp (Anonymous only) */}
               <Link
@@ -345,20 +347,26 @@ export const Navbar: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2 pb-3 border-b border-slate-100 dark:border-[#1E293B]">
-              <Link
-                href="/login"
-                onClick={() => setIsMobileMenuOpen(false)}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  openAuthModal('LOGIN');
+                }}
                 className="w-full py-2 text-center text-xs font-semibold rounded-lg border border-slate-200 dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition cursor-pointer"
               >
                 {t('nav.signIn', 'Sign In')}
-              </Link>
-              <Link
-                href="/register"
-                onClick={() => setIsMobileMenuOpen(false)}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  openAuthModal('REGISTER');
+                }}
                 className="w-full py-2 text-center text-xs font-semibold rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white transition cursor-pointer shadow-xs"
               >
                 {t('nav.register', 'Register')}
-              </Link>
+              </button>
             </div>
           )}
 
