@@ -392,3 +392,60 @@ class TestCheckPrimaryLlmTool:
         assert "Primary LLM configuration: INVALID" in captured
         assert "authentication failure" in captured
         assert "invalid-key" not in captured
+
+
+class TestUpstreamErrorClassification:
+    def test_classify_direct_404(self):
+        from app.services.llm.openai_compatible_client import classify_openai_compatible_error
+        err = classify_openai_compatible_error(404, "Not Found", provider="openai_compatible")
+        assert isinstance(err, LLMModelNotFoundError)
+        assert err.is_transient is False
+
+    def test_classify_503_wrapping_upstream_404_not_found(self):
+        from app.services.llm.openai_compatible_client import classify_openai_compatible_error
+        body = '{"error":{"message":"[antigravity/gemini-3.6-flash-medium] [404]: Requested entity was not found.","status":"NOT_FOUND"}}'
+        err = classify_openai_compatible_error(503, body, provider="openai_compatible")
+        assert isinstance(err, LLMModelNotFoundError)
+        assert err.is_transient is False
+        assert "404 NOT_FOUND" in str(err)
+
+    def test_classify_503_with_model_not_found_code(self):
+        from app.services.llm.openai_compatible_client import classify_openai_compatible_error
+        body = '{"error":{"message":"The model does not exist","code":"model_not_found"}}'
+        err = classify_openai_compatible_error(503, body, provider="openai_compatible")
+        assert isinstance(err, LLMModelNotFoundError)
+        assert err.is_transient is False
+
+    def test_classify_ordinary_503_transient(self):
+        from app.services.llm.openai_compatible_client import classify_openai_compatible_error
+        body = '{"error":{"message":"Service temporarily unavailable, please retry later"}}'
+        err = classify_openai_compatible_error(503, body, provider="openai_compatible")
+        assert isinstance(err, LLMServerError)
+        assert err.is_transient is True
+
+    def test_classify_503_malformed_json_does_not_crash(self):
+        from app.services.llm.openai_compatible_client import classify_openai_compatible_error
+        body = "<html><body>503 Backend Fetch Failed</body></html>"
+        err = classify_openai_compatible_error(503, body, provider="openai_compatible")
+        assert isinstance(err, LLMServerError)
+        assert err.is_transient is True
+
+    def test_client_chat_sync_raises_model_not_found_on_wrapped_503(self, sample_messages, monkeypatch):
+        wrapped_body = '{"error":{"message":"[antigravity/gemini-3.6-flash-medium] [404]: Requested entity was not found.","status":"NOT_FOUND"}}'
+        def mock_post(client_self, url, **kwargs):
+            return httpx.Response(503, text=wrapped_body)
+
+        monkeypatch.setattr(httpx.Client, "post", mock_post)
+
+        client = OpenAICompatibleClient(
+            base_url="https://api.example.com/v1",
+            api_key="secret-key",
+            model="ag/gemini-3.6-flash-medium",
+            max_retries=0
+        )
+
+        with pytest.raises(LLMModelNotFoundError) as exc_info:
+            client.chat_sync(sample_messages)
+
+        assert exc_info.value.is_transient is False
+        assert "404 NOT_FOUND" in str(exc_info.value)

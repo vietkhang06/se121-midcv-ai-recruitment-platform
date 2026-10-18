@@ -1,62 +1,100 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+
 import Link from 'next/link';
+
 import { Job, Company, Application } from '@/types';
+
 import { fetchRecruiterJobs, fetchRecruiterCompany, fetchJobApplications } from '@/lib/api';
+
 import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
 import { CompanyVerificationBanner } from '@/components/recruiter/CompanyVerificationBanner';
+
 import { SuspensionBanner } from '@/components/recruiter/SuspensionBanner';
+
 import { AppealModal } from '@/components/recruiter/AppealModal';
+
 import { EmptyState } from '@/components/common/EmptyState';
+
 import { Reveal } from '@/components/motion/Reveal';
+
 import { staggerDelay } from '@/components/motion/stagger';
 import { useLanguage } from '@/context/LanguageContext';
 import { Users, ChevronRight, Briefcase, Plus } from 'lucide-react';
 
 export default function HRDashboardPage() {
+
   const { locale } = useLanguage();
   const isVi = locale === 'vi';
 
   const [jobs, setJobs] = useState<Job[]>([]);
+
   const [company, setCompany] = useState<Company | null>(null);
+
   const [applications, setApplications] = useState<Application[]>([]);
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
   const [fetchError, setFetchError] = useState<string | null>(null);
+
   const [isAppealModalOpen, setIsAppealModalOpen] = useState<boolean>(false);
 
   const loadDashboardData = useCallback(() => {
+
     setIsLoading(true);
+
     setFetchError(null);
 
     Promise.all([
+
       fetchRecruiterJobs(),
+
       fetchRecruiterCompany().catch(() => null),
+
     ])
+
       .then(async ([recJobs, comp]) => {
+
         setJobs(recJobs);
+
         if (comp) setCompany(comp);
 
         if (recJobs.length > 0) {
+
           const appLists = await Promise.all(
+
             recJobs.map((j) => fetchJobApplications(j.id).catch(() => []))
+
           );
+
           setApplications(appLists.flat());
+
         } else {
+
           setApplications([]);
+
         }
+
       })
+
       .catch((err) => {
         setFetchError(err.message || (isVi ? 'Không thể tải dữ liệu tuyển dụng.' : 'Unable to load recruitment data.'));
       })
+
       .finally(() => setIsLoading(false));
   }, [isVi]);
 
   useEffect(() => {
+
     const timer = setTimeout(() => {
+
       loadDashboardData();
+
     }, 0);
+
     return () => clearTimeout(timer);
+
   }, [loadDashboardData]);
 
   const publishedJobs = jobs.filter((j) => j.status === 'PUBLISHED');
@@ -71,55 +109,88 @@ export default function HRDashboardPage() {
   const highMatchCount = applications.filter((a) => (Number(a.matchScore) || 0) >= 75).length;
 
   if (fetchError && !isLoading && jobs.length === 0) {
+
     return (
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
         <EmptyState
+
           type="ERROR"
           title={isVi ? 'Lỗi kết nối máy chủ' : 'Server Connection Error'}
           description={fetchError}
           primaryCtaText={isVi ? 'Thử lại' : 'Retry'}
           onPrimaryCtaClick={loadDashboardData}
+
         />
+
       </div>
+
     );
+
   }
 
   return (
+
     <div className="w-full max-w-7xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
       {/* Page Header */}
+
       <RecruiterPageHeader
+
         categoryTag="RECRUITER WORKSPACE"
         title={isVi ? 'Tổng Quan Tuyển Dụng Doanh Nghiệp' : 'Enterprise Recruitment Overview'}
         subtitle={
+
           company?.name
             ? `${company.name} • ${isVi ? 'Bảng điều khiển hoạt động tuyển dụng, phân tích ứng viên và telemetry đối sánh' : 'Hiring operations telemetry, candidate pipelines and matching metrics'}`
             : (isVi ? 'Bảng điều khiển hoạt động tuyển dụng và đối sánh năng lực kỹ thuật' : 'Hiring operations command center and technical matching vectors')
         }
+
         companyName={company?.name}
+
         isCompanyVerified={company?.verificationStatus === 'VERIFIED'}
+
       />
 
       {/* Suspension Status Banner if suspended */}
+
       <SuspensionBanner
+
         companyVerificationStatus={company?.verificationStatus}
+
         companyName={company?.name}
+
         onOpenAppealModal={() => setIsAppealModalOpen(true)}
+
       />
 
       {/* Appeal Submission Modal */}
+
       <AppealModal
+
         isOpen={isAppealModalOpen}
+
         onClose={() => setIsAppealModalOpen(false)}
+
         onSuccess={loadDashboardData}
+
       />
 
       {/* Verification Status Banner if unverified */}
+
       {company && company.verificationStatus !== 'SUSPENDED' && (
+
         <CompanyVerificationBanner
+
           status={company.verificationStatus}
+
           companyName={company.name}
+
           reason={company.verificationReason}
+
         />
+
       )}
 
       {/* Welcome Banner */}
@@ -131,9 +202,9 @@ export default function HRDashboardPage() {
             </h2>
             <p className="text-xs sm:text-sm text-slate-200 font-light leading-relaxed">
               {isVi ? (
-                <>Hệ sinh thái <strong className="font-semibold text-white">mid<span className="text-[#00B14F]">CV</span><sup>Ar</sup></strong> đang đồng bộ các vị trí tuyển dụng với mô hình trích xuất thực thể và đối sánh vector chuẩn hóa.</>
+                <>Hệ sinh thái <strong className="font-semibold text-white">mid<span className="text-[#00B14F]">CV</span><sup>®</sup></strong> đang đồng bộ các vị trí tuyển dụng với mô hình trích xuất thực thể và đối sánh vector chuẩn hóa.</>
               ) : (
-                <>The <strong className="font-semibold text-white">mid<span className="text-[#00B14F]">CV</span><sup>Ar</sup></strong> ecosystem is syncing requisition vectors and candidate semantic pipelines.</>
+                <>The <strong className="font-semibold text-white">mid<span className="text-[#00B14F]">CV</span><sup>®</sup></strong> ecosystem is syncing requisition vectors and candidate semantic pipelines.</>
               )}
             </p>
           </div>
@@ -301,11 +372,17 @@ export default function HRDashboardPage() {
                           return (
                             <tr key={j.id} className="hover:bg-slate-50/80 dark:hover:bg-[#152342] transition">
                               <td className="py-3 px-3 font-medium text-slate-900 dark:text-white">
+
                                 <Link href={`/recruiter/jobs/${j.id}/ranking`} className="hover:text-[#2563EB] hover:underline">
+
                                   {j.title}
+
                                 </Link>
+
                               </td>
+
                               <td className="py-3 px-3 font-mono">{j.industry}</td>
+
                               <td className="py-3 px-3 font-mono">${j.salaryMin} - ${j.salaryMax}</td>
                               <td className="py-3 px-3 text-center">
                                 <Link
@@ -318,16 +395,25 @@ export default function HRDashboardPage() {
                                 </Link>
                               </td>
                               <td className="py-3 px-3 text-right">
+
                                 <span
-                                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                                    j.status === 'PUBLISHED'
+
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${j.status === 'PUBLISHED'
+
                                       ? 'bg-emerald-50 dark:bg-emerald-950/60 text-[#00B14F] border border-emerald-200 dark:border-emerald-800'
+
                                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                                  }`}
+
+                                    }`}
+
                                 >
+
                                   {j.status}
+
                                 </span>
+
                               </td>
+
                             </tr>
                           );
                         })}
@@ -379,18 +465,19 @@ export default function HRDashboardPage() {
                             {app.candidateName || (isVi ? 'Ứng viên' : 'Candidate')}
                           </span>
                           <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase shrink-0 ${
-                              app.status === 'SHORTLISTED'
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase shrink-0 ${app.status === 'SHORTLISTED'
                                 ? 'bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00B14F]'
                                 : app.status === 'SUBMITTED'
-                                ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB]'
-                                : app.status === 'REJECTED'
-                                ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                            }`}
+                                  ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB]'
+                                  : app.status === 'REJECTED'
+                                    ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                              }`}
                           >
                             {app.status}
+
                           </span>
+
                         </div>
                         <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
                           <span className="truncate max-w-[180px]">
@@ -408,7 +495,7 @@ export default function HRDashboardPage() {
                     type="EMPTY"
                     compact
                     title={isVi ? 'Chưa có đơn ứng tuyển nào' : 'No applications yet'}
-                    description={isVi ? 'Chưa có đơn ứng tuyển nào được ghi nhận.' : 'No candidate submissions yet.'}
+                    description={isVi ? 'Chưa có đơn ứng tuyển nào được ghi nhận.' : 'No applications have been recorded yet.'}
                   />
                 )}
               </div>

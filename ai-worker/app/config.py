@@ -58,6 +58,8 @@ class Settings(BaseModel):
     OLLAMA_EMBEDDING_MODEL: str = os.getenv("OLLAMA_EMBEDDING_MODEL", EMBEDDING_MODEL)
     OLLAMA_TIMEOUT_SECONDS: float = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "180"))
     OLLAMA_MAX_RETRIES: int = int(os.getenv("OLLAMA_MAX_RETRIES", "0"))
+    OLLAMA_NUM_PREDICT: int = int(os.getenv("OLLAMA_NUM_PREDICT", "2048"))
+    OLLAMA_THINK: bool = os.getenv("OLLAMA_THINK", "false").lower() == "true"
     
     # Mock fallback gating (strictly only used when explicit test mode)
     USE_MOCK_LLM: bool = os.getenv("USE_MOCK_LLM", "false").lower() == "true"
@@ -138,6 +140,8 @@ class Settings(BaseModel):
                 errors.append(f"Ollama timeout must be greater than 0 (got {self.OLLAMA_TIMEOUT_SECONDS}).")
             if self.OLLAMA_MAX_RETRIES < 0:
                 errors.append(f"Ollama retries must be >= 0 (got {self.OLLAMA_MAX_RETRIES}).")
+            if self.OLLAMA_NUM_PREDICT <= 0:
+                errors.append(f"Ollama num_predict must be > 0 (got {self.OLLAMA_NUM_PREDICT}).")
 
         if errors and fail_fast:
             raise ValueError(f"Configuration validation failed: {'; '.join(errors)}")

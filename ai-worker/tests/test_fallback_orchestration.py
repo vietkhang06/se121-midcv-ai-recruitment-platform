@@ -477,3 +477,57 @@ class TestCVStructuringServiceAndDevEndpoint:
         assert "[REDACTED_SECRET]" in sanitized
         assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xyz.abc" not in sanitized
 
+    @pytest.mark.asyncio
+    async def test_primary_model_not_found_strictly_blocks_fallback(self):
+        """Regression test for observed issue: 404/NOT_FOUND from upstream gateway must NOT invoke Ollama fallback."""
+        primary = DummyLLMClient(provider="openai_compatible")
+        primary.side_effect = LLMModelNotFoundError("HTTP 503: The upstream provider reported a 404 NOT_FOUND error")
+        fallback = DummyLLMClient(provider="ollama")
+
+        orchestrator = FallbackLLMClient(
+            primary_client=primary,
+            fallback_client=fallback,
+            fallback_enabled=True
+        )
+
+        with pytest.raises(LLMModelNotFoundError) as exc_info:
+            await orchestrator.execute([{"role": "user", "content": "test"}], correlation_id="cid-test-404")
+
+        assert primary.call_count == 1
+        assert fallback.call_count == 0, "Ollama fallback must strictly NOT be called for model not found errors"
+        assert exc_info.value.is_transient is False
+
+    @pytest.mark.asyncio
+    async def test_correlation_id_propagated_and_composite_error_safe(self):
+        """Verifies correlation_id follows complete path and dual failure produces safe composite error."""
+        captured_cids = []
+
+        class TrackingClient:
+            def __init__(self, name, exc):
+                self.name = name
+                self.exc = exc
+                self.call_count = 0
+
+            async def chat(self, messages, correlation_id=None):
+                self.call_count += 1
+                captured_cids.append(correlation_id)
+                raise self.exc
+
+        primary = TrackingClient("primary", LLMTimeoutError("Primary timed out after 30s"))
+        fallback = TrackingClient("fallback", LLMTimeoutError("Ollama request timed out after 180.0s"))
+
+        orchestrator = FallbackLLMClient(
+            primary_client=primary,
+            fallback_client=fallback,
+            fallback_enabled=True
+        )
+
+        test_cid = "trace-uuid-123456"
+        with pytest.raises(LLMServerError) as exc_info:
+            await orchestrator.execute([{"role": "user", "content": "test"}], correlation_id=test_cid)
+
+        assert captured_cids == [test_cid, test_cid], "Correlation ID must be propagated to both clients"
+        err_msg = str(exc_info.value)
+        assert test_cid in err_msg, "Correlation ID must be included in composite error message"
+        assert "Primary:" in err_msg
+        assert "Fallback:" in err_msg

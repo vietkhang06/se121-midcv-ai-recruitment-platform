@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { Suspense, useCallback, useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Job } from '@/types';
 import { fetchJobs, fetchCandidateProfile } from '@/lib/api';
 import { JobCard } from '@/components/jobs/JobCard';
@@ -9,34 +10,37 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { Reveal, staggerDelay } from '@/components/motion';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { translateIndustry, translateWorkMode, translateSeniority, formatSalary } from '@/lib/i18n';
+import { translateIndustry, translateWorkMode, translateSeniority } from '@/lib/i18n';
 import {
-  Search,
-  MapPin,
   SlidersHorizontal,
-  ChevronDown,
-  Check,
   RotateCcw,
-  Sparkles,
-  DollarSign,
-  Briefcase,
-  Layers,
-  FilterX
 } from 'lucide-react';
 
 export default function JobsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[50vh]" aria-busy="true" />}>
+      <JobsPageContent />
+    </Suspense>
+  );
+}
+
+function JobsPageContent() {
   const { user, isAuthenticated } = useAuth();
   const { t, locale } = useLanguage();
+  const searchParams = useSearchParams();
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [profileFetchError, setProfileFetchError] = useState<string | null>(null);
 
   // Filters State
-  const [searchKeyword, setSearchKeyword] = useState<string>('');
-  const [locationKeyword, setLocationKeyword] = useState<string>('');
-  const [matchThreshold, setMatchThreshold] = useState<string>('all');
-  const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
+  const [searchKeyword, setSearchKeyword] = useState<string>(() => searchParams.get('keyword') ?? '');
+  const [locationKeyword, setLocationKeyword] = useState<string>(() => searchParams.get('location') ?? '');
+  const [selectedSectors, setSelectedSectors] = useState<string[]>(() => {
+    const industry = searchParams.get('industry');
+    return industry && ['Technology', 'Marketing', 'Design', 'Finance', 'HR', 'Sales'].includes(industry) ? [industry] : [];
+  });
   const [selectedModes, setSelectedModes] = useState<string[]>([]);
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
   const [minSalary, setMinSalary] = useState<number>(0);
@@ -47,30 +51,45 @@ export default function JobsPage() {
   const [sortBy, setSortBy] = useState<string>('newest');
   const [applyJob, setApplyJob] = useState<Job | null>(null);
 
-  useEffect(() => {
-    setIsLoading(true);
-    fetchJobs()
-      .then((data) => {
-        const published = data.filter((j) => j.status === 'PUBLISHED');
-        setJobs(published);
-        setFetchError(null);
-      })
-      .catch((err) => {
-        setFetchError(err.message || 'Unable to load jobs catalog.');
-      })
-      .finally(() => setIsLoading(false));
+  const requestJobs = useCallback(() => Promise.allSettled([
+      fetchJobs(),
+      isAuthenticated && user?.role === 'CANDIDATE' ? fetchCandidateProfile() : Promise.resolve(null),
+  ]), [isAuthenticated, user]);
 
-    // If authenticated candidate, load target industries for multi-industry recommendation
-    if (isAuthenticated && user?.role === 'CANDIDATE') {
-      fetchCandidateProfile().then((profile) => {
-        if (profile?.targetIndustries && profile.targetIndustries.length > 0) {
-          setCandidateIndustries(profile.targetIndustries);
-        } else if (profile?.targetIndustry) {
-          setCandidateIndustries([profile.targetIndustry]);
-        }
-      });
+  const applyJobResults = useCallback((requests: Awaited<ReturnType<typeof requestJobs>>) => {
+    const [jobsResult, profileResult] = requests;
+
+    if (jobsResult.status === 'fulfilled') {
+      setJobs(jobsResult.value.filter((job) => job.status === 'PUBLISHED'));
+      setFetchError(null);
+    } else {
+      setFetchError('Unable to load the jobs catalog. Please try again.');
     }
-  }, [isAuthenticated, user]);
+
+    if (profileResult.status === 'fulfilled') {
+      const profile = profileResult.value;
+      setCandidateIndustries(profile?.targetIndustries?.length ? profile.targetIndustries : profile?.targetIndustry ? [profile.targetIndustry] : []);
+      setProfileFetchError(null);
+    } else {
+      setProfileFetchError(t('errors.generic', 'Candidate recommendations could not be loaded.'));
+    }
+
+    setIsLoading(false);
+  }, [t]);
+
+  useEffect(() => {
+    let isActive = true;
+    void requestJobs().then((requests) => {
+      if (isActive) applyJobResults(requests);
+    });
+    return () => { isActive = false; };
+  }, [applyJobResults, requestJobs]);
+
+  const retryJobs = () => {
+    setFetchError(null);
+    setIsLoading(true);
+    void requestJobs().then(applyJobResults);
+  };
 
   // Real Functional Filtering Engine
   const filteredJobs = useMemo(() => {
@@ -167,7 +186,6 @@ export default function JobsPage() {
   const handleClearAll = () => {
     setSearchKeyword('');
     setLocationKeyword('');
-    setMatchThreshold('all');
     setSelectedSectors([]);
     setSelectedModes([]);
     setSelectedLevels([]);
@@ -197,7 +215,7 @@ export default function JobsPage() {
   return (
     <div className="bg-slate-50/60 dark:bg-[#0B1329] min-h-screen py-8 text-[#0F2A52] dark:text-[#F1F5F9] transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        
+
         {/* Page Header */}
         <Reveal direction="up" delay={0}>
           <div className="border-b border-slate-200 dark:border-[#1E293B] pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -231,196 +249,197 @@ export default function JobsPage() {
 
         {/* 2-Column Responsive Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
+
           {/* Left Column: Refine Matches Filters Sidebar */}
           <Reveal direction="up" delay={80} className="lg:col-span-4">
             <aside className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 space-y-5 shadow-xs transition-colors">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-[#2563EB]" />
-                <h2 className="font-semibold text-sm text-[#0F2A52] dark:text-white uppercase tracking-wide">
-                  {t('jobs.refineMatches', 'Bộ Lọc Đối Sánh')}
-                </h2>
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal className="w-4 h-4 text-[#2563EB]" />
+                  <h2 className="font-semibold text-sm text-[#0F2A52] dark:text-white uppercase tracking-wide">
+                    {t('jobs.refineMatches', 'Bộ Lọc Đối Sánh')}
+                  </h2>
+                  {activeFiltersCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#2563EB] text-white">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </div>
+
                 {activeFiltersCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#2563EB] text-white">
-                    {activeFiltersCount}
-                  </span>
+                  <button
+                    onClick={handleClearAll}
+                    className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 hover:text-amber-800 uppercase tracking-wider flex items-center gap-1 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>{t('jobs.clearAll', 'XÓA TẤT CẢ')}</span>
+                  </button>
                 )}
               </div>
 
-              {activeFiltersCount > 0 && (
-                <button
-                  onClick={handleClearAll}
-                  className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 hover:text-amber-800 uppercase tracking-wider flex items-center gap-1 cursor-pointer"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>{t('jobs.clearAll', 'XÓA TẤT CẢ')}</span>
-                </button>
+              {/* Candidate Target Industries Recommendation Toggle */}
+              {candidateIndustries.length > 0 && (
+                <div className="p-3 rounded-xl bg-[#E8F8EE] dark:bg-[#00B14F]/15 border border-[#00B14F]/30 space-y-1.5">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={onlyTargetIndustries}
+                      onChange={(e) => setOnlyTargetIndustries(e.target.checked)}
+                      className="accent-[#00B14F] rounded"
+                    />
+                    <span className="text-xs font-semibold text-[#00873D] dark:text-[#10B981]">
+                      {t('jobs.prioritizeTarget', 'Ưu tiên ngành nghề mục tiêu của tôi')}
+                    </span>
+                  </label>
+                  <p className="text-[11px] text-[#00873D] dark:text-[#10B981] pl-5">
+                    {t('jobs.filtering', 'Đang lọc:')} {candidateIndustries.map(ind => translateIndustry(ind, locale)).join(', ')}
+                  </p>
+                </div>
               )}
-            </div>
+              {profileFetchError ? <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">{profileFetchError}</p> : null}
 
-            {/* Candidate Target Industries Recommendation Toggle */}
-            {candidateIndustries.length > 0 && (
-              <div className="p-3 rounded-xl bg-[#E8F8EE] dark:bg-[#00B14F]/15 border border-[#00B14F]/30 space-y-1.5">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={onlyTargetIndustries}
-                    onChange={(e) => setOnlyTargetIndustries(e.target.checked)}
-                    className="accent-[#00B14F] rounded"
-                  />
-                  <span className="text-xs font-semibold text-[#00873D] dark:text-[#10B981]">
-                    {t('jobs.prioritizeTarget', 'Ưu tiên ngành nghề mục tiêu của tôi')}
-                  </span>
+              {/* Role Keyword Filter */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
+                  {t('jobs.roleKeyword', 'TỪ KHÓA VỊ TRÍ')}
                 </label>
-                <p className="text-[11px] text-[#00873D] dark:text-[#10B981] pl-5">
-                  {t('jobs.filtering', 'Đang lọc:')} {candidateIndustries.map(ind => translateIndustry(ind, locale)).join(', ')}
-                </p>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder={t('jobs.rolePlaceholder', 'Ví dụ: Frontend, Java, Senior...')}
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
+                  />
+                  {searchKeyword && (
+                    <button
+                      onClick={() => setSearchKeyword('')}
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
               </div>
-            )}
 
-            {/* Role Keyword Filter */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
-                {t('jobs.roleKeyword', 'TỪ KHÓA VỊ TRÍ')}
-              </label>
-              <div className="relative">
+              {/* Location Filter */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
+                  {t('jobs.locationKeyword', 'ĐỊA ĐIỂM')}
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder={t('jobs.locationPlaceholder', 'Ví dụ: TP. Hồ Chí Minh, Hà Nội, Remote...')}
+                    value={locationKeyword}
+                    onChange={(e) => setLocationKeyword(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
+                  />
+                  {locationKeyword && (
+                    <button
+                      onClick={() => setLocationKeyword('')}
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Required Skill Filter */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
+                  {t('jobs.requiredSkills', 'KỸ NĂNG YÊU CẦU')}
+                </label>
                 <input
                   type="text"
-                  placeholder={t('jobs.rolePlaceholder', 'Ví dụ: Frontend, Java, Senior...')}
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  placeholder={t('jobs.skillPlaceholder', 'Ví dụ: React, TypeScript, Docker...')}
+                  value={skillFilter}
+                  onChange={(e) => setSkillFilter(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
                 />
-                {searchKeyword && (
-                  <button
-                    onClick={() => setSearchKeyword('')}
-                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs"
-                  >
-                    ×
-                  </button>
-                )}
               </div>
-            </div>
 
-            {/* Location Filter */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
-                {t('jobs.locationKeyword', 'ĐỊA ĐIỂM')}
-              </label>
-              <div className="relative">
+              {/* Industry Sector Filter */}
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
+                <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
+                  {t('jobs.industrySector', 'LĨNH VỰC HOẠT ĐỘNG')}
+                </label>
+                <div className="space-y-1.5 text-xs text-[#0F2A52] dark:text-slate-300">
+                  {['Technology', 'Marketing', 'Design', 'Finance', 'Healthcare', 'Engineering'].map((sector) => (
+                    <label key={sector} className="flex items-center gap-2 cursor-pointer hover:text-[#2563EB] dark:hover:text-white select-none">
+                      <input
+                        type="checkbox"
+                        checked={selectedSectors.includes(sector)}
+                        onChange={() => toggleItem(selectedSectors, setSelectedSectors, sector)}
+                        className="accent-[#2563EB] rounded cursor-pointer"
+                      />
+                      <span>{translateIndustry(sector, locale)}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Employment Mode */}
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
+                <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
+                  {t('jobs.employmentMode', 'HÌNH THỨC LÀM VIỆC')}
+                </label>
+                <div className="space-y-1.5 text-xs text-[#0F2A52] dark:text-slate-300">
+                  {['Remote', 'Hybrid', 'Full-time', 'Contract'].map((mode) => (
+                    <label key={mode} className="flex items-center gap-2 cursor-pointer hover:text-[#2563EB] dark:hover:text-white select-none">
+                      <input
+                        type="checkbox"
+                        checked={selectedModes.includes(mode)}
+                        onChange={() => toggleItem(selectedModes, setSelectedModes, mode)}
+                        className="accent-[#2563EB] rounded cursor-pointer"
+                      />
+                      <span>{translateWorkMode(mode, locale)}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Experience Level */}
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
+                <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
+                  {t('jobs.experienceLevel', 'CẤP BẬC KINH NGHIỆM')}
+                </label>
+                <div className="space-y-1.5 text-xs text-[#0F2A52] dark:text-slate-300">
+                  {['Junior', 'Mid', 'Senior', 'Lead'].map((lvl) => (
+                    <label key={lvl} className="flex items-center gap-2 cursor-pointer hover:text-[#2563EB] dark:hover:text-white select-none">
+                      <input
+                        type="checkbox"
+                        checked={selectedLevels.includes(lvl)}
+                        onChange={() => toggleItem(selectedLevels, setSelectedLevels, lvl)}
+                        className="accent-[#2563EB] rounded cursor-pointer"
+                      />
+                      <span>{translateSeniority(lvl, locale)}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Salary Range Slider */}
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
+                <div className="flex items-center justify-between text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
+                  <span>{t('jobs.minSalaryLabel', 'MỨC LƯƠNG TỐI THIỂU')}</span>
+                  <span className="text-[#00B14F] font-bold">
+                    {minSalary > 0 ? `$${minSalary.toLocaleString()} ${locale === 'vi' ? '/tháng' : '/mo'}` : t('jobs.all', 'Tất cả')}
+                  </span>
+                </div>
                 <input
-                  type="text"
-                  placeholder={t('jobs.locationPlaceholder', 'Ví dụ: TP. Hồ Chí Minh, Hà Nội, Remote...')}
-                  value={locationKeyword}
-                  onChange={(e) => setLocationKeyword(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
+                  type="range"
+                  min={0}
+                  max={10000}
+                  step={500}
+                  value={minSalary}
+                  onChange={(e) => setMinSalary(parseInt(e.target.value) || 0)}
+                  className="w-full accent-[#2563EB] cursor-pointer"
                 />
-                {locationKeyword && (
-                  <button
-                    onClick={() => setLocationKeyword('')}
-                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs"
-                  >
-                    ×
-                  </button>
-                )}
               </div>
-            </div>
-
-            {/* Required Skill Filter */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
-                {t('jobs.requiredSkills', 'KỸ NĂNG YÊU CẦU')}
-              </label>
-              <input
-                type="text"
-                placeholder={t('jobs.skillPlaceholder', 'Ví dụ: React, TypeScript, Docker...')}
-                value={skillFilter}
-                onChange={(e) => setSkillFilter(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
-              />
-            </div>
-
-            {/* Industry Sector Filter */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
-              <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
-                {t('jobs.industrySector', 'LĨNH VỰC HOẠT ĐỘNG')}
-              </label>
-              <div className="space-y-1.5 text-xs text-[#0F2A52] dark:text-slate-300">
-                {['Technology', 'Marketing', 'Design', 'Finance', 'Healthcare', 'Engineering'].map((sector) => (
-                  <label key={sector} className="flex items-center gap-2 cursor-pointer hover:text-[#2563EB] dark:hover:text-white select-none">
-                    <input
-                      type="checkbox"
-                      checked={selectedSectors.includes(sector)}
-                      onChange={() => toggleItem(selectedSectors, setSelectedSectors, sector)}
-                      className="accent-[#2563EB] rounded cursor-pointer"
-                    />
-                    <span>{translateIndustry(sector, locale)}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Employment Mode */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
-              <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
-                {t('jobs.employmentMode', 'HÌNH THỨC LÀM VIỆC')}
-              </label>
-              <div className="space-y-1.5 text-xs text-[#0F2A52] dark:text-slate-300">
-                {['Remote', 'Hybrid', 'Full-time', 'Contract'].map((mode) => (
-                  <label key={mode} className="flex items-center gap-2 cursor-pointer hover:text-[#2563EB] dark:hover:text-white select-none">
-                    <input
-                      type="checkbox"
-                      checked={selectedModes.includes(mode)}
-                      onChange={() => toggleItem(selectedModes, setSelectedModes, mode)}
-                      className="accent-[#2563EB] rounded cursor-pointer"
-                    />
-                    <span>{translateWorkMode(mode, locale)}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Experience Level */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
-              <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
-                {t('jobs.experienceLevel', 'CẤP BẬC KINH NGHIỆM')}
-              </label>
-              <div className="space-y-1.5 text-xs text-[#0F2A52] dark:text-slate-300">
-                {['Junior', 'Mid', 'Senior', 'Lead'].map((lvl) => (
-                  <label key={lvl} className="flex items-center gap-2 cursor-pointer hover:text-[#2563EB] dark:hover:text-white select-none">
-                    <input
-                      type="checkbox"
-                      checked={selectedLevels.includes(lvl)}
-                      onChange={() => toggleItem(selectedLevels, setSelectedLevels, lvl)}
-                      className="accent-[#2563EB] rounded cursor-pointer"
-                    />
-                    <span>{translateSeniority(lvl, locale)}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Salary Range Slider */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
-              <div className="flex items-center justify-between text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
-                <span>{t('jobs.minSalaryLabel', 'MỨC LƯƠNG TỐI THIỂU')}</span>
-                <span className="text-[#00B14F] font-bold">
-                  {minSalary > 0 ? `$${minSalary.toLocaleString()} ${locale === 'vi' ? '/tháng' : '/mo'}` : t('jobs.all', 'Tất cả')}
-                </span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={10000}
-                step={500}
-                value={minSalary}
-                onChange={(e) => setMinSalary(parseInt(e.target.value) || 0)}
-                className="w-full accent-[#2563EB] cursor-pointer"
-              />
-            </div>
-          </aside>
-        </Reveal>
+            </aside>
+          </Reveal>
 
           {/* Right Column: Job Listings Results */}
           <main className="lg:col-span-8 space-y-4">
@@ -436,7 +455,7 @@ export default function JobsPage() {
                 title={t('emptyStates.jobs.errorTitle', 'Không thể tải danh sách việc làm')}
                 description={fetchError}
                 primaryCtaText={t('common.retry', 'Thử lại')}
-                onPrimaryCtaClick={() => window.location.reload()}
+                onPrimaryCtaClick={retryJobs}
               />
             ) : jobs.length === 0 ? (
               /* Genuine Empty State: DB has zero jobs */
