@@ -500,7 +500,7 @@ public class MidCvEndToEndScreeningTest {
                 .build();
         mrA.setId(UUID.randomUUID());
 
-        when(matchResultRepository.findByApplicationJobId(jobA.getId())).thenReturn(List.of(mrB, mrC, mrA));
+        when(matchResultRepository.findByApplicationJobIdWithCandidate(jobA.getId())).thenReturn(List.of(mrB, mrC, mrA));
 
         List<MatchResult> ranked = candidateRankingService.getRankedCandidatesForJob(jobA.getId(), null);
 

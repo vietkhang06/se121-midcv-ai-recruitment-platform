@@ -25,7 +25,10 @@ public class CandidateRankingService {
      * 4. Candidate UUID ASC (Stable system tie-breaker)
      */
     public List<MatchResult> getRankedCandidatesForJob(UUID jobId, BigDecimal minScoreFilter) {
-        List<MatchResult> results = matchResultRepository.findByApplicationJobId(jobId);
+        // Fetch the relationships needed for ranking and DTO construction while the
+        // repository transaction is active. The plain derived query leaves these
+        // associations lazy and can fail when the service is called without OSIV.
+        List<MatchResult> results = matchResultRepository.findByApplicationJobIdWithCandidate(jobId);
 
         // Filter by minimum score if provided
         if (minScoreFilter != null) {

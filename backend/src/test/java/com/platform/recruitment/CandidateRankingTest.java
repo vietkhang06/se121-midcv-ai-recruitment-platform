@@ -6,6 +6,9 @@ import com.platform.recruitment.job.Job;
 import com.platform.recruitment.matching.CandidateRankingService;
 import com.platform.recruitment.matching.MatchResult;
 import com.platform.recruitment.matching.MatchResultRepository;
+import com.platform.recruitment.user.Role;
+import com.platform.recruitment.user.User;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,7 +51,7 @@ class CandidateRankingTest {
         MatchResult mr1 = MatchResult.builder().application(app1).requiredSkillsMissing(0).coreScore(BigDecimal.valueOf(80.0)).overallScore(BigDecimal.valueOf(82.0)).build();
         MatchResult mr2 = MatchResult.builder().application(app2).requiredSkillsMissing(0).coreScore(BigDecimal.valueOf(90.0)).overallScore(BigDecimal.valueOf(92.0)).build();
 
-        when(matchResultRepository.findByApplicationJobId(jobId)).thenReturn(List.of(mr1, mr2));
+        when(matchResultRepository.findByApplicationJobIdWithCandidate(jobId)).thenReturn(List.of(mr1, mr2));
 
         List<MatchResult> ranked = rankingService.getRankedCandidatesForJob(jobId, null);
 
@@ -73,7 +76,7 @@ class CandidateRankingTest {
         // Candidate B: 1 missing required skill, S_overall = 85.0 (due to full preferred skills)
         MatchResult mrB = MatchResult.builder().application(appB).requiredSkillsMissing(1).coreScore(BigDecimal.valueOf(85.0)).overallScore(BigDecimal.valueOf(85.0)).build();
 
-        when(matchResultRepository.findByApplicationJobId(jobId)).thenReturn(List.of(mrA, mrB));
+        when(matchResultRepository.findByApplicationJobIdWithCandidate(jobId)).thenReturn(List.of(mrA, mrB));
 
         List<MatchResult> ranked = rankingService.getRankedCandidatesForJob(jobId, null);
 
@@ -81,5 +84,32 @@ class CandidateRankingTest {
         assertEquals(2, ranked.size());
         assertEquals("Candidate A (All Required, No Preferred)", ranked.get(0).getApplication().getCandidate().getFullName());
         assertEquals("Candidate B (Missing 1 Required, Full Preferred)", ranked.get(1).getApplication().getCandidate().getFullName());
+    }
+
+    @Test
+    void rankedPageBuildsAndSerializesOnlyTheCandidateRankingDto() throws Exception {
+        User user = User.builder().email("synthetic@example.test").role(Role.CANDIDATE).build();
+        CandidateProfile candidate = CandidateProfile.builder().fullName("Synthetic Candidate").user(user).build();
+        candidate.setId(UUID.randomUUID());
+        Application application = Application.builder().candidate(candidate).build();
+        application.setId(UUID.randomUUID());
+        MatchResult result = MatchResult.builder()
+                .application(application)
+                .requiredSkillsMissing(0)
+                .overallScore(BigDecimal.valueOf(88))
+                .coreScore(BigDecimal.valueOf(90))
+                .build();
+        result.setId(UUID.randomUUID());
+        when(matchResultRepository.findByApplicationJobIdWithCandidate(jobId)).thenReturn(List.of(result));
+
+        var page = rankingService.getRankedCandidatesPage(jobId, null, 0, 20, null, null);
+        String json = new ObjectMapper().writeValueAsString(page);
+
+        assertEquals(1, page.getContent().size());
+        assertEquals("Synthetic Candidate", page.getContent().get(0).getCandidateName());
+        assertTrue(json.contains("Synthetic Candidate"));
+        assertTrue(json.contains("overallScore"));
+        assertFalse(json.contains("\"application\""));
+        verify(matchResultRepository).findByApplicationJobIdWithCandidate(jobId);
     }
 }
