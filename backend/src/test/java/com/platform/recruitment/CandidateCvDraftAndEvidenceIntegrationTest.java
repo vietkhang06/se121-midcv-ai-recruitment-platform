@@ -24,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -34,6 +35,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -274,12 +277,11 @@ public class CandidateCvDraftAndEvidenceIntegrationTest {
 
     @Test
     @DisplayName("Test 6: Evidence upload validates magic bytes and persists UNVERIFIED attachment")
-    void testEvidenceUploadValidatesMagicBytes() {
+    void testEvidenceUploadValidatesMagicBytes(@TempDir Path tempDir) {
         byte[] pdfMagic = "%PDF-1.4 header content".getBytes(StandardCharsets.UTF_8);
         MockMultipartFile validPdf = new MockMultipartFile("file", "cert.pdf", "application/pdf", pdfMagic);
 
-        java.nio.file.Path tempMockPath = java.nio.file.Path.of(System.getProperty("java.io.tmpdir"), "test-evidence.pdf");
-        when(documents.path(anyString())).thenReturn(tempMockPath);
+        when(documents.path(anyString())).thenAnswer(inv -> tempDir.resolve((String) inv.getArgument(0)));
         when(evidenceAttachmentRepository.save(any(CVEvidenceAttachment.class))).thenAnswer(inv -> {
             CVEvidenceAttachment att = inv.getArgument(0);
             att.setId(UUID.randomUUID());
@@ -306,6 +308,140 @@ public class CandidateCvDraftAndEvidenceIntegrationTest {
         CustomException spoofEx = assertThrows(CustomException.class, () ->
                 cvService.uploadEvidenceAttachment(candidateUser, cvId, invalidPdf, "CERTIFICATION", certId.toString()));
         assertEquals(ErrorCode.INVALID_FILE, spoofEx.getErrorCode());
+    }
+
+    @Test
+    @DisplayName("Evidence replacement removes the previous file only after commit")
+    void evidenceReplacementDefersOldFileCleanupUntilCommit(@TempDir Path tempDir) throws Exception {
+        CVEvidenceAttachment previous = existingAttachment("previous-evidence.pdf");
+        when(documents.path(anyString())).thenAnswer(inv -> tempDir.resolve((String) inv.getArgument(0)));
+        Path previousPath = documents.path(previous.getStorageKey());
+        Files.write(previousPath, new byte[]{1, 2, 3});
+        when(evidenceAttachmentRepository.findByCvIdAndItemTypeAndItemId(cvId, "CERTIFICATION", certId.toString()))
+                .thenReturn(Optional.of(previous));
+        when(evidenceAttachmentRepository.save(any(CVEvidenceAttachment.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+        try {
+            CVEvidenceAttachmentResponse response = cvService.uploadEvidenceAttachment(
+                    candidateUser, cvId, validPdf(), "CERTIFICATION", certId.toString());
+            Path replacementPath = tempDir.resolve(response.getAttachmentId() + ".pdf");
+
+            assertTrue(Files.exists(previousPath), "old evidence must remain available until database commit");
+            assertTrue(Files.exists(replacementPath));
+            assertTrue(draftVersion.getStructuredJsonContent().contains(response.getAttachmentId().toString()));
+            verify(evidenceAttachmentRepository).delete(previous);
+
+            completeAttachmentTransaction(org.springframework.transaction.support.TransactionSynchronization.STATUS_COMMITTED);
+            assertFalse(Files.exists(previousPath));
+            assertTrue(Files.exists(replacementPath));
+        } finally {
+            clearAttachmentTransactionIfActive();
+        }
+    }
+
+    @Test
+    @DisplayName("Failed replacement persistence preserves old evidence and removes the new file on rollback")
+    void failedEvidenceReplacementPersistencePreservesOldFile(@TempDir Path tempDir) throws Exception {
+        CVEvidenceAttachment previous = existingAttachment("previous-db-failure.pdf");
+        when(documents.path(anyString())).thenAnswer(inv -> tempDir.resolve((String) inv.getArgument(0)));
+        Path previousPath = documents.path(previous.getStorageKey());
+        Files.write(previousPath, new byte[]{1, 2, 3});
+        when(evidenceAttachmentRepository.findByCvIdAndItemTypeAndItemId(cvId, "CERTIFICATION", certId.toString()))
+                .thenReturn(Optional.of(previous));
+        when(evidenceAttachmentRepository.save(any(CVEvidenceAttachment.class)))
+                .thenThrow(new IllegalStateException("synthetic persistence failure"));
+
+        org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+        try {
+            CustomException error = assertThrows(CustomException.class, () -> cvService.uploadEvidenceAttachment(
+                    candidateUser, cvId, validPdf(), "CERTIFICATION", certId.toString()));
+            assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, error.getErrorCode());
+            Path newPath = findNewEvidenceFile(tempDir, previousPath);
+            assertTrue(Files.exists(previousPath));
+            verify(evidenceAttachmentRepository, never()).delete(previous);
+
+            completeAttachmentTransaction(org.springframework.transaction.support.TransactionSynchronization.STATUS_ROLLED_BACK);
+            assertTrue(Files.exists(previousPath));
+            assertFalse(Files.exists(newPath));
+        } finally {
+            clearAttachmentTransactionIfActive();
+        }
+    }
+
+    @Test
+    @DisplayName("Metadata persistence failure rolls back replacement without deleting old evidence")
+    void failedAttachmentMetadataSyncPreservesOldFile(@TempDir Path tempDir) throws Exception {
+        CVEvidenceAttachment previous = existingAttachment("previous-metadata-failure.pdf");
+        when(documents.path(anyString())).thenAnswer(inv -> tempDir.resolve((String) inv.getArgument(0)));
+        Path previousPath = documents.path(previous.getStorageKey());
+        Files.write(previousPath, new byte[]{1, 2, 3});
+        when(evidenceAttachmentRepository.findByCvIdAndItemTypeAndItemId(cvId, "CERTIFICATION", certId.toString()))
+                .thenReturn(Optional.of(previous));
+        when(evidenceAttachmentRepository.save(any(CVEvidenceAttachment.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+        doThrow(new IllegalStateException("synthetic metadata persistence failure"))
+                .when(cvVersionRepository).save(any(CVVersion.class));
+
+        org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+        try {
+            CustomException error = assertThrows(CustomException.class, () -> cvService.uploadEvidenceAttachment(
+                    candidateUser, cvId, validPdf(), "CERTIFICATION", certId.toString()));
+            assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, error.getErrorCode());
+            Path newPath = findNewEvidenceFile(tempDir, previousPath);
+            assertTrue(Files.exists(previousPath));
+            verify(evidenceAttachmentRepository, never()).delete(previous);
+
+            completeAttachmentTransaction(org.springframework.transaction.support.TransactionSynchronization.STATUS_ROLLED_BACK);
+            assertTrue(Files.exists(previousPath));
+            assertFalse(Files.exists(newPath));
+        } finally {
+            clearAttachmentTransactionIfActive();
+        }
+    }
+
+    private CVEvidenceAttachment existingAttachment(String storageKey) {
+        CVEvidenceAttachment previous = CVEvidenceAttachment.builder()
+                .candidate(candidateProfile)
+                .cv(cv)
+                .cvVersion(draftVersion)
+                .itemType("CERTIFICATION")
+                .itemId(certId.toString())
+                .fileName(storageKey)
+                .storageKey(storageKey)
+                .fileType("application/pdf")
+                .fileSize(3)
+                .status("UNVERIFIED")
+                .build();
+        previous.setId(UUID.randomUUID());
+        return previous;
+    }
+
+    private MockMultipartFile validPdf() {
+        return new MockMultipartFile("file", "replacement.pdf", "application/pdf",
+                "%PDF-1.4 synthetic evidence".getBytes(StandardCharsets.UTF_8));
+    }
+
+    private Path findNewEvidenceFile(Path directory, Path oldPath) throws java.io.IOException {
+        try (var files = Files.list(directory)) {
+            return files.filter(path -> !path.equals(oldPath)).findFirst().orElseThrow();
+        }
+    }
+
+    private void completeAttachmentTransaction(int status) {
+        try {
+            org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations()
+                    .forEach(synchronization -> synchronization.afterCompletion(status));
+        } finally {
+            org.springframework.transaction.support.TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    private void clearAttachmentTransactionIfActive() {
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     @Test

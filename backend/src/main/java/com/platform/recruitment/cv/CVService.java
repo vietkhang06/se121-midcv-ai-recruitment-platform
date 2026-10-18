@@ -2506,21 +2506,38 @@ public class CVService {
         String storageKey = attachmentId + "." + ext;
         Path targetPath = documents.path(storageKey);
 
+        Optional<CVEvidenceAttachment> previousAttachment = cvEvidenceAttachmentRepository == null
+                ? Optional.empty()
+                : cvEvidenceAttachmentRepository.findByCvIdAndItemTypeAndItemId(cvId, type, itemId);
+
         try {
             Files.write(targetPath, bytes, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         } catch (IOException e) {
+            try {
+                Files.deleteIfExists(targetPath);
+            } catch (IOException cleanupError) {
+                log.warn("ATTACHMENT_FILE_CLEANUP_FAILED correlation_id={} error_type={}",
+                        correlationId, cleanupError.getClass().getSimpleName());
+            }
             log.error("ATTACHMENT_UPLOAD_FAILED correlation_id={} cv_id={} error_code=FILE_STORAGE_FAILED",
                     correlationId, cvId);
             throw new CustomException(ErrorCode.FILE_STORAGE_FAILED, "Không thể lưu tệp minh chứng: " + e.getMessage());
         }
 
-        if (cvEvidenceAttachmentRepository != null) {
-            cvEvidenceAttachmentRepository.findByCvIdAndItemTypeAndItemId(cvId, type, itemId).ifPresent(old -> {
-                try {
-                    Files.deleteIfExists(documents.path(old.getStorageKey()));
-                } catch (Exception ignored) {}
-                cvEvidenceAttachmentRepository.delete(old);
-            });
+        boolean transactionSynchronizationActive =
+                org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive();
+        if (transactionSynchronizationActive) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override
+                        public void afterCompletion(int status) {
+                            if (status == STATUS_COMMITTED) {
+                                previousAttachment.ifPresent(old -> deleteAttachmentFile(old.getStorageKey(), correlationId));
+                            } else {
+                                deleteAttachmentFile(storageKey, correlationId);
+                            }
+                        }
+                    });
         }
 
         String contentType = (file.getContentType() != null && !file.getContentType().isBlank())
@@ -2541,45 +2558,56 @@ public class CVService {
                 .build();
         attachment.setId(attachmentId);
 
-        if (cvEvidenceAttachmentRepository != null) {
-            try {
+        try {
+            if (cvEvidenceAttachmentRepository != null) {
                 attachment = cvEvidenceAttachmentRepository.save(attachment);
-            } catch (Exception dbErr) {
-                try {
-                    Files.deleteIfExists(targetPath);
-                } catch (Exception ignored) {}
-                log.error("ATTACHMENT_UPLOAD_FAILED correlation_id={} cv_id={} error_code=INTERNAL_SERVER_ERROR: {}",
-                        correlationId, cvId, dbErr.getMessage());
-                throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể lưu thông tin tệp minh chứng vào cơ sở dữ liệu.");
             }
+
+            Map<String, Object> struct = objectMapper.readValue(
+                    targetVersion.getStructuredJsonContent(), new TypeReference<>() {});
+            String listKey = "CERTIFICATION".equals(type) ? "certifications" : "languages";
+            Object rawItems = struct.get(listKey);
+            if (!(rawItems instanceof List<?> items)) {
+                throw new IllegalStateException("Attachment item collection is missing from the CV draft");
+            }
+            boolean metadataUpdated = false;
+            for (Object item : items) {
+                if (item instanceof Map<?, ?> itemMap && itemId.equals(String.valueOf(itemMap.get("id")))) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> writable = (Map<String, Object>) itemMap;
+                    Map<String, Object> attMap = new LinkedHashMap<>();
+                    attMap.put("id", attachmentId.toString());
+                    attMap.put("file_name", sanitizedFileName);
+                    attMap.put("file_size", (int) file.getSize());
+                    attMap.put("file_type", contentType);
+                    attMap.put("status", "UNVERIFIED");
+                    attMap.put("preview_url", "/api/v1/candidate/cvs/" + cvId + "/attachments/" + attachmentId);
+                    writable.put("attachment", attMap);
+                    metadataUpdated = true;
+                    break;
+                }
+            }
+            if (!metadataUpdated) {
+                throw new IllegalStateException("Attachment item disappeared from the CV draft");
+            }
+            targetVersion.setStructuredJsonContent(objectMapper.writeValueAsString(struct));
+            cvVersionRepository.save(targetVersion);
+
+            if (cvEvidenceAttachmentRepository != null) {
+                previousAttachment.ifPresent(cvEvidenceAttachmentRepository::delete);
+            }
+        } catch (Exception persistenceError) {
+            if (!transactionSynchronizationActive) {
+                deleteAttachmentFile(storageKey, correlationId);
+            }
+            log.error("ATTACHMENT_UPLOAD_FAILED correlation_id={} cv_id={} error_code=INTERNAL_SERVER_ERROR error_type={}",
+                    correlationId, cvId, persistenceError.getClass().getSimpleName());
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR,
+                    "Không thể lưu tệp minh chứng và thông tin liên quan vào cơ sở dữ liệu.");
         }
 
-        // Sync into targetVersion.structuredJsonContent
-        if (targetVersion.getStructuredJsonContent() != null && !targetVersion.getStructuredJsonContent().isBlank()) {
-            try {
-                Map<String, Object> struct = objectMapper.readValue(targetVersion.getStructuredJsonContent(), new TypeReference<>() {});
-                String listKey = "CERTIFICATION".equals(type) ? "certifications" : "languages";
-                if (struct.get(listKey) instanceof List<?> items) {
-                    for (Object it : items) {
-                        if (it instanceof Map<?, ?> itemMap && itemId.equals(String.valueOf(itemMap.get("id")))) {
-                            Map<String, Object> writable = (Map<String, Object>) itemMap;
-                            Map<String, Object> attMap = new LinkedHashMap<>();
-                            attMap.put("id", attachmentId.toString());
-                            attMap.put("file_name", sanitizedFileName);
-                            attMap.put("file_size", (int) file.getSize());
-                            attMap.put("file_type", contentType);
-                            attMap.put("status", "UNVERIFIED");
-                            attMap.put("preview_url", "/api/v1/candidate/cvs/" + cvId + "/attachments/" + attachmentId);
-                            writable.put("attachment", attMap);
-                            break;
-                        }
-                    }
-                    targetVersion.setStructuredJsonContent(objectMapper.writeValueAsString(struct));
-                    cvVersionRepository.save(targetVersion);
-                }
-            } catch (Exception ex) {
-                log.warn("Failed to update structuredJsonContent with attachment: {}", ex.getMessage());
-            }
+        if (!transactionSynchronizationActive) {
+            previousAttachment.ifPresent(old -> deleteAttachmentFile(old.getStorageKey(), correlationId));
         }
 
         log.info("ATTACHMENT_UPLOAD_COMPLETED correlation_id={} cv_id={} attachment_id={}",
@@ -2597,6 +2625,15 @@ public class CVService {
                 .previewUrl("/api/v1/candidate/cvs/" + cvId + "/attachments/" + attachmentId)
                 .createdAt(attachment.getCreatedAt() != null ? attachment.getCreatedAt() : java.time.ZonedDateTime.now())
                 .build();
+    }
+
+    private void deleteAttachmentFile(String storageKey, String correlationId) {
+        try {
+            Files.deleteIfExists(documents.path(storageKey));
+        } catch (Exception cleanupError) {
+            log.warn("ATTACHMENT_FILE_CLEANUP_FAILED correlation_id={} error_type={}",
+                    correlationId, cleanupError.getClass().getSimpleName());
+        }
     }
 
     @Transactional(readOnly = true)
