@@ -15,6 +15,7 @@ import com.platform.recruitment.matching.GitHubScoringService;
 import com.platform.recruitment.matching.MatchResult;
 import com.platform.recruitment.matching.MatchResultRepository;
 import com.platform.recruitment.matching.MatchingEngineService;
+import com.platform.recruitment.taxonomy.FavoriteSkillService;
 import com.platform.recruitment.taxonomy.TaxonomyController;
 import com.platform.recruitment.taxonomy.TaxonomyService;
 import com.platform.recruitment.user.Role;
@@ -93,7 +94,10 @@ public class CandidateCvDraftAndEvidenceIntegrationTest {
         cvService.setCvEvidenceAttachmentRepository(evidenceAttachmentRepository);
 
         taxonomyService = new TaxonomyService(jdbcTemplate);
-        taxonomyController = new TaxonomyController(taxonomyService);
+        taxonomyController = new TaxonomyController(
+                taxonomyService,
+                new FavoriteSkillService(jdbcTemplate, taxonomyService)
+        );
 
         GitHubScoringService gitHubScoringService =
                 new GitHubScoringService(gitHubProfileRepository, gitHubAssessmentRepository);
@@ -402,7 +406,7 @@ public class CandidateCvDraftAndEvidenceIntegrationTest {
         taxonomyService.loadFromMemory(List.of(skill1, skill2), Collections.emptyList());
 
         ResponseEntity<com.platform.recruitment.common.ApiResponse<Map<String, Object>>> response =
-                taxonomyController.searchSkills("react", 10);
+                taxonomyController.searchSkills("react", null, 10);
 
         assertNotNull(response.getBody());
         assertTrue(response.getBody().isSuccess());

@@ -324,6 +324,11 @@ public class RealUploadToReviewIntegrationTest {
         @Override public long countByCandidateId(UUID candidateId) {
             return findByCandidateId(candidateId).size();
         }
+        @Override public long countActiveByCandidateId(UUID candidateId) {
+            return findByCandidateId(candidateId).stream()
+                    .filter(cv -> cv.getStatus() == null || !"FAILED".equals(cv.getStatus()))
+                    .count();
+        }
         @Override public boolean existsById(UUID id) { return store.containsKey(id); }
         @Override public long count() { return store.size(); }
         @Override public void deleteById(UUID id) { store.remove(id); }
@@ -449,6 +454,8 @@ public class RealUploadToReviewIntegrationTest {
             return store.values().stream().filter(p -> p.getUser().getId().equals(userId)).findFirst();
         }
         @Override public Optional<CandidateProfile> findById(UUID id) { return Optional.ofNullable(store.get(id)); }
+        // In-memory test repository: matches the ID lookup, but does not provide database row locking.
+        @Override public Optional<CandidateProfile> findByIdForUpdate(UUID id) { return findById(id); }
         @Override public boolean existsById(UUID id) { return store.containsKey(id); }
         @Override public long count() { return store.size(); }
         @Override public void deleteById(UUID id) { store.remove(id); }
