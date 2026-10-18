@@ -33,6 +33,24 @@ import {
 
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
+export interface CVProcessingEvent {
+  eventId?: string;
+  jobId: string;
+  step?: string | null;
+  code?: string | null;
+  level?: string | null;
+  progress: number;
+  message?: string | null;
+  durationMs?: number | null;
+  timestamp?: string;
+}
+
+function isCVProcessingEvent(value: unknown): value is CVProcessingEvent {
+  if (typeof value !== 'object' || value === null) return false;
+  const event = value as Record<string, unknown>;
+  return typeof event.jobId === 'string' && typeof event.progress === 'number';
+}
+
 // ============================================================
 // 1. ERROR TYPES & CENTRAL HTTP ENGINE
 // ============================================================
@@ -310,8 +328,8 @@ export interface ApiClient {
   fetchCVProcessingStatus(cvId: string): Promise<CVProcessingStatus>;
   subscribeCVProcessingEvents?(
     identifier: { cvId?: string; jobId?: string },
-    onEvent: (event: any) => void,
-    onError?: (err: any) => void
+    onEvent: (event: CVProcessingEvent) => void,
+    onError?: (err: Error) => void
   ): () => void;
   downloadCVFile(cvId: string, format: string, defaultFilename: string): Promise<void>;
   retryCVExtraction(cvId: string): Promise<CVReviewData>;
@@ -566,7 +584,7 @@ export class RealApiClient implements ApiClient {
     if (!token) {
       throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/review`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
-    const json: any = await apiRequest(`/api/v1/candidate/cvs/${cvId}/review`, {
+    const json = await apiRequest<{ data: CVReviewData }>(`/api/v1/candidate/cvs/${cvId}/review`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     return json.data;
@@ -577,7 +595,7 @@ export class RealApiClient implements ApiClient {
     if (!token) {
       throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/processing-status`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
-    const json: any = await apiRequest(`/api/v1/candidate/cvs/${cvId}/processing-status`, {
+    const json = await apiRequest<{ data: CVProcessingStatus }>(`/api/v1/candidate/cvs/${cvId}/processing-status`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     return json.data;
@@ -585,39 +603,80 @@ export class RealApiClient implements ApiClient {
 
   subscribeCVProcessingEvents(
     identifier: { cvId?: string; jobId?: string },
-    onEvent: (event: any) => void,
-    onError?: (err: any) => void
+    onEvent: (event: CVProcessingEvent) => void,
+    onError?: (err: Error) => void
   ): () => void {
     const token = getAuthToken();
     const endpoint = identifier.jobId
       ? `/api/v1/candidate/cvs/processing/${identifier.jobId}/events`
       : `/api/v1/candidate/cvs/${identifier.cvId}/events`;
-    const fullUrl = `${BASE_URL}${endpoint}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    const fullUrl = `${BASE_URL}${endpoint}`;
+    const controller = new AbortController();
 
-    let eventSource: EventSource | null = null;
-    try {
-      eventSource = new EventSource(fullUrl);
+    const readEventStream = async () => {
+      try {
+        const response = await fetch(fullUrl, {
+          method: 'GET',
+          headers: {
+            Accept: 'text/event-stream',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          cache: 'no-store',
+          signal: controller.signal
+        });
 
-      eventSource.addEventListener('cv-processing-progress', (e: MessageEvent) => {
-        try {
-          const data = JSON.parse(e.data);
-          onEvent(data);
-        } catch (err) {
-          console.error('Failed to parse SSE event data', err);
+        if (!response.ok || !response.body) {
+          throw new Error(`CV progress stream unavailable (HTTP ${response.status})`);
         }
-      });
 
-      eventSource.onerror = (err) => {
-        if (onError) onError(err);
-      };
-    } catch (e) {
-      if (onError) onError(e);
-    }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (!controller.signal.aborted) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+
+          let frameEnd = buffer.indexOf('\n\n');
+          while (frameEnd >= 0) {
+            const frame = buffer.slice(0, frameEnd);
+            buffer = buffer.slice(frameEnd + 2);
+            const lines = frame.split('\n');
+            const eventName = lines.find((line) => line.startsWith('event:'))?.slice(6).trim();
+            const data = lines.filter((line) => line.startsWith('data:'))
+              .map((line) => line.slice(5).trimStart()).join('\n');
+
+            if (eventName === 'cv-processing-progress' && data) {
+              try {
+                const event: unknown = JSON.parse(data);
+                if (isCVProcessingEvent(event)) {
+                  onEvent(event);
+                } else if (onError) {
+                  onError(new Error('Invalid CV progress event payload.'));
+                }
+              } catch (err) {
+                console.error('Failed to parse SSE event data', err);
+              }
+            }
+            frameEnd = buffer.indexOf('\n\n');
+          }
+        }
+
+        if (!controller.signal.aborted && onError) {
+          onError(new Error('CV progress stream closed; polling remains active.'));
+        }
+      } catch (err) {
+        if (!controller.signal.aborted && onError) {
+          onError(err instanceof Error ? err : new Error('CV progress stream failed.'));
+        }
+      }
+    };
+
+    void readEventStream();
 
     return () => {
-      if (eventSource) {
-        eventSource.close();
-      }
+      controller.abort();
     };
   }
 
@@ -1498,8 +1557,8 @@ export const fetchCVReview = (cvId: string) => currentApiClient.fetchCVReview(cv
 export const fetchCVProcessingStatus = (cvId: string) => currentApiClient.fetchCVProcessingStatus(cvId);
 export const subscribeCVProcessingEvents = (
   identifier: { cvId?: string; jobId?: string },
-  onEvent: (event: any) => void,
-  onError?: (err: any) => void
+  onEvent: (event: CVProcessingEvent) => void,
+  onError?: (err: Error) => void
 ) => (currentApiClient.subscribeCVProcessingEvents ? currentApiClient.subscribeCVProcessingEvents(identifier, onEvent, onError) : () => { });
 export const downloadCVFile = (cvId: string, format: string, defaultFilename: string) => currentApiClient.downloadCVFile(cvId, format, defaultFilename);
 export const retryCVExtraction = (cvId: string) => currentApiClient.retryCVExtraction(cvId);
