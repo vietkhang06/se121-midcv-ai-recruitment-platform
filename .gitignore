@@ -60,3 +60,7 @@ ai-worker/test-output/
 !.env.example
 !*.env.example
 !**/.env.example
+
+# IDE Agent config files
+.agents/
+skills-lock.json
