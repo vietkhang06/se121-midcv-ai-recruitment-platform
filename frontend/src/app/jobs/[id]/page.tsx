@@ -1,370 +1,164 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Job } from '@/types';
-import { fetchJobById } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, BriefcaseBusiness, MapPin, Share2 } from 'lucide-react';
+import { QuickApplyModal } from '@/components/application/QuickApplyModal';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { translateIndustry, translateWorkMode, formatSalary } from '@/lib/i18n';
-import { QuickApplyModal } from '@/components/application/QuickApplyModal';
-import { Reveal } from '@/components/motion/Reveal';
-import { ShieldCheck, ChevronRight, Briefcase } from 'lucide-react';
+import { fetchCandidateApplications, fetchJobById } from '@/lib/api';
+import { formatSalary, translateIndustry, translateSeniority, translateWorkMode } from '@/lib/i18n';
+import { Application, Job } from '@/types';
 
-export default function JobDetailPage({
-  params
-}: {
-  params: Promise<{ id: string }>
-}) {
-  const resolvedParams = use(params);
+type LoadState = 'loading' | 'ready' | 'missing' | 'error';
+
+function descriptionAsText(value: string) {
+  return value
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<li\b[^>]*>/gi, '• ')
+    .replace(/<\/(p|div|li|h[1-6])\s*>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .trim();
+}
+
+export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const router = useRouter();
   const { user } = useAuth();
-  const { t, locale } = useLanguage();
+  const { locale } = useLanguage();
   const isVi = locale === 'vi';
-
   const [job, setJob] = useState<Job | null>(null);
-  const [isApplyModalOpen, setIsApplyModalOpen] = useState<boolean>(false);
+  const [loadState, setLoadState] = useState<LoadState>('loading');
+  const [loadedJobId, setLoadedJobId] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [applicationLookup, setApplicationLookup] = useState<{ jobId: string; application: Application | null; failed: boolean }>({ jobId: '', application: null, failed: false });
+  const [isApplyOpen, setIsApplyOpen] = useState(false);
+  const [shareMessage, setShareMessage] = useState('');
 
   useEffect(() => {
-    fetchJobById(resolvedParams.id).then(setJob);
-  }, [resolvedParams.id]);
+    let active = true;
+    fetchJobById(id).then((result) => {
+      if (!active) return;
+      setJob(result);
+      setLoadedJobId(id);
+      setLoadState(result ? 'ready' : 'missing');
+    }).catch((error: unknown) => {
+      if (!active) return;
+      setLoadError(error instanceof Error ? error.message : (isVi ? 'Không tải được tin tuyển dụng.' : 'Could not load this job.'));
+      setLoadedJobId(id);
+      setLoadState('error');
+    });
+    return () => { active = false; };
+  }, [id, isVi]);
 
-  if (!job) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-24 text-center text-slate-500">
-        <p className="text-sm">{t('common.loading', isVi ? 'Đang tải thông tin vị trí...' : 'Loading job verification profile...')}</p>
-      </div>
-    );
-  }
+  useEffect(() => {
+    let active = true;
+    if (user?.role !== 'CANDIDATE') return () => { active = false; };
+    fetchCandidateApplications().then((applications) => {
+      if (active) setApplicationLookup({ jobId: id, application: applications.find((item) => item.job.id === id) ?? null, failed: false });
+    }).catch(() => {
+      if (active) setApplicationLookup({ jobId: id, application: null, failed: true });
+    });
+    return () => { active = false; };
+  }, [id, user?.role]);
 
-  const requiredSkills = job.requirements.filter((r) => r.requirementType === 'REQUIRED');
-  const preferredSkills = job.requirements.filter((r) => r.requirementType === 'PREFERRED');
+  const handleShare = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) await navigator.share({ title: job?.title, url });
+      else {
+        await navigator.clipboard.writeText(url);
+        setShareMessage(isVi ? 'Đã sao chép liên kết.' : 'Link copied.');
+      }
+    } catch {
+      setShareMessage(isVi ? 'Không thể chia sẻ liên kết trên thiết bị này.' : 'Could not share the link on this device.');
+    }
+    window.setTimeout(() => setShareMessage(''), 3000);
+  };
+
+  const returnToJobs = () => {
+    if (window.history.state?.idx > 0) router.back();
+    else router.push('/jobs');
+  };
+
+  const application = user?.role === 'CANDIDATE' && applicationLookup.jobId === id ? applicationLookup.application : null;
+  const applicationLookupFailed = user?.role === 'CANDIDATE' && applicationLookup.jobId === id && applicationLookup.failed;
+  const applicationLookupPending = user?.role === 'CANDIDATE' && applicationLookup.jobId !== id;
+
+  if (loadedJobId !== id || loadState === 'loading') return <main className="mx-auto min-h-[55vh] max-w-6xl px-4 py-16" aria-busy="true"><div className="animate-pulse space-y-4"><div className="h-4 w-40 rounded bg-slate-200 dark:bg-slate-800"/><div className="h-28 rounded-2xl bg-slate-200 dark:bg-slate-800"/><div className="h-64 rounded-2xl bg-slate-100 dark:bg-slate-900"/></div></main>;
+
+  if (loadState === 'missing' || loadState === 'error' || !job) return (
+    <main className="mx-auto min-h-[55vh] max-w-3xl px-4 py-20 text-center">
+      <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">{loadState === 'missing' ? (isVi ? 'Không tìm thấy tin tuyển dụng' : 'Job not found') : (isVi ? 'Chưa thể tải tin tuyển dụng' : 'Could not load this job')}</h1>
+      <p role={loadState === 'error' ? 'alert' : undefined} className="mx-auto mt-3 max-w-xl text-sm text-slate-600 dark:text-slate-300">{loadState === 'error' ? loadError : (isVi ? 'Tin có thể đã bị gỡ hoặc không còn công khai.' : 'This job may have been removed or is no longer public.')}</p>
+      <div className="mt-6 flex justify-center gap-3"><button type="button" onClick={returnToJobs} className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900">{isVi ? 'Quay lại danh sách' : 'Back to jobs'}</button>{loadState === 'error' && <button type="button" onClick={() => { setLoadState('loading'); void fetchJobById(id).then((result) => { setJob(result); setLoadState(result ? 'ready' : 'missing'); }).catch((error: unknown) => { setLoadError(error instanceof Error ? error.message : (isVi ? 'Không tải được tin tuyển dụng.' : 'Could not load this job.')); setLoadState('error'); }); }} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800">{isVi ? 'Thử tải lại' : 'Retry'}</button>}</div>
+    </main>
+  );
+
+  const requirements = job.requirements ?? [];
+  const description = descriptionAsText(job.description || '');
+  const required = requirements.filter((item) => item.requirementType === 'REQUIRED');
+  const preferred = requirements.filter((item) => item.requirementType === 'PREFERRED');
+  const canApply = job.status === 'PUBLISHED' && (user == null || user.role === 'CANDIDATE') && !application && !applicationLookupPending && !applicationLookupFailed;
+
+  const retryApplicationLookup = () => {
+    setApplicationLookup({ jobId: '', application: null, failed: false });
+    void fetchCandidateApplications().then((applications) => {
+      setApplicationLookup({ jobId: id, application: applications.find((item) => item.job.id === id) ?? null, failed: false });
+    }).catch(() => setApplicationLookup({ jobId: id, application: null, failed: true }));
+  };
 
   return (
-    <div className="bg-slate-50/60 dark:bg-[#0B1329] min-h-screen py-8 text-[#0F2A52] dark:text-[#F1F5F9] space-y-8 transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        
-        {/* Breadcrumb Trail (Figma Screen 03) */}
-        <div className="flex items-center gap-2 text-xs text-[#64748B] dark:text-[#94A3B8]">
-          <Link href="/jobs" className="hover:text-[#2563EB] transition">
-            {isVi ? 'Danh sách việc làm' : 'Jobs Directory'}
-          </Link>
-          <ChevronRight className="w-3 h-3 text-slate-400" />
-          <span>{translateIndustry(job.industry, locale) || (isVi ? 'Công nghệ' : 'Technology')}</span>
-          <ChevronRight className="w-3 h-3 text-slate-400" />
-          <span className="text-[#0F2A52] dark:text-slate-200 font-medium truncate max-w-xs">{job.title}</span>
-        </div>
+    <main className="min-h-screen bg-slate-50 pb-12 text-slate-900 dark:bg-[#0B1329] dark:text-slate-100">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <nav aria-label={isVi ? 'Điều hướng' : 'Breadcrumb'} className="mb-5 flex min-w-0 items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+          <Link href="/jobs" className="shrink-0 hover:text-blue-700 dark:hover:text-blue-300">{isVi ? 'Danh sách việc làm' : 'Jobs'}</Link>
+          <span aria-hidden="true">/</span>
+          <span aria-current="page" className="min-w-0 break-words font-medium text-slate-900 dark:text-white">{job.title}</span>
+        </nav>
 
-        {/* 03 — Editorial Hero Header Banner */}
-        <Reveal direction="up" delay={0}>
-          <div className="bg-gradient-to-br from-[#0F2A52] to-[#1E3A5F] dark:from-[#0F172A] dark:to-[#1E293B] text-white rounded-3xl p-8 sm:p-10 border border-white/10 shadow-lg relative overflow-hidden">
-            <div className="absolute -right-20 -top-20 w-80 h-80 bg-[#2563EB]/20 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-[#00B14F]/15 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="relative z-10 flex flex-col sm:flex-row sm:items-start justify-between gap-6">
-              <div className="space-y-3 max-w-2xl">
-                <div className="flex items-center gap-2 flex-wrap text-xs">
-                  <span className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs text-[#D7F9FA] font-mono uppercase text-[11px] font-semibold border border-white/15">
-                    {translateIndustry(job.industry, locale)}
-                  </span>
-                  <span className="text-slate-300 text-xs">
-                    {isVi ? 'Đăng ' : 'Posted '}{job.publishedDate || (isVi ? 'gần đây' : 'recently')}
-                  </span>
-                  {job.companyVerified && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#00B14F] bg-[#00B14F]/20 border border-[#00B14F]/40 px-2.5 py-0.5 rounded-full">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>{isVi ? 'Doanh nghiệp xác thực' : 'Verified Enterprise'}</span>
-                    </span>
-                  )}
-                </div>
-
-                <h1 className="text-3xl sm:text-4xl font-editorial font-bold tracking-tight text-white">
-                  {job.title}
-                </h1>
-
-                <div className="text-sm text-slate-300 font-light">
-                  {job.companyName} • {job.location} ({translateWorkMode(job.employmentType, locale)})
-                </div>
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-7">
+          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-300">{job.companyName || (isVi ? 'Nhà tuyển dụng' : 'Employer')}</p>
+              <h1 className="mt-2 break-words text-2xl font-bold tracking-tight sm:text-3xl">{job.title}</h1>
+              <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-600 dark:text-slate-300">
+                {job.location && <span className="inline-flex items-center gap-1.5"><MapPin size={16} aria-hidden="true"/>{job.location}</span>}
+                {job.employmentType && <span className="inline-flex items-center gap-1.5"><BriefcaseBusiness size={16} aria-hidden="true"/>{translateWorkMode(job.employmentType, locale)}</span>}
               </div>
-
-              {/* Verified JD Status Badge */}
-              <div className="shrink-0 relative z-10">
-                <span className="px-4 py-1.5 rounded-full text-xs font-bold font-mono bg-[#00B14F]/25 border border-[#00B14F]/40 text-[#D7F9FA] shadow-sm">
-                  VERIFIED JD
-                </span>
-              </div>
+            </div>
+            <div className="flex shrink-0 flex-col gap-2 sm:min-w-48">
+              {applicationLookupPending ? <p role="status" className="text-center text-sm text-slate-600 dark:text-slate-300">{isVi ? 'Đang kiểm tra đơn ứng tuyển…' : 'Checking application status…'}</p> : applicationLookupFailed ? <div className="space-y-2 text-center"><p role="alert" className="text-xs text-amber-700 dark:text-amber-300">{isVi ? 'Chưa kiểm tra được trạng thái đơn ứng tuyển.' : 'Could not check application status.'}</p><button type="button" onClick={retryApplicationLookup} className="text-sm font-semibold text-blue-800 underline dark:text-blue-300">{isVi ? 'Thử lại' : 'Retry'}</button></div> : user?.role === 'RECRUITER' ? <Link href={`/recruiter/jobs/${job.id}/applications`} className="rounded-lg bg-blue-700 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-blue-800">{isVi ? 'Xem hồ sơ ứng tuyển' : 'View applications'}</Link> : application ? <Link href="/candidate/applications" className="rounded-lg bg-emerald-50 px-5 py-3 text-center text-sm font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">{isVi ? 'Bạn đã ứng tuyển' : 'You applied'}{application.status ? ` · ${application.status}` : ''}</Link> : canApply ? <button type="button" onClick={() => setIsApplyOpen(true)} className="rounded-lg bg-emerald-700 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">{isVi ? 'Ứng tuyển' : 'Apply'}</button> : <div className="rounded-lg bg-slate-100 px-5 py-3 text-center text-sm font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{job.status === 'CLOSED' ? (isVi ? 'Đã đóng tuyển dụng' : 'Applications closed') : (user?.role === 'ADMIN' ? (isVi ? 'Chức năng ứng tuyển chỉ dành cho ứng viên.' : 'Applications are available to candidates only.') : (isVi ? 'Không thể ứng tuyển' : 'Applications unavailable'))}</div>}
+              {job.status !== 'PUBLISHED' && job.status !== 'CLOSED' && <p className="text-xs text-slate-500">{isVi ? 'Tin này chưa mở nhận hồ sơ.' : 'This job is not accepting applications.'}</p>}
+              <button type="button" onClick={handleShare} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"><Share2 size={16} aria-hidden="true"/>{isVi ? 'Chia sẻ tin' : 'Share job'}</button>
+              {shareMessage && <span role="status" className="text-center text-xs text-slate-600 dark:text-slate-300">{shareMessage}</span>}
             </div>
           </div>
-        </Reveal>
+          <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-slate-100 pt-5 text-sm dark:border-slate-800">
+            <p><span className="text-slate-500 dark:text-slate-400">{isVi ? 'Mức lương' : 'Salary'}: </span><strong className="font-semibold">{formatSalary(job.salaryMin, job.salaryMax, job.salaryRange, locale, job.salaryNegotiable, job.salaryCurrency)}</strong></p>
+            {job.industry && <p><span className="text-slate-500 dark:text-slate-400">{isVi ? 'Lĩnh vực' : 'Industry'}: </span><span>{translateIndustry(job.industry, locale)}</span></p>}
+            {job.seniority && <p><span className="text-slate-500 dark:text-slate-400">{isVi ? 'Cấp bậc' : 'Seniority'}: </span><span>{translateSeniority(job.seniority, locale)}</span></p>}
+          </div>
+        </section>
 
-        {/* 03 — 2-Column Content Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* Left Column: Role Details */}
-          <Reveal direction="up" delay={60} className="lg:col-span-8 space-y-6">
-            
-            {/* Role Summary */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-3 transition-colors">
-              <h2 className="font-editorial text-xl font-bold text-[#0F2A52] dark:text-[#F1F5F9]">
-                {locale === 'vi' ? 'Mô Tả Công Việc' : 'Job Description'}
-              </h2>
-              <p className="text-xs sm:text-sm text-[#64748B] dark:text-[#94A3B8] leading-relaxed">
-                {job.description}
-              </p>
-            </div>
-
-            {/* Key Responsibilities */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-3 transition-colors">
-              <h2 className="font-editorial text-xl font-bold text-[#0F2A52] dark:text-[#F1F5F9]">
-                {locale === 'vi' ? 'Trách Nhiệm Chính' : 'Key Responsibilities'}
-              </h2>
-              <ul className="space-y-2 text-xs sm:text-sm text-[#64748B] dark:text-[#94A3B8] list-disc pl-5">
-                {(job.responsibilities || [
-                  'Xây dựng và tối ưu hệ thống microservices chịu tải cao trên nền tảng hạ tầng hiện đại.',
-                  'Thiết kế, triển khai giải pháp kiến trúc an toàn, tuân thủ các tiêu chuẩn bảo mật số.',
-                  'Tối ưu hóa hiệu năng, giám sát hệ thống và phân tích dữ liệu chuyên sâu.',
-                  'Phối hợp đa phòng ban để đẩy nhanh tiến độ release các tính năng quan trọng.'
-                ]).map((item, idx) => (
-                  <li key={idx} className="leading-relaxed">{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Technical Requirements & Evidence Rubrics */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-4 transition-colors">
-              <h2 className="font-editorial text-xl font-bold text-[#0F2A52] dark:text-[#F1F5F9]">
-                {locale === 'vi' ? 'Yêu Cầu Kỹ Thuật' : 'Technical Requirements'}
-              </h2>
-              
-              {/* Required Skills Section (Preserved for E2E Test Compatibility) */}
-              <div className="space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-wider text-[#0F2A52] dark:text-[#E2E8F0] font-mono">
-                  Kỹ năng Bắt buộc (Required Skills)
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {requiredSkills.map((req) => (
-                    <span
-                      key={req.id}
-                      className="px-3 py-1.5 rounded-xl text-xs font-mono font-semibold bg-[#EFF6FF] dark:bg-[#13233F] text-[#2563EB] dark:text-[#93C5FD] border border-[#BFDBFE] dark:border-[#1E3A5F]"
-                    >
-                      {req.skillName} • {req.minYearsExperience}y exp
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Preferred Skills */}
-              {preferredSkills.length > 0 && (
-                <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-[#1E293B]">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] font-mono">
-                    Kỹ năng Ưu tiên (Preferred Skills)
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {preferredSkills.map((req) => (
-                      <span
-                        key={req.id}
-                        className="px-2.5 py-1 rounded-xl text-xs font-mono text-[#64748B] dark:text-[#94A3B8] bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F]"
-                      >
-                        {req.skillName} • {req.minYearsExperience}y exp
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </Reveal>
-
-          {/* Right Column: Compensation & Semantic Fit Evaluation */}
-          <Reveal direction="up" delay={120} className="lg:col-span-4 space-y-6">
-            
-            {/* Compensation & Apply Card */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-7 shadow-xs space-y-4 transition-colors">
-              <div className="space-y-1">
-                <span className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
-                  {isVi ? 'MỨC LƯƠNG ĐỀ XUẤT' : 'PROPOSED SALARY'}
-                </span>
-                <div className="text-2xl font-bold font-editorial text-[#00B14F]">
-                  {formatSalary(job.salaryMin, job.salaryMax, job.salaryRange, locale)}
-                </div>
-              </div>
-
-              {user?.role === 'RECRUITER' ? (
-                <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-[#152342] border border-blue-200 dark:border-blue-900/50 text-center space-y-2.5">
-                  <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#173B73] dark:text-blue-200">
-                    <Briefcase className="w-3.5 h-3.5 text-[#2563EB]" />
-                    <span>{isVi ? 'Tài khoản Nhà tuyển dụng (HR)' : 'Recruiter Account (HR)'}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                    {isVi
-                      ? 'Bạn đang xem tin đăng dưới góc nhìn của ứng viên. Chức năng nộp đơn chỉ dành cho tài khoản Ứng viên.'
-                      : 'You are viewing this requisition as a recruiter. Submitting applications is available for candidate accounts only.'}
-                  </p>
-                  <Link
-                    href={`/recruiter/jobs/${job.id}/applications`}
-                    className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg text-xs font-semibold bg-[#2563EB] hover:bg-[#1D4ED8] text-white transition shadow-2xs"
-                  >
-                    {isVi ? 'Xem hồ sơ ứng tuyển vị trí này' : 'View applications for this position'}
-                  </Link>
-                </div>
-              ) : (
-                <div className="space-y-2.5 pt-2">
-                  <button
-                    id="job-quick-apply-btn"
-                    onClick={() => setIsApplyModalOpen(true)}
-                    className="w-full py-3 px-4 rounded-xl font-semibold text-xs text-white bg-[#00B14F] hover:bg-[#009643] transition shadow-xs text-center cursor-pointer active:scale-[0.99]"
-                  >
-                    {isVi ? 'Apply via midCV® (Quick Apply) — Nộp đơn' : 'Apply via midCV® (Quick Apply)'}
-                  </button>
-                  <button
-                    onClick={() => setIsApplyModalOpen(true)}
-                    className="w-full py-2.5 px-4 rounded-xl font-medium text-xs text-[#0F2A52] dark:text-slate-200 border border-slate-200 dark:border-[#1E293B] hover:bg-slate-50 dark:hover:bg-[#18294E] transition text-center cursor-pointer"
-                  >
-                    {isVi ? 'Ứng tuyển tiêu chuẩn' : 'Standard Application'}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Semantic Fit Evaluation Widget (Radial Score Gauge) */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 shadow-xs space-y-4 text-center transition-colors">
-              <div className="text-xs font-semibold uppercase tracking-wider text-[#0F2A52] dark:text-[#E2E8F0] font-mono">
-                {isVi ? 'Đối Sánh Vector Tự Động' : 'Automated Vector Matching'}
-              </div>
-
-              {/* Radial Score Meter */}
-              <div className="relative w-32 h-32 mx-auto flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                  <path
-                    className="text-slate-100 dark:text-[#13233F]"
-                    strokeWidth="3.5"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                  <path
-                    className="text-[#00B14F]"
-                    strokeDasharray="96, 100"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                </svg>
-                <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-2xl font-bold font-editorial text-[#0F2A52] dark:text-white">{job.requirements.length}</span>
-                  <span className="text-[9px] font-mono text-[#64748B] uppercase tracking-wider">
-                    {isVi ? 'TIÊU CHÍ KHỚP' : 'CRITERIA MATCHED'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Verified Skills Distribution Bar */}
-              <div className="space-y-1.5 text-left pt-2 border-t border-slate-100 dark:border-[#1E293B]">
-                <div className="text-[10px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
-                  {isVi ? 'CƠ CẤU YÊU CẦU CÔNG VIỆC' : 'JOB REQUIREMENTS COMPOSITION'}
-                </div>
-                <div className="w-full h-2 rounded-full overflow-hidden flex bg-slate-100 dark:bg-[#13233F]">
-                  <div
-                    className="bg-[#2563EB] h-full"
-                    style={{ width: `${job.requirements.length > 0 ? ((requiredSkills.length / job.requirements.length) * 100) : 100}%` }}
-                    title="Required Skills"
-                  />
-                  <div
-                    className="bg-[#FACC15] h-full"
-                    style={{ width: `${job.requirements.length > 0 ? ((preferredSkills.length / job.requirements.length) * 100) : 0}%` }}
-                    title="Preferred Skills"
-                  />
-                </div>
-                <div className="flex items-center justify-between text-[10px] text-[#64748B] dark:text-[#94A3B8] font-mono pt-1">
-                  <span>{requiredSkills.length} {isVi ? 'Bắt buộc' : 'Required'}</span>
-                  <span>{preferredSkills.length} {isVi ? 'Ưu tiên' : 'Preferred'}</span>
-                  <span>100% {isVi ? 'Xác thực' : 'Verified'}</span>
-                </div>
-              </div>
-            </div>
-
-          </Reveal>
-
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+          <div className="min-w-0 space-y-6">
+            {description && <section aria-labelledby="job-description" className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 sm:p-7"><h2 id="job-description" className="text-lg font-semibold">{isVi ? 'Mô tả công việc' : 'Job description'}</h2><div className="mt-4 whitespace-pre-wrap break-words text-sm leading-7 text-slate-700 dark:text-slate-300">{description}</div></section>}
+            {requirements.length > 0 && <section aria-labelledby="job-requirements" className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 sm:p-7"><h2 id="job-requirements" className="text-lg font-semibold">{isVi ? 'Yêu cầu ứng viên' : 'Candidate requirements'}</h2>{required.length > 0 && <div className="mt-4"><h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">{isVi ? 'Bắt buộc' : 'Required'}</h3><ul className="mt-2 flex flex-wrap gap-2">{required.map((req) => <li key={req.id || req.skillName} className="rounded-full bg-blue-50 px-3 py-1.5 text-sm text-blue-900 dark:bg-blue-950/60 dark:text-blue-200">{req.skillName}{req.minYearsExperience ? ` · ${req.minYearsExperience}+ ${isVi ? 'năm' : 'years'}` : ''}</li>)}</ul></div>}{preferred.length > 0 && <div className="mt-5"><h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">{isVi ? 'Ưu tiên' : 'Preferred'}</h3><ul className="mt-2 flex flex-wrap gap-2">{preferred.map((req) => <li key={req.id || req.skillName} className="rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-200">{req.skillName}{req.minYearsExperience ? ` · ${req.minYearsExperience}+ ${isVi ? 'năm' : 'years'}` : ''}</li>)}</ul></div>}</section>}
+          </div>
+          <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 lg:sticky lg:top-24"><h2 className="text-base font-semibold">{isVi ? 'Thông tin nhà tuyển dụng' : 'Employer'}</h2><p className="mt-3 break-words text-sm font-medium">{job.companyName || (isVi ? 'Chưa có thông tin' : 'Not provided')}</p><p className="mt-5 text-sm text-slate-600 dark:text-slate-300">{job.location || (isVi ? 'Chưa cung cấp địa điểm' : 'Location not provided')}</p>{job.industry && <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{translateIndustry(job.industry, locale)}</p>}</aside>
         </div>
 
-        {/* 03 — Verifiable Skill Evidence Comparison Table (Figma Screen 03) */}
-        <Reveal direction="up" delay={180}>
-          <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-6 transition-colors">
-            <div>
-              <span className="text-[11px] font-mono font-semibold text-[#2563EB] dark:text-[#60A5FA] uppercase tracking-widest">
-                EXPLAINABLE MATCHING AUDIT
-              </span>
-            <h2 className="text-2xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9] mt-1">
-              {isVi ? 'Đối Soát Minh Chứng Kỹ Năng' : 'Explainable Skill Verification Audit'}
-            </h2>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-[#13233F] text-[#64748B] dark:text-[#94A3B8] uppercase font-mono text-[10px] border-b border-slate-200 dark:border-[#1E293B]">
-                <tr>
-                  <th className="py-3 px-4 font-semibold">{isVi ? 'Yêu Cầu Kỹ Thuật (JD)' : 'Technical Requirement (JD)'}</th>
-                  <th className="py-3 px-4 font-semibold">{isVi ? 'Minh Chứng Đã Xác Thực Từ CV' : 'Verified CV Evidence'}</th>
-                  <th className="py-3 px-4 font-semibold">{isVi ? 'Trạng Thái Thẩm Định' : 'Audit Status'}</th>
-                  <th className="py-3 px-4 font-semibold text-right">{isVi ? 'Độ Khớp' : 'Match Rate'}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-[#1E293B] text-[#0F2A52] dark:text-slate-200">
-                {job.requirements && job.requirements.length > 0 ? (
-                  job.requirements.map((req) => (
-                    <tr key={req.id || req.skillName}>
-                      <td className="py-3.5 px-4 font-medium text-[#0F2A52] dark:text-white">
-                        <div className="font-semibold">{req.skillName}</div>
-                        <div className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">
-                          {req.minYearsExperience || req.minExperienceYears
-                            ? `${req.minYearsExperience || req.minExperienceYears}+ ${isVi ? 'năm kinh nghiệm yêu cầu' : 'years required'}`
-                            : (isVi ? 'Yêu cầu năng lực chuyên môn' : 'Domain competency required')}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400">
-                        {isVi ? 'Nộp hồ sơ để AI đối soát tự động từ CV' : 'Submit application for automated AI extraction'}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        {req.requirementType === 'REQUIRED' ? (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#EFF6FF] dark:bg-[#1E3A5F]/40 text-[#2563EB] dark:text-[#93C5FD] border border-[#BFDBFE] dark:border-[#1E3A5F]">
-                            {isVi ? 'Bắt buộc' : 'Required'}
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FEF9C3] dark:bg-[#FACC15]/20 text-[#92400E] dark:text-[#FACC15] border border-[#FACC15]/40">
-                            {isVi ? 'Ưu tiên' : 'Preferred'}
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#2563EB] dark:text-[#60A5FA]">
-                        {req.weight ? `${Math.round(req.weight * 100)}%` : '—'}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} className="py-6 px-4 text-center text-slate-500 font-sans">
-                      {isVi ? 'Chưa có yêu cầu kỹ thuật nào được cấu hình cho vị trí này.' : 'No technical requirements configured for this position.'}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </Reveal>
-
+        <button type="button" onClick={returnToJobs} className="mt-7 inline-flex items-center gap-2 text-sm font-medium text-blue-800 hover:underline dark:text-blue-300"><ArrowLeft size={16} aria-hidden="true"/>{isVi ? 'Quay lại kết quả việc làm' : 'Back to job results'}</button>
       </div>
-
-      {/* Quick Apply Stepper Modal */}
-      {isApplyModalOpen && (
-        <QuickApplyModal
-          job={job}
-          isOpen={true}
-          onClose={() => setIsApplyModalOpen(false)}
-          onSuccess={() => setIsApplyModalOpen(false)}
-        />
-      )}
-
-    </div>
+      <QuickApplyModal job={job} isOpen={isApplyOpen} onClose={() => setIsApplyOpen(false)} onApplySubmitted={(submitted) => setApplicationLookup({ jobId: id, application: submitted, failed: false })}/>
+    </main>
   );
 }

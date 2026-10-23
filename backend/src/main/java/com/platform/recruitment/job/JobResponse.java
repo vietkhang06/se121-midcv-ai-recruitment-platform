@@ -21,12 +21,18 @@ public class JobResponse {
     private String companyName;
     private String title;
     private String industry;
+    private String industryOther;
     private String seniority;
+    private String seniorityOther;
     private JobStatus status;
     private BigDecimal minSalary;
     private BigDecimal maxSalary;
+    private Boolean salaryNegotiable;
+    private String salaryCurrency;
+    private String salaryPeriod;
     private String location;
     private String employmentType;
+    private String employmentTypeOther;
     private String description;
     private List<RequirementResponse> requirements;
     private ZonedDateTime createdAt;

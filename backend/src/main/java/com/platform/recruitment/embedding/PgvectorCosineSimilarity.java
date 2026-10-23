@@ -40,7 +40,7 @@ public class PgvectorCosineSimilarity {
                         "SELECT greatest(0,least(100,(1-(cv.embedding <=> jd.embedding))*100)) AS score " +
                         "FROM document_versions cv CROSS JOIN document_versions jd " +
                         "WHERE cv.id=? AND jd.id=? AND cv.embedding IS NOT NULL AND jd.embedding IS NOT NULL " +
-                        "AND cv.state='READY' AND jd.state='READY'",
+                        "AND cv.state='READY' AND jd.state='READY' AND cv.embedding_model IS NOT NULL AND cv.embedding_model=jd.embedding_model",
                         cvVersionId, jdVersionId
                 );
                 if (!scoreRows.isEmpty() && scoreRows.get(0).get("score") != null) {

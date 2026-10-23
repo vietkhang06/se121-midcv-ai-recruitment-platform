@@ -34,6 +34,8 @@ public class CVEvidenceAttachmentResponse {
     @JsonProperty("file_type")
     private String fileType;
 
+    private String sha256;
+
     private String status;
 
     @JsonProperty("preview_url")

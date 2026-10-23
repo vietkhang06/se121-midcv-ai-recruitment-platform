@@ -278,18 +278,18 @@ public class Documents {
   public Map<String, Object> accessibleVersion(UUID version, JobQueue.Actor a) {
     List<Map<String, Object>> rows =
         jdbc.queryForList(
-            "SELECT"
-                + " v.id,v.document_id,v.version_no,v.filename,v.storage_key,v.media_type,v.size_bytes,v.raw_text,v.normalized,v.state,v.error_code,v.error_message,v.created_at,v.extraction_method,v.llm_model,v.embedding_model,v.pipeline_version,d.owner_id,d.kind,d.title"
-                + " FROM document_versions v JOIN documents d ON d.id=v.document_id WHERE v.id=? AND"
-                + " (d.owner_id=? OR EXISTS(SELECT 1 FROM applications ap JOIN jobs j ON"
-                + " j.id=ap.job_id WHERE ap.applied_cv_version_id=v.id AND j.recruiter_id=?) OR (d.kind='JD'"
-                + " AND EXISTS(SELECT 1 FROM jobs j WHERE"
-                + " ((j.status='OPEN') OR EXISTS(SELECT 1 FROM applications ap"
-                + " WHERE ap.job_id=j.id AND ap.candidate_id=?)))))",
-            version,
-            a.id(),
-            a.id(),
-            a.id());
+            "SELECT v.id,v.document_id,v.version_no,v.filename,v.storage_key,v.media_type,v.size_bytes,"
+                + "v.raw_text,v.normalized,v.state,v.error_code,v.error_message,v.created_at,"
+                + "v.extraction_method,v.llm_model,v.embedding_model,v.pipeline_version,d.owner_id,d.kind,d.title "
+                + "FROM document_versions v JOIN documents d ON d.id=v.document_id WHERE v.id=? AND "
+                + "(d.owner_id=? OR ?='ADMIN' OR (?='HR' AND ("
+                + "EXISTS(SELECT 1 FROM applications ap JOIN jobs j ON j.id=ap.job_id "
+                + "JOIN recruiter_profiles rp ON rp.company_id=j.company_id "
+                + "WHERE ap.applied_cv_version_id=v.id AND rp.user_id=?) OR "
+                + "EXISTS(SELECT 1 FROM screening_runs sr JOIN jobs j ON j.id=sr.job_id "
+                + "JOIN recruiter_profiles rp ON rp.company_id=j.company_id "
+                + "WHERE (sr.cv_version_id=v.id OR sr.jd_version_id=v.id) AND rp.user_id=?))))",
+            version, a.id(), a.role(), a.role(), a.id(), a.id());
     if (rows.isEmpty()) {
       throw new CustomException(
           ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy tài liệu hoặc bạn không có quyền truy cập.");

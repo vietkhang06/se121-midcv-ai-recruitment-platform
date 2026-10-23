@@ -172,12 +172,14 @@ public class JobQueue {
   public Map<String, Object> authorized(UUID job, Actor a) {
     List<Map<String, Object>> rows =
         jdbc.queryForList(
-            "SELECT p.* FROM processing_jobs p WHERE p.id=? AND (p.owner_id=? OR (p.kind='MATCH' AND"
-                + " EXISTS(SELECT 1 FROM applications ap JOIN jobs j ON j.id=ap.job_id WHERE"
-                + " ap.id=p.entity_id AND j.recruiter_id=?)))",
-            job,
-            a.id(),
-            a.id());
+            "SELECT p.* FROM processing_jobs p WHERE p.id=? AND (p.owner_id=? OR ?='ADMIN' OR "
+                + "(?='HR' AND ((p.kind='MATCH' AND EXISTS(SELECT 1 FROM applications ap "
+                + "JOIN jobs j ON j.id=ap.job_id JOIN recruiter_profiles rp ON rp.company_id=j.company_id "
+                + "WHERE ap.id=p.entity_id AND rp.user_id=?)) OR "
+                + "(p.kind='SCREEN_MATCH' AND EXISTS(SELECT 1 FROM screening_runs sr "
+                + "JOIN jobs j ON j.id=sr.job_id JOIN recruiter_profiles rp ON rp.company_id=j.company_id "
+                + "WHERE sr.id=p.entity_id AND rp.user_id=?)))))",
+            job, a.id(), a.role(), a.role(), a.id(), a.id());
     if (rows.isEmpty()) {
       throw new CustomException(
           ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy tác vụ hoặc bạn không có quyền truy cập.");

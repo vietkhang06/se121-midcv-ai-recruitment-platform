@@ -6,7 +6,8 @@ import { useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { AuthHeroBanner, AuthRole } from '@/components/auth/AuthHeroBanner';
 import { ThemeSwitch } from '@/components/common/ThemeSwitch';
-import { GoogleIcon, GitHubIcon, LinkedInIcon } from '@/components/auth/SocialIcons';
+import { GoogleIcon, GitHubIcon } from '@/components/auth/SocialIcons';
+import { BASE_URL } from '@/lib/api';
 import { PasswordStrengthBar } from '@/components/auth/PasswordStrengthBar';
 import { Reveal } from '@/components/motion/Reveal';
 import {
@@ -43,7 +44,7 @@ function RegisterFormContent() {
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [oauthNotice, setOauthNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [oauthLoading, setOauthLoading] = useState<'google' | 'github' | 'linkedin' | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'github' | null>(null);
 
   const handleRoleChange = (newRole: AuthRole) => {
     setSelectedRole(newRole);
@@ -54,26 +55,16 @@ function RegisterFormContent() {
     window.history.replaceState(null, '', `/register${newQuery}`);
   };
 
-  const handleOAuth = (provider: 'google' | 'github' | 'linkedin') => {
+  const handleOAuth = (provider: 'google' | 'github') => {
+    if (role === 'RECRUITER') {
+      setError(isVi ? 'Đăng ký Nhà tuyển dụng cần thông tin doanh nghiệp; hãy dùng biểu mẫu để hoàn tất hồ sơ.' : 'Recruiter registration requires company details. Use the form to complete the profile.');
+      return;
+    }
     setOauthLoading(provider);
     setError(null);
     setSuccessNotice(null);
     setOauthNotice(null);
-
-    // Simulate OAuth connection state per UX specification
-    setTimeout(() => {
-      setOauthLoading(null);
-      const providerNames = {
-        google: 'Google',
-        github: 'GitHub',
-        linkedin: 'LinkedIn',
-      };
-      setOauthNotice(
-        isVi
-          ? `Đang kết nối xác thực đăng ký tài khoản qua ${providerNames[provider]}... (Chế độ mô phỏng giao diện)`
-          : `Connecting to ${providerNames[provider]} OAuth registration... (UI simulation mode)`
-      );
-    }, 1200);
+    window.location.replace(`${BASE_URL}/api/v1/auth/oauth/${provider}/start?next=%2Fcandidate`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -399,8 +390,8 @@ function RegisterFormContent() {
             </span>
           </div>
 
-          {/* Social Login Buttons: Google, GitHub, LinkedIn */}
-          <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+          {/* Social login uses backend authorization code flows. */}
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
             {/* Google Button */}
             <button
               type="button"
@@ -431,20 +422,6 @@ function RegisterFormContent() {
               <span className="truncate">GitHub</span>
             </button>
 
-            {/* LinkedIn Button */}
-            <button
-              type="button"
-              onClick={() => handleOAuth('linkedin')}
-              disabled={oauthLoading !== null}
-              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-xs disabled:opacity-60"
-            >
-              {oauthLoading === 'linkedin' ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-[#0A66C2]" />
-              ) : (
-                <LinkedInIcon className="w-4 h-4 shrink-0 text-[#0A66C2]" />
-              )}
-              <span className="truncate">LinkedIn</span>
-            </button>
           </div>
 
           {/* Bottom Switch Link */}

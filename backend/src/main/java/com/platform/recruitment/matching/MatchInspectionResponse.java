@@ -87,6 +87,7 @@ public class MatchInspectionResponse {
         private boolean connected;
         private String status;
         private String username;
+        private String ownershipStatus;
         private Integer publicRepoCount;
         private List<String> topLanguages;
         private Map<String, Double> languageDistribution;

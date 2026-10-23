@@ -1,0 +1,20 @@
+# Optional isolated development database for the approved remediation.
+# Uses a separate port and volume; never points at the existing postgres_data volume.
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "127.0.0.1:55432:5432"
+    environment:
+      POSTGRES_DB: airecruit_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in the root .env}
+    volumes:
+      - remediation_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d airecruit_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+volumes:
+  remediation_pgdata:

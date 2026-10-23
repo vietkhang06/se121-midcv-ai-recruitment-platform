@@ -63,8 +63,8 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
         setIsGithubActive(data.isGithubActive ?? true);
         setCoreWeight(Math.round(data.coreWeight * 100));
         setGithubWeight(Math.round(data.githubWeight * 100));
-      } catch (err: any) {
-        setErrorMsg(err.message || 'Không thể tải cấu hình trọng số.');
+      } catch (err: unknown) {
+        setErrorMsg(err instanceof Error ? err.message : 'Không thể tải cấu hình trọng số.');
       } finally {
         setIsLoading(false);
       }
@@ -81,7 +81,7 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
   const overallSum = isGithubActive ? coreWeight + githubWeight : 100;
   const isOverallSumValid = isGithubActive ? overallSum === 100 : true;
 
-  const canSave = isCoreSumValid && isOverallSumValid && !isSaving;
+  const canSave = isCoreSumValid && isOverallSumValid && githubWeight >= 0 && githubWeight <= 15 && !isSaving;
 
   const handleApplyPreset = (preset: 'BALANCED' | 'TECH_HEAVY' | 'EXPERIENCE_HEAVY') => {
     if (preset === 'TECH_HEAVY') {
@@ -128,8 +128,8 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
       setSuccessMsg('Đã lưu cấu hình trọng số đối sánh thành công!');
       setShowConfirmSave(false);
       onPolicyUpdated?.();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Có lỗi xảy ra khi lưu cấu hình.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Có lỗi xảy ra khi lưu cấu hình.');
     } finally {
       setIsSaving(false);
     }
@@ -143,8 +143,8 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
       setSuccessMsg(`Đã tính toán lại điểm đối sánh cho ${res.recalculatedCount} hồ sơ ứng viên.`);
       setShowConfirmRecalc(false);
       onPolicyUpdated?.();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Không thể tính toán lại điểm matching.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Không thể tính toán lại điểm matching.');
     } finally {
       setIsRecalculating(false);
     }
@@ -356,7 +356,7 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
                   <input
                     type="range"
                     min="0"
-                    max="30"
+                    max="15"
                     value={githubWeight}
                     onChange={(e) => {
                       const gh = Number(e.target.value);
@@ -366,7 +366,7 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
                     className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                   />
                   <p className="text-[11px] text-slate-500 leading-relaxed">
-                    * Nếu ứng viên không cung cấp GitHub, hệ thống tự động áp dụng chính sách Fallback an toàn (Core CV 100%), không gây lạm phát hoặc trừ điểm oan uổng.
+                    * GitHub tối đa 15%. Nếu ứng viên không cung cấp GitHub, hệ thống tự động áp dụng chính sách Fallback an toàn (Core CV 100%), không gây lạm phát hoặc trừ điểm oan uổng.
                   </p>
                 </div>
               )}

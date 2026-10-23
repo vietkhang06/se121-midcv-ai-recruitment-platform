@@ -268,7 +268,7 @@ Copy-Item frontend\.env.example frontend\.env.local
 Nếu chưa có template frontend, tạo `frontend/.env.local` với nội dung tối thiểu:
 
 ```dotenv
-NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
+NEXT_PUBLIC_API_URL=http://localhost:8080
 ```
 
 Các nhóm biến cần cấu hình:
@@ -347,8 +347,8 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 ```powershell
 cd frontend
-npm ci
-npx playwright install chromium
+corepack pnpm install --frozen-lockfile
+corepack pnpm exec playwright install chromium
 cd ..
 ```
 
@@ -742,7 +742,7 @@ Copy-Item frontend\.env.example frontend\.env.local
 Otherwise, create `frontend/.env.local` with:
 
 ```dotenv
-NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
+NEXT_PUBLIC_API_URL=http://localhost:8080
 ```
 
 Required configuration groups:
@@ -821,8 +821,8 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 ```powershell
 cd frontend
-npm ci
-npx playwright install chromium
+corepack pnpm install --frozen-lockfile
+corepack pnpm exec playwright install chromium
 cd ..
 ```
 

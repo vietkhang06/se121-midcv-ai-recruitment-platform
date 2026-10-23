@@ -54,12 +54,17 @@ public class JobService {
                 .company(company)
                 .title(request.getTitle())
                 .industry(request.getIndustry())
+                .industryOther(trimToNull(request.getIndustryOther()))
                 .seniority(request.getSeniority())
+                .seniorityOther(trimToNull(request.getSeniorityOther()))
                 .status(JobStatus.DRAFT)
-                .minSalary(request.getMinSalary())
-                .maxSalary(request.getMaxSalary())
+                .minSalary(Boolean.TRUE.equals(request.getSalaryNegotiable()) ? null : request.getMinSalary())
+                .maxSalary(Boolean.TRUE.equals(request.getSalaryNegotiable()) ? null : request.getMaxSalary())
+                .salaryNegotiable(Boolean.TRUE.equals(request.getSalaryNegotiable()))
+                .salaryCurrency(request.getSalaryCurrency() == null ? "VND" : request.getSalaryCurrency())
                 .location(request.getLocation())
                 .employmentType(request.getEmploymentType())
+                .employmentTypeOther(trimToNull(request.getEmploymentTypeOther()))
                 .description(request.getDescription())
                 .build();
 
@@ -145,11 +150,16 @@ public class JobService {
 
         job.setTitle(request.getTitle());
         job.setIndustry(request.getIndustry());
+        job.setIndustryOther(trimToNull(request.getIndustryOther()));
         job.setSeniority(request.getSeniority());
-        job.setMinSalary(request.getMinSalary());
-        job.setMaxSalary(request.getMaxSalary());
+        job.setSeniorityOther(trimToNull(request.getSeniorityOther()));
+        job.setMinSalary(Boolean.TRUE.equals(request.getSalaryNegotiable()) ? null : request.getMinSalary());
+        job.setMaxSalary(Boolean.TRUE.equals(request.getSalaryNegotiable()) ? null : request.getMaxSalary());
+        job.setSalaryNegotiable(Boolean.TRUE.equals(request.getSalaryNegotiable()));
+        job.setSalaryCurrency(request.getSalaryCurrency() == null ? "VND" : request.getSalaryCurrency());
         job.setLocation(request.getLocation());
         job.setEmploymentType(request.getEmploymentType());
+        job.setEmploymentTypeOther(trimToNull(request.getEmploymentTypeOther()));
         job.setDescription(request.getDescription());
 
         if (request.getRequirements() != null) {
@@ -173,11 +183,29 @@ public class JobService {
     public JobResponse getJobById(UUID jobId) {
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
-        if (job.getCompany() != null && job.getCompany().isSuspended()) {
-            // Suspended company jobs should not be publicly accessible
+        if (job.getStatus() != JobStatus.PUBLISHED && job.getStatus() != JobStatus.CLOSED) {
+            throw new ResourceNotFoundException("Job", "id", jobId);
+        }
+        if (job.getCompany() == null || job.getCompany().isSuspended()
+                || job.getCompany().getOperationalStatus() != com.platform.recruitment.company.CompanyOperationalStatus.ACTIVE) {
+            // Jobs of inactive companies should not be publicly accessible
             throw new com.platform.recruitment.common.CustomException(
                     com.platform.recruitment.common.ErrorCode.COMPANY_SUSPENDED,
                     "Công việc thuộc doanh nghiệp đang bị tạm đình chỉ hoạt động");
+        }
+        return mapToResponse(job);
+    }
+
+    @Transactional(readOnly = true)
+    public JobResponse getRecruiterJob(User recruiterUser, UUID jobId) {
+        RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
+        if (recruiter.getCompany() == null || job.getCompany() == null
+                || !job.getCompany().getId().equals(recruiter.getCompany().getId())) {
+            throw new com.platform.recruitment.common.UnauthorizedAccessException(
+                    "Recruiter does not own this job posting");
         }
         return mapToResponse(job);
     }
@@ -258,15 +286,26 @@ public class JobService {
                 .companyName(job.getCompany().getName())
                 .title(job.getTitle())
                 .industry(job.getIndustry())
+                .industryOther(job.getIndustryOther())
                 .seniority(job.getSeniority())
+                .seniorityOther(job.getSeniorityOther())
                 .status(job.getStatus())
                 .minSalary(job.getMinSalary())
                 .maxSalary(job.getMaxSalary())
+                .salaryNegotiable(Boolean.TRUE.equals(job.getSalaryNegotiable()))
+                .salaryCurrency(job.getSalaryCurrency() == null ? "VND" : job.getSalaryCurrency())
+                .salaryPeriod("MONTH")
                 .location(job.getLocation())
                 .employmentType(job.getEmploymentType())
+                .employmentTypeOther(job.getEmploymentTypeOther())
                 .description(job.getDescription())
                 .requirements(reqResponses)
                 .createdAt(job.getCreatedAt())
                 .build();
+    }
+
+    private static String trimToNull(String value) {
+        if (value == null || value.isBlank()) return null;
+        return value.trim();
     }
 }

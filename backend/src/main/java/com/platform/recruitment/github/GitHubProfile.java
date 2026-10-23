@@ -34,6 +34,10 @@ public class GitHubProfile extends BaseEntity {
     @Column(name = "status")
     private String status = "SYNCED";
 
+    @Builder.Default
+    @Column(name = "ownership_status", nullable = false)
+    private String ownershipStatus = "UNVERIFIED_PUBLIC";
+
     @Enumerated(EnumType.STRING)
     @Column(name = "activity_signal")
     private GitHubActivitySignal activitySignal;

@@ -1,8 +1,8 @@
 export type UserRole = 'CANDIDATE' | 'RECRUITER' | 'ADMIN';
 
-export type Industry = 'Technology' | 'Marketing' | 'Design' | 'Finance' | 'HR' | 'Sales';
+export type Industry = 'Technology' | 'Marketing' | 'Design' | 'Finance' | 'HR' | 'Sales' | 'OTHER';
 
-export type EmploymentType = 'FULL_TIME' | 'PART_TIME' | 'REMOTE' | 'HYBRID';
+export type EmploymentType = 'FULL_TIME' | 'PART_TIME' | 'REMOTE' | 'HYBRID' | 'OTHER';
 
 export type RequirementType = 'REQUIRED' | 'PREFERRED';
 
@@ -67,11 +67,17 @@ export interface Job {
   companyName: string;
   companyVerified: boolean;
   industry: Industry;
+  industryOther?: string;
   employmentType: EmploymentType;
+  employmentTypeOther?: string;
   seniority: string;
+  seniorityOther?: string;
   location: string;
-  salaryMin: number;
-  salaryMax: number;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  salaryNegotiable?: boolean;
+  salaryCurrency?: 'VND' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'CNY' | 'KRW' | 'SGD' | 'AUD' | 'CAD';
+  salaryPeriod?: 'MONTH';
   salaryRange?: string;
   department?: string;
   publishedDate: string;
@@ -115,6 +121,9 @@ export interface CV {
   versions: CVVersion[];
 }
 
+export type CreateCVRequest = Pick<CV, 'title' | 'targetIndustry' | 'creationPath' | 'isDefault'> &
+  Partial<Pick<CV, 'rawText' | 'versions'>>;
+
 export interface CandidateProfile {
   id: string;
   fullName: string;
@@ -153,7 +162,8 @@ export interface Application {
   job: Job;
   appliedCvId: string;
   appliedCvTitle: string;
-  appliedCvVersion: number;
+  appliedCvVersion: number | null;
+  appliedCvVersionId?: string;
   candidateName?: string;
   candidateEmail?: string;
   candidatePhone?: string;
@@ -219,12 +229,13 @@ export interface GitHubRepoItem {
 
 export interface GitHubAssessmentData {
   connected: boolean;
-  status?: 'SYNCED' | 'NOT_CONNECTED' | 'PRIVATE_ONLY' | 'API_UNAVAILABLE' | 'NOT_APPLICABLE';
+  status?: 'SYNCED' | 'NOT_CONNECTED' | 'PUBLIC_ONLY' | 'PRIVATE_ONLY' | 'API_UNAVAILABLE' | 'NOT_APPLICABLE';
   username?: string;
   publicRepoCount?: number;
   topLanguages?: string[];
   languageDistribution?: Record<string, number>;
   activitySignal?: GitHubActivitySignal;
+  ownershipStatus?: 'OWNED' | 'UNVERIFIED_PUBLIC';
   latestActivityDaysAgo?: number;
   repos?: GitHubRepoItem[];
   overallAssessment?: string;
@@ -314,8 +325,8 @@ export interface QuickScreeningDetail {
     github_enabled_snapshot: boolean;
     created_at: string;
   };
-  cv: any;
-  jd: any;
+  cv: Record<string, unknown>;
+  jd: Record<string, unknown>;
   result: {
     id: string;
     base_score: number;
@@ -323,17 +334,91 @@ export interface QuickScreeningDetail {
     score: number;
     coverage: number;
     semantic_score: number;
-    details: any;
-    github: any;
+    details?: Record<string, unknown>;
+    github?: Record<string, unknown>;
     algorithm_version: string;
     created_at: string;
   } | null;
-  jobs: any[];
+  jobs: Record<string, unknown>[];
+}
+
+export interface CVPersonalInfo {
+  [key: string]: unknown;
+  fullName?: string;
+  full_name?: string;
+  headline?: string;
+  title?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  location?: string;
+  githubUrl?: string;
+  github_url?: string;
+  linkedinUrl?: string;
+  linkedin_url?: string;
+}
+
+export interface CVStructuredItem {
+  [key: string]: unknown;
+  id?: string;
+  name?: string;
+  company?: string;
+  role?: string;
+  title?: string;
+  position?: string;
+  institution?: string;
+  degree?: string;
+  issuer?: string;
+  language?: string;
+  description?: string;
+  start_date?: string;
+  end_date?: string;
+  startDate?: string;
+  endDate?: string;
+  start_year?: string | number;
+  end_year?: string | number;
+  graduationYear?: string | number;
+  school?: string;
+  proficiency?: string;
+  proficiencyLevel?: string;
+  proficiency_level?: string;
+  technologies?: CVTechnology[];
+  techStack?: CVTechnology[];
+  tech_stack?: CVTechnology[];
+}
+
+export type CVTechnology = string | { name: string; [key: string]: unknown };
+
+export interface CVStructuredData {
+  [key: string]: unknown;
+  personalInfo?: CVPersonalInfo;
+  personal_info?: CVPersonalInfo;
+  fullName?: string;
+  full_name?: string;
+  name?: string;
+  headline?: string;
+  targetRole?: string;
+  target_role?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  githubUrl?: string;
+  linkedinUrl?: string;
+  summary?: string;
+  schema_version?: string;
+  skills?: Array<string | CVStructuredItem>;
+  experience?: CVStructuredItem[];
+  experiences?: CVStructuredItem[];
+  projects?: CVStructuredItem[];
+  education?: CVStructuredItem[];
+  educations?: CVStructuredItem[];
+  certifications?: CVStructuredItem[];
+  languages?: CVStructuredItem[];
 }
 
 export interface CVEvidenceItem {
   field_path: string;
-  verbatim_value: any;
+  verbatim_value: unknown;
   quote: string;
   source_page?: number;
   page_number?: number;
@@ -367,9 +452,9 @@ export interface CVReviewData {
   status: string;
   extractionMethod?: string;
   rawText?: string;
-  structured?: Record<string, any>;
+  structured?: CVStructuredData;
   evidences?: CVEvidenceItem[];
-  unverifiedFacts?: Record<string, any>[];
+  unverifiedFacts?: Array<{ field_path: string; quote?: string; reason?: string; [key: string]: unknown }>;
   warnings?: string[];
   pages?: PageSegmentItem[];
   createdAt?: string;
@@ -398,6 +483,7 @@ export interface CVEvidenceAttachmentItem {
 }
 
 export interface CVDraftData {
+  [key: string]: unknown;
   cv_id: string;
   profile_id?: string;
   version_id?: string;
@@ -405,15 +491,15 @@ export interface CVDraftData {
   title?: string;
   status?: string;
   confirmed_at?: string;
-  personal_info?: Record<string, any>;
-  summary?: Record<string, any>;
+  personal_info?: CVPersonalInfo;
+  summary?: string | { content?: string; text?: string };
   skills?: Array<{ name: string; category?: string; level?: string; isCustom?: boolean; verified?: boolean; origin?: string }>;
-  work_experience?: Array<{ id?: string; company: string; role?: string; position?: string; start_date?: string; end_date?: string; is_current?: boolean; description?: string; technologies?: string[]; origin?: string }>;
-  projects?: Array<{ id?: string; name: string; role?: string; start_date?: string; end_date?: string; description?: string; techStack?: string[]; tech_stack?: string[]; origin?: string }>;
-  education?: Array<{ id?: string; institution: string; degree?: string; fieldOfStudy?: string; field_of_study?: string; startYear?: number; endYear?: number; gpa?: number; gpa_scale?: number; gpaScale?: number; gpa_display?: string; description?: string; origin?: string }>;
-  certifications?: Array<{ id?: string; name: string; issuer?: string; issueDate?: string; date?: string; credentialId?: string; credentialUrl?: string; attachment?: CVEvidenceAttachmentItem | null; origin?: string }>;
-  languages?: Array<{ id?: string; language: string; name?: string; proficiency?: string; proficiencyLevel?: string; score?: string; attachment?: CVEvidenceAttachmentItem | null; origin?: string }>;
-  links?: Record<string, any>;
+  work_experience?: Array<{ [key: string]: unknown; id?: string; company: string; role?: string; position?: string; start_date?: string; end_date?: string; startDate?: string; endDate?: string; is_current?: boolean; description?: string; technologies?: CVTechnology[]; origin?: string }>;
+  projects?: Array<{ [key: string]: unknown; id?: string; name: string; role?: string; start_date?: string; end_date?: string; description?: string; techStack?: CVTechnology[]; tech_stack?: CVTechnology[]; origin?: string }>;
+  education?: Array<{ [key: string]: unknown; id?: string; institution: string; school?: string; degree?: string; fieldOfStudy?: string; field_of_study?: string; startYear?: number; start_year?: string | number; endYear?: number; end_year?: string | number; graduationYear?: string | number; gpa?: number; gpa_scale?: number; gpaScale?: number; gpa_display?: string; description?: string; origin?: string }>;
+  certifications?: Array<{ [key: string]: unknown; id?: string; name: string; issuer?: string; issueDate?: string; date?: string; credentialId?: string; credentialUrl?: string; attachment?: CVEvidenceAttachmentItem | null; origin?: string }>;
+  languages?: Array<{ [key: string]: unknown; id?: string; language: string; name?: string; proficiency?: string; proficiencyLevel?: string; proficiency_level?: string; score?: string; attachment?: CVEvidenceAttachmentItem | null; origin?: string }>;
+  links?: { [key: string]: unknown; github_url?: string; linkedin_url?: string; portfolio_url?: string };
 }
 
 export interface CVProcessingStatus {

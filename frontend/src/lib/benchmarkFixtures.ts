@@ -13,7 +13,11 @@ import {
   Industry,
   CVReviewData,
   CVProcessingStatus,
-  CVQuota
+  CVQuota,
+  CreateCVRequest,
+  CVDraftData,
+  CVVersion,
+  TaxonomySkillItem
 } from '@/types';
 import {
   ApiClient,
@@ -317,8 +321,20 @@ export class BenchmarkFixtureClient implements ApiClient {
     };
   }
 
-  async saveCandidateCV(cv: CV): Promise<CV> {
-    return { ...cv };
+  async saveCandidateCV(cv: CreateCVRequest): Promise<CV> {
+    return {
+      ...cv,
+      id: `cv-draft-${Date.now()}`,
+      currentVersionNumber: 1,
+      updatedAt: new Date().toISOString(),
+      versions: []
+    };
+  }
+
+  async updateCVMetadata(cvId: string, metadata: { title: string }): Promise<CV> {
+    const cv = SEED_CVS.find((item) => item.id === cvId);
+    if (!cv) throw new Error('Không tìm thấy hồ sơ CV.');
+    return { ...cv, title: metadata.title.trim() };
   }
 
   async uploadCandidateCV(file: File, title?: string, targetIndustry?: string, isDefault?: boolean): Promise<CV> {
@@ -382,7 +398,7 @@ export class BenchmarkFixtureClient implements ApiClient {
     return this.fetchCVReview(cvId);
   }
 
-  async fetchCVDraft(cvId: string): Promise<any> {
+  async fetchCVDraft(cvId: string): Promise<CVDraftData> {
     return {
       cv_id: cvId,
       profile_id: 'cand-prof-01',
@@ -395,7 +411,7 @@ export class BenchmarkFixtureClient implements ApiClient {
     };
   }
 
-  async updateCVDraft(cvId: string, draftData: any): Promise<any> {
+  async updateCVDraft(cvId: string, draftData: Record<string, unknown>): Promise<CVDraftData> {
     return {
       cv_id: cvId,
       ...draftData,
@@ -412,42 +428,44 @@ export class BenchmarkFixtureClient implements ApiClient {
     };
   }
 
-  async fetchCVVersions(cvId: string): Promise<any[]> {
+  async fetchCVVersions(cvId: string): Promise<CVVersion[]> {
     return [
       {
-        version_id: 'ver-01',
-        version_number: 1,
+        id: 'ver-01',
+        versionNumber: 1,
         title: 'Resume Nguyen Van A v1.0',
         status: 'CONFIRMED',
-        confirmed_at: new Date().toISOString(),
-        created_at: new Date().toISOString()
+        confirmedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        sections: []
       }
     ];
   }
 
-  async searchTaxonomySkills(query: string, limit?: number, _category?: string): Promise<any[]> {
+  async searchTaxonomySkills(query: string, limit?: number, _category?: string): Promise<TaxonomySkillItem[]> {
     const list = [
-      { id: 'sk-1', name: 'Java', normalizedName: 'java', category: 'Backend' },
-      { id: 'sk-2', name: 'Spring Boot', normalizedName: 'spring boot', category: 'Backend' },
-      { id: 'sk-3', name: 'React', normalizedName: 'react', category: 'Frontend' },
-      { id: 'sk-4', name: 'TypeScript', normalizedName: 'typescript', category: 'Frontend' },
-      { id: 'sk-5', name: 'Docker', normalizedName: 'docker', category: 'DevOps' },
-      { id: 'sk-6', name: 'PostgreSQL', normalizedName: 'postgresql', category: 'Database' }
+      { id: 'sk-1', canonicalName: 'Java', normalizedName: 'java', category: 'Backend' },
+      { id: 'sk-2', canonicalName: 'Spring Boot', normalizedName: 'spring boot', category: 'Backend' },
+      { id: 'sk-3', canonicalName: 'React', normalizedName: 'react', category: 'Frontend' },
+      { id: 'sk-4', canonicalName: 'TypeScript', normalizedName: 'typescript', category: 'Frontend' },
+      { id: 'sk-5', canonicalName: 'Docker', normalizedName: 'docker', category: 'DevOps' },
+      { id: 'sk-6', canonicalName: 'PostgreSQL', normalizedName: 'postgresql', category: 'Database' }
     ];
-    return list.filter(s => s.name.toLowerCase().includes(query.toLowerCase())).slice(0, limit || 10);
+    return list.filter(s => s.canonicalName.toLowerCase().includes(query.toLowerCase())).slice(0, limit || 10);
   }
 
-  async uploadCVEvidence(cvId: string, file: File, itemType: string, itemId: string): Promise<any> {
+  async uploadCVEvidence(cvId: string, file: File, itemType: 'CERTIFICATION' | 'LANGUAGE', itemId: string): Promise<{ attachment_id: string; cv_id: string; item_type: 'CERTIFICATION' | 'LANGUAGE'; item_id: string; file_name: string; file_size: number; file_type: string; status: string; preview_url: string; created_at: string }> {
     return {
-      id: `att-${Date.now()}`,
-      fileName: file.name,
-      originalFileName: file.name,
-      fileSize: file.size,
-      contentType: file.type || 'application/pdf',
-      itemType,
-      itemId,
-      verificationStatus: 'UNVERIFIED',
-      uploadedAt: new Date().toISOString()
+      attachment_id: `att-${Date.now()}`,
+      cv_id: cvId,
+      item_type: itemType,
+      item_id: itemId,
+      file_name: file.name,
+      file_size: file.size,
+      file_type: file.type || 'application/pdf',
+      status: 'UNVERIFIED',
+      preview_url: `/api/v1/candidate/cvs/${cvId}/attachments/att-${Date.now()}`,
+      created_at: new Date().toISOString()
     };
   }
 
@@ -457,6 +475,10 @@ export class BenchmarkFixtureClient implements ApiClient {
 
   async downloadCVEvidence(cvId: string, attachmentId: string, fileName: string): Promise<void> {
     return;
+  }
+
+  async fetchCVEvidenceBlob(): Promise<Blob> {
+    throw new Error('Evidence file bytes are unavailable in benchmark fixtures.');
   }
   async fetchCandidateApplications(): Promise<Application[]> {
     return [...SEED_APPLICATIONS];
@@ -590,15 +612,15 @@ export class BenchmarkFixtureClient implements ApiClient {
     return { user, accessToken: 'benchmark-jwt-token' };
   }
 
-  async fetchFavoriteSkills(): Promise<any[]> {
+  async fetchFavoriteSkills(): Promise<TaxonomySkillItem[]> {
     return [];
   }
 
-  async addFavoriteSkill(skillId: string): Promise<any> {
-    return { id: skillId, canonicalName: 'Java', category: 'BACKEND' };
+  async addFavoriteSkill(skillId: string): Promise<TaxonomySkillItem> {
+    return { id: skillId, canonicalName: 'Java', normalizedName: 'java', category: 'BACKEND' };
   }
 
-  async removeFavoriteSkill(_skillId: string): Promise<any> {
-    return { success: true };
+  async removeFavoriteSkill(skillId: string): Promise<TaxonomySkillItem> {
+    return { id: skillId, canonicalName: 'Java', normalizedName: 'java', category: 'BACKEND' };
   }
 }

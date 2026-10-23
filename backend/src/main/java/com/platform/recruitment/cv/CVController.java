@@ -99,6 +99,15 @@ public class CVController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PatchMapping("/{id}/metadata")
+    public ResponseEntity<ApiResponse<CVResponse>> updateCVMetadata(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateCVMetadataRequest request) {
+        CVResponse response = cvService.updateCVMetadata(currentUser, id, request);
+        return ResponseEntity.ok(ApiResponse.success("CV card metadata updated successfully", response));
+    }
+
     @GetMapping("/{id}/review")
     public ResponseEntity<ApiResponse<CVReviewResponse>> getCVReview(
             @AuthenticationPrincipal User currentUser,

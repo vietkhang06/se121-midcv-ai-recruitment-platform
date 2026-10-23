@@ -8,6 +8,8 @@ import { useLanguage } from '@/context/LanguageContext';
 import { LogoutConfirmModal } from '@/components/auth/LogoutConfirmModal';
 import { BrandLogo } from '@/components/common/BrandLogo';
 import { ThemeSwitch } from '@/components/common/ThemeSwitch';
+import { fetchCVQuota } from '@/lib/api';
+import { CVQuota } from '@/types';
 import {
   ShieldCheck,
   LogOut,
@@ -31,6 +33,7 @@ export const Navbar: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const [prevPathname, setPrevPathname] = useState(pathname);
+  const [cvQuotaState, setCvQuotaState] = useState<{ key: string; quota: CVQuota | null } | null>(null);
 
   // Automatically close mobile drawer upon navigation (React 19 render-time adjustment)
   if (prevPathname !== pathname) {
@@ -41,6 +44,22 @@ export const Navbar: React.FC = () => {
   const isRecruiter = isAuthenticated && user?.role === 'RECRUITER';
   const isCandidate = isAuthenticated && user?.role === 'CANDIDATE';
   const isAdmin = isAuthenticated && user?.role === 'ADMIN';
+
+  const cvQuotaKey = isCandidate ? (pathname || '') : '';
+  const cvQuotaLoaded = Boolean(isCandidate && cvQuotaState?.key === cvQuotaKey);
+  const cvQuota = cvQuotaLoaded ? cvQuotaState?.quota ?? null : null;
+
+  useEffect(() => {
+    if (!isCandidate) return;
+    let active = true;
+    fetchCVQuota()
+      .then((quota) => { if (active) setCvQuotaState({ key: cvQuotaKey, quota }); })
+      .catch(() => { if (active) setCvQuotaState({ key: cvQuotaKey, quota: null }); });
+    return () => { active = false; };
+  }, [isCandidate, cvQuotaKey]);
+
+  const cvCreationLocked = !cvQuotaLoaded || cvQuota?.canUpload !== true;
+  const cvLockLabel = locale === 'vi' ? 'Hết hạn mức CV' : 'CV quota reached';
 
   // Handle escape key to close mobile menu
   useEffect(() => {
@@ -109,16 +128,6 @@ export const Navbar: React.FC = () => {
           {isCandidate && (
             /* CANDIDATE Desktop Links */
             <>
-              {/* Tổng quan / Dashboard */}
-              <Link
-                href="/candidate"
-                className={`px-2.5 xl:px-3 py-1.5 rounded-lg hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition-colors whitespace-nowrap shrink-0 ${
-                  pathname === '/candidate' ? 'text-[#2563EB] font-bold' : ''
-                }`}
-              >
-                {locale === 'vi' ? 'Tổng quan' : 'Dashboard'}
-              </Link>
-
               {/* Tạo CV Dropdown */}
               <div className="relative group py-3 shrink-0">
                 <Link
@@ -135,11 +144,13 @@ export const Navbar: React.FC = () => {
                   <Link href="/candidate/cvs" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
                     {locale === 'vi' ? 'Thư viện CV của tôi' : 'My CV Repository'}
                   </Link>
-                  <Link href="/candidate/cvs" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
-                    {locale === 'vi' ? 'Tải lên CV & Trích xuất AI' : 'Upload CV & AI Parser'}
+                  <Link href="/candidate/cvs" aria-disabled={cvCreationLocked} onClick={(event) => { if (cvCreationLocked) event.preventDefault(); }} className={`flex items-center justify-between gap-3 px-4 py-2 text-xs font-medium whitespace-nowrap ${cvCreationLocked ? 'cursor-not-allowed text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB]'}`}>
+                    <span>{locale === 'vi' ? 'Tải lên CV & Trích xuất AI' : 'Upload CV & AI Parser'}</span>
+                    {cvCreationLocked && <span className="text-[10px] font-semibold">{!cvQuotaLoaded ? '…' : cvLockLabel}</span>}
                   </Link>
-                  <Link href="/candidate/cvs/builder" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
-                    {locale === 'vi' ? 'Trình tạo CV chuẩn ATS' : 'ATS Resume Studio'}
+                  <Link href="/candidate/cvs/builder" aria-disabled={cvCreationLocked} onClick={(event) => { if (cvCreationLocked) event.preventDefault(); }} className={`flex items-center justify-between gap-3 px-4 py-2 text-xs font-medium whitespace-nowrap ${cvCreationLocked ? 'cursor-not-allowed text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB]'}`}>
+                    <span>{locale === 'vi' ? 'Trình tạo CV chuẩn ATS' : 'ATS Resume Studio'}</span>
+                    {cvCreationLocked && <span className="text-[10px] font-semibold">{!cvQuotaLoaded ? '…' : cvLockLabel}</span>}
                   </Link>
                 </div>
               </div>
@@ -224,13 +235,6 @@ export const Navbar: React.FC = () => {
                 >
                   {locale === 'vi' ? 'Cổng Tuyển dụng (HR)' : 'Recruiter Portal'}
                 </Link>
-              ) : isCandidate ? (
-                <Link
-                  href="/candidate"
-                  className="hidden xl:inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-[#2563EB] dark:text-[#3B82F6] border border-blue-200 dark:border-blue-800/60 transition whitespace-nowrap shrink-0"
-                >
-                  {locale === 'vi' ? 'Bảng Điều Khiển' : 'Candidate Portal'}
-                </Link>
               ) : null}
 
               {/* User Name & Role */}
@@ -251,8 +255,8 @@ export const Navbar: React.FC = () => {
 
               {/* Avatar */}
               <Link
-                href={isAdmin ? '/admin' : isRecruiter ? '/recruiter' : '/candidate'}
-                title={locale === 'vi' ? 'Về Bảng Điều Khiển' : 'Go to Dashboard'}
+                href={isAdmin ? '/admin' : isRecruiter ? '/recruiter/jobs' : '/candidate/cvs'}
+                title={locale === 'vi' ? 'Mở hồ sơ của bạn' : 'Open your workspace'}
                 className="relative w-8 h-8 rounded-full overflow-hidden border border-[#CBD5E1] dark:border-[#1E293B] shadow-xs shrink-0 hover:border-[#2563EB] transition"
               >
                 <div className="w-full h-full bg-blue-50 dark:bg-[#152342] text-[#2563EB] text-xs font-bold flex items-center justify-center select-none">
@@ -375,14 +379,6 @@ export const Navbar: React.FC = () => {
             {isRecruiter ? (
               <>
                 <Link
-                  href="/recruiter"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/recruiter') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
-                >
-                  <Briefcase className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
-                  <span>{t('recruiterNav.dashboard', 'HR Dashboard')}</span>
-                </Link>
-                <Link
                   href="/recruiter/jobs"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/recruiter/jobs') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
@@ -401,18 +397,6 @@ export const Navbar: React.FC = () => {
               </>
             ) : (
               <>
-                {/* 0. Tổng quan / Dashboard (Candidate Portal) */}
-                {isCandidate && (
-                  <Link
-                    href="/candidate"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/candidate') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
-                  >
-                    <Briefcase className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
-                    <span>{locale === 'vi' ? 'Tổng Quan Ứng Viên' : 'Candidate Dashboard'}</span>
-                  </Link>
-                )}
-
                 {/* 1. Tìm việc / Find Jobs */}
                 <Link
                   href="/jobs"
@@ -450,7 +434,7 @@ export const Navbar: React.FC = () => {
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/candidate/profile') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
                 >
                   <UserIcon className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
-                  <span>{t('nav.dashboard', 'Tổng Quan')}</span>
+                  <span>{locale === 'vi' ? 'Hồ sơ cá nhân' : 'Profile'}</span>
                 </Link>
 
                 {!isCandidate && (

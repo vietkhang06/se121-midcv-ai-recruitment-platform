@@ -30,7 +30,7 @@ public class CandidateMatchController {
     private final MatchingEngineService matchingEngineService;
 
     @PostMapping("/{jobId}")
-    public ResponseEntity<ApiResponse<MatchResult>> matchCandidateToJob(
+    public ResponseEntity<ApiResponse<com.platform.recruitment.matching.MatchScoreResponse>> matchCandidateToJob(
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID jobId,
             @RequestParam(required = false) UUID cvId) {
@@ -50,17 +50,13 @@ public class CandidateMatchController {
             targetCv = cvs.stream().filter(c -> Boolean.TRUE.equals(c.getIsDefault())).findFirst().orElse(cvs.get(0));
         }
 
-        // AC-P3-04: Block semantic matching if CV profile is still in DRAFT status!
+        if (targetCv.getCandidate() == null || !targetCv.getCandidate().getId().equals(candidate.getId())) {
+            throw new com.platform.recruitment.common.UnauthorizedAccessException("Candidate does not own this CV");
+        }
         List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(targetCv.getId());
         CVVersion latestVersion = versions.isEmpty() ? null : versions.get(0);
-        String versionStatus = latestVersion != null && latestVersion.getStatus() != null ? latestVersion.getStatus() : targetCv.getStatus();
-
-        if ("DRAFT".equalsIgnoreCase(versionStatus) || "DRAFT".equalsIgnoreCase(targetCv.getStatus())) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR,
-                    "Hồ sơ CV đang ở trạng thái DRAFT. Vui lòng xác nhận hồ sơ trước khi đối sánh với JD.");
-        }
-
-        MatchResult result = matchingEngineService.calculateAndPersistMatchResult(jobId, candidate.getId());
-        return ResponseEntity.ok(ApiResponse.success("Matching calculated successfully", result));
+        com.platform.recruitment.cv.ConfirmedCvInput.requireConfirmed(latestVersion, candidate.getId());
+        MatchResult result = matchingEngineService.previewMatch(jobId, candidate.getId(), latestVersion.getId());
+        return ResponseEntity.ok(ApiResponse.success("Preview calculated without submitting an application", com.platform.recruitment.matching.MatchScoreResponse.fromEntity(result)));
     }
 }

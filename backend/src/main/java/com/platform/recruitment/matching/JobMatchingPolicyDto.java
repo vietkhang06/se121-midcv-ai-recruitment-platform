@@ -57,7 +57,7 @@ public class JobMatchingPolicyDto {
 
     @NotNull(message = "Trọng số GitHub không được để trống")
     @DecimalMin(value = "0.0", message = "Trọng số không được âm")
-    @DecimalMax(value = "1.0", message = "Trọng số không được vượt quá 1.0")
+    @DecimalMax(value = "0.15", message = "Trọng số GitHub không được vượt quá 15%")
     private BigDecimal githubWeight;
 
     private Boolean isGithubActive;

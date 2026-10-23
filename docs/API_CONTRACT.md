@@ -1,5 +1,9 @@
 # MidCV API Contract Specification
 
+> Implementation addendum (21/10/2026): OAuth and salary endpoint details added at the end of this document. These describe the current source contract; provider/database acceptance still requires configured external credentials and a disposable/live verification environment.
+
+> Corrective implementation addendum (19/10/2026): `REMEDIATION_API_CONTRACT.md` defines the actual corrected preview/version/recalculation contract. Other sections below include roadmap examples and have not all been live-verified. A sample JSON is not an observed HTTP result.
+
 Tài liệu này quy định hợp đồng giao tiếp API (API Contract) chính thức giữa các dịch vụ trong hệ thống **AI Recruitment Platform / MidCV**:
 1. **Internal AI Worker APIs** (`http://ai-worker:8000/internal/ai/...`) - Giao tiếp nội bộ giữa Spring Boot Backend và FastAPI AI Worker.
 2. **Public Candidate & Recruiter APIs** (`https://api.midcv.vn/api/v1/...`) - Giao tiếp giữa Next.js Frontend và Spring Boot Backend.
@@ -194,6 +198,12 @@ Các endpoint này chỉ phục vụ giao tiếp nội bộ giữa Backend và A
 
 Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer <JWT_TOKEN>`. Phân quyền theo vai trò (`ROLE_CANDIDATE`, `ROLE_RECRUITER`, `ROLE_ADMIN`).
 
+### 2.0. Public Job Details and Recruiter Job Access
+
+- `GET /api/v1/jobs/{id}` is public and returns only a non-draft job (`PUBLISHED` or `CLOSED`) whose company is not suspended. Draft jobs and jobs belonging to suspended companies are not exposed through this endpoint.
+- `GET /api/v1/recruiter/jobs/{id}` requires recruiter authorization and verifies that the posting belongs to the recruiter's company. Recruiter pages use this endpoint to read their own draft, published, or closed jobs.
+- Public job responses contain recruiter-authored descriptions and requirements, plus supported job fields such as industry, work arrangement, location, and salary terms. Missing values remain absent/null; the public page must not synthesize responsibilities, benefits, or matching results.
+
 ### 2.1. Candidate Profile Management
 
 #### `POST /api/v1/candidate/cv/upload`
@@ -210,6 +220,16 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
     "created_at": "2026-09-28T12:00:00Z"
   }
   ```
+
+#### `PATCH /api/v1/candidate/cvs/{id}/metadata`
+- **Role**: `CANDIDATE`
+- **Description**: Cập nhật metadata hiển thị của card CV trong thư viện. Endpoint này chỉ đổi tiêu đề card; không sửa nội dung draft, file gốc, trạng thái xác nhận hoặc bất kỳ CV version nào.
+- **Request Body**:
+  ```json
+  { "title": "Backend Engineer CV" }
+  ```
+- **Validation**: `title` bắt buộc, sau khi trim không được rỗng và tối đa 255 ký tự.
+- **Response**: `200 OK` với `CVResponse` đã cập nhật. Candidate chỉ được sửa CV thuộc sở hữu của mình.
 
 #### `GET /api/v1/candidate/cvs/{id}/draft`
 - **Role**: `CANDIDATE`
@@ -522,3 +542,23 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
     "decided_at": "2026-09-28T12:30:00Z"
   }
   ```
+
+---
+
+## Implementation addendum — OAuth and salary (21/10/2026)
+
+### OAuth endpoints
+
+- `GET /api/v1/auth/oauth/{google|github}/start?next=/candidate` redirects to the provider authorization endpoint. `next` is accepted only as a safe internal path. Backend OAuth client secrets never enter frontend configuration.
+- Callbacks: `GET /api/v1/auth/oauth/google/callback` and `GET /api/v1/auth/oauth/github/callback`.
+- The backend stores a SHA-256 hash of one-use state, a PKCE verifier, nonce, expiry, and optional authenticated account-link target. Callback consumes state once. Google ID tokens are checked against Google JWKS (RS256), issuer, audience, expiry and nonce; Google email must be verified.
+- A successful login redirects with a short-lived, single-use exchange ticket. `POST /api/v1/auth/oauth/exchange` accepts `{ "ticket": "..." }` and returns the application's existing `JwtResponse`. The ticket expires after 60 seconds; application access/refresh tokens are returned only in the POST response.
+- `POST /api/v1/auth/oauth/{google|github}/link` requires an authenticated application JWT. Existing provider identities cannot be rebound to another MidCV account. Matching email alone never links accounts.
+- `GET /api/v1/auth/oauth/github/connection` requires an authenticated application JWT and reports ownership linkage plus `PUBLIC_PROFILE_ONLY` scan scope. No private-repository scope is requested.
+- `POST /api/v1/auth/oauth/complete` accepts `{ "ticket": "...", "email": "..." }` for a GitHub account that has no accessible verified email. It starts the existing email-verification flow. Login remains unavailable until verification.
+
+Provider identity is stored by `(provider, provider_subject)`, not email. New social accounts receive the safe `CANDIDATE` role; provider data cannot assign recruiter/admin roles. Recruiter registration continues through its company onboarding form.
+
+### Job salary representation
+
+`minSalary` and `maxSalary` remain JSON decimal numbers backed by PostgreSQL `DECIMAL(12,2)`. Requests accept `salaryCurrency` from `VND`, `USD`, `EUR`, `GBP`, `JPY`, `CNY`, `KRW`, `SGD`, `AUD`, `CAD`; responses include that ISO code and `salaryPeriod: "MONTH"`. Currency and period are independent. Existing records remain numerically unchanged and are migrated as VND/month. Missing values are `null`; zero is numeric zero. `salaryNegotiable: true` requires both amounts to be null; otherwise an empty range means undisclosed. Negative and inverted ranges are rejected. No exchange-rate conversion or cross-currency numeric filtering/comparison occurs.

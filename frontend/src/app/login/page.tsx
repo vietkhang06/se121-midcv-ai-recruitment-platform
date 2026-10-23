@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { AuthHeroBanner, AuthRole } from '@/components/auth/AuthHeroBanner';
 import { ThemeSwitch } from '@/components/common/ThemeSwitch';
-import { GoogleIcon, GitHubIcon, LinkedInIcon } from '@/components/auth/SocialIcons';
+import { GoogleIcon, GitHubIcon } from '@/components/auth/SocialIcons';
+import { BASE_URL } from '@/lib/api';
 import { Reveal } from '@/components/motion/Reveal';
 import {
   User,
@@ -35,10 +36,21 @@ function LoginFormContent() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [rememberMe, setRememberMe] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [oauthNotice, setOauthNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [oauthLoading, setOauthLoading] = useState<'google' | 'github' | 'linkedin' | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'github' | null>(null);
   const [isUnverified, setIsUnverified] = useState<boolean>(false);
+
+  const oauthNotice = useMemo(() => {
+    const messages: Record<string, string> = {
+      cancelled: locale === 'vi' ? 'Bạn đã hủy đăng nhập.' : 'Sign in was cancelled.',
+      provider_not_configured: locale === 'vi' ? 'Đăng nhập mạng xã hội chưa được cấu hình.' : 'Social sign-in is not configured.',
+      invalid_state: locale === 'vi' ? 'Phiên đăng nhập hết hạn hoặc không hợp lệ. Vui lòng thử lại.' : 'Sign-in session expired or is invalid. Please try again.',
+      account_conflict: locale === 'vi' ? 'Email đã thuộc tài khoản khác. Hãy đăng nhập bằng phương thức cũ rồi liên kết tài khoản trong hồ sơ.' : 'This email belongs to another account. Sign in with your existing method and link the provider from your profile.',
+      email_required: locale === 'vi' ? 'GitHub không cung cấp email đã xác minh. Hãy xác minh email trong GitHub hoặc dùng phương thức đăng nhập khác.' : 'GitHub did not provide a verified email. Verify an email in GitHub or use another sign-in method.',
+    };
+    const reason = searchParams.get('oauth_error');
+    return reason ? (messages[reason] || (locale === 'vi' ? 'Không thể hoàn tất đăng nhập. Vui lòng thử lại.' : 'Sign-in could not be completed. Please try again.')) : null;
+  }, [locale, searchParams]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -53,37 +65,24 @@ function LoginFormContent() {
   const handleRoleChange = (newRole: AuthRole) => {
     setSelectedRole(newRole);
     setError(null);
-    setOauthNotice(null);
     // Smooth URL update without page reload
     const newQuery = newRole === 'RECRUITER' ? '?role=hr' : '?role=candidate';
     window.history.replaceState(null, '', `/login${newQuery}`);
   };
 
-  const handleOAuth = (provider: 'google' | 'github' | 'linkedin') => {
+  const handleOAuth = (provider: 'google' | 'github') => {
+    if (role === 'RECRUITER') {
+      setError(locale === 'vi' ? 'Đăng ký Nhà tuyển dụng cần thông tin doanh nghiệp; hãy dùng biểu mẫu email để hoàn tất hồ sơ.' : 'Recruiter registration requires company details. Use the email form to complete the profile.');
+      return;
+    }
     setOauthLoading(provider);
     setError(null);
-    setOauthNotice(null);
-
-    // Simulate OAuth connection state per UX specification
-    setTimeout(() => {
-      setOauthLoading(null);
-      const providerNames = {
-        google: 'Google',
-        github: 'GitHub',
-        linkedin: 'LinkedIn',
-      };
-      setOauthNotice(
-        locale === 'vi'
-          ? `Đang kết nối xác thực tài khoản qua ${providerNames[provider]}... (Chế độ mô phỏng giao diện)`
-          : `Connecting to ${providerNames[provider]} OAuth... (UI simulation mode)`
-      );
-    }, 1200);
+    window.location.replace(`${BASE_URL}/api/v1/auth/oauth/${provider}/start?next=%2Fcandidate`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setOauthNotice(null);
     setIsUnverified(false);
     setIsLoading(true);
 
@@ -324,8 +323,8 @@ function LoginFormContent() {
             </span>
           </div>
 
-          {/* Social Login Buttons: Google, GitHub, LinkedIn */}
-          <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+          {/* Social login uses backend authorization code flows. */}
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
             {/* Google Button */}
             <button
               type="button"
@@ -356,20 +355,6 @@ function LoginFormContent() {
               <span className="truncate">GitHub</span>
             </button>
 
-            {/* LinkedIn Button */}
-            <button
-              type="button"
-              onClick={() => handleOAuth('linkedin')}
-              disabled={oauthLoading !== null}
-              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-xs disabled:opacity-60"
-            >
-              {oauthLoading === 'linkedin' ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-[#0A66C2]" />
-              ) : (
-                <LinkedInIcon className="w-4 h-4 shrink-0 text-[#0A66C2]" />
-              )}
-              <span className="truncate">LinkedIn</span>
-            </button>
           </div>
 
           {/* Bottom Switch Link */}

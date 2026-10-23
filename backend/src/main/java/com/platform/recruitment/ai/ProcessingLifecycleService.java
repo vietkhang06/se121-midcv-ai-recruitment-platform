@@ -38,6 +38,8 @@ public class ProcessingLifecycleService {
     private final GitHubProfileRepository gitHubProfileRepository;
     private final GitHubRepositoryRepository gitHubRepositoryRepository;
     private final GitHubAssessmentRepository gitHubAssessmentRepository;
+    @Autowired(required = false)
+    private com.platform.recruitment.auth.OAuthService oauthService;
 
     @Autowired(required = false)
     private GitHubRepositoryLanguageRepository gitHubRepositoryLanguageRepository;
@@ -45,11 +47,40 @@ public class ProcessingLifecycleService {
     @Autowired(required = false)
     private GitHubRepositoryTopicRepository gitHubRepositoryTopicRepository;
 
+    @Autowired(required = false)
+    private com.platform.recruitment.company.RecruiterProfileRepository recruiterProfileRepository;
+
+    private com.platform.recruitment.user.User authenticatedActor() {
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof com.platform.recruitment.user.User actor)) {
+            throw new com.platform.recruitment.common.UnauthorizedAccessException("Authentication is required");
+        }
+        return actor;
+    }
+
+    @Deprecated
     @Transactional
     public void processJobDescription(UUID jobId) {
+        processJobDescription(authenticatedActor(), jobId);
+    }
+
+    @Transactional
+    public void processJobDescription(com.platform.recruitment.user.User actor, UUID jobId) {
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
 
+        if (actor == null) throw new com.platform.recruitment.common.UnauthorizedAccessException("Authentication is required");
+        if (actor.getRole() != com.platform.recruitment.user.Role.ADMIN) {
+            if (actor.getRole() != com.platform.recruitment.user.Role.HR || recruiterProfileRepository == null) {
+                throw new com.platform.recruitment.common.UnauthorizedAccessException("Recruiter access is required");
+            }
+            var recruiter = recruiterProfileRepository.findByUserId(actor.getId())
+                    .orElseThrow(() -> new com.platform.recruitment.common.UnauthorizedAccessException("Recruiter profile not found"));
+            if (job.getCompany() == null || recruiter.getCompany() == null
+                    || !job.getCompany().getId().equals(recruiter.getCompany().getId())) {
+                throw new com.platform.recruitment.common.UnauthorizedAccessException("Job belongs to another company");
+            }
+        }
         log.info("Processing JD extraction lifecycle for job_id: {}", jobId);
         Map<String, Object> result = aiWorkerClient.extractJd(jobId, job.getTitle(), job.getIndustry(), job.getDescription());
 
@@ -91,9 +122,25 @@ public class ProcessingLifecycleService {
     @Deprecated
     @Transactional
     public void processCvDocument(UUID cvId) {
+        processCvDocument(authenticatedActor(), cvId);
+    }
+
+    @Deprecated
+    @Transactional
+    public void processCvDocument(com.platform.recruitment.user.User actor, UUID cvId) {
         CV cv = cvRepository.findById(cvId)
                 .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
 
+        if (actor == null || actor.getRole() != com.platform.recruitment.user.Role.CANDIDATE
+                || cv.getCandidate() == null || cv.getCandidate().getUser() == null
+                || !cv.getCandidate().getUser().getId().equals(actor.getId())) {
+            throw new com.platform.recruitment.common.UnauthorizedAccessException("Candidate does not own this CV");
+        }
+        if ("CONFIRMED".equalsIgnoreCase(cv.getStatus()) || "PROCESSING".equalsIgnoreCase(cv.getStatus())) {
+            throw new com.platform.recruitment.common.CustomException(
+                    com.platform.recruitment.common.ErrorCode.INVALID_STATE_TRANSITION,
+                    "Cannot reprocess a confirmed CV or an active extraction through the legacy endpoint");
+        }
         // Create or fetch latest CVVersion
         List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
         CVVersion version;
@@ -166,6 +213,7 @@ public class ProcessingLifecycleService {
                         .build());
 
         profile.setStatus(statusStr);
+        profile.setOwnershipStatus(oauthService != null && oauthService.isGithubOwned(candidate.getUser().getId(), profile.getUsername()) ? "OWNED" : "UNVERIFIED_PUBLIC");
         profile.setActivitySignal(signal);
         profile.setPublicReposCount(result.get("public_repos_count") != null ? ((Number) result.get("public_repos_count")).intValue() : 0);
         if (result.get("latest_activity_at") != null) {

@@ -25,27 +25,42 @@ export default function RecruiterAnalyticsPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = () => {
+  const loadData = async () => {
     setLoading(true);
     setError(null);
-    fetchRecruiterJobs()
-      .then(async (jobList) => {
-        setJobs(jobList);
-        const appsPromises = jobList.map(j => fetchJobApplications(j.id).catch(() => []));
-        const results = await Promise.all(appsPromises);
-        const flattened = results.flat();
-        setAllApplications(flattened);
-      })
-      .catch((err: any) => {
-        console.error('Failed to load analytics:', err);
-        setError(err?.message || (locale === 'vi' ? 'Không thể tải dữ liệu phân tích tuyển dụng' : 'Failed to load recruitment analytics'));
-      })
-      .finally(() => setLoading(false));
+    try {
+      const jobList = await fetchRecruiterJobs();
+      const results = await Promise.all(jobList.map((job) => fetchJobApplications(job.id).catch(() => [])));
+      setJobs(jobList);
+      setAllApplications(results.flat());
+    } catch (error: unknown) {
+      console.error('Failed to load analytics:', error);
+      setError(error instanceof Error ? error.message : (locale === 'vi' ? 'Không thể tải dữ liệu phân tích tuyển dụng' : 'Failed to load recruitment analytics'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    let active = true;
+    const loadInitialData = async () => {
+      try {
+        const jobList = await fetchRecruiterJobs();
+        const results = await Promise.all(jobList.map((job) => fetchJobApplications(job.id).catch(() => [])));
+        if (!active) return;
+        setJobs(jobList);
+        setAllApplications(results.flat());
+      } catch (error: unknown) {
+        if (!active) return;
+        console.error('Failed to load analytics:', error);
+        setError(error instanceof Error ? error.message : (locale === 'vi' ? 'Không thể tải dữ liệu phân tích tuyển dụng' : 'Failed to load recruitment analytics'));
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    void loadInitialData();
+    return () => { active = false; };
+  }, [locale]);
 
   if (loading) {
     return (
@@ -192,7 +207,7 @@ export default function RecruiterAnalyticsPage() {
               <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
                 <div className="bg-blue-600 h-full w-full rounded-full" />
               </div>
-              <span className="text-[10px] text-slate-500 font-medium">100% Khởi điểm</span>
+              <span className="text-[10px] text-slate-500 font-medium">{totalApps} {locale === 'vi' ? 'hồ sơ đã nộp' : 'applications submitted'}</span>
             </div>
 
             {/* Step 2: Shortlisted */}

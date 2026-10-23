@@ -255,7 +255,7 @@ public class CandidateCvProcessingRuntimeAuditTest {
         });
 
         // Trigger the legacy endpoint
-        aiProcessingController.triggerCvProcessing(cvId);
+        aiProcessingController.triggerCvProcessing(candidateUser, cvId);
 
         // Verify status was updated to PARSED
         assertEquals("PARSED", cv.getStatus());

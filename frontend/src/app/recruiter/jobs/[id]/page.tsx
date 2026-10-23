@@ -3,13 +3,21 @@
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { Job } from '@/types';
-import { fetchJobById, publishJob, closeJob } from '@/lib/api';
+import { ApiError, fetchRecruiterJobById, publishJob, closeJob } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
 import {
   Building2, MapPin, DollarSign, Briefcase, Calendar, ArrowLeft,
   Award, Users, ShieldCheck, CheckCircle2, Sparkles, XCircle, Send
 } from 'lucide-react';
 import { QuickScreeningModal } from '@/components/recruiter/QuickScreeningModal';
+import { formatSalary } from '@/lib/i18n';
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApiError && typeof error.responseBody === 'object' && error.responseBody !== null && 'message' in error.responseBody && typeof error.responseBody.message === 'string') {
+    return error.responseBody.message;
+  }
+  return error instanceof Error ? error.message : fallback;
+}
 
 export default function HRJobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -19,7 +27,7 @@ export default function HRJobDetailPage({ params }: { params: Promise<{ id: stri
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
-    fetchJobById(resolvedParams.id).then(setJob).catch(console.error);
+    fetchRecruiterJobById(resolvedParams.id).then(setJob).catch(console.error);
   }, [resolvedParams.id]);
 
   if (!job) {
@@ -38,8 +46,8 @@ export default function HRJobDetailPage({ params }: { params: Promise<{ id: stri
     try {
       const updated = await publishJob(job.id);
       setJob(updated);
-    } catch (err: any) {
-      alert(err?.response?.data?.message || err?.message || 'Failed to publish job');
+    } catch (err: unknown) {
+      alert(getErrorMessage(err, 'Failed to publish job'));
     } finally {
       setActionLoading(false);
     }
@@ -51,8 +59,8 @@ export default function HRJobDetailPage({ params }: { params: Promise<{ id: stri
     try {
       const updated = await closeJob(job.id);
       setJob(updated);
-    } catch (err: any) {
-      alert(err?.response?.data?.message || err?.message || 'Failed to close job');
+    } catch (err: unknown) {
+      alert(getErrorMessage(err, 'Failed to close job'));
     } finally {
       setActionLoading(false);
     }
@@ -96,7 +104,7 @@ export default function HRJobDetailPage({ params }: { params: Promise<{ id: stri
                 <span>{job.location || 'Remote / Hybrid'}</span>
                 <span>•</span>
                 <span>
-                  {locale === 'vi' ? 'Lương' : 'Salary'}: ${job.salaryMin?.toLocaleString()} - ${job.salaryMax?.toLocaleString()} /tháng
+                  {locale === 'vi' ? 'Lương' : 'Salary'}: {formatSalary(job.salaryMin, job.salaryMax, job.salaryRange, locale, job.salaryNegotiable, job.salaryCurrency)}
                 </span>
               </div>
             </div>

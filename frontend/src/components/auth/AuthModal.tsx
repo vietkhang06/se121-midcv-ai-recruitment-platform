@@ -16,6 +16,7 @@ import {
   checkEmailAvailability, registerCandidateAccount, registerRecruiterAccount, resendVerificationToken,
 } from '@/lib/api';
 import { EmailCheckStatus, Industry } from '@/types';
+import { BASE_URL } from '@/lib/api';
 
 const TARGET_INDUSTRIES_LIST = [
   'Information Technology', 'Marketing', 'Finance', 'Human Resources', 'Design',
@@ -37,7 +38,7 @@ function SocialButtons({
 }) {
   return (
     <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-      {(['google', 'github', 'linkedin'] as OAuthProvider[]).map((provider) => {
+      {(['google', 'github'] as OAuthProvider[]).map((provider) => {
         const icon = provider === 'google'
           ? <GoogleIcon className="h-4 w-4 shrink-0" />
           : provider === 'github'
@@ -247,17 +248,14 @@ export const AuthModal: React.FC = () => {
   };
 
   const handleOAuth = (provider: OAuthProvider) => {
+    if (provider === 'linkedin') return;
     setOauthLoading(provider);
     setOauthNotice(null);
     setLoginError(null);
     setRegisterError(null);
-    window.setTimeout(() => {
-      const providerNames = { google: 'Google', github: 'GitHub', linkedin: 'LinkedIn' };
-      setOauthLoading(null);
-      setOauthNotice(locale === 'vi'
-        ? `Đang kết nối với ${providerNames[provider]}... (Chế độ mô phỏng giao diện)`
-        : `Connecting to ${providerNames[provider]}... (UI simulation mode)`);
-    }, 1200);
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    const safeNext = currentPath.startsWith('/') && !currentPath.startsWith('//') && !currentPath.includes('\\') ? currentPath : '/candidate';
+    window.location.replace(`${BASE_URL}/api/v1/auth/oauth/${provider}/start?next=${encodeURIComponent(safeNext)}`);
   };
 
   const title = activeTab === 'LOGIN'

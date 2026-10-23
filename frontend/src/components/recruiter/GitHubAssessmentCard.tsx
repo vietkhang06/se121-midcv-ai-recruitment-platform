@@ -17,6 +17,12 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
     let branchDesc = locale === 'vi' ? "Ứng viên chưa liên kết tài khoản GitHub cá nhân." : "Candidate has not connected a personal GitHub account.";
     let badgeColor = "bg-slate-100 text-slate-700 border-slate-200";
 
+    if (assessment.status === 'PUBLIC_ONLY') {
+      branchTitle = locale === 'vi' ? 'Hồ sơ GitHub công khai · chưa xác minh chủ sở hữu' : 'Public GitHub profile · ownership unverified';
+      branchDesc = locale === 'vi' ? 'Thông tin công khai không được dùng làm năng lực đã xác minh.' : 'Public signals are not treated as verified competency.';
+      badgeColor = 'bg-amber-50 text-amber-800 border-amber-200';
+    }
+
     if (assessment.status === 'NOT_APPLICABLE') {
       branchTitle = locale === 'vi' ? "Tín hiệu GitHub: Không áp dụng (Not Applicable)" : "GitHub Signal: Not Applicable";
       branchDesc = locale === 'vi' ? "Vị trí tuyển dụng thuộc ngành phi kỹ thuật, tín hiệu GitHub không được áp dụng." : "Job position is non-technical, GitHub signals do not apply.";

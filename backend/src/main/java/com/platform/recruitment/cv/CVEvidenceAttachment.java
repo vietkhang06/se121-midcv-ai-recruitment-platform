@@ -4,6 +4,8 @@ import com.platform.recruitment.candidate.CandidateProfile;
 import com.platform.recruitment.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.UUID;
 
@@ -45,6 +47,10 @@ public class CVEvidenceAttachment extends BaseEntity {
 
     @Column(name = "file_size", nullable = false)
     private Integer fileSize;
+
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(name = "sha256", length = 64)
+    private String sha256;
 
     @Builder.Default
     @Column(name = "status", nullable = false, length = 50)

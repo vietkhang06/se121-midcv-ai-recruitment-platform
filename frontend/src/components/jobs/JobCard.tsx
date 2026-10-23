@@ -72,7 +72,7 @@ export const JobCard: React.FC<JobCardProps> = ({
             {/* SE347 Adapted Highlight Badges (Salary, Mode, Industry) */}
             <div className="job-highlight-group pt-1">
               <span className="job-highlight-badge badge-salary">
-                {formatSalary(job.salaryMin, job.salaryMax, job.salaryRange, locale)}
+                {formatSalary(job.salaryMin, job.salaryMax, job.salaryRange, locale, job.salaryNegotiable, job.salaryCurrency)}
               </span>
               <span className="job-highlight-badge">
                 {translateWorkMode(job.employmentType, locale)}

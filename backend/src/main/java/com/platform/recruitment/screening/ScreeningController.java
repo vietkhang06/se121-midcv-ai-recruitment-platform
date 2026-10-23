@@ -71,18 +71,15 @@ public class ScreeningController {
     var cv = docs.upload(a.getId(), "CV", title, file, null);
 
     UUID jdVersionId;
-    var existingJd =
-        queryOptional(
-            "SELECT jd_version_id FROM screening_runs WHERE job_id=? ORDER BY created_at DESC LIMIT 1",
-            id);
+    String jobTitle = text(j, "title");
+    String jobDesc = text(j, "description");
+    if (jobDesc.isBlank()) jobDesc = jobTitle;
+    var existingJd = queryOptional(
+        "SELECT sr.jd_version_id FROM screening_runs sr JOIN document_versions v ON v.id=sr.jd_version_id "
+            + "WHERE sr.job_id=? AND v.raw_text=? ORDER BY sr.created_at DESC LIMIT 1", id, jobDesc);
     if (existingJd.isPresent()) {
       jdVersionId = parseUuid(existingJd.get().get("jd_version_id"));
     } else {
-      String jobTitle = text(j, "title");
-      String jobDesc = text(j, "description");
-      if (jobDesc.isBlank()) {
-        jobDesc = jobTitle;
-      }
       var jdDoc = docs.text(a.getId(), "JD", "JD - " + jobTitle, jobDesc, null);
       jdVersionId = jdDoc.versionId();
     }

@@ -1,446 +1,217 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Industry, CV, CVVersion } from '@/types';
-import { fetchCandidateCVs, saveCandidateCV, fetchCandidateProfile } from '@/lib/api';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft, Plus, Save, Trash2, Download } from 'lucide-react';
+import { CV, CVQuota, CreateCVRequest } from '@/types';
+import { confirmCandidateCV, fetchCVDraft, fetchCandidateCVs, fetchCandidateProfile, fetchCVQuota, saveCandidateCV, updateCVDraft } from '@/lib/api';
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
 import { useLanguage } from '@/context/LanguageContext';
-import {
-  ArrowLeft,
-  Sparkles,
-  Download,
-  Save,
-  CheckCircle2,
-  FileText,
-  Briefcase,
-  GitBranch,
-  Printer,
-  ChevronDown
-} from 'lucide-react';
+
+type Item = Record<string, string>;
+type Draft = { fullName: string; headline: string; email: string; phone: string; location: string; summary: string; github: string; linkedin: string; portfolio: string; skills: string[]; experience: Item[]; projects: Item[]; education: Item[]; certifications: Item[]; languages: Item[] };
+const emptyDraft = (): Draft => ({ fullName: '', headline: '', email: '', phone: '', location: '', summary: '', github: '', linkedin: '', portfolio: '', skills: [], experience: [], projects: [], education: [], certifications: [], languages: [] });
+const inputClass = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white';
+const labelClass = 'mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200';
+
+type DataRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): DataRecord {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as DataRecord : {};
+}
+
+function asText(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  const record = asRecord(value);
+  return typeof record.value === 'string' ? record.value : '';
+}
+
+function readText(record: DataRecord, ...keys: string[]): string {
+  for (const key of keys) {
+    const value = asText(record[key]);
+    if (value) return value;
+  }
+  return '';
+}
+
+function mapItems(value: unknown): Item[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => {
+    if (typeof entry === 'string') return { name: entry };
+    return Object.fromEntries(Object.entries(asRecord(entry)).map(([key, itemValue]) => [key, asText(itemValue)]));
+  });
+}
+
+function mapDraft(rawValue: unknown): Draft {
+  const raw = asRecord(rawValue);
+  const personal = asRecord(raw.personal_info);
+  const links = asRecord(raw.links);
+  const summary = raw.summary;
+  const skills = Array.isArray(raw.skills)
+    ? raw.skills.map((item) => typeof item === 'string' ? item : readText(asRecord(item), 'name', 'skill', 'canonical_name')).filter(Boolean)
+    : [];
+  return {
+    fullName: readText(personal, 'full_name', 'fullName', 'name'),
+    headline: readText(personal, 'headline', 'title'),
+    email: readText(personal, 'email'),
+    phone: readText(personal, 'phone'),
+    location: readText(personal, 'location', 'address'),
+    summary: typeof summary === 'string' ? summary : readText(asRecord(summary), 'text', 'content', 'value'),
+    github: readText(links, 'github_url', 'githubUrl') || readText(personal, 'github_url', 'githubUrl'),
+    linkedin: readText(links, 'linkedin_url', 'linkedinUrl') || readText(personal, 'linkedin_url', 'linkedinUrl'),
+    portfolio: readText(links, 'portfolio_url', 'portfolioUrl') || readText(personal, 'portfolio_url', 'portfolioUrl'),
+    skills,
+    experience: mapItems(raw.work_experience),
+    projects: mapItems(raw.projects),
+    education: mapItems(raw.education),
+    certifications: mapItems(raw.certifications),
+    languages: mapItems(raw.languages)
+  };
+}
 
 export default function CVBuilderPage() {
-  const { t, locale } = useLanguage();
-  const [cvTitle, setCvTitle] = useState<string>('');
-  const [fullName, setFullName] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
-  const [location, setLocation] = useState<string>('');
-  const [companyName, setCompanyName] = useState<string>('');
-  const [roleTitle, setRoleTitle] = useState<string>('');
-  const [timelineDates, setTimelineDates] = useState<string>('');
-  const [bulletPoints, setBulletPoints] = useState<string>('');
-  const [skills, setSkills] = useState<string[]>([]);
-  const [newSkill, setNewSkill] = useState<string>('');
-  const [aiSuggestions, setAiSuggestions] = useState<boolean>(true);
-  const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
-  const [successMessage, setSuccessMessage] = useState<string>('');
-  const [existingCv, setExistingCv] = useState<CV | null>(null);
-  const [currentVersionNumber, setCurrentVersionNumber] = useState<number>(1);
+  const { locale } = useLanguage();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get('edit');
+  const requestedReturnTo = searchParams.get('returnTo');
+  const returnTo = requestedReturnTo && /^\/jobs\/[^/?#]+$/.test(requestedReturnTo) ? requestedReturnTo : '/candidate/cvs';
+  const vi = locale === 'vi';
+  const [title, setTitle] = useState(vi ? 'Hồ sơ chuyên môn' : 'Professional CV');
+  const [draft, setDraft] = useState<Draft>(emptyDraft);
+  const [cv, setCv] = useState<CV | null>(null);
+  const [quota, setQuota] = useState<CVQuota | null>(null);
+  const [quotaLoaded, setQuotaLoaded] = useState(false);
+  const [template, setTemplate] = useState<'simple' | 'editorial'>('simple');
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const editRevision = useRef(0);
+  const [editorWidth, setEditorWidth] = useState(50);
+  const editorLayoutRef = useRef<HTMLDivElement>(null);
+  const setEditorWidthFromPointer = (clientX: number) => {
+    const bounds = editorLayoutRef.current?.getBoundingClientRect();
+    if (!bounds || bounds.width <= 0) return;
+    setEditorWidth(Math.max(35, Math.min(65, ((clientX - bounds.left) / bounds.width) * 100)));
+  };
 
-  // Load existing CV if query parameter ?edit= is provided, otherwise load candidate profile
+  const patchDraft = useCallback((key: keyof Draft, value: Draft[keyof Draft]) => { editRevision.current += 1; setDraft((current) => ({ ...current, [key]: value })); setDirty(true); setNotice(''); }, []);
+
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const editId = params.get('edit');
-      const versionParam = params.get('v');
-      if (editId) {
-        fetchCandidateCVs().then((cvs) => {
-          const found = cvs.find((c) => c.id === editId);
-          if (found) {
-            setExistingCv(found);
-            setCvTitle(found.title);
-            let targetVersion = found.versions?.[0];
-            if (versionParam) {
-              const matched = found.versions?.find((v) => v.versionNumber === Number(versionParam));
-              if (matched) targetVersion = matched;
-            }
-            if (targetVersion) {
-              setCurrentVersionNumber(targetVersion.versionNumber);
-              const eSec = targetVersion.sections.find((s) => s.sectionType === 'EXPERIENCE');
-              if (eSec) setBulletPoints(eSec.content);
-              const sSec = targetVersion.sections.find((s) => s.sectionType === 'SKILLS');
-              if (sSec && sSec.content) {
-                const parsedSkills = sSec.content.split(',').map((s) => s.trim()).filter(Boolean);
-                if (parsedSkills.length > 0) setSkills(parsedSkills);
-              }
-            } else {
-              setCurrentVersionNumber(found.currentVersionNumber || 1);
-            }
+    let active = true;
+    const load = async () => {
+      setLoading(true);
+      try {
+        if (!editId) {
+          const currentQuota = await fetchCVQuota();
+          if (!active) return;
+          setQuota(currentQuota);
+          setQuotaLoaded(true);
+          if (!currentQuota.canUpload) {
+            setError(vi ? 'Bạn đã đạt hạn mức tạo CV. Hãy xóa một CV cũ hoặc nâng cấp gói để tiếp tục.' : 'You have reached your CV creation limit. Delete an existing CV or upgrade your plan to continue.');
+            return;
           }
-        });
-        fetchCandidateProfile().then((prof) => {
-          if (prof) {
-            setFullName(prof.fullName || '');
-            setEmail(prof.email || '');
-            setLocation(prof.location || '');
-          }
-        }).catch(() => {});
+        } else {
+          setQuotaLoaded(true);
+        }
+        if (editId) {
+          const cvs = await fetchCandidateCVs();
+          const selected = cvs.find((item) => item.id === editId);
+          if (!selected) throw new Error('CV not found or access is denied. / Không tìm thấy hồ sơ hoặc bạn không có quyền truy cập.');
+          const data = await fetchCVDraft(editId);
+          if (!active) return;
+          setCv(selected); setTitle(data.title || selected.title); setDraft(mapDraft(data));
+        } else {
+          const profile = await fetchCandidateProfile().catch(() => null);
+          if (!active) return;
+          setDraft((value) => ({ ...value, fullName: profile?.fullName || '', email: profile?.email || '', phone: profile?.phone || '', headline: profile?.headline || '', location: profile?.location || '', summary: profile?.bio || '', github: profile?.githubUrl || '', portfolio: profile?.portfolioUrl || '', skills: profile?.skills || [] }));
+        }
+      } catch (error: unknown) { if (active) { setQuotaLoaded(true); setError(error instanceof Error ? error.message : 'Could not load the CV. / Không tải được hồ sơ.'); } }
+      finally { if (active) setLoading(false); }
+    };
+    void load(); return () => { active = false; };
+  }, [editId, vi]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', warn); return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+
+  const saveDraft = async () => {
+    const savedRevision = editRevision.current;
+    setSaving(true); setError(''); setNotice('');
+    try {
+      if (draft.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email)) throw new Error(vi ? 'Email chưa đúng định dạng.' : 'Enter a valid email address.');
+      for (const [label, value] of [[vi ? 'GitHub' : 'GitHub', draft.github], ['LinkedIn', draft.linkedin], [vi ? 'Trang cá nhân' : 'Portfolio', draft.portfolio]] as const) {
+        if (value) { const url = new URL(value); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(`${label}: ${vi ? 'chỉ chấp nhận liên kết HTTP hoặc HTTPS.' : 'only HTTP or HTTPS links are supported.'}`); }
+      }
+      let target = cv;
+      if (!target) {
+        const currentQuota = await fetchCVQuota();
+        setQuota(currentQuota);
+        setQuotaLoaded(true);
+        if (!currentQuota.canUpload) throw new Error(vi ? 'Bạn đã đạt hạn mức tạo CV. Hãy xóa một CV cũ hoặc nâng cấp gói để tiếp tục.' : 'You have reached your CV creation limit. Delete an existing CV or upgrade your plan to continue.');
+        const createRequest: CreateCVRequest = { title, creationPath: 'BUILDER', targetIndustry: 'Technology', isDefault: true };
+        target = await saveCandidateCV(createRequest);
+        setCv(target);
+      }
+      const payload = { title, personal_info: { full_name: draft.fullName, headline: draft.headline, email: draft.email, phone: draft.phone, location: draft.location }, summary: { text: draft.summary }, skills: draft.skills.map((name) => ({ name })), work_experience: draft.experience, projects: draft.projects, education: draft.education, certifications: draft.certifications, languages: draft.languages, links: { github_url: draft.github, linkedin_url: draft.linkedin, portfolio_url: draft.portfolio } };
+      await updateCVDraft(target.id, payload);
+      if (editRevision.current === savedRevision) {
+        setDirty(false);
+        setNotice(vi ? 'Bản nháp đã được lưu.' : 'Draft saved.');
       } else {
-        fetchCandidateProfile().then((prof) => {
-          if (prof) {
-            setFullName(prof.fullName || '');
-            setEmail(prof.email || '');
-            setLocation(prof.location || '');
-            if (prof.skills && prof.skills.length > 0) {
-              setSkills(prof.skills);
-            }
-          }
-        }).catch(() => {});
-        setCvTitle(locale === 'vi' ? 'Hồ Sơ Chuyên Môn Kỹ Thuật' : 'Technical Professional Resume');
+        setNotice(vi ? 'Đã lưu bản nháp trước đó; thay đổi mới vẫn chưa lưu.' : 'The earlier draft was saved; newer edits are still unsaved.');
       }
-    }
-  }, [locale]);
-
-  const handleAddSkill = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && newSkill.trim()) {
-      e.preventDefault();
-      if (!skills.includes(newSkill.trim())) {
-        setSkills([...skills, newSkill.trim()]);
-      }
-      setNewSkill('');
-    }
+    } catch (error: unknown) { setError(error instanceof Error ? error.message : (vi ? 'Không lưu được. Các chỉnh sửa vẫn còn trên trang.' : 'Save failed. Your edits are still on this page.')); }
+    finally { setSaving(false); }
   };
 
-  const handleRemoveSkill = (skillToRemove: string) => {
-    setSkills(skills.filter((s) => s !== skillToRemove));
+  const confirmDraft = async () => {
+    if (!cv || dirty || !draft.fullName.trim()) { setError(vi ? 'Hãy lưu bản nháp và nhập họ tên trước khi xác nhận.' : 'Save the draft and enter a name before confirming.'); return; }
+    setConfirming(true); setError('');
+    try { await confirmCandidateCV(cv.id); router.push(returnTo); }
+    catch (error: unknown) { setError(error instanceof Error ? error.message : (vi ? 'Không thể xác nhận hồ sơ.' : 'Could not confirm the CV.')); setConfirming(false); }
   };
 
-  const handleStrengthenBullet = () => {
-    setBulletPoints((prev) =>
-      prev.trim()
-        ? `${prev}\n• Đóng góp chủ chốt: Tối ưu hóa kiến trúc và nâng cao độ ổn định hệ thống.`
-        : '• Đóng góp chủ chốt: Thiết kế và vận hành hệ thống phần mềm đáp ứng yêu cầu kỹ thuật.'
-    );
+  const changeItem = (section: 'experience' | 'projects' | 'education' | 'certifications' | 'languages', index: number, key: string, value: string) => {
+    const items = [...draft[section]]; items[index] = { ...items[index], [key]: value }; patchDraft(section, items);
   };
-
-  const handleAddMetric = () => {
-    setBulletPoints((prev) =>
-      prev.trim()
-        ? `${prev} (Chỉ số định lượng: tối ưu hóa thời gian xử lý và giảm thiểu sai sót).`
-        : '• Đạt chỉ số cải thiện hiệu suất vận hành đo lường được trong dự án.'
-    );
+  const addItem = (section: 'experience' | 'projects' | 'education' | 'certifications' | 'languages') => patchDraft(section, [...draft[section], {}]);
+  const removeItem = (section: 'experience' | 'projects' | 'education' | 'certifications' | 'languages', index: number) => patchDraft(section, draft[section].filter((_, i) => i !== index));
+  const sectionLabels = { experience: vi ? 'Kinh nghiệm' : 'Experience', projects: vi ? 'Dự án' : 'Projects', education: vi ? 'Học vấn' : 'Education', certifications: vi ? 'Chứng chỉ' : 'Certifications', languages: vi ? 'Ngôn ngữ' : 'Languages' };
+  const fields: Record<keyof typeof sectionLabels, [string, string][]> = {
+    experience: [['company', vi ? 'Công ty' : 'Company'], ['title', vi ? 'Chức danh' : 'Job title'], ['dates', vi ? 'Thời gian' : 'Dates'], ['description', vi ? 'Mô tả và kết quả' : 'Description and outcomes']],
+    projects: [['name', vi ? 'Tên dự án' : 'Project name'], ['role', vi ? 'Vai trò' : 'Role'], ['dates', vi ? 'Thời gian' : 'Dates'], ['description', vi ? 'Mô tả' : 'Description'], ['technologies', vi ? 'Công nghệ' : 'Technologies']],
+    education: [['school', vi ? 'Trường' : 'School'], ['degree', vi ? 'Bằng cấp' : 'Degree'], ['field', vi ? 'Chuyên ngành' : 'Field of study'], ['dates', vi ? 'Thời gian' : 'Dates']],
+    certifications: [['name', vi ? 'Tên chứng chỉ' : 'Certification'], ['issuer', vi ? 'Đơn vị cấp' : 'Issuer'], ['date', vi ? 'Ngày cấp' : 'Date']],
+    languages: [['language', vi ? 'Ngôn ngữ' : 'Language'], ['proficiency', vi ? 'Trình độ' : 'Proficiency']],
   };
+  const field = (key: keyof Draft, label: string, multiline = false, type = 'text') => <label className="block" key={key}><span className={labelClass}>{label}</span>{multiline ? <textarea className={inputClass} rows={4} value={draft[key] as string} onChange={(e) => patchDraft(key, e.target.value as never)} /> : <input className={inputClass} type={type} value={draft[key] as string} onChange={(e) => patchDraft(key, e.target.value as never)} />}</label>;
 
-  const handleSaveCV = async () => {
-    let nextVersion = 1;
-    let targetCvId = existingCv?.id || `cv-${Date.now()}`;
-    let previousVersions = existingCv?.versions ? [...existingCv.versions] : [];
+  if (!editId && quotaLoaded && quota?.canUpload !== true) return <main className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center gap-4 px-6 text-center"><div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-950 shadow-sm dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100"><h1 className="text-lg font-semibold">{quota ? (vi ? 'Đã đạt hạn mức tạo CV' : 'CV creation limit reached') : (vi ? 'Không kiểm tra được hạn mức CV' : 'Could not check CV quota')}</h1><p className="mt-2 text-sm">{quota ? (vi ? 'Bạn có thể tiếp tục khi còn hạn mức, hoặc xóa một CV hiện có để giải phóng lượt tạo.' : 'You can create a CV when you have an available slot, or delete an existing CV to free one.') : (vi ? 'Vui lòng quay lại thư viện CV và thử lại sau.' : 'Return to your CV library and try again later.')}</p></div><Link href="/candidate/cvs" className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">{vi ? 'Về thư viện CV' : 'Back to CV library'}</Link></main>;
 
-    if (existingCv) {
-      nextVersion = (existingCv.currentVersionNumber || previousVersions.length || 1) + 1;
-    }
-
-    const newVersion: CVVersion = {
-      id: `v-${Date.now()}`,
-      versionNumber: nextVersion,
-      title: `${cvTitle} (v${nextVersion}.0)`,
-      summaryText: bulletPoints,
-      sections: [
-        { id: `sec-exp-${Date.now()}`, sectionType: 'EXPERIENCE', title: 'Experience', content: bulletPoints },
-        { id: `sec-skill-${Date.now()}`, sectionType: 'SKILLS', title: 'Skills', content: skills.join(', ') },
-      ],
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-
-    const cvToSave: CV = {
-      id: targetCvId,
-      title: cvTitle,
-      targetIndustry: existingCv?.targetIndustry || 'Technology',
-      targetRole: roleTitle,
-      creationPath: 'BUILDER',
-      isDefault: existingCv ? existingCv.isDefault : true,
-      currentVersionNumber: nextVersion,
-      updatedAt: new Date().toISOString().split('T')[0],
-      versions: [newVersion, ...previousVersions.filter((v) => v.versionNumber !== nextVersion)],
-    };
-
-    await saveCandidateCV(cvToSave);
-    setExistingCv(cvToSave);
-    setCurrentVersionNumber(nextVersion);
-    setSuccessMessage(locale === 'vi' ? `Đã xuất bản phiên bản mới v${nextVersion}.0 thành công!` : `Published new version v${nextVersion}.0 successfully!`);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 4000);
-  };
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  return (
-    <div className="bg-[#F8FAF9] dark:bg-[#0B1329] min-h-screen text-slate-800 dark:text-slate-100 transition-colors">
-      
-      {/* Hidden SEO/Test Strings for 100% E2E Compatibility */}
-      <div className="sr-only">
-        <span>Flagship 3-Column Studio</span>
-        <span>Live A4 Document Preview</span>
-        <span>Các Mục Nội Dung CV</span>
+  return <main className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><Link aria-label={vi ? 'Quay lại danh sách hồ sơ' : 'Back to CV list'} onClick={(event) => { if (dirty && !window.confirm(vi ? 'Bạn có thay đổi chưa lưu. Rời trang?' : 'You have unsaved edits. Leave this page?')) event.preventDefault(); }} href="/candidate/cvs" className="rounded-md p-2 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-blue-600"><ArrowLeft size={18}/></Link><label className="flex items-center gap-2 text-sm"><span className="hidden sm:inline">{vi ? 'Tiêu đề hồ sơ' : 'CV title'}</span><input aria-label={vi ? 'Tiêu đề hồ sơ' : 'CV title'} className={`${inputClass} w-44 sm:w-64`} value={title} onChange={(e) => { editRevision.current += 1; setTitle(e.target.value); setDirty(true); }} /></label></div><div className="flex items-center gap-2"><label className="sr-only" htmlFor="cv-template">{vi ? 'Mẫu CV' : 'CV template'}</label><select id="cv-template" value={template} onChange={(e) => setTemplate(e.target.value as 'simple' | 'editorial')} className={`${inputClass} w-auto`}><option value="simple">{vi ? 'Một cột rõ ràng' : 'Simple single column'}</option><option value="editorial">{vi ? 'Tiêu đề nhấn mạnh' : 'Editorial heading'}</option></select><button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600"><Download size={16}/><span className="hidden sm:inline">PDF</span></button>{cv && <button type="button" onClick={confirmDraft} disabled={confirming || dirty || !draft.fullName.trim()} className="rounded-lg border border-emerald-700 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-50 dark:text-emerald-300">{confirming ? (vi ? 'Đang xác nhận…' : 'Confirming…') : (vi ? 'Xác nhận hồ sơ' : 'Confirm CV')}</button>}<button type="button" onClick={saveDraft} disabled={saving || loading || !title.trim() || (!editId && quotaLoaded && quota?.canUpload === false)} className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50"><Save size={15}/>{saving ? (vi ? 'Đang lưu…' : 'Saving…') : (vi ? 'Lưu' : 'Save')}</button></div></div></header>
+    <div className="mx-auto max-w-[1600px] px-4 py-4">
+      <label className="mb-3 hidden items-center gap-3 text-xs text-slate-600 dark:text-slate-300 lg:flex">{vi ? 'Độ rộng khung chỉnh sửa' : 'Editor width'}<input aria-label={vi ? 'Độ rộng khung chỉnh sửa' : 'Editor width'} type="range" min="35" max="65" value={editorWidth} onChange={(e) => setEditorWidth(Number(e.target.value))} className="w-48"/><span>{editorWidth}%</span></label>
+      <div ref={editorLayoutRef} id="cv-editor-layout" className="grid min-w-0 grid-cols-1 gap-6 lg:gap-3" style={{ gridTemplateColumns: `minmax(0, ${editorWidth}fr) 10px minmax(0, ${100 - editorWidth}fr)` }}>
+      <section className="space-y-6" aria-label={vi ? 'Chỉnh sửa hồ sơ' : 'CV editor'}>
+        {loading && <p role="status" className="rounded-lg bg-blue-50 p-3 text-sm text-blue-800">{vi ? 'Đang tải bản nháp…' : 'Loading draft…'}</p>}
+        {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">{error}</p>}{notice && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">{notice}</p>}{dirty && !saving && <p role="status" className="text-xs font-medium text-amber-700 dark:text-amber-300">{vi ? 'Có thay đổi chưa lưu.' : 'Unsaved changes.'}</p>}
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"><h1 className="mb-4 text-lg font-semibold">{vi ? 'Thông tin cá nhân' : 'Personal information'}</h1><div className="grid gap-4 sm:grid-cols-2">{field('fullName', vi ? 'Họ và tên' : 'Full name')}{field('headline', vi ? 'Chức danh / tiêu đề' : 'Headline')}{field('email', 'Email', false, 'email')}{field('phone', vi ? 'Số điện thoại' : 'Phone', false, 'tel')}{field('location', vi ? 'Địa điểm' : 'Location')}{field('github', 'GitHub URL', false, 'url')}{field('linkedin', 'LinkedIn URL', false, 'url')}{field('portfolio', vi ? 'Trang cá nhân' : 'Portfolio URL', false, 'url')}</div><div className="mt-4">{field('summary', vi ? 'Tóm tắt nghề nghiệp' : 'Professional summary', true)}</div></section>
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"><h2 className="mb-3 text-lg font-semibold">{vi ? 'Kỹ năng' : 'Skills'}</h2><SkillAutocomplete skills={draft.skills} onSkillsChange={(value) => patchDraft('skills', value)} placeholder={vi ? 'Tìm và thêm kỹ năng…' : 'Find and add skills…'} /></section>
+        {(Object.keys(sectionLabels) as Array<keyof typeof sectionLabels>).map((section) => <section key={section} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"><div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-semibold">{sectionLabels[section]}</h2><button type="button" onClick={() => addItem(section)} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600"><Plus size={16}/>{vi ? 'Thêm mục' : 'Add item'}</button></div>{draft[section].length === 0 && <p className="text-sm text-slate-500">{vi ? 'Chưa có mục nào. Bạn có thể để trống hoặc thêm mục.' : 'No entries yet. You can leave this section empty or add an item.'}</p>}<div className="space-y-4">{draft[section].map((item, index) => <div key={index} className="rounded-lg border border-slate-200 p-4 dark:border-slate-700"><div className="mb-3 flex justify-end"><button type="button" aria-label={`${vi ? 'Xóa' : 'Remove'} ${sectionLabels[section]} ${index + 1}`} onClick={() => removeItem(section, index)} className="rounded-md p-2 text-rose-700 hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-rose-600"><Trash2 size={16}/></button></div><div className="grid gap-3 sm:grid-cols-2">{fields[section].map(([key, label]) => <label className={`block ${key === 'description' || key === 'technologies' ? 'sm:col-span-2' : ''}`} key={key}><span className={labelClass}>{label}</span>{key === 'description' ? <textarea className={inputClass} rows={3} value={item[key] || ''} onChange={(e) => changeItem(section, index, key, e.target.value)} /> : <input className={inputClass} value={item[key] || ''} onChange={(e) => changeItem(section, index, key, e.target.value)} />}</label>)}</div></div>)}</div></section>)}
+      </section>
+      <div role="separator" aria-orientation="vertical" aria-label={vi ? 'Kéo để đổi độ rộng khung chỉnh sửa và xem trước' : 'Drag to resize the editor and preview panes'} aria-valuemin={35} aria-valuemax={65} aria-valuenow={Math.round(editorWidth)} tabIndex={0} className="hidden touch-none cursor-col-resize select-none items-center justify-center rounded-full outline-none hover:bg-blue-200 focus-visible:bg-blue-200 focus-visible:ring-2 focus-visible:ring-blue-600 lg:flex" onPointerDown={(event) => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); setEditorWidthFromPointer(event.clientX); }} onPointerMove={(event) => { if (event.buttons === 1) setEditorWidthFromPointer(event.clientX); }} onKeyDown={(event) => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); setEditorWidth((width) => Math.max(35, Math.min(65, width + (event.key === 'ArrowRight' ? 2 : -2)))); } if (event.key === 'Home') { event.preventDefault(); setEditorWidth(35); } if (event.key === 'End') { event.preventDefault(); setEditorWidth(65); } }}><span aria-hidden="true" className="h-10 w-1 rounded-full bg-slate-300" /></div>      <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start"><p className="mb-2 text-sm text-slate-600 dark:text-slate-400">{vi ? 'Bản xem trước' : 'Preview'}</p><article id="printable-cv" className={`min-h-[700px] rounded-xl border border-slate-200 bg-white p-8 shadow-lg dark:border-slate-800 dark:bg-white dark:text-slate-900 ${template === 'editorial' ? 'font-serif' : ''}`}><header className={`border-b border-slate-200 pb-5 ${template === 'editorial' ? 'text-center' : ''}`}><h2 className="break-words text-3xl font-bold">{draft.fullName || (vi ? 'Họ và tên' : 'Full name')}</h2>{draft.headline && <p className="mt-1 text-lg text-slate-700">{draft.headline}</p>}<p className="mt-2 break-words text-sm text-slate-600">{[draft.email, draft.phone, draft.location].filter(Boolean).join(' · ')}</p><p className="mt-1 break-all text-xs text-blue-800">{[draft.github, draft.linkedin, draft.portfolio].filter(Boolean).join(' · ')}</p></header>{draft.summary && <section className="mt-5"><h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">{vi ? 'Tóm tắt' : 'Summary'}</h3><p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{draft.summary}</p></section>}{draft.skills.length > 0 && <section className="mt-5"><h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">{vi ? 'Kỹ năng' : 'Skills'}</h3><p className="break-words text-sm">{draft.skills.join(' · ')}</p></section>}{(Object.keys(sectionLabels) as Array<keyof typeof sectionLabels>).map((section) => draft[section].length > 0 && <section key={section} className="mt-5"><h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">{sectionLabels[section]}</h3><div className="space-y-3">{draft[section].map((item, i) => <div key={i} className="break-words"><p className="font-semibold">{item.company || item.name || item.school || item.language || item.title || item.degree || item.certification}</p><p className="text-sm text-slate-700">{[item.title, item.role, item.degree, item.field, item.issuer, item.proficiency, item.dates, item.date, item.technologies].filter(Boolean).join(' · ')}</p>{item.description && <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{item.description}</p>}</div>)}</div></section>)}</article></aside>
       </div>
-
-      {/* 05 — Top Navigation Header (Figma Screen 05) */}
-      <div className="bg-white dark:bg-[#111C38] border-b border-[#E2E8F0] dark:border-[#1E293B] px-4 sm:px-8 py-3 flex items-center justify-between shadow-xs">
-        <div className="flex items-center gap-4">
-          <Link href="/candidate/cvs" className="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono uppercase text-slate-400 dark:text-slate-500">
-              {locale === 'vi' ? 'Mẫu CV:' : 'Template:'}
-            </span>
-            <div className="relative">
-              <select className="bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-md px-3 py-1 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]">
-                <option>Standard Technical (Default)</option>
-                <option>Systems & Distributed Architecture</option>
-                <option>Modern Executive Engineering</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Immutable Version Badge */}
-          <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-[#1E293B]">
-            <span
-              id="cv-version-badge"
-              className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-50 dark:bg-[#2563EB]/20 text-emerald-800 dark:text-[#93C5FD] border border-emerald-300 dark:border-[#2563EB]"
-            >
-              v{currentVersionNumber}.0
-            </span>
-            {existingCv && (
-              <span className="hidden sm:inline text-[11px] text-slate-400 font-mono">
-                {locale === 'vi' ? `(Lưu tiếp theo: v${currentVersionNumber + 1}.0)` : `(Next save: v${currentVersionNumber + 1}.0)`}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
-            <span>{locale === 'vi' ? 'Gợi ý AI:' : 'AI Suggestions:'}</span>
-            <button
-              type="button"
-              onClick={() => setAiSuggestions(!aiSuggestions)}
-              className={`w-9 h-5 rounded-full p-0.5 transition ${aiSuggestions ? 'bg-[#0C2B24] dark:bg-[#2563EB]' : 'bg-slate-300 dark:bg-slate-700'}`}
-            >
-              <div className={`w-4 h-4 rounded-full bg-white transition transform ${aiSuggestions ? 'translate-x-4' : 'translate-x-0'}`} />
-            </button>
-          </div>
-
-          <button
-            id="save-cv-btn"
-            onClick={handleSaveCV}
-            className="px-3.5 py-1.5 rounded-md text-xs font-semibold border border-slate-300 dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition flex items-center gap-1.5"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span>{saveSuccess ? (locale === 'vi' ? 'Đã lưu!' : 'Saved!') : (locale === 'vi' ? 'Lưu Hồ Sơ' : 'Save Profile')}</span>
-          </button>
-
-          <button
-            onClick={handlePrint}
-            className="px-4 py-1.5 rounded-md text-xs font-semibold text-white bg-[#0C2B24] dark:bg-[#2563EB] hover:bg-[#133E34] dark:hover:bg-[#1D4ED8] transition flex items-center gap-1.5 shadow-xs"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>{locale === 'vi' ? 'Xuất PDF' : 'Export PDF'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Save Success Banner */}
-      {saveSuccess && (
-        <div id="save-success-banner" className="bg-emerald-50 dark:bg-[#2563EB]/20 border-b border-emerald-200 dark:border-[#2563EB]/30 px-4 sm:px-8 py-2.5 flex items-center justify-between text-xs text-emerald-900 dark:text-emerald-200 transition-all">
-          <div className="flex items-center gap-2 max-w-7xl mx-auto w-full">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-[#3B82F6] shrink-0" />
-            <span className="font-semibold">{successMessage || (locale === 'vi' ? `Đã lưu phiên bản mới v${currentVersionNumber}.0 thành công!` : `Saved new version v${currentVersionNumber}.0 successfully!`)}</span>
-            <span className="text-[11px] opacity-75 font-mono ml-auto">
-              {locale === 'vi' ? 'Bản lưu bất biến (Immutable Snapshot)' : 'Immutable Snapshot'}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* 05 — Main Studio Layout (Figma Screen 05: Left Form, Right Live A4 Sheet) */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        {/* Left Column: Form Editor (lg:col-span-7) */}
-        <div className="lg:col-span-7 space-y-6">
-          
-          {/* Card 1: Resume Evidence Editor Progress */}
-          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-sm text-slate-900 dark:text-white">
-                {locale === 'vi' ? 'Trình Soạn Thảo Minh Chứng CV' : 'Resume Evidence Editor'}
-              </h2>
-              <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 font-mono">
-                {locale === 'vi' ? 'Mức độ hoàn thiện: 78%' : 'Completeness: 78%'}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {locale === 'vi'
-                ? 'Hồ sơ đầy đủ giúp tăng độ chuẩn xác đối sánh lên tới 3 lần so với tiêu chí tuyển dụng.'
-                : 'Complete profiles achieve up to 3x matching accuracy against automated engineering rubrics.'}
-            </p>
-            <div className="w-full bg-slate-100 dark:bg-[#0B1329] rounded-full h-1.5 overflow-hidden">
-              <div className="bg-amber-600 dark:bg-amber-500 h-1.5 rounded-full" style={{ width: '78%' }} />
-            </div>
-          </div>
-
-          {/* Card 2: Section Work History & Project Commit Evidence */}
-          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
-            <div className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              {locale === 'vi' ? 'Mục: Lịch Sử Công Tác & Minh Chứng Dự Án' : 'Section: Work History & Project Commit Evidence'}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-                  {locale === 'vi' ? 'TÊN CÔNG TY' : 'COMPANY NAME'}
-                </label>
-                <input
-                  type="text"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  className="w-full bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-                  {locale === 'vi' ? 'CHỨC DANH / VỊ TRÍ' : 'ROLE TITLE'}
-                </label>
-                <input
-                  type="text"
-                  value={roleTitle}
-                  onChange={(e) => setRoleTitle(e.target.value)}
-                  className="w-full bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-                {locale === 'vi' ? 'THỜI GIAN LÀM VIỆC' : 'TIMELINE DATES'}
-              </label>
-              <input
-                type="text"
-                value={timelineDates}
-                onChange={(e) => setTimelineDates(e.target.value)}
-                className="w-full bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB]"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
-                {locale === 'vi' ? 'ĐÓNG GÓP & THÀNH TỰU NỔI BẬT' : 'KEY CONTRIBUTION BULLET POINTS'}
-              </label>
-              <textarea
-                rows={4}
-                value={bulletPoints}
-                onChange={(e) => setBulletPoints(e.target.value)}
-                className="w-full bg-[#F8FAF9] dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-lg p-3 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#0C2B24] dark:focus:border-[#2563EB] leading-relaxed"
-              />
-            </div>
-
-            {/* AI Enhancement Action Pills */}
-            <div className="flex flex-wrap gap-2 pt-1">
-              <button
-                type="button"
-                onClick={handleStrengthenBullet}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800/40 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                <span>{locale === 'vi' ? 'Tăng sức nặng cho thành tựu này' : 'Strengthen this bullet point'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleAddMetric}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800/40 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                <span>{locale === 'vi' ? 'Thêm số liệu định lượng (e.g. % hiệu suất)' : 'Add quantifiable metric (e.g. % performance increase)'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Card 3: Section Technical Skills Index */}
-          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                {locale === 'vi' ? 'Mục: Danh Mục Kỹ Năng Kỹ Thuật' : 'Section: Technical Skills Index'}
-              </div>
-              <span className="text-[11px] font-mono text-emerald-600 dark:text-[#3B82F6]">
-                {locale === 'vi' ? 'Tự động gợi ý & Bí danh kích hoạt' : 'Autocomplete & Aliases Active'}
-              </span>
-            </div>
-
-            <SkillAutocomplete
-              skills={skills}
-              onSkillsChange={setSkills}
-              placeholder={locale === 'vi' ? 'Gõ ví dụ: jav, spr, doc, k8s để gợi ý...' : 'Type e.g. jav, spr, doc, k8s to autocomplete...'}
-            />
-          </div>
-
-        </div>
-
-        {/* Right Column: Live A4 Document Preview (lg:col-span-5) */}
-        <div className="lg:col-span-5 sticky top-24">
-          <div
-            id="printable-cv"
-            className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-8 sm:p-10 shadow-lg space-y-6 text-slate-900 dark:text-slate-100 min-h-[680px]"
-          >
-            {/* CV Header */}
-            <div className="border-b border-slate-200 dark:border-[#1E293B] pb-5 space-y-1">
-              <h1 className="text-2xl font-editorial font-bold text-slate-900 dark:text-white tracking-tight">
-                {fullName}
-              </h1>
-              <div className="text-xs text-slate-600 dark:text-slate-400 font-mono">
-                {location} • {email}
-              </div>
-            </div>
-
-            {/* Professional Summary */}
-            <div className="space-y-1.5">
-              <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                {locale === 'vi' ? 'TÓM TẮT HỒ SƠ CHUYÊN MÔN' : 'PROFESSIONAL SUMMARY'}
-              </div>
-              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-light">
-                {roleTitle
-                  ? (locale === 'vi' ? `Kỹ sư chuyên ngành ${roleTitle} với kỹ năng giải quyết bài toán kỹ thuật và triển khai giải pháp thực tế.` : `Professional specializing in ${roleTitle} focused on engineering solutions and production reliability.`)
-                  : (locale === 'vi' ? 'Hồ sơ năng lực chuyên môn kỹ thuật.' : 'Technical competence and professional background summary.')}
-              </p>
-            </div>
-
-            {/* Professional Experience */}
-            <div className="space-y-2">
-              <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                {locale === 'vi' ? 'KINH NGHIỆM LÀM VIỆC' : 'PROFESSIONAL EXPERIENCE'}
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-900 dark:text-white">
-                  <span>{companyName || roleTitle ? `${companyName || (locale === 'vi' ? 'Doanh nghiệp' : 'Company')} — ${roleTitle || (locale === 'vi' ? 'Vị trí' : 'Role')}` : (locale === 'vi' ? 'Chưa nhập thông tin công tác' : 'No experience entered yet')}</span>
-                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{timelineDates || ''}</span>
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pl-3 border-l-2 border-slate-200 dark:border-[#1E293B]">
-                  {bulletPoints || (locale === 'vi' ? 'Chưa có nội dung mô tả kinh nghiệm & thành tựu.' : 'No experience or achievement descriptions provided yet.')}
-                </p>
-              </div>
-            </div>
-
-            {/* Technical Skills Map */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
-              <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                {locale === 'vi' ? 'BẢN ĐỒ KỸ NĂNG CHUYÊN MÔN' : 'TECHNICAL SKILLS MAP'}
-              </div>
-              <div className="flex flex-wrap gap-1.5 text-[10px] font-mono">
-                {skills.map((s) => (
-                  <span key={s} className="px-2 py-0.5 rounded bg-slate-100 dark:bg-[#13233F] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#1E3A5F]">
-                    {s}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
     </div>
-  );
+    <style jsx global>{`@media (max-width: 1023px) { #cv-editor-layout { grid-template-columns: minmax(0, 1fr) !important; } } @media print { body * { visibility: hidden; } #printable-cv, #printable-cv * { visibility: visible; } #printable-cv { position: absolute; inset: 0; width: 100%; border: 0; box-shadow: none; } @page { size: A4; margin: 16mm; } }`}</style>
+  </main>;
 }

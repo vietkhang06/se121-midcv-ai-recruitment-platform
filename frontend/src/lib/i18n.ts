@@ -167,13 +167,7 @@ function parseSalaryNumber(value: unknown): number | null {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
-function formatVnd(amount: number, locale: Locale): string {
-  return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
+const CURRENCY_CODES = ['VND', 'USD', 'EUR', 'GBP', 'JPY', 'CNY', 'KRW', 'SGD', 'AUD', 'CAD'] as const;
 
 function translateSalaryRange(range: string, locale: Locale): string {
   const key = normalizeKey(range);
@@ -192,22 +186,28 @@ export function formatSalary(
   salaryMax: number | string | null | undefined,
   salaryRange: string | null | undefined,
   locale: Locale,
+  salaryNegotiable = false,
+  currency = 'VND',
 ): string {
+  if (salaryNegotiable) return locale === 'vi' ? 'Thương lượng' : 'Negotiable';
+  const selectedCurrency = CURRENCY_CODES.includes(currency as typeof CURRENCY_CODES[number]) ? currency : 'VND';
+  const formatAmount = (amount: number) => new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { style: 'currency', currency: selectedCurrency }).format(amount);
   const min = parseSalaryNumber(salaryMin);
   const max = parseSalaryNumber(salaryMax);
 
   if (min !== null && max !== null) {
-    if (min === max) return formatVnd(min, locale);
-    return `${formatVnd(min, locale)} – ${formatVnd(max, locale)}`;
+    if (min > max) return '';
+    if (min === max) return `${formatAmount(min)}${locale === 'vi' ? '/tháng' : '/month'}`;
+    return `${formatAmount(min)} – ${formatAmount(max)}${locale === 'vi' ? '/tháng' : '/month'}`;
   }
   if (min !== null) {
-    return `${locale === 'vi' ? 'Từ' : 'From'} ${formatVnd(min, locale)}`;
+    return `${locale === 'vi' ? 'Từ' : 'From'} ${formatAmount(min)}${locale === 'vi' ? '/tháng' : '/month'}`;
   }
   if (max !== null) {
-    return `${locale === 'vi' ? 'Đến' : 'Up to'} ${formatVnd(max, locale)}`;
+    return `${locale === 'vi' ? 'Đến' : 'Up to'} ${formatAmount(max)}${locale === 'vi' ? '/tháng' : '/month'}`;
   }
   if (salaryRange && salaryRange.trim()) {
     return translateSalaryRange(salaryRange, locale);
   }
-  return '';
+  return locale === 'vi' ? 'Chưa công bố' : 'Undisclosed';
 }

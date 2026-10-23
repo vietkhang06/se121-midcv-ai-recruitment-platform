@@ -3,7 +3,7 @@
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { Job, CandidateRankingItem, MatchInspectionData } from '@/types';
-import { fetchJobById, fetchCandidateRankings, fetchMatchInspection } from '@/lib/api';
+import { fetchRecruiterJobById, fetchCandidateRankings, fetchMatchInspection } from '@/lib/api';
 import { RecruiterNavbar } from '@/components/recruiter/RecruiterNavbar';
 import { CandidateRankingTable } from '@/components/recruiter/CandidateRankingTable';
 import { CandidateCompareModal } from '@/components/recruiter/CandidateCompareModal';
@@ -32,7 +32,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
     setIsLoading(true);
     setFetchError(null);
     Promise.all([
-      fetchJobById(resolvedParams.id),
+      fetchRecruiterJobById(resolvedParams.id),
       fetchCandidateRankings(resolvedParams.id),
     ])
       .then(([j, data]) => {

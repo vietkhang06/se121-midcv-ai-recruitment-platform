@@ -2,29 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Job } from '@/types';
 import { fetchJobs } from '@/lib/api';
 import { QuickApplyModal } from '@/components/application/QuickApplyModal';
 import { EmptyState } from '@/components/common/EmptyState';
 import { useLanguage } from '@/context/LanguageContext';
+import { formatSalary } from '@/lib/i18n';
 import { Reveal, staggerDelay } from '@/components/motion';
-import {
-  Sparkles,
-  GitBranch,
-  ShieldCheck,
-  Search,
-  ArrowRight,
-  ChevronRight,
-  LineChart,
-  FileCheck2,
-  CheckCircle2,
-  Building2,
-  MapPin,
-  Briefcase
-} from 'lucide-react';
+import { Search, ArrowRight, ChevronRight, MapPin } from 'lucide-react';
 
 export default function HomePage() {
-  const { locale, t } = useLanguage();
+  const { locale } = useLanguage();
+  const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -32,29 +22,35 @@ export default function HomePage() {
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [selectedLocation, setSelectedLocation] = useState<string>('');
 
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const result = await fetchJobs();
+        if (active) { setJobs(result); setFetchError(null); }
+      } catch (error: unknown) {
+        if (active) setFetchError(error instanceof Error ? error.message : 'Không thể tải danh sách việc làm.');
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+    void load();
+    return () => { active = false; };
+  }, []);
+
   const loadJobs = () => {
     setIsLoading(true);
-    fetchJobs()
-      .then((res) => {
-        setJobs(res || []);
-        setFetchError(null);
-      })
-      .catch((err) => {
-        setFetchError(err.message || 'Không thể tải danh sách việc làm.');
-      })
+    fetchJobs().then((result) => { setJobs(result); setFetchError(null); })
+      .catch((error: unknown) => setFetchError(error instanceof Error ? error.message : 'Không thể tải danh sách việc làm.'))
       .finally(() => setIsLoading(false));
   };
-
-  useEffect(() => {
-    loadJobs();
-  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const params = new URLSearchParams();
     if (searchKeyword) params.set('keyword', searchKeyword);
     if (selectedLocation && selectedLocation !== 'Toàn quốc') params.set('location', selectedLocation);
-    window.location.href = `/jobs?${params.toString()}`;
+    router.push(`/jobs?${params.toString()}`);
   };
 
   return (
@@ -141,7 +137,7 @@ export default function HomePage() {
                   type="button"
                   onClick={() => {
                     setSearchKeyword(tag);
-                    window.location.href = `/jobs?keyword=${encodeURIComponent(tag)}`;
+                    router.push(`/jobs?keyword=${encodeURIComponent(tag)}`);
                   }}
                   style={{ animationDelay: `${staggerDelay(idx)}ms` }}
                   className="animate-chip-in px-3 py-1 rounded-full bg-white hover:bg-blue-50 dark:bg-[#13233F] dark:hover:bg-[#1B3158] text-[#1E40AF] dark:text-blue-200 border border-blue-200/80 dark:border-blue-900/50 shadow-2xs transition cursor-pointer text-[11px] font-medium"
@@ -152,22 +148,11 @@ export default function HomePage() {
             </div>
           </Reveal>
 
-          {/* Trust & Transparency Feature Ribbon */}
+          {/* Product principle */}
           <Reveal direction="up" delay={200}>
-            <div className="pt-2 flex items-center justify-center gap-3 sm:gap-6 flex-wrap text-[11px] text-slate-600 dark:text-slate-300 font-mono">
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/70 dark:bg-[#13233F]/70 backdrop-blur-xs border border-blue-100 dark:border-[#1E3A5F] shadow-2xs">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#00B14F]" />
-                <span>{locale === 'vi' ? '100% Khách quan theo năng lực thực' : 'Objective Evidence-Based'}</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/70 dark:bg-[#13233F]/70 backdrop-blur-xs border border-blue-100 dark:border-[#1E3A5F] shadow-2xs">
-                <Sparkles className="w-3.5 h-3.5 text-[#2563EB]" />
-                <span>{locale === 'vi' ? 'Đối soát vector chuẩn hóa NDCG@3 = 1.00' : 'Normalized NDCG@3 = 1.00'}</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/70 dark:bg-[#13233F]/70 backdrop-blur-xs border border-blue-100 dark:border-[#1E3A5F] shadow-2xs">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#00B14F]" />
-                <span>{locale === 'vi' ? 'Quyết định cuối cùng thuộc về con người' : 'Human-in-the-loop Final Decision'}</span>
-              </div>
-            </div>
+            <p className="pt-2 text-center text-xs text-slate-600 dark:text-slate-300">
+              {locale === 'vi' ? 'Nhà tuyển dụng đưa ra quyết định cuối cùng dựa trên hồ sơ và bằng chứng.' : 'Recruiters make final decisions using candidate profiles and evidence.'}
+            </p>
           </Reveal>
 
         </div>
@@ -331,7 +316,7 @@ export default function HomePage() {
                   </div>
                   <div className="pt-4 border-t border-slate-200 dark:border-[#1E293B] flex items-center justify-between">
                     <span className="text-xs font-mono font-semibold text-[#173B73] dark:text-[#F1F5F9]">
-                      {job.salaryMin ? `$${job.salaryMin} - $${job.salaryMax} ${locale === 'vi' ? '/tháng' : '/mo'}` : (job.salaryRange || (locale === 'vi' ? 'Thoả thuận' : 'Negotiable'))}
+                      {formatSalary(job.salaryMin, job.salaryMax, job.salaryRange, locale, job.salaryNegotiable, job.salaryCurrency)}
                     </span>
                     <button
                       onClick={() => setApplyJob(job)}

@@ -100,11 +100,11 @@ export default function UserGuidePage() {
             <div className="pt-2 flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] shadow-2xs text-[#0F2A52] dark:text-[#F1F5F9] font-medium">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#00B14F]" />
-                {isVi ? '100% Thuật Toán Minh Bạch' : '100% Algorithmic Transparency'}
+                {isVi ? 'Giải thích các tính năng hiện có' : 'How current features work'}
               </span>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] shadow-2xs text-[#0F2A52] dark:text-[#F1F5F9] font-medium">
                 <Sparkles className="w-3.5 h-3.5 text-[#2563EB]" />
-                Vector Embedding 1536D
+                {isVi ? 'Đối sánh có giải thích' : 'Explainable matching'}
               </span>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#FEF9C3] dark:bg-[#FACC15]/15 border border-[#FACC15]/40 text-[#92400E] dark:text-[#FACC15] font-medium">
                 <AlertCircle className="w-3.5 h-3.5 text-[#FACC15]" />
@@ -587,19 +587,18 @@ export default function UserGuidePage() {
                     02
                   </span>
                   <h2 className="text-xl sm:text-2xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9]">
-                    {isVi ? 'JD Builder & Trợ Lý AI Tinh Chỉnh Mô Tả Công Việc' : 'JD Builder & AI Assistant'}
+                    {isVi ? 'Tạo và quản lý tin tuyển dụng' : 'Create and manage job postings'}
                   </h2>
                 </div>
                 <p className="text-xs sm:text-sm text-[#1E3A5F] dark:text-[#D6E4E1] leading-relaxed">
                   {isVi
-                    ? 'Màn hình tạo tin tuyển dụng (/recruiter/jobs/new) hỗ trợ AI tinh chỉnh mô tả công việc:'
-                    : 'The job requisition authoring screen (/recruiter/jobs/new) provides intelligent assistance:'}
+                    ? 'Màn hình tạo tin tuyển dụng (/recruiter/jobs/new) cho phép nhập thông tin vị trí, yêu cầu và chế độ làm việc:'
+                    : 'The job authoring screen (/recruiter/jobs/new) lets recruiters enter role details, requirements, and work arrangement:'}
                 </p>
                 <ul className="text-xs sm:text-sm space-y-2 text-[#64748B] dark:text-[#94A3B8] list-disc pl-5">
-                  <li>{isVi ? 'Tự động phân tách yêu cầu bắt buộc (REQUIRED) và ưu tiên (PREFERRED).' : 'Automatic separation of REQUIRED and PREFERRED competencies.'}</li>
-                  <li>{isVi ? 'Chuẩn hóa số năm kinh nghiệm tối thiểu cho từng kỹ năng then chốt.' : 'Canonical minimum years of experience benchmarks for each skill.'}</li>
-                  <li>{isVi ? 'Trợ lý AI tự động gợi ý bộ kỹ năng tương ứng với vị trí và tiêu đề công việc.' : 'AI assistant recommends relevant technical skills matching the job title.'}</li>
-                  <li>{isVi ? 'Lưu dưới dạng bản nháp (Draft) hoặc Xuất bản công khai (Published) để đón nhận ứng viên.' : 'Save as Draft or Publish live to start receiving candidate matches.'}</li>
+                  <li>{isVi ? 'Nhập tiêu đề, mô tả, địa điểm, hình thức làm việc và khoảng lương theo loại tiền tệ đã chọn.' : 'Enter the title, description, location, work arrangement, and salary range in the selected currency.'}</li>
+                  <li>{isVi ? 'Chọn ngành nghề, cấp bậc, loại hình việc làm và kỹ năng từ các trường có sẵn; có thể ghi rõ lựa chọn Khác.' : 'Choose industry, seniority, employment type, and skills; provide a custom value for Other classifications.'}</li>
+                  <li>{isVi ? 'Lưu tin ở trạng thái bản nháp hoặc xuất bản theo quyền tài khoản.' : 'Save the posting as a draft or publish it according to account permissions.'}</li>
                 </ul>
               </section>
 
@@ -619,7 +618,7 @@ export default function UserGuidePage() {
                     : 'On the role candidate management screen (/recruiter/jobs/[id]/ranking):'}
                 </p>
                 <ul className="text-xs sm:text-sm space-y-2 text-[#64748B] dark:text-[#94A3B8] list-disc pl-5">
-                  <li>{isVi ? 'Phân loại ứng viên theo thứ tự xếp hạng (Rank 1, 2, 3...) dựa trên thuật toán tối ưu xếp hạng (NDCG@K).' : 'Ranks candidates objectively (Rank 1, 2, 3...) utilizing ranking optimization algorithms (NDCG@K).'}</li>
+                  <li>{isVi ? 'Xem danh sách ứng viên theo thứ tự điểm đối sánh hiện có.' : 'View applicants ordered by their available match score.'}</li>
                   <li>{isVi ? 'Bộ lọc ngưỡng điểm đối sánh: Tối thiểu 80%, 70%, v.v.' : 'Threshold filters: Minimum 80%, 70%, etc.'}</li>
                   <li>{isVi ? 'Lọc ứng viên theo kỹ năng bắt buộc còn thiếu hoặc đã khớp toàn bộ.' : 'Filter candidates by missing required skills or 100% matched.'}</li>
                   <li>{isVi ? 'Cập nhật trạng thái ứng viên: Nộp đơn (Submitted) → Đang đánh giá (Under Review) → Phỏng vấn (Shortlisted) → Từ chối (Rejected).' : 'Update pipeline stages: Submitted → Under Review → Shortlisted → Rejected.'}</li>
@@ -709,8 +708,8 @@ export default function UserGuidePage() {
                 </div>
                 <p className="text-xs sm:text-sm text-[#1E3A5F] dark:text-[#D6E4E1] leading-relaxed">
                   {isVi
-                    ? 'Hệ thống kiểm soát ủy quyền bảo mật cấp máy chủ (Server-side RBAC). Nhà tuyển dụng có thể theo dõi tỷ lệ chuyển đổi phễu tuyển dụng, thời gian tuyển dụng trung bình (Time-to-Hire) và chất lượng nguồn ứng viên tại trang HR Dashboard (/recruiter).'
-                    : 'Server-side Role-Based Access Control (RBAC) safeguards candidate data. Employers track conversion rates, Time-to-Hire, and pipeline quality on the HR Dashboard (/recruiter).'}
+                    ? 'Quyền truy cập được kiểm tra ở phía máy chủ theo tài khoản và phạm vi công ty. Nhà tuyển dụng có thể xem và cập nhật ứng viên trong quy trình tuyển dụng của tin mình quản lý.'
+                    : 'Access is checked server-side using the account and company scope. Recruiters can view and update applicants in the pipelines for jobs they manage.'}
                 </p>
               </section>
 

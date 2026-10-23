@@ -3,6 +3,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  --font-sans: Inter, "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif;
+  --font-serif: Georgia, "Times New Roman", serif;
   /* Motion: short, functional transitions for a workflow-heavy product. */
   --motion-instant: 100ms;
   --motion-fast: 160ms;
@@ -120,8 +122,6 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-serif: var(--font-serif), Georgia, Cambria, serif;
   --animate-fade-in: midcv-fade-in var(--motion-base) var(--ease-standard) both;
   --animate-scale-in: midcv-scale-in var(--motion-base) var(--ease-emphasized) both;
   --animate-slide-up: midcv-slide-up var(--motion-fast) var(--ease-standard) both;

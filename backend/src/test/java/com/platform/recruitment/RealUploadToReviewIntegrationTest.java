@@ -309,6 +309,7 @@ public class RealUploadToReviewIntegrationTest {
         @Override public <S extends CV> S save(S entity) { store.put(entity.getId(), entity); return entity; }
         @Override public <S extends CV> S saveAndFlush(S entity) { return save(entity); }
         @Override public Optional<CV> findById(UUID id) { return Optional.ofNullable(store.get(id)); }
+        @Override public Optional<CV> findByIdForUpdate(UUID id) { return findById(id); }
         @Override public List<CV> findByCandidateId(UUID candidateId) {
             return store.values().stream().filter(c -> c.getCandidate().getId().equals(candidateId)).toList();
         }
