@@ -151,33 +151,74 @@ class StructuredCVValidator:
             return True, False, None, f"Schema validation error: {str(e)}"
 
     def ground_with_raw_text(self, model: StructuredCVData, raw_text: str) -> StructuredCVData:
-        """
-        Verify extracted facts against raw text to enforce anti-fabrication rules.
-        - Adds warnings for any skills or facts not explicitly found in raw CV text.
-        - Builds factual evidence references.
-        """
-        if not raw_text:
-            return model
+        """Fail closed for unsupported extracted skills/GPA; never applies to user review edits.
 
-        lower_raw = raw_text.lower()
-
-        # Check skills grounding against raw text with normalization
+        Schema validity and factual support are separate properties. This local check is
+        conservative and does not claim that every paraphrased fact has been verified.
+        """
         import re
-        norm_raw = re.sub(r'[\s\-_./\\]+', '', lower_raw)
+        import unicodedata
+
+        def normalized(value: str) -> str:
+            value = unicodedata.normalize("NFKC", value).casefold()
+            return re.sub(r"[\s\-_./\\]+", "", value)
+
+        lower_raw = raw_text.casefold()
+        normalized_raw = normalized(raw_text)
+        retained = []
         for skill in model.skills:
-            clean_skill = skill.name.lower().strip()
-            norm_skill = re.sub(r'[\s\-_./\\]+', '', clean_skill)
-            if clean_skill not in lower_raw and norm_skill not in norm_raw:
-                warn_msg = f"Skill '{skill.name}' was not explicitly found in raw CV text."
-                if warn_msg not in model.warnings:
-                    model.warnings.append(warn_msg)
+            # Use word boundaries for plain terms: Java must not match JavaScript.
+            term = skill.name.strip().casefold()
+            literal = bool(term) and re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", lower_raw)
+            flexible = len(term) >= 3 and any(c in term for c in " -_./") and normalized(term) in normalized_raw
+            if literal or flexible:
+                retained.append(skill)
+            else:
+                model.warnings.append("Unsupported extracted skill omitted; review the source document.")
+        model.skills = retained
 
-        # Check personal info grounding
-        if model.personalInfo.email and model.personalInfo.email.lower() not in lower_raw:
-            model.warnings.append(f"Email '{model.personalInfo.email}' not found in raw text.")
-        if model.personalInfo.phone and model.personalInfo.phone not in raw_text:
-            model.warnings.append(f"Phone '{model.personalInfo.phone}' not found in raw text.")
+        number = r"(\d+(?:[.,]\d+)?)"
+        gpa_mentions = []
+        # Explicit labelled grades may omit a scale. Bare fractions require a decimal
+        # to avoid treating a calendar date such as 3/4 as a GPA.
+        for match in re.finditer(r"(?:gpa|grade\s*point\s*average|điểm\s*trung\s*bình|diem\s*trung\s*binh)\s*[:=]?\s*" + number + r"(?:\s*/\s*" + number + r")?", lower_raw):
+            gpa_mentions.append((float(match.group(1).replace(',', '.')),
+                                 float(match.group(2).replace(',', '.')) if match.group(2) else None))
+        for match in re.finditer(r"(?<![\d/])" + number + r"\s*/\s*" + number + r"(?![\d/])", lower_raw):
+            if '.' in match.group(1) or ',' in match.group(1):
+                gpa_mentions.append((float(match.group(1).replace(',', '.')), float(match.group(2).replace(',', '.'))))
+        for education in model.education:
+            if education.gpa is None:
+                # A scale/display without a source-backed numerical grade is not a fact.
+                education.gpa_scale = None
+                education.gpa_display = None
+                continue
+            matches = [(v, scale) for v, scale in gpa_mentions if abs(v-education.gpa) < 1e-9]
+            if not matches or education.gpa < 0:
+                education.gpa = education.gpa_scale = education.gpa_display = None
+                model.warnings.append("Unsupported extracted GPA omitted; no grade is provided by the source.")
+                continue
+            if education.gpa_scale is not None and not any(scale is not None and abs(scale-education.gpa_scale) < 1e-9 for _, scale in matches):
+                education.gpa_scale = None
+                education.gpa_display = None
+                model.warnings.append("Unsupported GPA scale omitted; the scale must not be inferred.")
+            if education.gpa_scale is not None and education.gpa > education.gpa_scale:
+                education.gpa = education.gpa_scale = education.gpa_display = None
+                model.warnings.append("Invalid extracted GPA omitted; grade exceeds its scale.")
+            if education.gpa_display and normalized(education.gpa_display.replace(',', '.')) not in normalized(raw_text.replace(',', '.')):
+                education.gpa_display = None
 
+        if model.personalInfo.email and model.personalInfo.email.casefold() not in lower_raw:
+            model.personalInfo.email = None
+            model.warnings.append("Unsupported extracted email omitted.")
+        if model.personalInfo.phone:
+            digits = re.sub(r"\D", "", model.personalInfo.phone)
+            if not digits or digits not in re.sub(r"\D", "", raw_text):
+                model.personalInfo.phone = None
+                model.warnings.append("Unsupported extracted phone omitted.")
+
+        model.warnings = list(dict.fromkeys(model.warnings))
         model.evidence["raw_char_count"] = len(raw_text)
         model.evidence["extracted_skills_count"] = len(model.skills)
+        model.evidence["grounding_policy"] = "unsupported_skills_gpa_removed_v1"
         return model

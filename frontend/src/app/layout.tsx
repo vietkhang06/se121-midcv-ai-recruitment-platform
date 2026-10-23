@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Inter, Newsreader } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -9,17 +8,6 @@ import { Footer } from "@/components/layout/Footer";
 import { FirstVisitModal } from "@/components/onboarding/FirstVisitModal";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { SuspensionBanner } from "@/components/common/SuspensionBanner";
-
-const inter = Inter({ 
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
-
-const newsreader = Newsreader({ 
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  variable: "--font-serif",
-});
 
 export const metadata: Metadata = {
   title: "midCV® — AI-Powered Intelligent Recruitment Platform",
@@ -42,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${newsreader.variable}`} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{

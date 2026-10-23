@@ -10,6 +10,7 @@ import { fetchRecruiterJobs, fetchRecruiterCompany, fetchJobApplications } from 
 
 import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
 import { CompanyVerificationBanner } from '@/components/recruiter/CompanyVerificationBanner';
+import { formatSalary } from '@/lib/i18n';
 
 import { SuspensionBanner } from '@/components/recruiter/SuspensionBanner';
 
@@ -383,7 +384,7 @@ export default function HRDashboardPage() {
 
                               <td className="py-3 px-3 font-mono">{j.industry}</td>
 
-                              <td className="py-3 px-3 font-mono">${j.salaryMin} - ${j.salaryMax}</td>
+                              <td className="py-3 px-3 font-mono">{formatSalary(j.salaryMin, j.salaryMax, j.salaryRange, locale, j.salaryNegotiable, j.salaryCurrency)}</td>
                               <td className="py-3 px-3 text-center">
                                 <Link
                                   href={`/recruiter/jobs/${j.id}/ranking`}

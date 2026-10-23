@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { useLanguage } from '@/context/LanguageContext';
 import { Reveal } from '@/components/motion/Reveal';
 import { staggerDelay } from '@/components/motion/stagger';
+import { formatSalary } from '@/lib/i18n';
 import {
   Building2,
   Calendar,
@@ -140,7 +141,7 @@ export default function ApplicationHistoryPage() {
                         </span>
                         <span className="flex items-center gap-1 text-[11px] text-[#2563EB] dark:text-[#93C5FD] font-mono bg-[#EFF6FF] dark:bg-[#2563EB]/15 border border-[#BFDBFE] dark:border-[#2563EB]/30 px-2 py-0.5 rounded-md">
                           <Lock className="w-3 h-3 text-[#2563EB]" />
-                          <span>Immutable Snapshot: v{app.appliedCvVersion}.0</span>
+                          <span>{app.appliedCvVersion != null ? `Snapshot: v${app.appliedCvVersion}.0` : (locale === 'vi' ? 'Chưa có thông tin phiên bản' : 'Version unavailable')}</span>
                         </span>
                       </div>
 
@@ -159,7 +160,7 @@ export default function ApplicationHistoryPage() {
                         </span>
                         <span className="flex items-center gap-1 text-[#00B14F] font-semibold">
                           <DollarSign className="w-3.5 h-3.5" />
-                          ${app.job.salaryMin} - ${app.job.salaryMax}
+                          {formatSalary(app.job.salaryMin, app.job.salaryMax, app.job.salaryRange, locale, app.job.salaryNegotiable, app.job.salaryCurrency)}
                         </span>
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5 text-[#64748B]" />
@@ -333,7 +334,7 @@ export default function ApplicationHistoryPage() {
                               </div>
                               <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] block">
                                 {insp?.githubScoreActive 
-                                  ? (locale === 'vi' ? 'Tín hiệu bổ trợ (15% trọng số)' : 'Auxiliary signal (15% weight)') 
+                                  ? (locale === 'vi' ? 'Tín hiệu bổ trợ (theo trọng số đã lưu)' : 'Auxiliary signal (saved policy weight)')
                                   : (locale === 'vi' ? 'Không áp dụng (Zero Penalty)' : 'Not applied (Zero Penalty)')}
                               </span>
                             </div>
@@ -342,7 +343,7 @@ export default function ApplicationHistoryPage() {
                       })()}
 
                       <div className="text-xs text-[#64748B] dark:text-[#94A3B8] bg-slate-50 dark:bg-[#13233F] p-3.5 rounded-xl border border-slate-200 dark:border-[#1E293B] leading-relaxed">
-                        <strong>{locale === 'vi' ? 'Lưu ý bảo mật & minh bạch:' : 'Security & Transparency Notice:'}</strong> {locale === 'vi' ? `Snapshot CV phiên bản v${app.appliedCvVersion}.0 đã được cố định tại thời điểm nộp đơn. Bất kỳ chỉnh sửa nào trong tương lai đối với hồ sơ gốc của bạn sẽ không làm thay đổi bản lưu hồ sơ này mà Nhà tuyển dụng đang xem xét.` : `CV Snapshot version v${app.appliedCvVersion}.0 was frozen upon submission. Any subsequent edits to your original profile will not alter this review record.`}
+                        <strong>{locale === 'vi' ? 'Lưu ý bảo mật & minh bạch:' : 'Security & Transparency Notice:'}</strong> {app.appliedCvVersion == null ? (locale === 'vi' ? 'Hồ sơ lịch sử chưa có thông tin phiên bản để đối chiếu.' : 'Version information is unavailable for this historical application.') : (locale === 'vi' ? `Snapshot CV phiên bản v${app.appliedCvVersion}.0 được lưu tại thời điểm nộp đơn. Chỉnh sửa CV sau đó không thay đổi phiên bản đã nộp.` : `CV snapshot v${app.appliedCvVersion}.0 was saved upon submission. Later edits do not change the submitted version.`)}
                       </div>
                     </div>
                   )}

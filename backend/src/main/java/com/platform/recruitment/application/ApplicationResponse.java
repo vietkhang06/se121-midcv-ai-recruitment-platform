@@ -20,6 +20,8 @@ public class ApplicationResponse {
     private UUID candidateId;
     private String candidateName;
     private UUID appliedCvId;
+    private UUID appliedCvVersionId;
+    private Integer appliedCvVersionNumber;
     private ApplicationStatus status;
     private java.math.BigDecimal matchScore;
     private String matchStatus;

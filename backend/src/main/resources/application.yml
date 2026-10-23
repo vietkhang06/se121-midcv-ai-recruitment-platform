@@ -45,6 +45,15 @@ jwt:
   refresh-expiration-ms: ${JWT_REFRESH_TOKEN_EXPIRATION_MS:604800000}
 
 app:
+  public-base-url: ${BACKEND_PUBLIC_URL:http://localhost:8080}
+  frontend-url: ${FRONTEND_PUBLIC_URL:http://localhost:3000}
+  oauth:
+    google:
+      client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
+      client-secret: ${GOOGLE_OAUTH_CLIENT_SECRET:}
+    github:
+      client-id: ${GITHUB_OAUTH_CLIENT_ID:}
+      client-secret: ${GITHUB_OAUTH_CLIENT_SECRET:}
   upload-dir: ${UPLOAD_DIR:${FILE_STORAGE_PATH:./uploads}}
   file-storage-path: ${FILE_STORAGE_PATH:${UPLOAD_DIR:./uploads}}
   worker-enabled: ${WORKER_ENABLED:true}

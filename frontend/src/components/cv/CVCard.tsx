@@ -27,9 +27,6 @@ export const CVCard: React.FC<CVCardProps> = ({
         {/* Header Badges */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#EFF6FF] dark:bg-[#13233F] border border-[#BFDBFE] dark:border-[#1E3A5F] text-[#2563EB] dark:text-[#60A5FA]">
-              {cv.targetIndustry}
-            </span>
             <span className={`px-2 py-0.5 rounded-lg text-[11px] font-medium ${
               cv.creationPath === 'BUILDER'
                 ? 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-500/30'
@@ -46,14 +43,11 @@ export const CVCard: React.FC<CVCardProps> = ({
           )}
         </div>
 
-        {/* Title & Target Role */}
+        {/* Title */}
         <div>
           <h3 className="text-base font-bold text-[#0F2A52] dark:text-white group-hover:text-[#2563EB] dark:group-hover:text-[#3B82F6] transition-colors line-clamp-1">
             {cv.title}
           </h3>
-          <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1">
-            Vị trí nhắm tới: <strong className="text-[#1E3A5F] dark:text-slate-200">{cv.targetRole || 'Chưa chỉ định'}</strong>
-          </p>
         </div>
 
         {/* Info Line */}
@@ -67,7 +61,7 @@ export const CVCard: React.FC<CVCardProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-5 gap-1.5 pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+      <div className="grid grid-cols-4 gap-1.5 pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/80 text-xs">
         <button
           onClick={() => onPreview(cv)}
           title="Xem trước CV"

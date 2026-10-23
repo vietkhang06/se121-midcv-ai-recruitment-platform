@@ -49,6 +49,9 @@ public class PipelineWorker {
   private final CVVersionRepository cvVersionRepository;
   private final CVSectionRepository cvSectionRepository;
 
+  @org.springframework.beans.factory.annotation.Autowired
+  private com.platform.recruitment.matching.MatchingEngineService applicationMatching;
+
   @org.springframework.beans.factory.annotation.Autowired(required = false)
   private com.platform.recruitment.ai.ProcessingLifecycleService processingLifecycleService;
 
@@ -120,7 +123,9 @@ public class PipelineWorker {
     try {
       if (kind.equals("EXTRACT")) extract(id, owner, entity);
       else if (kind.equals("GITHUB_ANALYSIS")) processGithub(id, owner, entity);
-      else if (!match(id, owner, entity, kind.equals("SCREEN_MATCH"))) return;
+      else if (kind.equals("MATCH")) processApplicationMatch(id, entity);
+      else if (kind.equals("SCREEN_MATCH")) { if (!match(id, owner, entity, true)) return; }
+      else throw new CustomException(ErrorCode.VALIDATION_ERROR, "Unsupported processing job kind");
       events.emit(
           id,
           owner,
@@ -231,6 +236,18 @@ public class PipelineWorker {
 
   private void extractCvWithAiWorker(UUID job, UUID owner, UUID version, Map<String, Object> v) {
     if ("READY".equals(v.get("state"))) {
+      if (v.get("embedding") == null && !jdbc.queryForList("SELECT id FROM screening_runs WHERE cv_version_id=?", version).isEmpty()) {
+        JsonNode input = com.platform.recruitment.matching.ScreeningCvAdapter.adapt(toTree(v.get("normalized")), mapper);
+        String model = ai.activeEmbeddingModel();
+        if (model == null) model = ai.embeddingModel;
+        String vector = ai.embed(ai.semanticText(input), model);
+        AiClient.validateVector(vector);
+        final String selected = model;
+        tx.executeWithoutResult(status -> {
+          queue.assertLease(job, worker);
+          jdbc.update("UPDATE document_versions SET embedding=?::vector,embedding_model=? WHERE id=? AND embedding IS NULL", vector, selected, version);
+        });
+      }
       events.emit(
           job,
           owner,
@@ -360,31 +377,44 @@ public class PipelineWorker {
     try {
       normJson = mapper.writeValueAsString(cvData);
     } catch (Exception e) {
-      normJson = "{}";
+      throw new CustomException(ErrorCode.CV_STRUCTURING_FAILED, "Cannot serialize structured CV output");
     }
 
     final String finalNormJson = normJson;
     final Map<String, Object> finalCvData = cvData;
+    final boolean screeningCv = !jdbc.queryForList("SELECT id FROM screening_runs WHERE cv_version_id=?", version).isEmpty();
+    final String embedModel;
+    final String screeningVector;
+    if (screeningCv) {
+      String selectedModel = ai.activeEmbeddingModel();
+      embedModel = selectedModel != null ? selectedModel : ai.embeddingModel;
+      JsonNode scoringInput = com.platform.recruitment.matching.ScreeningCvAdapter.adapt(mapper.valueToTree(cvData), mapper);
+      screeningVector = ai.embed(ai.semanticText(scoringInput), embedModel);
+      AiClient.validateVector(screeningVector);
+    } else { embedModel = null; screeningVector = null; }
 
     tx.executeWithoutResult(status -> {
       queue.assertLease(job, worker);
-      jdbc.update("UPDATE document_versions SET normalized=?::jsonb, state='READY', error_code=NULL, error_message=NULL WHERE id=?",
-          finalNormJson, version);
+      // Keep normalized as the immutable extraction payload. Adaptation is performed only at scoring boundary.
+      jdbc.update("UPDATE document_versions SET normalized=?::jsonb, embedding=?::vector, embedding_model=?, "
+              + "pipeline_version=?, state='READY', error_code=NULL, error_message=NULL WHERE id=? AND state='PROCESSING'",
+          finalNormJson, screeningVector, embedModel, "cv-structure-v1", version);
       jdbc.update("UPDATE cvs SET status='DRAFT', raw_text=? WHERE id=?", finalRaw, docId);
       jdbc.update("UPDATE cv_versions SET structured_json_content=?, status='DRAFT', raw_text_content=? WHERE id=?",
           finalNormJson, finalRaw, version);
     });
 
-    persistCvSections(version, finalCvData);
+    if (!screeningCv) persistCvSections(version, finalCvData);
 
     tx.executeWithoutResult(status -> {
       queue.assertLease(job, worker);
       jdbc.update(
-          "UPDATE processing_jobs SET state='SUCCEEDED', step='NEEDS_REVIEW', progress=100, locked_by=NULL, lease_until=NULL, error_code=NULL, error_message=NULL, updated_at=now() WHERE id=?",
-          job);
+          "UPDATE processing_jobs SET state='SUCCEEDED', step=?, progress=100, locked_by=NULL, lease_until=NULL, error_code=NULL, error_message=NULL, updated_at=now() WHERE id=?",
+          screeningCv ? "READY_FOR_MATCH" : "NEEDS_REVIEW", job);
     });
 
-    events.emit(job, owner, "INFO", "NEEDS_REVIEW", "JOB_SUCCEEDED", "Hồ sơ đã sẵn sàng để kiểm tra.", null);
+    events.emit(job, owner, "INFO", screeningCv ? "READY_FOR_MATCH" : "NEEDS_REVIEW", "JOB_SUCCEEDED",
+        screeningCv ? "Tài liệu screening đã sẵn sàng để đối sánh." : "Hồ sơ đã sẵn sàng để kiểm tra.", null);
   }
 
   private void persistCvSections(UUID versionId, Map<String, Object> cvData) {
@@ -549,15 +579,20 @@ public class PipelineWorker {
         });
   }
 
+  private void processApplicationMatch(UUID processingJob, UUID applicationId) {
+    var rows = jdbc.queryForList("SELECT job_id,candidate_id,status FROM applications WHERE id=?", applicationId);
+    if (rows.isEmpty()) throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Application not found");
+    var app = rows.get(0);
+    if (!"WITHDRAWN".equals(app.get("status"))) {
+      applicationMatching.calculateAndPersistMatchResult((UUID) app.get("job_id"), (UUID) app.get("candidate_id"));
+    }
+    queue.complete(processingJob, worker);
+  }
+
   private boolean match(UUID job, UUID owner, UUID appId, boolean screening) {
-    List<Map<String, Object>> apRows =
-        jdbc.queryForList(
-            screening
-                ? "SELECT a.*,a.industry_snapshot AS industry,a.github_enabled_snapshot AS"
-                      + " github_enabled,NULL AS github_username FROM screening_runs a WHERE a.id=?"
-                : "SELECT a.*,j.industry AS industry,true AS github_enabled,NULL AS github_username"
-                      + " FROM applications a JOIN jobs j ON j.id=a.job_id WHERE a.id=?",
-            appId);
+    List<Map<String, Object>> apRows = jdbc.queryForList(
+        "SELECT a.*,a.industry_snapshot AS industry,a.github_enabled_snapshot AS github_enabled,"
+            + "NULL AS github_username FROM screening_runs a WHERE a.id=?", appId);
     if (apRows.isEmpty()) {
       throw new CustomException(
           ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy hồ sơ hoặc phiên screening.");
@@ -622,7 +657,8 @@ public class PipelineWorker {
           "Không thể tính toán khoảng cách vector ngữ nghĩa (kết quả NULL).");
     }
     double semantic = ((Number) scoreRows.get(0).get("score")).doubleValue();
-    JsonNode cvData = toTree(cv.get("normalized")), jdData = toTree(jd.get("normalized"));
+    JsonNode cvData = com.platform.recruitment.matching.ScreeningCvAdapter.adapt(toTree(cv.get("normalized")), mapper);
+    JsonNode jdData = toTree(jd.get("normalized"));
     JsonNode git = mapper.valueToTree(Map.of("status", "NOT_APPLICABLE"));
     String industry = Objects.toString(ap.get("industry"), "");
     if (Boolean.TRUE.equals(ap.get("github_enabled")) && ("IT".equalsIgnoreCase(industry) || industry.toUpperCase().contains("TECH") || industry.toUpperCase().contains("SOFTWARE"))) {
@@ -674,7 +710,7 @@ public class PipelineWorker {
           }
           jdbc.update(
               "INSERT INTO midcv_match_results(id,"
-                  + (screening ? "screening_id" : "application_id")
+                  + "screening_id"
                   + ",processing_job_id,base_score,github_bonus,score,coverage,semantic_score,details,github,algorithm_version,cv_version_id,jd_version_id)"
                   + " VALUES (?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,?,?,?) ON"
                   + " CONFLICT(processing_job_id) DO NOTHING",

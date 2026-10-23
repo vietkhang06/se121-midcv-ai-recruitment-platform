@@ -173,6 +173,7 @@ public class CandidateCvDraftAndEvidenceIntegrationTest {
 
         when(candidateProfileRepository.findByUserId(candidateUser.getId())).thenReturn(Optional.of(candidateProfile));
         when(cvRepository.findById(cvId)).thenReturn(Optional.of(cv));
+        when(cvRepository.findByIdForUpdate(cvId)).thenReturn(Optional.of(cv));
         when(cvVersionRepository.findById(versionId)).thenReturn(Optional.of(draftVersion));
         when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId)).thenReturn(new ArrayList<>(List.of(draftVersion)));
         when(cvVersionRepository.save(any(CVVersion.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -504,19 +505,18 @@ public class CandidateCvDraftAndEvidenceIntegrationTest {
         when(cvRepository.findByCandidateId(candidateProfile.getId())).thenReturn(List.of(cv));
         when(jobRequirementRepository.findByJobId(job.getId())).thenReturn(List.of(k8sReq));
 
-        Application application = Application.builder().job(job).candidate(candidateProfile).build();
+        Application application = Application.builder().job(job).candidate(candidateProfile).appliedCv(cv).appliedCvVersion(draftVersion).build();
         application.setId(UUID.randomUUID());
         when(applicationRepository.findByJobIdAndCandidateId(job.getId(), candidateProfile.getId())).thenReturn(Optional.of(application));
         when(matchResultRepository.findByApplicationId(application.getId())).thenReturn(Optional.empty());
         when(matchResultRepository.save(any(MatchResult.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        // When CV is still in draft without confirmed status, the raw text does not contain Kubernetes -> reqMissing = 1
+        // Unconfirmed input is rejected at the engine boundary, including internal callers.
         draftVersion.setStatus("DRAFT");
         when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId)).thenReturn(List.of(draftVersion));
 
-        MatchResult draftResult = matchingEngineService.calculateAndPersistMatchResult(job.getId(), candidateProfile.getId());
-        assertEquals(1, draftResult.getRequiredSkillsMissing());
-        assertEquals(0, draftResult.getRequiredSkillsMatched());
+        assertThrows(CustomException.class,
+                () -> matchingEngineService.calculateAndPersistMatchResult(job.getId(), candidateProfile.getId()));
 
         // Now candidate edits and CONFIRMS CV with Kubernetes added in structured JSON
         String confirmedJson = "{" +

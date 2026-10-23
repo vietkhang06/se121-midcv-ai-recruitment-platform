@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Industry, CV, CVQuota } from '@/types';
+import { CV, CVQuota } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
 import { AnimatedModalShell, AnimatedStatus } from '@/components/motion';
-import { uploadCandidateCV, fetchCVProcessingStatus, retryCVExtraction, subscribeCVProcessingEvents } from '@/lib/api';
+import { uploadCandidateCV, fetchCVProcessingStatus, retryCVExtraction, subscribeCVProcessingEvents, type CVProcessingEvent } from '@/lib/api';
 import { CVProcessingStatus } from '@/types';
 import {
   X,
@@ -15,8 +15,7 @@ import {
   Loader2,
   AlertCircle,
   RefreshCw,
-  Sparkles,
-  ArrowRight
+  ArrowRight,
 } from 'lucide-react';
 
 interface CVUploadModalProps {
@@ -29,12 +28,15 @@ interface CVUploadModalProps {
 
 type ProcessingStatus = 'IDLE' | 'UPLOADING' | 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'REVIEW' | 'FAILED';
 
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+
 export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, onUploadSuccess, onSuccess, quota }) => {
   const { t } = useLanguage();
   const [file, setFile] = useState<File | null>(null);
   const [uploadedCv, setUploadedCv] = useState<CV | null>(null);
-  const [targetIndustry, setTargetIndustry] = useState<Industry>('Technology');
-  const [targetRole, setTargetRole] = useState<string>('Software Engineer');
   const [status, setStatus] = useState<ProcessingStatus>('IDLE');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [processingProgress, setProcessingProgress] = useState<number>(5);
@@ -100,15 +102,18 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
     }
   };
 
-  const mapErrorMessage = (err: any): string => {
-    const code = err?.responseBody?.code || (err?.code ? String(err.code) : '');
-    const reqId = err?.responseBody?.requestId;
+  const mapErrorMessage = (err: unknown): string => {
+    const errorRecord = asRecord(err) || {};
+    const responseBody = asRecord(errorRecord.responseBody) || {};
+    const code = String(responseBody.code || errorRecord.code || '');
+    const reqId = typeof responseBody.requestId === 'string' ? responseBody.requestId : '';
+    const responseMessage = typeof responseBody.message === 'string' ? responseBody.message : '';
 
     let msg = '';
     if (code === 'INVALID_FILE' || code === 'INVALID_FILE_TYPE') {
       msg = t('cvUpload.errors.invalidFileType', 'Định dạng tệp không được hỗ trợ. Vui lòng tải lên PDF, DOCX, DOC hoặc ảnh PNG/JPG.');
     } else if (code === 'CV_QUOTA_EXCEEDED') {
-      msg = err?.responseBody?.message || t('cvUpload.errors.quotaExceeded', 'Tài khoản của bạn đã đạt giới hạn tối đa số lượng CV cho phép.');
+      msg = responseMessage || t('cvUpload.errors.quotaExceeded', 'Tài khoản của bạn đã đạt giới hạn tối đa số lượng CV cho phép.');
     } else if (code === 'FILE_SIZE_EXCEEDED' || code === 'FILE_TOO_LARGE') {
       msg = t('cvUpload.errors.fileTooLarge', 'Dung lượng tệp vượt quá giới hạn tối đa 10MB.');
     } else if (code === 'FILE_STORAGE_FAILED') {
@@ -119,8 +124,8 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
       msg = t('cvUpload.errors.cvStructuringFailed', 'Không thể chuẩn hóa cấu trúc dữ liệu CV bằng AI. Vui lòng thử lại.');
     } else if (code === 'CV_PROCESSING_FAILED') {
       msg = t('cvUpload.errors.cvProcessingFailed', 'Quá trình xử lý CV gặp sự cố kỹ thuật. Vui lòng thử lại.');
-    } else if (err?.responseBody?.message && !err.responseBody.message.includes('C:\\') && !err.responseBody.message.includes('/')) {
-      msg = err.responseBody.message;
+    } else if (responseMessage && !responseMessage.includes('C:\\') && !responseMessage.includes('/')) {
+      msg = responseMessage;
     } else {
       msg = t('cvUpload.errors.generic', 'Đã xảy ra lỗi trong quá trình xử lý CV. Vui lòng thử lại sau.');
     }
@@ -133,7 +138,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
 
   const pollProcessingStatus = async (cvId: string, cvEntity: CV, signal: AbortSignal) => {
     let isDone = false;
-    const jobId = (cvEntity as any)?.jobId;
+    const jobId = (cvEntity as CV & { jobId?: string }).jobId;
 
     // 1. Subscribe to real-time SSE event stream for immediate stage progression
     // Assign the unsubscribe callback before the event handler can use it.
@@ -141,7 +146,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
     let unsubscribe: () => void = () => {};
     unsubscribe = subscribeCVProcessingEvents(
       { cvId, jobId },
-      (eventData: any) => {
+      (eventData: CVProcessingEvent) => {
         if (signal.aborted || isDone) return;
         if (eventData.progress !== undefined && eventData.progress !== null) {
           setProcessingProgress(Math.max(eventData.progress, 10));
@@ -238,16 +243,19 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
             }
           }
         }
-      } catch (pollErr: any) {
+      } catch (pollError: unknown) {
         if (signal.aborted || isDone) return;
+        const pollErr = asRecord(pollError) || {};
+        const responseBody = asRecord(pollErr.responseBody) || {};
+        const pollMessage = typeof pollErr.message === 'string' ? pollErr.message : '';
+        const pollCode = String(pollErr.code || responseBody.code || '');
         // Nếu polling gặp 404: dừng polling ngay lập tức và báo lỗi tính nhất quán ID/dữ liệu
-        const statusCode = pollErr?.statusCode || pollErr?.status || pollErr?.responseBody?.code;
+        const statusCode = pollErr.statusCode || pollErr.status || responseBody.code;
         if (
           statusCode === 404 ||
-          pollErr?.message?.includes('404') ||
-          pollErr?.code === 'RESOURCE_NOT_FOUND' ||
-          pollErr?.code === 'CV_NOT_FOUND' ||
-          pollErr?.responseBody?.code === 'CV_NOT_FOUND'
+          pollMessage.includes('404') ||
+          pollCode === 'RESOURCE_NOT_FOUND' ||
+          pollCode === 'CV_NOT_FOUND'
         ) {
           isDone = true;
           unsubscribe();
@@ -289,7 +297,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
       const savedCv = await uploadCandidateCV(
         file,
         cvTitle || file.name.replace(/\.[^/.]+$/, ''),
-        targetIndustry,
+        undefined,
         false
       );
 
@@ -301,7 +309,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
       setProcessingStageMessage('Đang kiểm tra và trích xuất tệp...');
 
       await pollProcessingStatus(savedCv.id, savedCv, signal);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (signal.aborted) return;
       setStatus('FAILED');
       setErrorMessage(mapErrorMessage(err));
@@ -313,7 +321,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
       setStatus('PROCESSING');
       setErrorMessage('');
       setProcessingProgress(20);
-      setProcessingStageMessage('Đang kết nối lại AI Worker để thử lại trích xuất dữ liệu...');
+      setProcessingStageMessage('Đang thử lại bước trích xuất dữ liệu...');
 
       abortControllerRef.current = new AbortController();
       const signal = abortControllerRef.current.signal;
@@ -322,7 +330,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
         await retryCVExtraction(uploadedCv.id);
         if (signal.aborted) return;
         await pollProcessingStatus(uploadedCv.id, uploadedCv, signal);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (signal.aborted) return;
         setStatus('FAILED');
         setErrorMessage(mapErrorMessage(err));
@@ -343,7 +351,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
       const targetCv = uploadedCv || await uploadCandidateCV(
         file!,
         cvTitle || file!.name.replace(/\.[^/.]+$/, ''),
-        targetIndustry,
+        undefined,
         false
       );
       if (onUploadSuccess) onUploadSuccess(targetCv);
@@ -352,21 +360,11 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
       setStatus('IDLE');
       setFile(null);
       setUploadedCv(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setErrorMessage(mapErrorMessage(err));
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleAddSkill = (skill: string) => {
-    if (!extractedSkills.includes(skill)) {
-      setExtractedSkills([...extractedSkills, skill]);
-    }
-  };
-
-  const handleRemoveSkill = (skill: string) => {
-    setExtractedSkills(extractedSkills.filter(s => s !== skill));
   };
 
   return (
@@ -399,14 +397,10 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
           </div>
           <div>
             <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#2563EB] dark:text-[#3B82F6] block">
-              {t('cvUpload.badge', 'MIDCV PARSER PIPELINE')}
             </span>
             <h3 id="cv-upload-modal-title" className="text-xl font-editorial font-bold text-slate-900 dark:text-white">
               {t('cvUpload.title', 'Tải Lên & Phân Tích CV (PDF / DOCX)')}
             </h3>
-            <p id="cv-upload-modal-description" className="text-xs text-slate-500 dark:text-slate-400">
-              {t('cvUpload.subtitle', 'Trích xuất kỹ năng, kinh nghiệm và cấu trúc thực thể qua AI Worker trước khi lưu vào Thư Viện.')}
-            </p>
           </div>
         </div>
 
@@ -435,38 +429,6 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
                 </div>
               </div>
             )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  {t('cvUpload.industry', 'Ngành nghề định hướng')}
-                </label>
-                <select
-                  value={targetIndustry}
-                  onChange={(e) => setTargetIndustry(e.target.value as Industry)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-slate-800 dark:text-white text-xs focus:outline-none focus:border-[#2563EB] transition"
-                >
-                  <option value="Technology">Technology (Công nghệ thông tin)</option>
-                  <option value="Marketing">Marketing & Truyền thông</option>
-                  <option value="Design">Design (Thiết kế đồ họa / UX)</option>
-                  <option value="Finance">Finance (Tài chính - Ngân hàng)</option>
-                  <option value="HR">Human Resources (Nhân sự)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  {t('cvUpload.role', 'Vị trí mong muốn')}
-                </label>
-                <input
-                  type="text"
-                  value={targetRole}
-                  onChange={(e) => setTargetRole(e.target.value)}
-                  placeholder={t('cvUpload.rolePlaceholder', 'Ví dụ: Backend Software Engineer')}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-slate-800 dark:text-white text-xs focus:outline-none focus:border-[#2563EB] transition"
-                />
-              </div>
-            </div>
-
             {/* Drag & Drop Zone */}
             <div className="border-2 border-dashed border-slate-300 dark:border-[#1E3A5F] hover:border-[#2563EB] dark:hover:border-[#3B82F6] rounded-2xl p-8 text-center bg-slate-50/50 dark:bg-[#13233F]/40 transition cursor-pointer group">
               <input
@@ -502,8 +464,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
               disabled={!file || Boolean(quota && !quota.canUpload)}
               className="w-full py-3 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Sparkles className="w-4 h-4 text-white" />
-              <span>{t('cvUpload.startParse', 'Bắt Đầu Phân Tích & Trích Xuất AI')}</span>
+              <span>{t('cvUpload.startParse', 'Tải CV lên')}</span>
             </button>
           </form>
         )}
@@ -517,9 +478,6 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
               ) : (
                 <>
                   <div className="w-16 h-16 rounded-full border-4 border-slate-200 dark:border-[#1E293B] border-t-[#2563EB] animate-spin motion-reduce:animate-none" />
-                  <div className="absolute inset-0 flex items-center justify-center text-[#2563EB] dark:text-[#3B82F6]">
-                    <Sparkles className="w-6 h-6 animate-pulse motion-reduce:animate-none" />
-                  </div>
                 </>
               )}
             </div>

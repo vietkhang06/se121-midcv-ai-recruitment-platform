@@ -419,7 +419,7 @@ class TestCVStructuringServiceAndDevEndpoint:
         orchestrator = FallbackLLMClient(primary_client=primary, fallback_client=None, fallback_enabled=False)
         service = CVStructuringService(fallback_orchestrator=orchestrator)
 
-        res = await service.structure_raw_text("Candidate profile text with sufficient length for structuring test.")
+        res = await service.structure_raw_text("Candidate profile text with Python and sufficient length for structuring test.")
         assert res.success is True
         assert res.validation["schemaValid"] is True
         assert res.data["personalInfo"]["fullName"] == "Candidate Schema Test"

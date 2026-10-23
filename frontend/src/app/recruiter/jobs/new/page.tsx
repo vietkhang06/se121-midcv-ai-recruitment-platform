@@ -41,11 +41,15 @@ export default function CreateJobPage() {
   // Form Fields
   const [title, setTitle] = useState<string>('');
   const [industry, setIndustry] = useState<Industry>('Technology');
+  const [industryOther, setIndustryOther] = useState('');
   const [seniority, setSeniority] = useState<string>('Mid-Level');
+  const [seniorityOther, setSeniorityOther] = useState('');
   const [employmentType, setEmploymentType] = useState<EmploymentType>('FULL_TIME');
+  const [employmentTypeOther, setEmploymentTypeOther] = useState('');
   const [location, setLocation] = useState<string>('');
-  const [salaryMin, setSalaryMin] = useState<number>(1000);
-  const [salaryMax, setSalaryMax] = useState<number>(2500);
+  const [salaryMin, setSalaryMin] = useState<string>('');
+  const [salaryMax, setSalaryMax] = useState<string>('');
+  const [salaryCurrency, setSalaryCurrency] = useState<NonNullable<Job['salaryCurrency']>>('VND');
   const [isSalaryNegotiable, setIsSalaryNegotiable] = useState<boolean>(false);
   const [description, setDescription] = useState<string>('');
   const [responsibilities, setResponsibilities] = useState<string>('');
@@ -109,6 +113,32 @@ export default function CreateJobPage() {
       setErrorMessage(locale === 'vi' ? 'Vui lòng nhập mô tả công việc (JD).' : 'Please enter job description.');
       return;
     }
+    const customValues = [[industry, industryOther], [seniority, seniorityOther], [employmentType, employmentTypeOther]] as const;
+    if (customValues.some(([choice, value]) => choice === 'OTHER' ? !value.trim() || value.trim().length > 80 : !!value.trim())) {
+      setErrorMessage(locale === 'vi' ? 'Với lựa chọn Khác, hãy nhập nội dung từ 1 đến 80 ký tự; trường tùy chỉnh khác phải để trống.' : 'For Other, enter 1–80 characters and leave inactive custom fields blank.');
+      return;
+    }
+
+    const parseAmount = (raw: string) => {
+      const cleaned = raw.trim().replace(/\s/g, '');
+      if (!cleaned) return null;
+      const decimalDigits = ['JPY', 'KRW', 'VND'].includes(salaryCurrency) ? 0 : 2;
+      const normalized = locale === 'vi' ? cleaned.replace(/\./g, '').replace(',', '.') : cleaned.replace(/,/g, '');
+      const amountPattern = decimalDigits === 0 ? /^\d+$/ : new RegExp(`^\\d+(?:\\.\\d{1,${decimalDigits}})?$`);
+      if (!amountPattern.test(normalized)) return null;
+      const amount = Number(normalized);
+      return Number.isFinite(amount) && amount >= 0 ? amount : null;
+    };
+    const salaryMinValue = salaryMin.trim() ? parseAmount(salaryMin) : null;
+    const salaryMaxValue = salaryMax.trim() ? parseAmount(salaryMax) : null;
+    if (!isSalaryNegotiable && ((salaryMin.trim() && salaryMinValue === null) || (salaryMax.trim() && salaryMaxValue === null))) {
+      setErrorMessage(locale === 'vi' ? 'Nhập mức lương VND dạng số nguyên, ví dụ 15.000.000.' : 'Enter a whole VND amount, for example 15,000,000.');
+      return;
+    }
+    if (!isSalaryNegotiable && salaryMinValue !== null && salaryMaxValue !== null && salaryMinValue > salaryMaxValue) {
+      setErrorMessage(locale === 'vi' ? 'Lương tối thiểu không được cao hơn lương tối đa.' : 'Minimum salary cannot exceed maximum salary.');
+      return;
+    }
 
     if (targetStatus === 'PUBLISHED' && company?.verificationStatus !== 'VERIFIED') {
       setErrorMessage(
@@ -127,11 +157,16 @@ export default function CreateJobPage() {
         companyName: company?.name || 'Doanh nghiệp',
         companyVerified: company?.verificationStatus === 'VERIFIED',
         industry,
+        industryOther: industry === 'OTHER' ? industryOther.trim() : undefined,
         employmentType,
+        employmentTypeOther: employmentType === 'OTHER' ? employmentTypeOther.trim() : undefined,
         seniority,
+        seniorityOther: seniority === 'OTHER' ? seniorityOther.trim() : undefined,
         location: location.trim() || 'Toàn quốc',
-        salaryMin: isSalaryNegotiable ? 0 : Number(salaryMin) || 0,
-        salaryMax: isSalaryNegotiable ? 0 : Number(salaryMax) || 0,
+        salaryMin: isSalaryNegotiable ? null : salaryMinValue,
+        salaryMax: isSalaryNegotiable ? null : salaryMaxValue,
+        salaryNegotiable: isSalaryNegotiable,
+        salaryCurrency,
         publishedDate: new Date().toISOString().split('T')[0],
         description: description.trim(),
         responsibilities: responsibilities
@@ -157,8 +192,8 @@ export default function CreateJobPage() {
       setTimeout(() => {
         router.push('/recruiter/jobs');
       }, 1200);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Lỗi khi lưu tin tuyển dụng.');
+    } catch (error: unknown) {
+      setErrorMessage(error instanceof Error ? error.message : 'Lỗi khi lưu tin tuyển dụng.');
     } finally {
       setIsSubmitting(false);
     }
@@ -268,7 +303,9 @@ export default function CreateJobPage() {
                   <option value="Design">Design (Thiết kế đồ họa / UI/UX)</option>
                   <option value="HR">HR (Nhân sự)</option>
                   <option value="Sales">Sales (Kinh doanh)</option>
+                  <option value="OTHER">{locale === 'vi' ? 'Khác' : 'Other'}</option>
                 </select>
+                {industry === 'OTHER' && <input aria-label={locale === 'vi' ? 'Lĩnh vực khác' : 'Other industry'} maxLength={80} required value={industryOther} onChange={(e) => setIndustryOther(e.target.value)} placeholder={locale === 'vi' ? 'Nhập lĩnh vực (tối đa 80 ký tự)' : 'Enter industry (up to 80 characters)'} className="mt-2 w-full rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] px-3.5 py-2.5 text-sm dark:border-[#1E3A5F] dark:bg-[#13233F] dark:text-white" />}
               </div>
 
               <div>
@@ -286,7 +323,9 @@ export default function CreateJobPage() {
                   <option value="Senior">Senior (5+ năm)</option>
                   <option value="Lead / Principal">Lead / Tech Lead / Principal</option>
                   <option value="Manager">Engineering Manager / Director</option>
+                  <option value="OTHER">{locale === 'vi' ? 'Khác' : 'Other'}</option>
                 </select>
+                {seniority === 'OTHER' && <input aria-label={locale === 'vi' ? 'Cấp bậc khác' : 'Other seniority'} maxLength={80} required value={seniorityOther} onChange={(e) => setSeniorityOther(e.target.value)} placeholder={locale === 'vi' ? 'Nhập cấp bậc' : 'Enter seniority'} className="mt-2 w-full rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] px-3.5 py-2.5 text-sm dark:border-[#1E3A5F] dark:bg-[#13233F] dark:text-white" />}
               </div>
 
               <div>
@@ -302,7 +341,9 @@ export default function CreateJobPage() {
                   <option value="PART_TIME">Bán thời gian (Part-time)</option>
                   <option value="REMOTE">Làm việc từ xa (Remote)</option>
                   <option value="HYBRID">Linh hoạt (Hybrid)</option>
+                  <option value="OTHER">{locale === 'vi' ? 'Khác' : 'Other'}</option>
                 </select>
+                {employmentType === 'OTHER' && <input aria-label={locale === 'vi' ? 'Hình thức làm việc khác' : 'Other employment type'} maxLength={80} required value={employmentTypeOther} onChange={(e) => setEmploymentTypeOther(e.target.value)} placeholder={locale === 'vi' ? 'Nhập hình thức làm việc' : 'Enter employment type'} className="mt-2 w-full rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] px-3.5 py-2.5 text-sm dark:border-[#1E3A5F] dark:bg-[#13233F] dark:text-white" />}
               </div>
 
               <div>
@@ -322,7 +363,7 @@ export default function CreateJobPage() {
               <div className="sm:col-span-2 space-y-2 pt-2 border-t border-[#E2E8F0] dark:border-[#1E293B]">
                 <div className="flex items-center justify-between">
                   <label className="font-semibold text-[#1E3A5F] dark:text-slate-300">
-                    Mức lương (USD / tháng)
+                    {locale === 'vi' ? 'Mức lương (VND / tháng)' : 'Salary (VND / month)'}
                   </label>
                   <label className="inline-flex items-center gap-1.5 cursor-pointer">
                     <input
@@ -335,27 +376,38 @@ export default function CreateJobPage() {
                   </label>
                 </div>
 
+                {!isSalaryNegotiable && <label className="block max-w-sm text-xs font-medium text-[#1E3A5F] dark:text-slate-300">
+                  {locale === 'vi' ? 'Đơn vị tiền tệ (giữ nguyên khi đổi ngôn ngữ)' : 'Currency (unchanged when language changes)'}
+                  <select value={salaryCurrency} onChange={(e) => setSalaryCurrency(e.target.value as NonNullable<Job['salaryCurrency']>)} className="mt-1 w-full rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-2 text-sm dark:border-[#1E3A5F] dark:bg-[#13233F] dark:text-white">
+                    {[
+                      ['VND', 'Đồng Việt Nam'], ['USD', 'US Dollar'], ['EUR', 'Euro'], ['GBP', 'British Pound'], ['JPY', 'Japanese Yen'], ['CNY', 'Chinese Yuan'], ['KRW', 'South Korean Won'], ['SGD', 'Singapore Dollar'], ['AUD', 'Australian Dollar'], ['CAD', 'Canadian Dollar'],
+                    ].map(([code, name]) => <option key={code} value={code}>{code} — {locale === 'vi' ? name : ({ VND: 'Vietnamese Dong', USD: 'US Dollar', EUR: 'Euro', GBP: 'British Pound', JPY: 'Japanese Yen', CNY: 'Chinese Yuan', KRW: 'South Korean Won', SGD: 'Singapore Dollar', AUD: 'Australian Dollar', CAD: 'Canadian Dollar' } as Record<string, string>)[code]}</option>)}
+                  </select>
+                </label>}
+
                 {!isSalaryNegotiable && (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <span className="text-[10px] text-[#94A3B8] block mb-1">Lương tối thiểu ($)</span>
+                      <span className="text-[10px] text-[#94A3B8] block mb-1">{locale === 'vi' ? `Lương tối thiểu (${salaryCurrency})` : `Minimum salary (${salaryCurrency})`}</span>
                       <input
-                        type="number"
-                        min="0"
-                        step="100"
+                        type="text"
+                        inputMode="numeric"
+                        aria-label={locale === 'vi' ? `Lương tối thiểu, ${salaryCurrency} mỗi tháng` : `Minimum salary, ${salaryCurrency} per month`}
                         value={salaryMin}
-                        onChange={(e) => setSalaryMin(Number(e.target.value))}
+                        onChange={(e) => setSalaryMin(e.target.value)}
+                        placeholder={locale === 'vi' ? 'Ví dụ: 15.000.000' : 'Example: 15,000,000'}
                         className="w-full px-3.5 py-2 bg-[#F8FAFC] dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] rounded-xl text-[#0F2A52] dark:text-white font-mono"
                       />
                     </div>
                     <div>
-                      <span className="text-[10px] text-[#94A3B8] block mb-1">Lương tối đa ($)</span>
+                      <span className="text-[10px] text-[#94A3B8] block mb-1">{locale === 'vi' ? `Lương tối đa (${salaryCurrency})` : `Maximum salary (${salaryCurrency})`}</span>
                       <input
-                        type="number"
-                        min="0"
-                        step="100"
+                        type="text"
+                        inputMode="numeric"
+                        aria-label={locale === 'vi' ? `Lương tối đa, ${salaryCurrency} mỗi tháng` : `Maximum salary, ${salaryCurrency} per month`}
                         value={salaryMax}
-                        onChange={(e) => setSalaryMax(Number(e.target.value))}
+                        onChange={(e) => setSalaryMax(e.target.value)}
+                        placeholder={locale === 'vi' ? 'Ví dụ: 30.000.000' : 'Example: 30,000,000'}
                         className="w-full px-3.5 py-2 bg-[#F8FAFC] dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] rounded-xl text-[#0F2A52] dark:text-white font-mono"
                       />
                     </div>
@@ -583,7 +635,7 @@ export default function CreateJobPage() {
                 <span>
                   {isSalaryNegotiable
                     ? 'Thỏa thuận'
-                    : `$${salaryMin.toLocaleString()} - $${salaryMax.toLocaleString()}/tháng`}
+                    : (salaryMin || salaryMax ? `${salaryMin || (locale === 'vi' ? 'Không công bố' : 'Undisclosed')} – ${salaryMax || (locale === 'vi' ? 'Không công bố' : 'Undisclosed')} ${salaryCurrency}/${locale === 'vi' ? 'tháng' : 'month'}` : (locale === 'vi' ? 'Chưa công bố' : 'Undisclosed'))}
                 </span>
               </span>
             </div>

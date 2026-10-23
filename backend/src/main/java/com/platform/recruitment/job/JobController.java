@@ -38,6 +38,14 @@ public class JobController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/recruiter/jobs/{id}")
+    public ResponseEntity<ApiResponse<JobResponse>> getRecruiterJob(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        JobResponse response = jobService.getRecruiterJob(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @GetMapping("/recruiter/jobs")
     public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<JobResponse>>> getRecruiterJobs(
             @AuthenticationPrincipal User currentUser,

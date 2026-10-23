@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { CVReviewData, CVEvidenceItem, PageSegmentItem, CVDraftData, CVEvidenceAttachmentItem } from '@/types';
+import React, { useState, useEffect, useRef } from 'react';
+import { CVReviewData, CVDraftData, CVEvidenceAttachmentItem, CVStructuredData, CVStructuredItem, CVPersonalInfo, CVTechnology } from '@/types';
 import {
   fetchCVReview,
   downloadCVFile,
@@ -14,21 +14,18 @@ import { RichTextEditor } from '@/components/common/RichTextEditor';
 import { SkillAutocomplete } from '@/components/cv/SkillAutocomplete';
 import { EvidenceAttachmentControl } from '@/components/cv/EvidenceAttachmentControl';
 import { AnimatedModalShell, AnimatedStatus } from '@/components/motion';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   X,
   FileText,
-  Code,
   ShieldCheck,
   AlertTriangle,
-  Download,
   RefreshCw,
   CheckCircle2,
   AlertCircle,
   Copy,
   Check,
-  Search,
   ExternalLink,
-  ChevronRight,
   ChevronUp,
   ChevronDown,
   BookOpen,
@@ -37,8 +34,6 @@ import {
   Award,
   Globe,
   Layers,
-  Sparkles,
-  Info,
   Edit3,
   Save,
   Trash2,
@@ -46,8 +41,6 @@ import {
   Undo2,
   CheckSquare,
   Lock,
-  Calendar,
-  Building,
   User,
   Mail,
   Phone,
@@ -64,10 +57,186 @@ interface CVExtractionReviewModalProps {
 
 type TabType = 'overview' | 'raw_text' | 'evidence' | 'json' | 'warnings';
 
+const waitForReviewCompletion = async (
+  cvId: string,
+  initialReview: CVReviewData
+): Promise<CVReviewData> => {
+  let review = normalizeReviewResponse(initialReview);
+  if (isCompletedStatus(review.status) || review.status === 'FAILED') return review;
+
+  const pollingDeadline = Date.now() + 270_000;
+  let lastPollingError: unknown = null;
+  while (Date.now() < pollingDeadline) {
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 2_000));
+    try {
+      review = normalizeReviewResponse(await fetchCVReview(cvId));
+      lastPollingError = null;
+      if (isCompletedStatus(review.status) || review.status === 'FAILED') return review;
+    } catch (error: unknown) {
+      lastPollingError = error;
+      console.warn('[CV_REVIEW_POLL_FAILED]', { cvId, error });
+    }
+  }
+
+  if (lastPollingError instanceof Error) {
+    throw new Error(`Không thể cập nhật trạng thái xử lý CV: ${lastPollingError.message}`);
+  }
+  throw new Error('Quá thời gian chờ phân tích CV. Tiến trình có thể vẫn đang chạy; vui lòng tải lại trạng thái trước khi thử lại.');
+};
+
 const normalizeExternalUrl = (url?: string | null): string | undefined => {
   if (!url) return undefined;
   return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 };
+
+const readRecord = (value: unknown): Record<string, unknown> | null =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+
+const readText = (value: unknown): string => typeof value === 'string' ? value : '';
+
+const readTechnologies = (value: unknown): CVTechnology[] =>
+  Array.isArray(value) ? value.flatMap<CVTechnology>((entry) => {
+    if (typeof entry === 'string') return [entry];
+    const record = readRecord(entry);
+    return record && typeof record.name === 'string' ? [{ ...record, name: record.name }] : [];
+  }) : [];
+
+const technologyName = (technology: CVTechnology): string =>
+  typeof technology === 'string' ? technology : technology.name;
+
+const toSkillChoices = (technologies: CVTechnology[]) =>
+  technologies.map((technology) => ({ name: technologyName(technology) }));
+
+const readRows = (value: unknown): Record<string, unknown>[] =>
+  Array.isArray(value) ? value.map(readRecord).filter((row): row is Record<string, unknown> => row !== null) : [];
+
+const toDraftWorkExperience = (value: unknown): NonNullable<CVDraftData['work_experience']> =>
+  readRows(value).map((item) => ({
+    ...item,
+    id: readText(item.id) || undefined,
+    company: readText(item.company),
+    role: readText(item.role) || undefined,
+    position: readText(item.position) || undefined,
+    start_date: readText(item.start_date) || undefined,
+    end_date: readText(item.end_date) || undefined,
+    startDate: readText(item.startDate) || undefined,
+    endDate: readText(item.endDate) || undefined,
+    is_current: typeof item.is_current === 'boolean' ? item.is_current : undefined,
+    description: readText(item.description) || undefined,
+    technologies: readTechnologies(item.technologies),
+    origin: readText(item.origin) || undefined,
+  }));
+
+const toDraftProjects = (value: unknown): NonNullable<CVDraftData['projects']> =>
+  readRows(value).map((item) => ({
+    ...item,
+    id: readText(item.id) || undefined,
+    name: readText(item.name),
+    role: readText(item.role) || undefined,
+    start_date: readText(item.start_date) || undefined,
+    end_date: readText(item.end_date) || undefined,
+    description: readText(item.description) || undefined,
+    techStack: readTechnologies(item.techStack),
+    tech_stack: readTechnologies(item.tech_stack),
+    origin: readText(item.origin) || undefined,
+  }));
+
+const toDraftEducation = (value: unknown): NonNullable<CVDraftData['education']> =>
+  readRows(value).map((item) => ({
+    ...item,
+    id: readText(item.id) || undefined,
+    institution: readText(item.institution),
+    degree: readText(item.degree) || undefined,
+    fieldOfStudy: readText(item.fieldOfStudy) || undefined,
+    field_of_study: readText(item.field_of_study) || undefined,
+    startYear: typeof item.startYear === 'number' ? item.startYear : undefined,
+    start_year: typeof item.start_year === 'string' || typeof item.start_year === 'number' ? item.start_year : undefined,
+    endYear: typeof item.endYear === 'number' ? item.endYear : undefined,
+    end_year: typeof item.end_year === 'string' || typeof item.end_year === 'number' ? item.end_year : undefined,
+    graduationYear: typeof item.graduationYear === 'string' || typeof item.graduationYear === 'number' ? item.graduationYear : undefined,
+    school: readText(item.school) || undefined,
+    gpa: typeof item.gpa === 'number' ? item.gpa : undefined,
+    gpa_scale: typeof item.gpa_scale === 'number' ? item.gpa_scale : undefined,
+    gpaScale: typeof item.gpaScale === 'number' ? item.gpaScale : undefined,
+    gpa_display: readText(item.gpa_display) || undefined,
+    description: readText(item.description) || undefined,
+    origin: readText(item.origin) || undefined,
+  }));
+
+const toEvidenceAttachment = (value: unknown): CVEvidenceAttachmentItem | null | undefined => {
+  if (value === null) return null;
+  const attachment = readRecord(value);
+  if (!attachment) return undefined;
+  const itemType = attachment.itemType ?? attachment.item_type;
+  if (itemType !== 'CERTIFICATION' && itemType !== 'LANGUAGE') return undefined;
+  const fileSize = attachment.fileSize ?? attachment.file_size;
+  if (typeof fileSize !== 'number') return undefined;
+  const attachmentId = readText(attachment.attachmentId) || readText(attachment.attachment_id);
+  const cvId = readText(attachment.cvId) || readText(attachment.cv_id);
+  const itemId = readText(attachment.itemId) || readText(attachment.item_id);
+  const fileName = readText(attachment.fileName) || readText(attachment.file_name);
+  const fileType = readText(attachment.fileType) || readText(attachment.file_type);
+  const previewUrl = readText(attachment.previewUrl) || readText(attachment.preview_url);
+  const createdAt = readText(attachment.createdAt) || readText(attachment.created_at);
+  if (!attachmentId || !cvId || !itemId || !fileName || !fileType || !previewUrl || !createdAt) return undefined;
+  return { attachmentId, cvId, itemType, itemId, fileName, fileSize, fileType, status: readText(attachment.status), previewUrl, createdAt };
+};
+
+const toDraftCertifications = (value: unknown): NonNullable<CVDraftData['certifications']> =>
+  Array.isArray(value) ? value.flatMap((entry) => {
+    if (typeof entry === 'string') return [{ name: entry }];
+    const item = readRecord(entry);
+    if (!item || typeof item.name !== 'string') return [];
+    return [{
+      ...item,
+      id: readText(item.id) || undefined,
+      name: item.name,
+      issuer: readText(item.issuer) || undefined,
+      issueDate: readText(item.issueDate) || undefined,
+      date: readText(item.date) || undefined,
+      credentialId: readText(item.credentialId) || undefined,
+      credentialUrl: readText(item.credentialUrl) || undefined,
+      attachment: toEvidenceAttachment(item.attachment),
+      origin: readText(item.origin) || undefined,
+    }];
+  }) : [];
+
+const toDraftLanguages = (value: unknown): NonNullable<CVDraftData['languages']> =>
+  Array.isArray(value) ? value.flatMap((entry) => {
+    if (typeof entry === 'string') return [{ language: entry }];
+    const item = readRecord(entry);
+    if (!item || typeof item.language !== 'string') return [];
+    return [{
+      ...item,
+      id: readText(item.id) || undefined,
+      language: item.language,
+      name: readText(item.name) || undefined,
+      proficiency: readText(item.proficiency) || undefined,
+      proficiencyLevel: readText(item.proficiencyLevel) || undefined,
+      proficiency_level: readText(item.proficiency_level) || undefined,
+      score: readText(item.score) || undefined,
+      attachment: toEvidenceAttachment(item.attachment),
+      origin: readText(item.origin) || undefined,
+    }];
+  }) : [];
+
+const toDraftSkills = (value: unknown): NonNullable<CVDraftData['skills']> =>
+  Array.isArray(value) ? value.flatMap((entry) => {
+    if (typeof entry === 'string') return [{ name: entry }];
+    const item = readRecord(entry);
+    if (!item || typeof item.name !== 'string') return [];
+    return [{
+      ...item,
+      name: item.name,
+      category: readText(item.category) || undefined,
+      level: readText(item.level) || undefined,
+      isCustom: typeof item.isCustom === 'boolean' ? item.isCustom : undefined,
+      verified: typeof item.verified === 'boolean' ? item.verified : undefined,
+      origin: readText(item.origin) || undefined,
+    }];
+  }) : [];
 
 type ProvenanceValue<T = unknown> = {
   value: T;
@@ -89,7 +258,7 @@ const isProvenanceValue = (
   );
 };
 
-const unwrapProvenanceDeep = (input: unknown): any => {
+const unwrapProvenanceDeep = (input: unknown): unknown => {
   if (Array.isArray(input)) {
     return input.map(unwrapProvenanceDeep);
   }
@@ -113,12 +282,96 @@ const unwrapProvenanceDeep = (input: unknown): any => {
   return input;
 };
 
+const toPersonalInfo = (value: unknown): CVPersonalInfo | undefined => {
+  const record = readRecord(value);
+  if (!record) return undefined;
+  return {
+    ...record,
+    fullName: readText(record.fullName) || readText(record.full_name) || undefined,
+    full_name: readText(record.full_name) || readText(record.fullName) || undefined,
+    headline: readText(record.headline) || undefined,
+    title: readText(record.title) || undefined,
+    email: readText(record.email) || undefined,
+    phone: readText(record.phone) || undefined,
+    address: readText(record.address) || undefined,
+    location: readText(record.location) || undefined,
+    githubUrl: readText(record.githubUrl) || undefined,
+    github_url: readText(record.github_url) || undefined,
+    linkedinUrl: readText(record.linkedinUrl) || undefined,
+    linkedin_url: readText(record.linkedin_url) || undefined,
+  };
+};
+
+const toStructuredItem = (value: unknown): CVStructuredItem | null => {
+  const record = readRecord(value);
+  if (!record) return null;
+  return {
+    ...record,
+    id: readText(record.id) || undefined,
+    name: readText(record.name) || undefined,
+    company: readText(record.company) || undefined,
+    role: readText(record.role) || undefined,
+    title: readText(record.title) || undefined,
+    position: readText(record.position) || undefined,
+    institution: readText(record.institution) || undefined,
+    degree: readText(record.degree) || undefined,
+    issuer: readText(record.issuer) || undefined,
+    language: readText(record.language) || undefined,
+    description: readText(record.description) || undefined,
+    start_date: readText(record.start_date) || undefined,
+    end_date: readText(record.end_date) || undefined,
+    technologies: readTechnologies(record.technologies),
+    techStack: readTechnologies(record.techStack),
+    tech_stack: readTechnologies(record.tech_stack),
+  };
+};
+
+const toStructuredItems = (value: unknown): CVStructuredItem[] =>
+  readRows(value).map(toStructuredItem).filter((item): item is CVStructuredItem => item !== null);
+
+const toCVStructuredData = (value: unknown): CVStructuredData | undefined => {
+  const record = readRecord(value);
+  if (!record) return undefined;
+  const result: CVStructuredData = {};
+  for (const [key, entry] of Object.entries(record)) result[key] = entry;
+  result.personalInfo = toPersonalInfo(record.personalInfo);
+  result.personal_info = toPersonalInfo(record.personal_info);
+  result.fullName = readText(record.fullName) || undefined;
+  result.full_name = readText(record.full_name) || undefined;
+  result.name = readText(record.name) || undefined;
+  result.headline = readText(record.headline) || undefined;
+  result.targetRole = readText(record.targetRole) || undefined;
+  result.target_role = readText(record.target_role) || undefined;
+  result.email = readText(record.email) || undefined;
+  result.phone = readText(record.phone) || undefined;
+  result.address = readText(record.address) || undefined;
+  result.githubUrl = readText(record.githubUrl) || undefined;
+  result.linkedinUrl = readText(record.linkedinUrl) || undefined;
+  result.summary = readText(record.summary) || undefined;
+  result.schema_version = readText(record.schema_version) || undefined;
+  result.skills = Array.isArray(record.skills)
+    ? record.skills.flatMap<(string | CVStructuredItem)>((skill) => {
+      if (typeof skill === 'string') return [skill];
+      const structuredItem = toStructuredItem(skill);
+      return structuredItem ? [structuredItem] : [];
+    })
+    : undefined;
+  result.experience = toStructuredItems(record.experience);
+  result.experiences = toStructuredItems(record.experiences);
+  result.projects = toStructuredItems(record.projects);
+  result.education = toStructuredItems(record.education);
+  result.educations = toStructuredItems(record.educations);
+  result.certifications = toStructuredItems(record.certifications);
+  result.languages = toStructuredItems(record.languages);
+  return result;
+};
+
 const normalizeReviewResponse = (
   review: CVReviewData
 ): CVReviewData => {
   return {
     ...review,
-    structured: unwrapProvenanceDeep(review.structured)
+    structured: toCVStructuredData(unwrapProvenanceDeep(review.structured))
   };
 };
 
@@ -145,41 +398,63 @@ const createStableItemId = (): string => {
   return crypto.randomUUID();
 };
 
+const hasReviewableProfessionalContent = (draft: CVDraftData | null): boolean => {
+  if (!draft) return false;
+  const ignoredKeys = new Set(['id', 'origin', 'source', 'evidence', 'raw_structured', 'warnings', 'attachment', 'attachment_id', 'attachmentId', 'url', 'verificationStatus', 'status']);
+  const containsText = (value: unknown): boolean => {
+    if (typeof value === 'string') return value.replace(/<[^>]*>/g, ' ').trim().length > 0;
+    if (typeof value === 'number') return true;
+    if (Array.isArray(value)) return value.some(containsText);
+    const record = readRecord(value);
+    if (!record) return false;
+    if ('value' in record) return containsText(record.value);
+    return Object.entries(record).some(([key, entry]) => !ignoredKeys.has(key) && containsText(entry));
+  };
+  return [draft.summary, draft.skills, draft.work_experience, draft.projects, draft.education, draft.certifications, draft.languages]
+    .some(containsText);
+};
+
 const normalizeDraftEvidenceItemIds = (
   sourceDraft: CVDraftData
 ): CVDraftData => {
+  const certifications: unknown[] = sourceDraft.certifications || [];
+  const languages: unknown[] = sourceDraft.languages || [];
   return {
     ...sourceDraft,
-    certifications: (sourceDraft.certifications || []).map((item: any) => {
-      if (typeof item === 'string') {
+    certifications: certifications.map((value) => {
+      const item = readRecord(value);
+      if (typeof value === 'string') {
         return {
           id: createStableItemId(),
-          name: item
+          name: value
         };
       }
 
       return {
-        ...item,
-        id: isValidUuid(item?.id) ? item.id : createStableItemId()
+        ...(item || {}),
+        id: isValidUuid(item?.id) ? item.id : createStableItemId(),
+        name: readText(item?.name),
       };
     }),
-    languages: (sourceDraft.languages || []).map((item: any) => {
-      if (typeof item === 'string') {
+    languages: languages.map((value) => {
+      const item = readRecord(value);
+      if (typeof value === 'string') {
         return {
           id: createStableItemId(),
-          language: item
+          language: value
         };
       }
 
       return {
-        ...item,
-        id: isValidUuid(item?.id) ? item.id : createStableItemId()
+        ...(item || {}),
+        id: isValidUuid(item?.id) ? item.id : createStableItemId(),
+        language: readText(item?.language),
       };
     })
   };
 };
 
-export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = ({
+const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = ({
   cvId,
   isOpen,
   onClose,
@@ -200,69 +475,22 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
   const [isSavingDraft, setIsSavingDraft] = useState<boolean>(false);
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
-  const [saveSuccessNotice, setSaveSuccessNotice] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'dirty' | 'saving' | 'error'>('saved');
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [showSaveToast, setShowSaveToast] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (isOpen && cvId) {
-      loadReviewAndDraft();
-    } else {
-      setIsEditing(false);
-      setHasUnsavedChanges(false);
-      setDraft(null);
-      setInitialDraftSnapshot(null);
-    }
-  }, [isOpen, cvId]);
-
-  const waitForReviewCompletion = async (
-    initialReview: CVReviewData
-  ): Promise<CVReviewData> => {
-    let review = normalizeReviewResponse(initialReview);
-
-    if (isCompletedStatus(review.status) || review.status === 'FAILED') {
-      return review;
-    }
-
-    const pollingDeadline = Date.now() + 270_000;
-    let lastPollingError: unknown = null;
-
-    while (Date.now() < pollingDeadline) {
-      await new Promise<void>((resolve) => {
-        window.setTimeout(resolve, 2_000);
-      });
-
-      try {
-        const response = await fetchCVReview(cvId);
-        review = normalizeReviewResponse(response);
-        lastPollingError = null;
-
-        if (isCompletedStatus(review.status) || review.status === 'FAILED') {
-          return review;
-        }
-      } catch (error) {
-        lastPollingError = error;
-        console.warn('[CV_REVIEW_POLL_FAILED]', { cvId, error });
-      }
-    }
-
-    if (lastPollingError instanceof Error) {
-      throw new Error(
-        `Không thể cập nhật trạng thái xử lý CV: ${lastPollingError.message}`
-      );
-    }
-
-    throw new Error(
-      'Quá thời gian chờ phân tích CV. Tiến trình có thể vẫn đang chạy; vui lòng tải lại trạng thái trước khi thử lại.'
-    );
-  };
+  const { locale } = useLanguage();
+  const isVi = locale === 'vi';
+  const currentDraftRef = useRef<CVDraftData | null>(null);
+  const savedDraftRef = useRef<CVDraftData | null>(null);
+  const saveInFlight = useRef(false);
+  const loadReviewAndDraftRef = React.useRef<() => Promise<void>>(async () => undefined);
 
   const loadReviewAndDraft = async () => {
-    setIsLoading(true);
-    setErrorMessage(null);
-
     try {
       const initialResponse = await fetchCVReview(cvId);
-      const review = await waitForReviewCompletion(initialResponse);
+      const review = await waitForReviewCompletion(cvId, initialResponse);
 
       setData(review);
 
@@ -283,24 +511,30 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
         const normalizedDraftResponse = unwrapProvenanceDeep(rawDraftResponse);
 
         if (normalizedDraftResponse) {
-          const formattedDraft = initializeDraftFromResponse(
+          const formattedDraft = normalizeDraftEvidenceItemIds(initializeDraftFromResponse(
             normalizedDraftResponse,
             review
-          );
+          ));
 
           setDraft(formattedDraft);
+          currentDraftRef.current = formattedDraft;
           setInitialDraftSnapshot(structuredClone(formattedDraft));
+          savedDraftRef.current = structuredClone(formattedDraft);
         } else {
-          const fallbackDraft = initializeDraftFromReview(review);
+          const fallbackDraft = normalizeDraftEvidenceItemIds(initializeDraftFromReview(review));
           setDraft(fallbackDraft);
+          currentDraftRef.current = fallbackDraft;
           setInitialDraftSnapshot(structuredClone(fallbackDraft));
+          savedDraftRef.current = structuredClone(fallbackDraft);
         }
       } catch (draftError) {
         console.warn('[CV_DRAFT_LOAD_FAILED]', { cvId, error: draftError });
 
-        const fallbackDraft = initializeDraftFromReview(review);
+        const fallbackDraft = normalizeDraftEvidenceItemIds(initializeDraftFromReview(review));
         setDraft(fallbackDraft);
+        currentDraftRef.current = fallbackDraft;
         setInitialDraftSnapshot(structuredClone(fallbackDraft));
+        savedDraftRef.current = structuredClone(fallbackDraft);
       }
     } catch (error: unknown) {
       const message =
@@ -315,23 +549,23 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
   };
 
   const initializeDraftFromResponse = (
-    draftResponse: any,
+    draftResponse: unknown,
     reviewResponse: CVReviewData | null
   ): CVDraftData => {
-    const draftRes = unwrapProvenanceDeep(draftResponse);
+    const draftRes = readRecord(unwrapProvenanceDeep(draftResponse)) || {};
     const review = reviewResponse
       ? normalizeReviewResponse(reviewResponse)
       : null;
 
     return {
       cv_id: cvId,
-      profile_id: draftRes.profile_id,
-      version_id: draftRes.version_id,
-      version_number: draftRes.version_number,
-      title: draftRes.title || review?.title || 'Hồ sơ CV',
-      status: draftRes.status || review?.status || 'DRAFT',
-      confirmed_at: draftRes.confirmed_at,
-      personal_info: draftRes.personal_info || {
+      profile_id: readText(draftRes.profile_id) || undefined,
+      version_id: readText(draftRes.version_id) || undefined,
+      version_number: typeof draftRes.version_number === 'number' ? draftRes.version_number : undefined,
+      title: readText(draftRes.title) || review?.title || 'Hồ sơ CV',
+      status: readText(draftRes.status) || review?.status || 'DRAFT',
+      confirmed_at: readText(draftRes.confirmed_at) || undefined,
+      personal_info: toPersonalInfo(draftRes.personal_info) || {
         fullName: review?.structured?.personalInfo?.fullName || review?.structured?.personal_info?.fullName || review?.structured?.personalInfo?.full_name || review?.structured?.fullName || review?.structured?.full_name || review?.structured?.name || '',
         headline: review?.structured?.personalInfo?.headline || review?.structured?.personal_info?.headline || review?.structured?.headline || review?.structured?.targetRole || review?.structured?.target_role || '',
         email: review?.structured?.personalInfo?.email || review?.structured?.personal_info?.email || review?.structured?.email || '',
@@ -340,43 +574,17 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
         githubUrl: review?.structured?.personalInfo?.githubUrl || review?.structured?.personal_info?.githubUrl || review?.structured?.githubUrl || '',
         linkedinUrl: review?.structured?.personalInfo?.linkedinUrl || review?.structured?.personal_info?.linkedinUrl || review?.structured?.linkedinUrl || ''
       },
-      summary: draftRes.summary || {
-        content: review?.structured?.summary || ''
-      },
-      skills: Array.isArray(draftRes.skills)
-        ? draftRes.skills.map((s: any) => typeof s === 'string' ? { name: s } : s)
-        : Array.isArray(review?.structured?.skills)
-          ? review!.structured.skills.map((s: any) => typeof s === 'string' ? { name: s } : s)
-          : [],
-      work_experience: Array.isArray(draftRes.work_experience)
-        ? draftRes.work_experience
-        : Array.isArray(review?.structured?.experience)
-          ? review!.structured.experience
-          : Array.isArray(review?.structured?.experiences)
-            ? review!.structured.experiences
-            : [],
-      projects: Array.isArray(draftRes.projects)
-        ? draftRes.projects
-        : Array.isArray(review?.structured?.projects)
-          ? review!.structured.projects
-          : [],
-      education: Array.isArray(draftRes.education)
-        ? draftRes.education
-        : Array.isArray(review?.structured?.education)
-          ? review!.structured.education
-          : Array.isArray(review?.structured?.educations)
-            ? review!.structured.educations
-            : [],
-      certifications: Array.isArray(draftRes.certifications)
-        ? draftRes.certifications
-        : Array.isArray(review?.structured?.certifications)
-          ? review!.structured.certifications
-          : [],
-      languages: Array.isArray(draftRes.languages)
-        ? draftRes.languages
-        : Array.isArray(review?.structured?.languages)
-          ? review!.structured.languages
-          : []
+      summary: typeof draftRes.summary === 'string'
+        ? { content: draftRes.summary }
+        : readRecord(draftRes.summary)
+          ? { content: readText(readRecord(draftRes.summary)?.content) || readText(readRecord(draftRes.summary)?.text) }
+          : { content: review?.structured?.summary || '' },
+      skills: toDraftSkills(draftRes.skills ?? review?.structured?.skills),
+      work_experience: toDraftWorkExperience(draftRes.work_experience ?? review?.structured?.experience ?? review?.structured?.experiences),
+      projects: toDraftProjects(draftRes.projects ?? review?.structured?.projects),
+      education: toDraftEducation(draftRes.education ?? review?.structured?.education ?? review?.structured?.educations),
+      certifications: toDraftCertifications(draftRes.certifications ?? review?.structured?.certifications),
+      languages: toDraftLanguages(draftRes.languages ?? review?.structured?.languages)
     };
   };
 
@@ -402,30 +610,35 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
       summary: {
         content: structured.summary || ''
       },
-      skills: Array.isArray(structured.skills)
-        ? structured.skills.map((s: any) => typeof s === 'string' ? { name: s } : s)
-        : [],
-      work_experience: Array.isArray(structured.experience)
-        ? structured.experience
-        : Array.isArray(structured.experiences)
-          ? structured.experiences
-          : [],
-      projects: Array.isArray(structured.projects)
-        ? structured.projects
-        : [],
-      education: Array.isArray(structured.education)
-        ? structured.education
-        : Array.isArray(structured.educations)
-          ? structured.educations
-          : [],
-      certifications: Array.isArray(structured.certifications)
-        ? structured.certifications
-        : [],
-      languages: Array.isArray(structured.languages)
-        ? structured.languages
-        : []
+      skills: toDraftSkills(structured.skills),
+      work_experience: toDraftWorkExperience(structured.experience ?? structured.experiences),
+      projects: toDraftProjects(structured.projects),
+      education: toDraftEducation(structured.education ?? structured.educations),
+      certifications: toDraftCertifications(structured.certifications),
+      languages: toDraftLanguages(structured.languages)
     };
   };
+
+  useEffect(() => {
+    loadReviewAndDraftRef.current = loadReviewAndDraft;
+  });
+
+  useEffect(() => {
+    if (!isOpen || !cvId) return;
+    const timer = window.setTimeout(() => { void loadReviewAndDraftRef.current(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [isOpen, cvId]);
+
+  useEffect(() => {
+    if (!isOpen || !hasUnsavedChanges) return;
+    const guardPageExit = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      // Required for browsers that still use returnValue to show the native prompt.
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', guardPageExit);
+    return () => window.removeEventListener('beforeunload', guardPageExit);
+  }, [isOpen, hasUnsavedChanges]);
 
   const handleRetry = async () => {
     if (isRetrying || isProcessingStatus(data?.status)) {
@@ -467,8 +680,8 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
             ? `${base}_structured.json`
             : data.fileName || `${base}.pdf`;
       await downloadCVFile(cvId, format, fallbackName);
-    } catch (err: any) {
-      alert(err.message || 'Lỗi khi tải tập tin.');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Lỗi khi tải tập tin.');
     } finally {
       setDownloadingFormat(null);
     }
@@ -482,27 +695,45 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
   const markDraftDirty = (updatedDraft: CVDraftData) => {
     setDraft(updatedDraft);
-    setHasUnsavedChanges(true);
+    currentDraftRef.current = updatedDraft;
+    const isDirty = !savedDraftRef.current || JSON.stringify(updatedDraft) !== JSON.stringify(savedDraftRef.current);
+    setHasUnsavedChanges(isDirty);
+    setSaveStatus(isDirty ? 'dirty' : 'saved');
+    setSaveError(null);
+  };
+
+  const persistDraft = async (submitted: CVDraftData): Promise<boolean> => {
+    if (saveInFlight.current) return false;
+    const submittedSnapshot = structuredClone(normalizeDraftEvidenceItemIds(submitted));
+    saveInFlight.current = true;
+    setIsSavingDraft(true);
+    setSaveStatus('saving');
+    setSaveError(null);
+    try {
+      await updateCVDraft(cvId, submittedSnapshot);
+      setInitialDraftSnapshot(submittedSnapshot);
+      savedDraftRef.current = submittedSnapshot;
+      const hasNewerEdits = JSON.stringify(currentDraftRef.current) !== JSON.stringify(submittedSnapshot);
+      setHasUnsavedChanges(hasNewerEdits);
+      setSaveStatus(hasNewerEdits ? 'dirty' : 'saved');
+      setShowSaveToast(true);
+      window.setTimeout(() => setShowSaveToast(false), 2400);
+      if (onCvUpdated) onCvUpdated();
+      return true;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Không thể lưu bản nháp hồ sơ.';
+      setSaveError(message);
+      setSaveStatus('error');
+      return false;
+    } finally {
+      saveInFlight.current = false;
+      setIsSavingDraft(false);
+    }
   };
 
   const handleSaveDraft = async () => {
-    if (!draft) return;
-    setIsSavingDraft(true);
-    try {
-      const preparedDraft = normalizeDraftEvidenceItemIds(draft);
-      const res = await updateCVDraft(cvId, preparedDraft);
-      const updated = initializeDraftFromResponse(res, data);
-      setDraft(updated);
-      setInitialDraftSnapshot(structuredClone(updated));
-      setHasUnsavedChanges(false);
-      setSaveSuccessNotice('Đã lưu bản nháp thành công!');
-      setTimeout(() => setSaveSuccessNotice(null), 3000);
-      if (onCvUpdated) onCvUpdated();
-    } catch (err: any) {
-      alert(err.message || 'Không thể lưu bản nháp hồ sơ.');
-    } finally {
-      setIsSavingDraft(false);
-    }
+    if (!draft || !hasUnsavedChanges || saveInFlight.current) return;
+    await persistDraft(draft);
   };
 
   const handleCancelChanges = () => {
@@ -511,13 +742,22 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
       if (!confirmDiscard) return;
     }
     if (initialDraftSnapshot) {
-      setDraft(JSON.parse(JSON.stringify(initialDraftSnapshot)));
+      setDraft(structuredClone(initialDraftSnapshot));
+      currentDraftRef.current = structuredClone(initialDraftSnapshot);
+      savedDraftRef.current = structuredClone(initialDraftSnapshot);
     }
     setHasUnsavedChanges(false);
-    setIsEditing(false);
+    setSaveStatus('saved');
+    setSaveError(null);
   };
 
   const handleCloseModal = () => {
+    if (showConfirmModal) {
+      setShowConfirmModal(false);
+      setConfirmError(null);
+      return;
+    }
+    if (isSavingDraft || isConfirming) return;
     if (hasUnsavedChanges) {
       const confirmClose = window.confirm('Bạn có thay đổi bản nháp chưa lưu. Bạn có chắc chắn muốn đóng mà không lưu không?');
       if (!confirmClose) return;
@@ -526,30 +766,44 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
   };
 
   const handleOpenConfirmDialog = () => {
-    if (!draft?.personal_info?.fullName?.trim()) {
-      alert('Họ tên ứng viên không được để trống trước khi xác nhận hồ sơ.');
+    if (currentProfile?.status === 'CONFIRMED') return;
+    if (!hasReviewableProfessionalContent(draft)) {
+      alert(isVi ? 'Hãy thêm nội dung nghề nghiệp trước khi xác nhận hồ sơ.' : 'Add professional content before confirming this CV.');
       return;
     }
+    setConfirmError(null);
     setShowConfirmModal(true);
   };
 
   const handleConfirmProfile = async () => {
+    if (isConfirming) return;
+    if (!hasReviewableProfessionalContent(draft)) {
+      setConfirmError(isVi ? 'Hãy thêm nội dung nghề nghiệp trước khi xác nhận hồ sơ.' : 'Add professional content before confirming this CV.');
+      return;
+    }
     setIsConfirming(true);
     try {
-      if (draft) {
-        const preparedDraft = normalizeDraftEvidenceItemIds(draft);
-        await updateCVDraft(cvId, preparedDraft);
+      if (draft && hasUnsavedChanges) {
+        const saved = await persistDraft(draft);
+        if (!saved) return;
+        if (JSON.stringify(currentDraftRef.current) !== JSON.stringify(savedDraftRef.current)) {
+          setConfirmError(isVi
+            ? 'Có thay đổi mới trong lúc lưu. Hãy lưu lại rồi xác nhận phiên bản mới nhất.'
+            : 'New edits were made while saving. Save again before confirming the latest version.');
+          return;
+        }
       }
       await confirmCandidateCV(cvId);
       setShowConfirmModal(false);
+      setConfirmError(null);
       setIsEditing(false);
       setHasUnsavedChanges(false);
-      setSaveSuccessNotice('Hồ sơ CV đã được xác nhận chính thức thành công!');
-      setTimeout(() => setSaveSuccessNotice(null), 4000);
+      setSaveStatus('saved');
       await loadReviewAndDraft();
       if (onCvUpdated) onCvUpdated();
-    } catch (err: any) {
-      alert(err.message || 'Lỗi khi xác nhận hồ sơ CV.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Lỗi khi xác nhận hồ sơ CV.';
+      setConfirmError(message);
     } finally {
       setIsConfirming(false);
     }
@@ -583,11 +837,13 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
       descriptionId="cv-review-modal-description"
       testId="cv-review-modal"
       overlayClassName="p-3 sm:p-5 bg-slate-950/80 dark:bg-slate-950/80 backdrop-blur-md"
-      panelClassName="bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-2xl w-full max-w-6xl h-[92vh] flex flex-col shadow-2xl overflow-hidden text-slate-800 dark:text-slate-100"
+      panelClassName="relative bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-2xl w-full max-w-6xl h-[92vh] flex flex-col shadow-2xl overflow-hidden text-slate-800 dark:text-slate-100"
     >
 
+        {showSaveToast && <div role="status" aria-live="polite" className="pointer-events-none fixed bottom-6 right-6 z-[70] rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800 shadow-lg">{isVi ? 'Đã lưu bản nháp' : 'Draft saved'}</div>}
+
         {/* Top Header */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-[#1E293B] flex items-center justify-between bg-slate-50/80 dark:bg-[#111C38]/90">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-[#1E293B] flex flex-col gap-3 bg-slate-50/80 dark:bg-[#111C38]/90">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
               <FileText className="w-5 h-5" />
@@ -611,31 +867,21 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                     {currentProfile.status === 'CONFIRMED' ? 'ĐÃ XÁC NHẬN' : currentProfile.status}
                   </span>
                 )}
-                {isEditing && (
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1">
-                    <Edit3 className="w-3 h-3" />
-                    Chế độ chỉnh sửa
-                  </span>
-                )}
-                {hasUnsavedChanges && (
-                  <span className="text-[11px] text-amber-500 font-medium">
-                    (Có thay đổi chưa lưu)
-                  </span>
-                )}
               </div>
               <p id="cv-review-modal-description" className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                {data?.fileName ? `${data.fileName} (${((data.fileSize || 0) / 1024).toFixed(1)} KB)` : 'Chi tiết trích xuất nội dung & Grounded Evidence'}
+                {data?.fileName ? `${data.fileName} (${((data.fileSize || 0) / 1024).toFixed(1)} KB)` : (isVi ? 'Chi tiết hồ sơ CV' : 'CV details')}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {saveSuccessNotice && (
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300">
-                <Check className="w-3.5 h-3.5" />
-                {saveSuccessNotice}
-              </span>
-            )}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex w-56 min-w-56 items-center gap-2 min-h-8 whitespace-nowrap" aria-live="polite" aria-atomic="true">
+            <span className={`w-36 text-xs ${saveStatus === 'error' ? 'text-rose-600' : saveStatus === 'dirty' ? 'text-amber-600' : saveStatus === 'saving' ? 'text-blue-600' : 'text-emerald-600'}`}>
+              {saveStatus === 'saving' ? (isVi ? 'Đang lưu…' : 'Saving…') : saveStatus === 'dirty' ? (isVi ? 'Chưa lưu thay đổi' : 'Unsaved changes') : saveStatus === 'error' ? (isVi ? 'Lưu thất bại' : 'Save failed') : (isVi ? 'Đã lưu' : 'Saved')}
+            </span>
+            {saveError && <button type="button" className="text-xs underline text-rose-600" onClick={() => void handleSaveDraft()}>{isVi ? 'Thử lại' : 'Retry'}</button>}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
 
             {!isEditing ? (
               <button
@@ -652,7 +898,8 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={handleCancelChanges}
-                  disabled={isSavingDraft || isConfirming}
+                  disabled={!hasUnsavedChanges || isSavingDraft || isConfirming}
+                  aria-label={isVi ? 'Hủy thay đổi' : 'Discard changes'}
                   className="px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-slate-300 dark:border-[#1E293B] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#18294E] transition flex items-center gap-1 cursor-pointer"
                 >
                   <Undo2 className="w-3.5 h-3.5" />
@@ -660,15 +907,16 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                 </button>
                 <button
                   onClick={handleSaveDraft}
-                  disabled={isSavingDraft || isConfirming}
+                  disabled={!hasUnsavedChanges || isSavingDraft || isConfirming}
                   className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90 transition flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
                 >
                   <Save className={`w-3.5 h-3.5 ${isSavingDraft ? 'animate-spin' : ''}`} />
-                  <span>{isSavingDraft ? 'Đang lưu...' : 'Lưu bản nháp'}</span>
+                  <span>{isSavingDraft ? (isVi ? 'Đang lưu…' : 'Saving…') : (isVi ? 'Lưu bản nháp' : 'Save draft')}</span>
                 </button>
                 <button
                   onClick={handleOpenConfirmDialog}
                   disabled={isSavingDraft || isConfirming}
+                  aria-label={isVi ? 'Xác nhận hồ sơ' : 'Confirm CV'}
                   className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
                 >
                   <CheckSquare className="w-3.5 h-3.5" />
@@ -696,13 +944,15 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
             </button>
 
             <button
-              onClick={onClose}
+              onClick={handleCloseModal}
+              disabled={isSavingDraft || isConfirming}
               data-autofocus="true"
               aria-label="Đóng chi tiết trích xuất CV"
               className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#18294E] transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
+          </div>
           </div>
         </div>
 
@@ -717,85 +967,27 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                 }`}
             >
               <BookOpen className="w-3.5 h-3.5" />
-              <span>{isEditing ? 'Biên Tập Hồ Sơ (Draft)' : 'Hồ Sơ Cấu Trúc'}</span>
+              <span>{isVi ? 'Hồ sơ' : 'Profile'}</span>
             </button>
 
-            <button
-              onClick={() => setActiveTab('raw_text')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${activeTab === 'raw_text'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#18294E]'
-                }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>Văn Bản Thô ({data?.rawText ? `${data.rawText.length} ký tự` : '0'})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('evidence')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${activeTab === 'evidence'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#18294E]'
-                }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Bằng Chứng Đối Chiếu ({evidences.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('json')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${activeTab === 'json'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#18294E]'
-                }`}
-            >
-              <Code className="w-3.5 h-3.5" />
-              <span>JSON Trích Xuất AI</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('warnings')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${activeTab === 'warnings'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#18294E]'
-                }`}
-            >
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>Cảnh Báo & Audit ({warnings.length + unverifiedFacts.length})</span>
-            </button>
           </div>
 
-          {/* Download Action Buttons */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleDownload('raw')}
-              disabled={downloadingFormat !== null}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#18294E] transition flex items-center gap-1 cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>raw.txt</span>
-            </button>
-            <button
-              onClick={() => handleDownload('json')}
-              disabled={downloadingFormat !== null}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#18294E] transition flex items-center gap-1 cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>structured.json</span>
-            </button>
-            <button
-              onClick={() => handleDownload('original')}
-              disabled={downloadingFormat !== null}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition flex items-center gap-1 cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>File Gốc</span>
-            </button>
-          </div>
+          <details className="relative shrink-0">
+            <summary className="list-none cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-[#1E293B] dark:text-slate-200 dark:hover:bg-[#18294E]">Tùy chọn khác</summary>
+            <div className="absolute right-0 top-full z-20 mt-2 flex min-w-64 flex-col gap-1 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-[#1E293B] dark:bg-[#111C38]">
+              <button type="button" onClick={() => setActiveTab('raw_text')} className="rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-100 dark:hover:bg-[#18294E]">Văn bản thô ({data?.rawText ? `${data.rawText.length} ký tự` : '0'})</button>
+              <button type="button" onClick={() => setActiveTab('json')} className="rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-100 dark:hover:bg-[#18294E]">JSON trích xuất</button>
+              <button type="button" onClick={() => setActiveTab('warnings')} className="rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-100 dark:hover:bg-[#18294E]">Cảnh báo & audit ({warnings.length + unverifiedFacts.length})</button>
+              <div className="my-1 border-t border-slate-100 dark:border-[#1E293B]" />
+              <button type="button" onClick={() => handleDownload('raw')} disabled={downloadingFormat !== null} className="rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-[#18294E]">Tải raw.txt</button>
+              <button type="button" onClick={() => handleDownload('json')} disabled={downloadingFormat !== null} className="rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-[#18294E]">Tải structured.json</button>
+              <button type="button" onClick={() => handleDownload('original')} disabled={downloadingFormat !== null} className="rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-[#18294E]">Tải file gốc</button>
+            </div>
+          </details>
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 dark:bg-[#070D1E]/50">
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 dark:bg-[#070D1E]/50" inert={isConfirming}>
           {isLoading ? (
             <AnimatedStatus stateKey="loading" isBusy className="h-full flex flex-col items-center justify-center space-y-3 py-16">
               <RefreshCw className="w-8 h-8 text-blue-600 animate-spin motion-reduce:animate-none" />
@@ -828,22 +1020,12 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                         <h3 className="text-xl font-bold text-[#0F2A52] dark:text-white">
                           {personalInfo.fullName || personalInfo.full_name || structured.personalInfo?.fullName || structured.personal_info?.full_name || structured.fullName || structured.full_name || structured.name || 'Chưa xác định họ tên'}
                         </h3>
-                        <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mt-0.5">
-                          {personalInfo.headline || structured.personalInfo?.headline || structured.personal_info?.headline || structured.headline || structured.targetRole || structured.target_role || 'Chuyên viên kỹ thuật'}
-                        </p>
                         {(personalInfo.address || structured.personalInfo?.address || structured.address) && (
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                             📍 {personalInfo.address || structured.personalInfo?.address || structured.address}
                           </p>
                         )}
                       </div>
-                      <button
-                        onClick={handleSaveDraft}
-                        disabled={isSavingDraft}
-                        className="px-3 py-1 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 shrink-0 transition"
-                      >
-                        {isSavingDraft ? 'Đang lưu...' : 'Lưu bản nháp'}
-                      </button>
                     </div>
                   </div>
 
@@ -864,9 +1046,6 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                           <h3 className="text-xl font-bold text-[#0F2A52] dark:text-white">
                             {personalInfo.fullName || 'Chưa xác định họ tên'}
                           </h3>
-                          <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mt-0.5">
-                            {personalInfo.headline || 'Chưa xác định vị trí mục tiêu'}
-                          </p>
                           {personalInfo.address && (
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
                               <MapPin className="w-3.5 h-3.5" />
@@ -934,23 +1113,6 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                           />
                         </div>
 
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                            Vị trí mục tiêu / Chức danh (Headline)
-                          </label>
-                          <input
-                            type="text"
-                            value={personalInfo.headline || ''}
-                            onChange={(e) => {
-                              markDraftDirty({
-                                ...draft!,
-                                personal_info: { ...personalInfo, headline: e.target.value }
-                              });
-                            }}
-                            placeholder="Ví dụ: Senior Java Software Engineer"
-                            className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E] focus:outline-hidden focus:ring-1 focus:ring-blue-500"
-                          />
-                        </div>
 
                         <div>
                           <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
@@ -1081,7 +1243,6 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                   {/* 3. OVERALL SKILLS (TAGS WITH AUTOCOMPLETE) */}
                   <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <Sparkles className="w-4 h-4 text-blue-600" />
                       <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white uppercase tracking-wider">
                         Kỹ năng chuyên môn ({skillsList.length})
                       </h4>
@@ -1090,9 +1251,9 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                     {!isEditing ? (
                       skillsList.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
-                          {skillsList.map((s: any, idx: number) => {
-                            const skillName = typeof s === 'string' ? s : s.name;
-                            const isCustom = typeof s === 'object' && s.isCustom;
+                          {skillsList.map((s, idx) => {
+                            const skillName = s.name;
+                            const isCustom = s.isCustom === true;
                             return (
                               <span
                                 key={idx}
@@ -1118,7 +1279,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                           Tìm kiếm trong Taxonomy kỹ năng chuẩn hoặc thêm kỹ năng tùy chỉnh:
                         </p>
                         <SkillAutocomplete
-                          skills={skillsList.map((s: any) => typeof s === 'string' ? { name: s } : s)}
+                          skills={skillsList}
                           onChange={(newSkills) => {
                             markDraftDirty({
                               ...draft!,
@@ -1168,7 +1329,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
                     {experiences.length > 0 ? (
                       <div className="space-y-4">
-                        {experiences.map((exp: any, idx: number) => (
+                        {experiences.map((exp, idx) => (
                           <div
                             key={idx}
                             className="p-4 rounded-xl border border-slate-200 dark:border-[#1E293B] bg-slate-50/50 dark:bg-[#0B1329]/50 space-y-3"
@@ -1191,12 +1352,12 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                                 )}
                                 {Array.isArray(exp.technologies) && exp.technologies.length > 0 && (
                                   <div className="flex flex-wrap gap-1.5 pt-1">
-                                    {exp.technologies.map((t: any, tidx: number) => (
+                                    {exp.technologies.map((t, tidx) => (
                                       <span
                                         key={tidx}
                                         className="px-2 py-0.5 rounded-md text-[11px] bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900/40"
                                       >
-                                        {typeof t === 'string' ? t : t.name}
+                                        {technologyName(t)}
                                       </span>
                                     ))}
                                   </div>
@@ -1356,7 +1517,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                                     Công nghệ & Kỹ năng liên quan
                                   </label>
                                   <SkillAutocomplete
-                                    skills={(exp.technologies || []).map((t: any) => typeof t === 'string' ? { name: t } : t)}
+                                    skills={toSkillChoices(exp.technologies || [])}
                                     onChange={(newSkills) => {
                                       const copy = [...experiences];
                                       copy[idx] = { ...copy[idx], technologies: newSkills.map(s => s.name) };
@@ -1409,7 +1570,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
                     {projects.length > 0 ? (
                       <div className="space-y-4">
-                        {projects.map((project: any, idx: number) => {
+                        {projects.map((project, idx) => {
                           const techStack = Array.isArray(project.techStack)
                             ? project.techStack
                             : Array.isArray(project.tech_stack)
@@ -1441,12 +1602,12 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                                   )}
                                   {techStack.length > 0 && (
                                     <div className="flex flex-wrap gap-1.5 pt-1">
-                                      {techStack.map((technology: any, technologyIndex: number) => (
+                                      {techStack.map((technology, technologyIndex) => (
                                         <span
                                           key={technologyIndex}
                                           className="px-2 py-0.5 rounded-md text-[11px] bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900/40"
                                         >
-                                          {typeof technology === 'string' ? technology : technology.name}
+                                          {technologyName(technology)}
                                         </span>
                                       ))}
                                     </div>
@@ -1558,7 +1719,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                                       Tech Stack dự án
                                     </label>
                                     <SkillAutocomplete
-                                      skills={(techStack || []).map((t: any) => typeof t === 'string' ? { name: t } : t)}
+                                      skills={toSkillChoices(techStack || [])}
                                       onChange={(newSkills) => {
                                         const copy = [...projects];
                                         copy[idx] = { ...copy[idx], techStack: newSkills.map(s => s.name) };
@@ -1616,7 +1777,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
                     {educations.length > 0 ? (
                       <div className="space-y-3">
-                        {educations.map((edu: any, idx: number) => {
+                        {educations.map((edu, idx) => {
                           const hasGpa = edu.gpa != null || edu.gpa_display;
                           const gpaText = edu.gpa_display
                             ? edu.gpa_display
@@ -1904,7 +2065,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
                     {certifications.length > 0 ? (
                       <div className="space-y-3">
-                        {certifications.map((c: any, idx: number) => {
+                        {certifications.map((c, idx) => {
                           const certId =
                             typeof c === 'object' && isValidUuid(c?.id)
                               ? c.id
@@ -2111,7 +2272,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
                     {languages.length > 0 ? (
                       <div className="space-y-3">
-                        {languages.map((l: any, idx: number) => {
+                        {languages.map((l, idx) => {
                           const langId =
                             typeof l === 'object' && isValidUuid(l?.id)
                               ? l.id
@@ -2242,64 +2403,6 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                     )}
                   </div>
 
-                  {/* BOTTOM ACTION BAR */}
-                  <div className="p-4 rounded-xl bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] flex flex-wrap items-center justify-between gap-3 shadow-xs">
-                    <div className="text-xs text-slate-500">
-                      {isEditing ? (
-                        <span>Bạn đang chỉnh sửa bản nháp. Đừng quên bấm <strong>Lưu bản nháp</strong> hoặc <strong>Xác nhận hồ sơ</strong>.</span>
-                      ) : (
-                        <span>Hồ sơ đã kiểm tra. Bấm <strong>Chỉnh sửa</strong> để cập nhật thông tin nếu cần.</span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {isEditing ? (
-                        <>
-                          <button
-                            onClick={handleCancelChanges}
-                            className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 dark:border-[#1E293B] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#18294E] transition"
-                          >
-                            Hủy thay đổi
-                          </button>
-                          <button
-                            onClick={handleSaveDraft}
-                            disabled={isSavingDraft}
-                            className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90 transition disabled:opacity-50"
-                          >
-                            {isSavingDraft ? 'Đang lưu...' : 'Lưu bản nháp'}
-                          </button>
-                          <button
-                            onClick={handleOpenConfirmDialog}
-                            disabled={isConfirming}
-                            className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-50 flex items-center gap-1.5"
-                          >
-                            <CheckSquare className="w-3.5 h-3.5" />
-                            <span>Xác nhận hồ sơ chính thức</span>
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => setIsEditing(true)}
-                            className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition flex items-center gap-1.5"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                            <span>Chỉnh sửa hồ sơ</span>
-                          </button>
-                          {currentProfile?.status !== 'CONFIRMED' && (
-                            <button
-                              onClick={handleOpenConfirmDialog}
-                              className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition flex items-center gap-1.5"
-                            >
-                              <CheckSquare className="w-3.5 h-3.5" />
-                              <span>Xác nhận hồ sơ</span>
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-
                 </div>
               )}
 
@@ -2423,10 +2526,10 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
 
                           <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#070D1E] border border-slate-100 dark:border-[#1E293B]/60 text-xs text-slate-700 dark:text-slate-300 font-mono">
                             <span className="text-slate-400 mr-2">Trích dẫn:</span>
-                            <span className="text-blue-700 dark:text-blue-300 font-medium">"{ev.quote}"</span>
+                            <span className="text-blue-700 dark:text-blue-300 font-medium">&quot;{ev.quote}&quot;</span>
                           </div>
 
-                          {ev.verbatim_value && (
+                          {Boolean(ev.verbatim_value) && (
                             <div className="text-xs text-slate-500 flex items-center gap-2">
                               <span>Giá trị nguyên văn:</span>
                               <span className="font-semibold text-slate-800 dark:text-slate-200">
@@ -2452,7 +2555,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                     <div>
                       <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white flex items-center gap-2">
                         <Lock className="w-4 h-4 text-slate-400" />
-                        <span>Structured JSON gốc từ AI Worker (Extraction Snapshot)</span>
+                        <span>{isVi ? 'Dữ liệu JSON đã trích xuất' : 'Extracted JSON data'}</span>
                       </h4>
                       <p className="text-xs text-slate-500 mt-0.5">
                         Schema version: {data?.structured?.schema_version || '2.0.0'}
@@ -2537,7 +2640,7 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
                           >
                             <div className="font-mono font-semibold">{uf.field_path}</div>
                             <div className="text-[11px] font-mono">
-                              Trích dẫn đề xuất: "{uf.quote}"
+                              Trích dẫn đề xuất: &quot;{uf.quote}&quot;
                             </div>
                             <div className="text-[11px] text-rose-600 dark:text-rose-400">
                               Lý do: {uf.reason || 'Trích dẫn không khớp chính xác chuỗi con trong raw text.'}
@@ -2585,6 +2688,8 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
               <li>Bản trích xuất raw text và JSON gốc của AI vẫn được bảo toàn nguyên vẹn.</li>
             </ul>
 
+            {confirmError && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">{confirmError}</p>}
+
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
               <button
                 type="button"
@@ -2620,3 +2725,8 @@ export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (
     </AnimatedModalShell>
   );
 };
+
+export const CVExtractionReviewModal: React.FC<CVExtractionReviewModalProps> = (props) =>
+  props.isOpen
+    ? <CVExtractionReviewModalContent key={props.cvId} {...props} />
+    : null;

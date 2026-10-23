@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: airecruit_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres_secure_pass
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres_secure_pass}
     ports:
       - "5432:5432"
     volumes:

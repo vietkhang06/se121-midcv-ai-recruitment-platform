@@ -123,7 +123,7 @@ interface JobTileProps {
 
 function JobTile({ job, locale, onApply, onSave }: JobTileProps) {
   const companyInitial = job.companyName?.trim()?.[0]?.toUpperCase() || 'C';
-  const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryRange, locale);
+  const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryRange, locale, job.salaryNegotiable, job.salaryCurrency);
   const requirements = (job.requirements ?? []).slice(0, 3);
 
   return (

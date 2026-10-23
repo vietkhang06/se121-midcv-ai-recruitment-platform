@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   X,
   Upload,
@@ -9,11 +9,6 @@ import {
   AlertCircle,
   Loader2,
   RefreshCw,
-  Eye,
-  GitBranch,
-  ShieldCheck,
-  ChevronRight,
-  Sparkles
 } from 'lucide-react';
 import { QuickScreeningRun, QuickScreeningDetail } from '@/types';
 import {
@@ -42,7 +37,7 @@ export function QuickScreeningModal({ job, isOpen, onClose }: QuickScreeningModa
   const [detailLoading, setDetailLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const loadScreenings = async () => {
+  const loadScreenings = useCallback(async () => {
     try {
       const data = await fetchQuickScreenings(job.id, 0, 50);
       setRuns(data);
@@ -52,19 +47,20 @@ export function QuickScreeningModal({ job, isOpen, onClose }: QuickScreeningModa
     } finally {
       setLoading(false);
     }
-  };
+  }, [job.id]);
 
   useEffect(() => {
     if (!isOpen) return;
-    loadScreenings();
+    const initialLoad = window.setTimeout(() => { void loadScreenings(); }, 0);
 
     // Auto refresh while any job is processing
-    const timer = setInterval(() => {
-      loadScreenings();
-    }, 4000);
+    const timer = window.setInterval(() => { void loadScreenings(); }, 4000);
 
-    return () => clearInterval(timer);
-  }, [isOpen, job.id]);
+    return () => {
+      window.clearTimeout(initialLoad);
+      window.clearInterval(timer);
+    };
+  }, [isOpen, loadScreenings]);
 
   const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -366,7 +362,7 @@ export function QuickScreeningModal({ job, isOpen, onClose }: QuickScreeningModa
           isOpen={true}
           onClose={() => setSelectedDetail(null)}
           result={selectedDetail.result}
-          candidateTitle={selectedDetail.cv?.filename || 'Hồ sơ đã sàng lọc'}
+          candidateTitle={typeof selectedDetail.cv?.filename === 'string' ? selectedDetail.cv.filename : 'Hồ sơ đã sàng lọc'}
           jobTitle={job.title}
         />
       )}

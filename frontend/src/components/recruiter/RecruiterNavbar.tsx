@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard,
   Briefcase,
   GitBranch,
   BarChart3,
@@ -75,12 +74,6 @@ export const RecruiterNavbar: React.FC = () => {
   };
 
   const navItems = [
-    {
-      href: '/recruiter',
-      label: t('recruiterNav.dashboard', 'Tổng quan'),
-      icon: LayoutDashboard,
-      active: pathname === '/recruiter',
-    },
     {
       href: '/recruiter/jobs',
       label: t('recruiterNav.jobs', 'Tin tuyển dụng'),

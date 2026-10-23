@@ -30,8 +30,8 @@ public class AiProcessingController {
     private CandidateProfileRepository candidateProfileRepository;
 
     @PostMapping("/jobs/{jobId}")
-    public ResponseEntity<ApiResponse<String>> triggerJdProcessing(@PathVariable UUID jobId) {
-        processingLifecycleService.processJobDescription(jobId);
+    public ResponseEntity<ApiResponse<String>> triggerJdProcessing(@AuthenticationPrincipal User actor, @PathVariable UUID jobId) {
+        processingLifecycleService.processJobDescription(actor, jobId);
         return ResponseEntity.ok(ApiResponse.success("Job Description parsing lifecycle completed", "COMPLETED"));
     }
 
@@ -41,8 +41,8 @@ public class AiProcessingController {
      */
     @Deprecated
     @PostMapping("/cvs/{cvId}")
-    public ResponseEntity<ApiResponse<String>> triggerCvProcessing(@PathVariable UUID cvId) {
-        processingLifecycleService.processCvDocument(cvId);
+    public ResponseEntity<ApiResponse<String>> triggerCvProcessing(@AuthenticationPrincipal User actor, @PathVariable UUID cvId) {
+        processingLifecycleService.processCvDocument(actor, cvId);
         return ResponseEntity.ok(ApiResponse.success("CV Document parsing lifecycle completed", "COMPLETED"));
     }
 

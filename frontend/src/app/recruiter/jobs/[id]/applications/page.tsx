@@ -3,7 +3,7 @@
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { Job, Application, ApplicationStatus } from '@/types';
-import { fetchJobById, fetchJobApplications, updateApplicationStatus } from '@/lib/api';
+import { fetchRecruiterJobById, fetchJobApplications, updateApplicationStatus } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
 import {
   ArrowLeft,
@@ -48,7 +48,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
     setIsLoading(true);
     setFetchError(null);
     Promise.all([
-      fetchJobById(resolvedParams.id),
+      fetchRecruiterJobById(resolvedParams.id),
       fetchJobApplications(resolvedParams.id),
     ])
       .then(([j, apps]) => {

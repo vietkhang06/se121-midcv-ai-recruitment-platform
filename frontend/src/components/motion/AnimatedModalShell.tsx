@@ -1,6 +1,7 @@
 'use client';
 
 import React, { ReactNode, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface AnimatedModalShellProps {
   isOpen: boolean;
@@ -38,6 +39,11 @@ export function AnimatedModalShell({
   const [phase, setPhase] = useState<'open' | 'closed'>('closed');
   const panelRef = useRef<HTMLDivElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const onRequestCloseRef = useRef(onRequestClose);
+
+  useEffect(() => {
+    onRequestCloseRef.current = onRequestClose;
+  }, [onRequestClose]);
 
   useEffect(() => {
     let frame = 0;
@@ -76,7 +82,7 @@ export function AnimatedModalShell({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onRequestClose();
+        onRequestCloseRef.current();
         return;
       }
 
@@ -108,11 +114,11 @@ export function AnimatedModalShell({
       document.body.style.overflow = previousOverflow;
       returnFocusRef.current?.focus({ preventScroll: true });
     };
-  }, [mounted, onRequestClose]);
+  }, [mounted]);
 
   if (!mounted) return null;
 
-  return (
+  return createPortal((
     <div
       className={`motion-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm ${overlayClassName}`}
       data-state={phase}
@@ -136,5 +142,5 @@ export function AnimatedModalShell({
         {children}
       </div>
     </div>
-  );
+  ), document.body);
 }

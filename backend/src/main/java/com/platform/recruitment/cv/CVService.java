@@ -27,6 +27,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -204,6 +206,22 @@ public class CVService {
         }
 
         return mapToResponse(cv);
+    }
+
+    @Transactional
+    public CVResponse updateCVMetadata(User candidateUser, UUID cvId, UpdateCVMetadataRequest request) {
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+
+        CV cv = cvRepository.findByIdForUpdate(cvId)
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
+
+        if (!cv.getCandidate().getId().equals(candidate.getId())) {
+            throw new UnauthorizedAccessException("Candidate does not own this CV");
+        }
+
+        cv.setTitle(request.getTitle().trim());
+        return mapToResponse(cvRepository.save(cv));
     }
 
     @Transactional(readOnly = true)
@@ -1181,21 +1199,32 @@ public class CVService {
             throw new UnauthorizedAccessException("Candidate does not own this CV");
         }
 
+        List<String> evidenceStorageKeys = cvEvidenceAttachmentRepository == null
+                ? List.of()
+                : cvEvidenceAttachmentRepository.findByCvId(cvId).stream()
+                        .map(CVEvidenceAttachment::getStorageKey)
+                        .toList();
         if (cvEvidenceAttachmentRepository != null) {
-            try {
-                cvEvidenceAttachmentRepository.findByCvId(cvId).forEach(att -> {
-                    try {
-                        Files.deleteIfExists(documents.path(att.getStorageKey()));
-                    } catch (Exception ignored) {}
-                });
-                cvEvidenceAttachmentRepository.deleteByCvId(cvId);
-            } catch (Exception ex) {
-                log.warn("Failed to clean up evidence attachments for CV {}: {}", cvId, ex.getMessage());
-            }
+            cvEvidenceAttachmentRepository.deleteByCvId(cvId);
         }
 
         cvRepository.delete(cv);
         jdbcTemplate.update("UPDATE documents SET archived=true WHERE id=? AND owner_id=?", cvId, candidateUser.getId());
+        if (!evidenceStorageKeys.isEmpty()) {
+            Runnable cleanup = () -> evidenceStorageKeys.forEach(
+                    storageKey -> deleteAttachmentFile(storageKey, UUID.randomUUID().toString()));
+            if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+                org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                        new org.springframework.transaction.support.TransactionSynchronization() {
+                            @Override
+                            public void afterCompletion(int status) {
+                                if (status == STATUS_COMMITTED) cleanup.run();
+                            }
+                        });
+            } else {
+                cleanup.run();
+            }
+        }
     }
 
     public CVResponse mapToResponse(CV cv) {
@@ -1268,10 +1297,10 @@ public class CVService {
             } catch (Exception ignored) {}
         }
 
-        if (rawStructured.isEmpty()) {
+        if (rawStructured.isEmpty() && jdbcTemplate != null) {
             List<Map<String, Object>> vRows = jdbcTemplate.queryForList(
-                    "SELECT normalized FROM document_versions WHERE document_id = ? ORDER BY version_no DESC LIMIT 1",
-                    cvId
+                    "SELECT normalized FROM document_versions WHERE id = ?",
+                    version.getId()
             );
             if (!vRows.isEmpty() && vRows.get(0).get("normalized") != null) {
                 try {
@@ -1284,10 +1313,12 @@ public class CVService {
             log.info("CV_DRAFT_INITIALIZATION_STARTED correlation_id={} cv_id={} version_id={} profile_id={}",
                     correlationId, cvId, version.getId(), candidate.getId());
 
-            Map<String, Object> sourceForDraft = !rawStructured.isEmpty() ? rawStructured : (structured != null ? structured : Collections.emptyMap());
+            Map<String, Object> sourceForDraft = "CONFIRMED".equalsIgnoreCase(version.getStatus()) && structured != null
+                    ? structured : (!rawStructured.isEmpty() ? rawStructured : (structured != null ? structured : Collections.emptyMap()));
             Map<String, Object> canonicalDraft = buildCanonicalDraftFromRaw(sourceForDraft, cv, version.getId());
 
             try {
+                if (!"CONFIRMED".equalsIgnoreCase(version.getStatus())) {
                 version.setStructuredJsonContent(objectMapper.writeValueAsString(canonicalDraft));
                 if (version.getRawStructuredContent() == null || version.getRawStructuredContent().isBlank()) {
                     if (!rawStructured.isEmpty()) {
@@ -1298,6 +1329,7 @@ public class CVService {
                 if (savedVer != null) {
                     version = savedVer;
                 }
+                } // Confirmed versions are projected for display, never rewritten by GET.
             } catch (Exception e) {
                 log.error("Failed to save initialized canonical draft for version {}: {}", version.getId(), e.getMessage());
             }
@@ -1406,7 +1438,7 @@ public class CVService {
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
 
-        CV cv = cvRepository.findById(cvId)
+        CV cv = cvRepository.findByIdForUpdate(cvId)
                 .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
 
         if (!cv.getCandidate().getId().equals(candidate.getId())) {
@@ -1530,7 +1562,7 @@ public class CVService {
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
 
-        CV cv = cvRepository.findById(cvId)
+        CV cv = cvRepository.findByIdForUpdate(cvId)
                 .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
 
         if (!cv.getCandidate().getId().equals(candidate.getId())) {
@@ -1538,18 +1570,32 @@ public class CVService {
         }
 
         List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
-        CVVersion targetVersion;
         if (versions.isEmpty()) {
-            targetVersion = CVVersion.builder()
-                    .cv(cv)
-                    .versionNumber(1)
-                    .title(cv.getTitle() + " v1.0")
-                    .rawTextContent(cv.getRawText())
-                    .status("DRAFT")
-                    .build();
-            targetVersion = cvVersionRepository.save(targetVersion);
-        } else {
-            targetVersion = versions.get(0);
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "CV has no review version to confirm");
+        }
+        CVVersion targetVersion = versions.get(0);
+        if (!"DRAFT".equalsIgnoreCase(targetVersion.getStatus())
+                && !"CONFIRMED".equalsIgnoreCase(targetVersion.getStatus())) {
+            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION, "Only a review draft can be confirmed");
+        }
+        if ("PROCESSING".equalsIgnoreCase(cv.getStatus()) || "FAILED".equalsIgnoreCase(cv.getStatus())) {
+            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION, "CV extraction has not succeeded");
+        }
+        if (com.platform.recruitment.cv.ConfirmedCvInput.text(targetVersion).isBlank()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "CV has no professional content to review");
+        }
+        if (jdbcTemplate != null) {
+            Integer active = jdbcTemplate.queryForObject(
+                    "SELECT count(*) FROM processing_jobs p JOIN document_versions v ON v.id=p.entity_id "
+                            + "WHERE p.kind='EXTRACT' AND v.document_id=? AND p.state IN ('QUEUED','RUNNING')",
+                    Integer.class, cvId);
+            if (active != null && active > 0) {
+                throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION, "CV extraction is still active");
+            }
+        }
+        if ("CONFIRMED".equalsIgnoreCase(targetVersion.getStatus())) {
+            return CVConfirmResponse.builder().cvId(cvId).profileId(candidate.getId())
+                    .status("CONFIRMED").confirmedAt(targetVersion.getConfirmedAt()).build();
         }
 
         ZonedDateTime now = ZonedDateTime.now();
@@ -1565,14 +1611,7 @@ public class CVService {
             embeddingService.invalidateEmbedding("CV", cvId);
         }
 
-        // Downstream freshness: Flag candidate's existing match results as STALE
-        if (matchResultRepository != null) {
-            List<MatchResult> existingMatches = matchResultRepository.findByApplicationCandidateId(candidate.getId());
-            for (MatchResult mr : existingMatches) {
-                mr.setStatus("STALE");
-                matchResultRepository.save(mr);
-            }
-        }
+        // Existing applications remain bound to their immutable applied CV version.
 
         log.info("CV_DRAFT_CONFIRMED correlation_id={} cv_id={} version_id={}",
                 correlationId, cvId, targetVersion.getId());
@@ -2540,9 +2579,12 @@ public class CVService {
                     });
         }
 
-        String contentType = (file.getContentType() != null && !file.getContentType().isBlank())
-                ? file.getContentType()
-                : ("pdf".equals(ext) ? "application/pdf" : ("png".equals(ext) ? "image/png" : "image/jpeg"));
+        String contentType = switch (ext) {
+            case "pdf" -> "application/pdf";
+            case "png" -> "image/png";
+            default -> "image/jpeg";
+        };
+        String checksum = sha256Hex(bytes);
 
         CVEvidenceAttachment attachment = CVEvidenceAttachment.builder()
                 .candidate(candidate)
@@ -2554,6 +2596,7 @@ public class CVService {
                 .storageKey(storageKey)
                 .fileType(contentType)
                 .fileSize((int) file.getSize())
+                .sha256(checksum)
                 .status("UNVERIFIED")
                 .build();
         attachment.setId(attachmentId);
@@ -2621,6 +2664,7 @@ public class CVService {
                 .fileName(sanitizedFileName)
                 .fileSize((int) file.getSize())
                 .fileType(contentType)
+                .sha256(checksum)
                 .status("UNVERIFIED")
                 .previewUrl("/api/v1/candidate/cvs/" + cvId + "/attachments/" + attachmentId)
                 .createdAt(attachment.getCreatedAt() != null ? attachment.getCreatedAt() : java.time.ZonedDateTime.now())
@@ -2666,6 +2710,12 @@ public class CVService {
 
         try {
             byte[] data = Files.readAllBytes(path);
+            if (data.length == 0 || data.length != att.getFileSize()
+                    || (att.getSha256() != null && !MessageDigest.isEqual(
+                    att.getSha256().getBytes(StandardCharsets.US_ASCII),
+                    sha256Hex(data).getBytes(StandardCharsets.US_ASCII)))) {
+                throw new CustomException(ErrorCode.FILE_STORAGE_FAILED, "Tệp minh chứng bị rỗng hoặc không khớp metadata lưu trữ.");
+            }
             return new DownloadResult(data, att.getFileName(), att.getFileType());
         } catch (IOException e) {
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể đọc tệp minh chứng từ lưu trữ.");
@@ -2691,11 +2741,19 @@ public class CVService {
         CVEvidenceAttachment att = cvEvidenceAttachmentRepository.findByCvIdAndId(cvId, attachmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("EvidenceAttachment", "id", attachmentId));
 
-        try {
-            Files.deleteIfExists(documents.path(att.getStorageKey()));
-        } catch (Exception ignored) {}
-
+        String storageKey = att.getStorageKey();
         cvEvidenceAttachmentRepository.delete(att);
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override
+                        public void afterCompletion(int status) {
+                            if (status == STATUS_COMMITTED) deleteAttachmentFile(storageKey, UUID.randomUUID().toString());
+                        }
+                    });
+        } else {
+            deleteAttachmentFile(storageKey, UUID.randomUUID().toString());
+        }
 
         // Also remove attachment metadata from latest draft structuredJsonContent
         List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
@@ -2715,6 +2773,14 @@ public class CVService {
                     cvVersionRepository.save(targetVersion);
                 }
             } catch (Exception ignored) {}
+        }
+    }
+
+    private static String sha256Hex(byte[] bytes) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (java.security.NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException("SHA-256 is unavailable", impossible);
         }
     }
 

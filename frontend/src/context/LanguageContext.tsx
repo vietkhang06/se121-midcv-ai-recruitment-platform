@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useSyncExternalStore } from 'react';
 import { en } from '@/locales/en';
 import { vi } from '@/locales/vi';
 
@@ -13,55 +13,61 @@ interface LanguageContextType {
   t: (path: string, fallback?: string) => string;
 }
 
-const dictionaries: Record<Locale, any> = { en, vi };
+type TranslationTree = { [key: string]: string | TranslationTree };
+const dictionaries: Record<Locale, TranslationTree> = { en, vi };
+const localeChangeEvent = 'midcv:locale-change';
+
+function readStoredLocale(): Locale {
+  if (typeof window === 'undefined') return 'vi';
+  const stored = localStorage.getItem('midcv_lang')
+    || localStorage.getItem('matchjd_lang')
+    || localStorage.getItem('matchproof_lang');
+  return stored === 'en' || stored === 'vi' ? stored : 'vi';
+}
+
+function subscribeToLocale(callback: () => void): () => void {
+  if (typeof window === 'undefined') return () => undefined;
+  window.addEventListener(localeChangeEvent, callback);
+  window.addEventListener('storage', callback);
+  return () => {
+    window.removeEventListener(localeChangeEvent, callback);
+    window.removeEventListener('storage', callback);
+  };
+}
+
+function persistLocale(locale: Locale): void {
+  localStorage.setItem('midcv_lang', locale);
+  window.dispatchEvent(new Event(localeChangeEvent));
+}
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [locale, setLocaleState] = useState<Locale>('vi');
+  const locale: Locale = useSyncExternalStore(subscribeToLocale, readStoredLocale, () => 'vi');
 
   useEffect(() => {
-    const stored = (localStorage.getItem('midcv_lang') || localStorage.getItem('matchjd_lang') || localStorage.getItem('matchproof_lang')) as Locale | null;
-    if (stored === 'en' || stored === 'vi') {
-      setLocaleState(stored);
-    }
-  }, []);
+    document.documentElement.lang = locale;
+  }, [locale]);
 
   const setLocale = (newLocale: Locale) => {
-    setLocaleState(newLocale);
-    localStorage.setItem('midcv_lang', newLocale);
+    persistLocale(newLocale);
   };
 
   const toggleLocale = () => {
-    setLocaleState((prev) => {
-      const next = prev === 'vi' ? 'en' : 'vi';
-      localStorage.setItem('midcv_lang', next);
-      return next;
-    });
+    persistLocale(readStoredLocale() === 'vi' ? 'en' : 'vi');
   };
 
   const t = (path: string, fallback?: string): string => {
     const keys = path.split('.');
-    let current = dictionaries[locale];
-
-    for (const key of keys) {
-      if (current && typeof current === 'object' && key in current) {
+    const lookup = (tree: TranslationTree): string | undefined => {
+      let current: string | TranslationTree = tree;
+      for (const key of keys) {
+        if (typeof current === 'string' || !(key in current)) return undefined;
         current = current[key];
-      } else {
-        // Fallback to English dictionary
-        let enCurrent = dictionaries['en'];
-        for (const enKey of keys) {
-          if (enCurrent && typeof enCurrent === 'object' && enKey in enCurrent) {
-            enCurrent = enCurrent[enKey];
-          } else {
-            return fallback || path;
-          }
-        }
-        return typeof enCurrent === 'string' ? enCurrent : (fallback || path);
       }
-    }
-
-    return typeof current === 'string' ? current : (fallback || path);
+      return typeof current === 'string' ? current : undefined;
+    };
+    return lookup(dictionaries[locale]) ?? lookup(dictionaries.en) ?? fallback ?? path;
   };
 
   return (

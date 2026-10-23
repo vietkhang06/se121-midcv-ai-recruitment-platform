@@ -29,8 +29,14 @@ public class Job extends BaseEntity {
     @Column(name = "industry", nullable = false)
     private String industry;
 
+    @Column(name = "industry_other", length = 80)
+    private String industryOther;
+
     @Column(name = "seniority", nullable = false)
     private String seniority;
+
+    @Column(name = "seniority_other", length = 80)
+    private String seniorityOther;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
@@ -43,11 +49,22 @@ public class Job extends BaseEntity {
     @Column(name = "max_salary")
     private BigDecimal maxSalary;
 
+    @Builder.Default
+    @Column(name = "salary_negotiable", nullable = false)
+    private Boolean salaryNegotiable = false;
+
+    @Builder.Default
+    @Column(name = "salary_currency", nullable = false, length = 3)
+    private String salaryCurrency = "VND";
+
     @Column(name = "location")
     private String location;
 
     @Column(name = "employment_type")
     private String employmentType;
+
+    @Column(name = "employment_type_other", length = 80)
+    private String employmentTypeOther;
 
     @Column(name = "description", nullable = false, columnDefinition = "TEXT")
     private String description;

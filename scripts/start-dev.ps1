@@ -3,6 +3,11 @@
 # scripts/start-dev.ps1
 # ============================================================
 
+param(
+    [switch]$BackendOnly,
+    [switch]$SkipLlmPreflight
+)
+
 $ErrorActionPreference = "Stop"
 
 # Resolve project root relative to script directory
@@ -14,81 +19,36 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host " AI RECRUITMENT PLATFORM LOCAL DEV STARTUP" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
+function Invoke-NativeCapture([string]$Executable, [string[]]$NativeArgs) {
+    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $argumentsText = $NativeArgs -join ' '
+    if ($Executable.EndsWith('.cmd', [System.StringComparison]::OrdinalIgnoreCase)) {
+        $startInfo.FileName = $env:ComSpec
+        $startInfo.Arguments = '/d /s /c ""' + $Executable + '" ' + $argumentsText + '"'
+    } else {
+        $startInfo.FileName = $Executable
+        $startInfo.Arguments = $argumentsText
+    }
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $process = [System.Diagnostics.Process]::new()
+    $process.StartInfo = $startInfo
+    if (-not $process.Start()) { throw "Could not start required tool: $Executable" }
+    $stdout = $process.StandardOutput.ReadToEnd()
+    $stderr = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+    [pscustomobject]@{ ExitCode = $process.ExitCode; Output = ($stdout + [Environment]::NewLine + $stderr) }
+}
+
 # ------------------------------------------------------------
 # STEP 1: Environment & Tooling Validation
 # ------------------------------------------------------------
 Write-Host "`n[1/6] Validating Developer Environment..." -ForegroundColor Yellow
 
-# Check Docker Desktop
-try {
-    $null = docker info 2>&1
-} catch {
-    Write-Host "ERROR: Docker Desktop is not running." -ForegroundColor Red
-    Write-Host "Please start Docker Desktop first and re-run start-dev.bat" -ForegroundColor Red
-    exit 1
-}
-
-# Check Java 21 via PATH or Get-Command
-$javaCmd = Get-Command java -ErrorAction SilentlyContinue
-if (-not $javaCmd) {
-    $whereJava = where.exe java 2>$null
-    if (-not $whereJava) {
-        Write-Host "ERROR: Java executable (java.exe) not found in PATH." -ForegroundColor Red
-        Write-Host "Please install Java 21 LTS and ensure java.exe is in your PATH." -ForegroundColor Red
-        exit 1
-    }
-}
-
-try {
-    # Execute java --version and java -version safely without triggering $ErrorActionPreference exception
-    $prevEAP = $ErrorActionPreference
-    $ErrorActionPreference = "SilentlyContinue"
-    $javaVerOutput = (cmd.exe /c "java --version 2>&1") -join " "
-    if (-not $javaVerOutput -or $javaVerOutput -notmatch '21') {
-        $javaVerOutput += " " + ((cmd.exe /c "java -version 2>&1") -join " ")
-    }
-    $ErrorActionPreference = $prevEAP
-    
-    # Check for Java 21 (e.g. openjdk 21.0.11, java 21, version "21.x")
-    $isJava21 = $false
-    $detectedVer = "Unknown"
-
-    if ($javaVerOutput -match '(?i)(?:openjdk|java|version)\D*?(21(?:\.\d+)*)') {
-        $detectedVer = $matches[1]
-        $isJava21 = $true
-    } elseif ($javaVerOutput -match '\b21\.\d+') {
-        $detectedVer = $matches[0]
-        $isJava21 = $true
-    }
-
-    if (-not $isJava21) {
-        Write-Host "ERROR: Java 21 is required by this project." -ForegroundColor Red
-        Write-Host "Detected version output:`n$javaVerOutput" -ForegroundColor Red
-        exit 1
-    }
-
-    # Validate optional JAVA_HOME if set
-    if ($env:JAVA_HOME) {
-        if (-not (Test-Path $env:JAVA_HOME)) {
-            Write-Host "  -> WARNING: JAVA_HOME is set to '$env:JAVA_HOME' but path does not exist. Using java.exe from PATH ($detectedVer)." -ForegroundColor Yellow
-        } else {
-            Write-Host "  -> JAVA_HOME validated: $env:JAVA_HOME" -ForegroundColor Gray
-        }
-    } else {
-        Write-Host "  -> JAVA_HOME is not set (Optional). Using Java 21 from PATH ($detectedVer)." -ForegroundColor Gray
-    }
-} catch {
-    Write-Host "ERROR: Failed to query Java runtime version." -ForegroundColor Red
-    Write-Host $_.Exception.Message -ForegroundColor Red
-    exit 1
-}
-
-# Check Maven, Python, Node
-try { $null = mvn -v 2>&1 } catch { Write-Host "ERROR: Maven (mvn) is not installed or not in PATH." -ForegroundColor Red; exit 1 }
-try { $null = python --version 2>&1 } catch { Write-Host "ERROR: Python is not installed or not in PATH." -ForegroundColor Red; exit 1 }
-try { $null = node -v 2>&1 } catch { Write-Host "ERROR: Node.js is not installed or not in PATH." -ForegroundColor Red; exit 1 }
-
-# Check .env file
+# Load KEY=VALUE configuration without evaluating PowerShell, preserving values
+# explicitly supplied by the caller. Never display the imported values.
 $EnvFile = Join-Path $ProjectRoot ".env"
 $EnvExampleFile = Join-Path $ProjectRoot ".env.example"
 if (-not (Test-Path $EnvFile)) {
@@ -96,26 +56,85 @@ if (-not (Test-Path $EnvFile)) {
         Write-Host "Creating .env from .env.example..." -ForegroundColor Gray
         Copy-Item $EnvExampleFile $EnvFile
     } else {
-        Write-Host "WARNING: .env file not found." -ForegroundColor Yellow
+        Write-Host "ERROR: .env and .env.example are both missing." -ForegroundColor Red
+        exit 1
+    }
+}
+. (Join-Path $ProjectRoot "scripts\Import-MidcvEnv.ps1") -EnvFile $EnvFile -PreserveExistingEnvironment
+
+# Select JDK 21 for both Maven and javac. MIDCV_JDK21_HOME takes precedence,
+# followed by a valid JAVA_HOME, PATH, and the previously verified local JBR.
+$javaHomes = [System.Collections.Generic.List[string]]::new()
+foreach ($candidate in @($env:MIDCV_JDK21_HOME, $env:JAVA_HOME)) {
+    if (-not [string]::IsNullOrWhiteSpace($candidate)) { $javaHomes.Add($candidate.Trim().Trim('"')) }
+}
+$javaOnPath = Get-Command java -ErrorAction SilentlyContinue
+if ($javaOnPath -and $javaOnPath.Source) {
+    $pathBin = Split-Path -Parent $javaOnPath.Source
+    if ((Split-Path -Leaf $pathBin) -ieq 'bin') { $javaHomes.Add((Split-Path -Parent $pathBin)) }
+}
+$verifiedLocalJdk = 'C:\Users\Khang\.jdks\jbr-21.0.11'
+if (Test-Path -LiteralPath $verifiedLocalJdk) { $javaHomes.Add($verifiedLocalJdk) }
+
+$selectedJavaHome = $null
+foreach ($candidate in ($javaHomes | Select-Object -Unique)) {
+    $javaExe = Join-Path $candidate 'bin\java.exe'
+    $javacExe = Join-Path $candidate 'bin\javac.exe'
+    if (-not (Test-Path -LiteralPath $javaExe) -or -not (Test-Path -LiteralPath $javacExe)) { continue }
+    $versionResult = Invoke-NativeCapture $javaExe @('-version')
+    if ($versionResult.ExitCode -eq 0 -and $versionResult.Output -match 'version\s+"?21(?:\.|"|\s)') { $selectedJavaHome = (Resolve-Path -LiteralPath $candidate).Path; break }
+}
+if (-not $selectedJavaHome) {
+    Write-Host "ERROR: JDK 21 with both java.exe and javac.exe is required. Set MIDCV_JDK21_HOME to its installation directory." -ForegroundColor Red
+    exit 1
+}
+$env:JAVA_HOME = $selectedJavaHome
+$env:PATH = (Join-Path $selectedJavaHome 'bin') + ';' + $env:PATH
+$javaResult = Invoke-NativeCapture (Join-Path $selectedJavaHome 'bin\java.exe') @('-version')
+$javacResult = Invoke-NativeCapture (Join-Path $selectedJavaHome 'bin\javac.exe') @('-version')
+if ($javaResult.ExitCode -ne 0 -or $javacResult.ExitCode -ne 0 -or $javacResult.Output -notmatch 'javac\s+21(?:\.|\s)') {
+    Write-Host "ERROR: Selected JDK must provide both java and javac version 21." -ForegroundColor Red
+    exit 1
+}
+Write-Host "  -> Selected JDK 21: $($selectedJavaHome)" -ForegroundColor Gray
+
+$mvnCommand = Get-Command mvn -ErrorAction SilentlyContinue
+if (-not $mvnCommand) {
+    Write-Host "ERROR: Maven (mvn) was not found in PATH." -ForegroundColor Red
+    exit 1
+}
+$mavenVersionResult = Invoke-NativeCapture $mvnCommand.Source @('-version')
+if ($mavenVersionResult.ExitCode -ne 0 -or $mavenVersionResult.Output -notmatch 'Java version:\s*21(?:\.|\s)') {
+    Write-Host "ERROR: Maven did not start on the selected JDK 21. Verify its launcher and JAVA_HOME." -ForegroundColor Red
+    exit 1
+}
+foreach ($tool in @(@{Name='Python'; Command='python'}, @{Name='Node.js'; Command='node'})) {
+    if (-not (Get-Command $tool.Command -ErrorAction SilentlyContinue)) {
+        Write-Host "ERROR: $($tool.Name) was not found in PATH." -ForegroundColor Red
+        exit 1
     }
 }
 
-Write-Host "  -> Docker, Java 21, Maven, Node environment valid." -ForegroundColor Green
+Write-Host "  -> JDK 21, Maven on JDK 21, Python, Node.js, and environment configuration are ready." -ForegroundColor Green
 
 # 1. Check PRIMARY LLM Configuration
-Write-Host "  -> Checking PRIMARY LLM Configuration (OpenAI-Compatible)..." -ForegroundColor Gray
 $primaryCheckOk = $false
-try {
-    $proc = Start-Process -FilePath "python" -ArgumentList "-m", "app.tools.check_primary_llm" -WorkingDirectory "$ProjectRoot/ai-worker" -NoNewWindow -Wait -PassThru
-    if ($proc.ExitCode -eq 0) {
-        $primaryCheckOk = $true
-        Write-Host "  -> PRIMARY LLM: Verified and operational." -ForegroundColor Green
-    } else {
-        Write-Host "  -> WARNING: PRIMARY LLM is not verified or configuration needs attention." -ForegroundColor Yellow
-        Write-Host "     Ensure LLM_PRIMARY_BASE_URL, LLM_PRIMARY_API_KEY, and LLM_PRIMARY_MODEL are set in .env." -ForegroundColor Gray
+if ($SkipLlmPreflight) {
+    Write-Host "  -> Skipping external LLM preflight by request." -ForegroundColor Gray
+} else {
+    Write-Host "  -> Checking PRIMARY LLM Configuration (OpenAI-Compatible)..." -ForegroundColor Gray
+    try {
+        $proc = Start-Process -FilePath "python" -ArgumentList "-m", "app.tools.check_primary_llm" -WorkingDirectory (Join-Path $ProjectRoot 'ai-worker') -NoNewWindow -Wait -PassThru
+        if ($proc.ExitCode -eq 0) {
+            $primaryCheckOk = $true
+            Write-Host "  -> PRIMARY LLM: Verified and operational." -ForegroundColor Green
+        } else {
+            Write-Host "  -> WARNING: PRIMARY LLM is not verified or configuration needs attention." -ForegroundColor Yellow
+            Write-Host "     Ensure LLM_PRIMARY_BASE_URL, LLM_PRIMARY_API_KEY, and LLM_PRIMARY_MODEL are set in .env." -ForegroundColor Gray
+        }
+    } catch {
+        Write-Host "  -> NOTICE: Could not execute Python primary LLM pre-flight check." -ForegroundColor Yellow
     }
-} catch {
-    Write-Host "  -> NOTICE: Could not execute Python primary LLM pre-flight check." -ForegroundColor Yellow
 }
 
 # 2. Check Local Ollama Engine (Port 11434)
@@ -231,6 +250,20 @@ function Test-PortOccupied([int]$port) {
     return $false
 }
 
+function Test-TcpEndpoint([string]$hostName, [int]$port, [int]$timeoutMs = 1200) {
+    $client = [System.Net.Sockets.TcpClient]::new()
+    try {
+        $connect = $client.BeginConnect($hostName, $port, $null, $null)
+        if (-not $connect.AsyncWaitHandle.WaitOne($timeoutMs, $false)) { return $false }
+        $client.EndConnect($connect)
+        return $true
+    } catch {
+        return $false
+    } finally {
+        $client.Dispose()
+    }
+}
+
 # Helper function to test HTTP URL and return detailed status
 function Test-HttpUrl([string]$url, [int]$timeoutMs = 5000) {
     try {
@@ -266,40 +299,60 @@ function Test-HttpUrl([string]$url, [int]$timeoutMs = 5000) {
 # ------------------------------------------------------------
 Write-Host "`n[2/6] Starting PostgreSQL + Pgvector Database..." -ForegroundColor Yellow
 
-$pgContainer = "airecruit-postgres-pgvector"
-$pgStatus = docker inspect --format='{{json .State.Status}}' $pgContainer 2>$null
-
-if ($pgStatus -ne '"running"') {
-    Write-Host "  -> Launching docker compose up -d..." -ForegroundColor Gray
-    docker compose up -d
-} else {
-    Write-Host "  -> PostgreSQL container is already running." -ForegroundColor Gray
-}
-
-Write-Host "  -> Polling PostgreSQL health status..." -ForegroundColor Gray
-$maxWait = 60
-$elapsed = 0
-$healthy = $false
-
-while ($elapsed -lt $maxWait) {
-    try {
-        $health = docker inspect --format='{{json .State.Health.Status}}' $pgContainer 2>$null
-        if ($health -eq '"healthy"' -or (docker exec $pgContainer pg_isready -U postgres -d airecruit_db 2>$null)) {
-            $healthy = $true
-            break
-        }
-    } catch {}
-    Start-Sleep -Seconds 2
-    $elapsed += 2
-}
-
-if (-not $healthy) {
-    Write-Host "ERROR: PostgreSQL did not become healthy within $maxWait seconds." -ForegroundColor Red
-    Write-Host "Check container logs: docker logs $pgContainer" -ForegroundColor Red
+$databaseUrl = $env:DATABASE_URL
+if ([string]::IsNullOrWhiteSpace($databaseUrl) -or $databaseUrl -notmatch '^jdbc:postgresql://') {
+    Write-Host "ERROR: DATABASE_URL must be a JDBC PostgreSQL URL in .env or the process environment." -ForegroundColor Red
     exit 1
 }
+try {
+    $databaseUri = [Uri]($databaseUrl.Substring('jdbc:'.Length))
+    $databaseHost = $databaseUri.Host
+    $databasePort = if ($databaseUri.IsDefaultPort) { 5432 } else { $databaseUri.Port }
+    $databaseName = $databaseUri.AbsolutePath.TrimStart('/')
+    if ([string]::IsNullOrWhiteSpace($databaseHost) -or [string]::IsNullOrWhiteSpace($databaseName)) { throw 'Invalid database URL.' }
+} catch {
+    Write-Host "ERROR: DATABASE_URL is not a valid PostgreSQL connection URL." -ForegroundColor Red
+    exit 1
+}
+Write-Host "  -> Configured PostgreSQL endpoint: ${databaseHost}:${databasePort}/${databaseName}" -ForegroundColor Gray
 
-Write-Host "  -> PostgreSQL database is READY on 127.0.0.1:5432." -ForegroundColor Green
+$databaseReady = Test-TcpEndpoint $databaseHost $databasePort
+if (-not $databaseReady) {
+    $isLoopback = $databaseHost -in @('localhost', '127.0.0.1', '::1')
+    if (-not $isLoopback -or $databasePort -ne 5432 -or $databaseName -ne 'airecruit_db') {
+        Write-Host "ERROR: Configured PostgreSQL endpoint refused connections. The local compose service is not configured for this endpoint; start the configured database and retry." -ForegroundColor Red
+        exit 1
+    }
+
+    $dockerCommand = Get-Command docker -ErrorAction SilentlyContinue
+    if (-not $dockerCommand) {
+        Write-Host "ERROR: PostgreSQL at ${databaseHost}:${databasePort} refused connections and Docker CLI is unavailable." -ForegroundColor Red
+        exit 1
+    }
+    $dockerInfo = Invoke-NativeCapture $dockerCommand.Source @('info')
+    if ($dockerInfo.ExitCode -ne 0) {
+        Write-Host "ERROR: PostgreSQL at ${databaseHost}:${databasePort} refused connections and Docker Engine is unavailable. Start Docker Desktop or the PostgreSQL service configured by DATABASE_URL." -ForegroundColor Red
+        exit 1
+    }
+
+    $composeFile = Join-Path $ProjectRoot 'docker-compose.yml'
+    $composeStart = Invoke-NativeCapture $dockerCommand.Source @('compose', '-f', $composeFile, 'up', '-d', 'postgres')
+    if ($composeStart.ExitCode -ne 0) {
+        Write-Host "ERROR: Docker Compose could not start the repository PostgreSQL service. No existing containers or volumes were removed." -ForegroundColor Red
+        exit 1
+    }
+
+    Write-Host "  -> Waiting up to 60 seconds for PostgreSQL on ${databaseHost}:${databasePort}..." -ForegroundColor Gray
+    for ($attempt = 0; $attempt -lt 30; $attempt++) {
+        if (Test-TcpEndpoint $databaseHost $databasePort) { $databaseReady = $true; break }
+        Start-Sleep -Seconds 2
+    }
+}
+if (-not $databaseReady) {
+    Write-Host "ERROR: PostgreSQL did not accept TCP connections at ${databaseHost}:${databasePort} within 60 seconds. Check the configured service and port mapping." -ForegroundColor Red
+    exit 1
+}
+Write-Host "  -> PostgreSQL endpoint is accepting connections." -ForegroundColor Green
 
 # ------------------------------------------------------------
 # STEP 3: Spring Boot Backend Service (Port 8080)
@@ -311,13 +364,15 @@ $backendRunning = Test-PortOccupied 8080
 
 if (-not $backendRunning) {
     Write-Host "  -> Launching Backend terminal (mvn spring-boot:run)..." -ForegroundColor Gray
-    $backendCmd = "Set-Location '$ProjectRoot\backend'; [System.Console]::Title = 'AI Recruitment - Backend'; mvn spring-boot:run"
-    Start-Process powershell.exe -ArgumentList "-NoExit", "-Command", $backendCmd
+    $backendDir = Join-Path $ProjectRoot 'backend'
+    $quotedBackendDir = "'" + $backendDir.Replace("'", "''") + "'"
+    $backendCmd = "Set-Location -LiteralPath $quotedBackendDir; `$Host.UI.RawUI.WindowTitle = 'AI Recruitment - Backend'; mvn clean spring-boot:run"
+    Start-Process -FilePath powershell.exe -ArgumentList @('-NoProfile', '-NoExit', '-Command', $backendCmd) -WorkingDirectory $ProjectRoot -WindowStyle Normal | Out-Null
 
     Write-Host "  -> Waiting for Backend readiness on port 8080..." -ForegroundColor Gray
     $elapsed = 0
     $backendReady = $false
-    while ($elapsed -lt 90) {
+    while ($elapsed -lt 180) {
         $status = Test-HttpUrl $backendUrl
         if ($status -eq "READY") {
             $backendReady = $true
@@ -332,10 +387,19 @@ if (-not $backendRunning) {
         exit 1
     }
 } else {
-    Write-Host "  -> Backend is already running on port 8080." -ForegroundColor Green
+    if ((Test-HttpUrl $backendUrl) -ne 'READY') {
+        Write-Host "ERROR: Port 8080 is occupied but the recruitment jobs endpoint is not ready. No process was stopped." -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "  -> Backend endpoint is already responding on port 8080." -ForegroundColor Green
 }
 
 Write-Host "  -> Backend Service is READY on http://127.0.0.1:8080." -ForegroundColor Green
+
+if ($BackendOnly) {
+    Write-Host "Backend-only mode complete; worker/frontend were not started." -ForegroundColor Cyan
+    exit 0
+}
 
 # ------------------------------------------------------------
 # STEP 4: Python AI Worker Service (Port 8000)

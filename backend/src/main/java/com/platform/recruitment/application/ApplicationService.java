@@ -128,26 +128,9 @@ public class ApplicationService {
             throw new DuplicateApplicationException("Candidate has already submitted an application for this job");
         }
 
-        // Get or initialize CVVersion
         List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cv.getId());
-        CVVersion appliedVersion;
-        if (versions.isEmpty()) {
-            appliedVersion = cvVersionRepository.save(CVVersion.builder()
-                    .cv(cv)
-                    .versionNumber(1)
-                    .title(cv.getTitle() + " v1.0")
-                    .rawTextContent(cv.getRawText())
-                    .build());
-        } else {
-            appliedVersion = versions.get(0);
-        }
-
-        // AC-P3-04: Block application submission if CV is in DRAFT status
-        if ("DRAFT".equalsIgnoreCase(cv.getStatus())
-                || (appliedVersion.getStatus() != null && "DRAFT".equalsIgnoreCase(appliedVersion.getStatus()))) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR,
-                    "Hồ sơ CV đang ở trạng thái DRAFT. Vui lòng xác nhận hồ sơ trước khi nộp ứng tuyển.");
-        }
+        CVVersion appliedVersion = versions.isEmpty() ? null : versions.get(0);
+        com.platform.recruitment.cv.ConfirmedCvInput.requireConfirmed(appliedVersion, candidate.getId());
 
         // Atomic Transaction: Create Application + Immutable ApplicationCVSnapshot
         Application application = Application.builder()
@@ -159,23 +142,20 @@ public class ApplicationService {
                 .build();
         Application savedApplication = applicationRepository.save(application);
 
-        String rawTextContent = cv.getRawText() != null ? cv.getRawText() : "";
-        String jsonSnapshotContent = String.format("{\"cvId\":\"%s\",\"title\":\"%s\",\"path\":\"%s\"}",
-                cv.getId(), cv.getTitle(), cv.getCreationPath());
+        String rawTextContent = appliedVersion.getRawTextContent() != null ? appliedVersion.getRawTextContent() : "";
+        String jsonSnapshotContent = appliedVersion.getStructuredJsonContent();
 
         ApplicationCVSnapshot snapshot = ApplicationCVSnapshot.builder()
                 .application(savedApplication)
-                .cvTitle(cv.getTitle())
+                .cvTitle(appliedVersion.getTitle())
                 .rawTextSnapshot(rawTextContent)
                 .structuredJsonSnapshot(jsonSnapshotContent)
                 .build();
         snapshotRepository.save(snapshot);
 
         // Immediate matching persistence (match_results, match_factors, evidences)
-        try {
-            matchingEngineService.calculateAndPersistMatchResult(job.getId(), candidate.getId());
-        } catch (Exception ignored) {
-        }
+        // Matching failure propagates: the transaction rolls back application and snapshot together.
+        matchingEngineService.calculateAndPersistMatchResult(job.getId(), candidate.getId());
 
         return mapToResponse(savedApplication, snapshot);
     }
@@ -503,6 +483,8 @@ public class ApplicationService {
                 .candidateHeadline(candidateHeadline)
                 .candidateGithubUrl(candidateGithubUrl)
                 .appliedCvId(app.getAppliedCv() != null ? app.getAppliedCv().getId() : null)
+                .appliedCvVersionId(app.getAppliedCvVersion() != null ? app.getAppliedCvVersion().getId() : null)
+                .appliedCvVersionNumber(app.getAppliedCvVersion() != null ? app.getAppliedCvVersion().getVersionNumber() : null)
                 .status(app.getStatus())
                 .matchScore(matchScore)
                 .matchStatus(matchStatus)

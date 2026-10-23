@@ -15,7 +15,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class SystemPerformanceAndConcurrencyTest {
 
     @Test
-    void test10ConcurrentMatchingOperations_NoRaceConditions() throws Exception {
+    @org.junit.jupiter.api.DisplayName("Concurrent DTO construction only; not a pipeline benchmark or database race test")
+    void test10ConcurrentDtoConstructions() throws Exception {
         int threadCount = 10;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         List<Future<MatchResult>> futures = new ArrayList<>();
@@ -25,7 +26,7 @@ class SystemPerformanceAndConcurrencyTest {
             futures.add(executor.submit(() -> {
                 long start = System.currentTimeMillis();
                 
-                // Simulate deterministic calculation
+                // Construct a constant DTO. This does not execute matching or measure its latency.
                 MatchResult res = MatchResult.builder()
                         .overallScore(new BigDecimal("90.45"))
                         .requiredSkillsMissing(0)

@@ -7,6 +7,27 @@ Tài liệu ghi nhận: **25/09/2026**
 
 ## 1. Các Quyết Định Đã Được Xác Nhận (Confirmed Decisions)
 
+### DEC-09 — Đơn vị lương tin tuyển dụng
+
+- **Quyết định:** Mức lương của tin tuyển dụng được biểu diễn theo **VND/tháng**. Giá trị số hiện có được giữ nguyên như đã lưu; không nhân/chia, đổi ngoại tệ hoặc gán lại ý nghĩa cho số `0`/các giá trị lịch sử.
+- **Trạng thái thương lượng:** Thêm cờ `salary_negotiable` riêng. `true` yêu cầu amount rỗng; amount rỗng với cờ `false` là chưa công bố. Các dữ liệu cũ nhận mặc định `false` và không được gọi là thương lượng.
+- **Căn cứ:** Chủ dự án xác nhận trong yêu cầu triển khai ngày 21/10/2026; code cũ mâu thuẫn giữa nhãn USD/tháng, formatter VND và giá trị lịch sử.
+- **Tác động:** API giữ amount dạng số, đơn vị VND/tháng; giao diện parse/format theo locale và không tự scale. Migration additive `V23__explicit_job_salary_terms.sql`.
+
+### DEC-10 — Tiền tệ lương có thể chọn
+
+- **Quyết định:** Theo xác nhận của chủ dự án ngày 22/10/2026, mỗi tin tuyển dụng chọn một tiền tệ ISO 4217 trong danh sách VND, USD, EUR, GBP, JPY, CNY, KRW, SGD, AUD và CAD. Kỳ lương vẫn là MONTH và được lưu độc lập với mã tiền tệ.
+- **Bảo toàn dữ liệu:** Toàn bộ số tiền lịch sử giữ nguyên và được gán VND/tháng theo xác nhận trước đó của chủ dự án; không quy đổi hoặc scale. DEC-10 thay thế phần “VND-only API” của DEC-09, không thay đổi quyết định bảo toàn số cũ hay quy tắc negotiable/undisclosed.
+- **Quy tắc:** Cùng một bản ghi chỉ so sánh/lọc trong cùng currency. Dữ liệu số dùng DECIMAL, không quy đổi tỷ giá; giao diện format theo locale nhưng đổi ngôn ngữ không đổi mã tiền.
+- **Tác động:** Hợp đồng API có `salaryCurrency`, migration additive V25, không sửa V23 đã áp dụng. Migration mặc định các hàng hiện hữu sang VND, giữ nguyên `min_salary`/`max_salary`.
+
+### DEC-11 — Ngoại lệ giao diện CV: bỏ ngành nghề định hướng và vị trí mục tiêu
+
+- **Quyết định:** Theo xác nhận của chủ dự án ngày 23/10/2026, luồng CV được tải lên không hiển thị hoặc yêu cầu “Ngành nghề định hướng”, “Vị trí mong muốn”, hay trường tương đương “Tiêu đề nghề nghiệp / Headline”. Ngoại lệ này áp dụng cho form tải CV, thẻ CV trong thư viện và modal rà soát/chỉnh sửa CV đã tải lên.
+- **Phạm vi dữ liệu:** Không xóa cột, schema, giá trị lịch sử hoặc nội dung extraction. Khi API cập nhật toàn bộ draft, frontend giữ lại các trường ẩn đang có trong dữ liệu tải về để tránh vô tình xóa chúng. Nghề nghiệp thực tế trong kinh nghiệm làm việc, vai trò dự án và dữ liệu ứng tuyển không bị ảnh hưởng.
+- **Căn cứ:** Chủ dự án ưu tiên luồng rà soát CV đã upload không có trường định hướng nghề nghiệp, dù `DOMAIN_RULES.md` hiện liệt kê “Tiêu đề nghề nghiệp” trong khu vực Thông tin cá nhân.
+- **Tác động:** Đây là ngoại lệ có phạm vi UI đối với `DOMAIN_RULES.md`; API và backend validation chỉ thay đổi nếu kiểm tra cho thấy các trường bị ẩn vẫn là bắt buộc. Không thay đổi quy tắc xác nhận phiên bản CV hoặc matching.
+
 | STT | Mã quyết định | Nội dung quyết định | Căn cứ kỹ thuật & Thẩm quyền | Tác động hệ thống |
 | :---: | :--- | :--- | :--- | :--- |
 | **1** | **DEC-01: Phân tách vai trò nghiêm ngặt (Strict Role Separation) & Bootstrap an toàn** | Tách biệt hoàn toàn quyền hạn giữa `ADMIN`, `HR` (Recruiter) và `CANDIDATE`. HR không được quyền cấu hình AI; Candidate không được vào HR Portal; Admin không được tạo đơn ứng tuyển giả lập. Khởi tạo tài khoản ADMIN qua biến môi trường (`AdminBootstrapRunner`), tuyệt đối không hardcode credentials trong migration SQL. | Thẩm định bảo mật; Nguyên tắc bảo mật ranh giới tenant; Quyết định nhóm đồ án. | Cập nhật `SecurityConfig.java`, `AdminController.java`, `JwtAuthenticationFilter.java`, tạo `RoleGuard.tsx` và `AdminBootstrapRunner.java`. |
@@ -30,3 +51,12 @@ Tài liệu ghi nhận: **25/09/2026**
    * *Hiện trạng:* File CV lưu tại thư mục cục bộ `uploads/cvs/private` và trích xuất raw text lưu vào database.
    * *Câu hỏi mở:* Có cần tích hợp S3-compatible cloud storage (như MinIO hoặc AWS S3) hay giữ nguyên filesystem cục bộ để phục vụ demo đồ án offline?
    * *Khuyến nghị:* Giữ nguyên local filesystem để phục vụ hội đồng chấm thi offline mà không bị phụ thuộc vào kết nối Internet ra bên ngoài.
+
+
+## DEC-08 — Approved audit remediation (19/10/2026)
+
+Project Owner approved implementation of the audit plan in this conversation. Source baseline is the supplied ZIP (no .git metadata); no commit/push/deploy is implied. Changes are prepared in a separate copy.
+
+Implementation choices within recommended option A: enforce actor ownership in legacy processing; require explicit CONFIRMED CVVersion in candidate matching; bind application scores/snapshots to appliedCvVersion; candidate self-match is a side-effect-free preview; synchronous application scoring propagates failures atomically. Keep candidate MatchingEngineService and existing HR Scoring as separately versioned purposes rather than invent a new formula. HR screening retains its existing recruiter-owned document workflow (no candidate application or candidate confirmation is fabricated). Its CV data must be adapted to scoring schema and embedded before matching, while candidate extraction remains review-ready only. Preserve immutable extraction JSON; generate scoring input separately. Unsupported extracted skills/GPA are removed/null with warnings; user-added review data is not passed through extraction grounding. New screenings bind JD by current content. Old snapshots lacking source data are not backfilled from current CVs. Runtime VERIFIED claims require new live evidence.
+
+These choices implement the approved corrective plan; no new product feature, dependency upgrade, destructive data migration or production data change is authorized/performed here.

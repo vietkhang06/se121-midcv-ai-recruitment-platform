@@ -77,47 +77,37 @@ public class MatchingEngineService {
 
     @Transactional
     public MatchResult calculateAndPersistMatchResult(UUID jobId, UUID candidateId) {
+        Application application = applicationRepository.findByJobIdAndCandidateId(jobId, candidateId)
+                .orElseThrow(() -> new ResourceNotFoundException("Application", "job/candidate", jobId));
+        return calculate(application, application.getAppliedCvVersion(), true);
+    }
+
+    @Transactional(readOnly = true)
+    public MatchResult previewMatch(UUID jobId, UUID candidateId, UUID cvVersionId) {
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
-
+        if (job.getStatus() != com.platform.recruitment.job.JobStatus.PUBLISHED) {
+            throw new com.platform.recruitment.common.CustomException(
+                    com.platform.recruitment.common.ErrorCode.VALIDATION_ERROR, "Only published jobs can be previewed");
+        }
         CandidateProfile candidate = candidateProfileRepository.findById(candidateId)
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "id", candidateId));
+        CVVersion version = cvVersionRepository.findById(cvVersionId)
+                .orElseThrow(() -> new ResourceNotFoundException("CVVersion", "id", cvVersionId));
+        Application context = Application.builder().job(job).candidate(candidate)
+                .appliedCv(version.getCv()).appliedCvVersion(version).build();
+        return calculate(context, version, false);
+    }
 
-        // Find or create Application baseline
-        Application application = applicationRepository.findByJobIdAndCandidateId(jobId, candidateId)
-                .orElseGet(() -> applicationRepository.save(Application.builder()
-                        .job(job)
-                        .candidate(candidate)
-                        .build()));
-
-        // Get latest CV for candidate
-        List<CV> cvs = cvRepository.findByCandidateId(candidateId);
-        String cvRawText = cvs.isEmpty() ? "" : cvs.get(0).getRawText();
-        
-        // Prefer confirmed CV profile content if available
-        if (!cvs.isEmpty() && cvVersionRepository != null) {
-            List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvs.get(0).getId());
-            Optional<CVVersion> confirmedVersion = versions.stream()
-                    .filter(v -> "CONFIRMED".equalsIgnoreCase(v.getStatus()))
-                    .findFirst();
-            if (confirmedVersion.isPresent()) {
-                String confirmedText = confirmedVersion.get().getRawTextContent();
-                String structuredJson = confirmedVersion.get().getStructuredJsonContent();
-                StringBuilder combined = new StringBuilder();
-                if (confirmedText != null && !confirmedText.isBlank()) {
-                    combined.append(confirmedText).append("\n");
-                }
-                if (structuredJson != null && !structuredJson.isBlank()) {
-                    combined.append(extractTextFromStructuredJson(structuredJson));
-                }
-                if (combined.length() > 0) {
-                    cvRawText = combined.toString();
-                }
-            }
-        }
+    private MatchResult calculate(Application application, CVVersion inputVersion, boolean persist) {
+        Job job = application.getJob();
+        CandidateProfile candidate = application.getCandidate();
+        UUID jobId = job.getId(), candidateId = candidate.getId();
+        com.platform.recruitment.cv.ConfirmedCvInput.requireConfirmed(inputVersion, candidateId);
+        String cvRawText = com.platform.recruitment.cv.ConfirmedCvInput.text(inputVersion);
 
         // Insufficient candidate data handling: DO NOT calculate misleading scores
-        if (cvs.isEmpty() || cvRawText == null || cvRawText.trim().isEmpty()) {
+        if (cvRawText == null || cvRawText.trim().isEmpty()) {
             MatchResult insufficientResult = matchResultRepository.findByApplicationId(application.getId())
                     .orElseGet(() -> MatchResult.builder()
                             .application(application)
@@ -141,7 +131,7 @@ public class MatchingEngineService {
             insufficientResult.setMatchingAlgorithmVersion("v1.0");
 
             log.info("Candidate {} has insufficient CV data for job {}. Setting status INSUFFICIENT_DATA.", candidateId, jobId);
-            return matchResultRepository.save(insufficientResult);
+            return persist ? matchResultRepository.save(insufficientResult) : insufficientResult;
         }
 
         List<JobRequirement> allReqs = jobRequirementRepository.findByJobId(jobId);
@@ -184,11 +174,11 @@ public class MatchingEngineService {
         BigDecimal projScore = projectRelevanceMatcher.evaluateProjectRelevance(job.getDescription(), cvRawText);
 
         // Native PostgreSQL pgvector evaluation with grounded semantic similarity fallback
-        UUID cvDocVersionId = findCvDocumentVersionId(candidate);
+        UUID cvDocVersionId = inputVersion.getId();
         UUID jdDocVersionId = findJdDocumentVersionId(job.getId());
         BigDecimal semanticScore = null;
         String semanticMethod = "PGVECTOR_COSINE_SIMILARITY";
-        if (jdbcTemplate != null && cvDocVersionId != null && jdDocVersionId != null) {
+        if (jdbcTemplate != null && confirmedEmbeddingMatches(inputVersion) && jdDocVersionId != null) {
             semanticScore = pgvectorCosineSimilarity.evaluatePgvectorSemanticSimilarity(cvDocVersionId, jdDocVersionId);
         }
         if (semanticScore == null) {
@@ -366,15 +356,21 @@ public class MatchingEngineService {
         } else {
             statusGithub = MatchFactorStatus.AVAILABLE.name();
             scoreGithub = githubScoreOpt.get();
-            effCoreWeight = BigDecimal.valueOf(0.85);
-            effGithubWeight = BigDecimal.valueOf(0.15);
+            if (cfgCore == null || cfgGithub == null || cfgGithub.signum() < 0
+                    || cfgGithub.compareTo(new BigDecimal("0.15")) > 0
+                    || cfgCore.add(cfgGithub).subtract(BigDecimal.ONE).abs().compareTo(new BigDecimal("0.005")) > 0) {
+                throw new com.platform.recruitment.common.CustomException(
+                        com.platform.recruitment.common.ErrorCode.VALIDATION_ERROR, "Invalid Core/GitHub policy weights");
+            }
+            effCoreWeight = cfgCore;
+            effGithubWeight = cfgGithub;
             double overallVal = (effCoreWeight.doubleValue() * scoreCore.doubleValue()) + (effGithubWeight.doubleValue() * scoreGithub.doubleValue());
             double boundedOverall = Math.max(0.0, Math.min(100.0, overallVal));
             scoreOverall = BigDecimal.valueOf(boundedOverall).setScale(2, RoundingMode.HALF_UP);
         }
 
         // 5. Save or Update MatchResult
-        MatchResult result = matchResultRepository.findByApplicationId(application.getId())
+        MatchResult result = (persist ? matchResultRepository.findByApplicationId(application.getId()) : Optional.<MatchResult>empty())
                 .orElseGet(() -> MatchResult.builder()
                         .application(application)
                         .build());
@@ -398,6 +394,8 @@ public class MatchingEngineService {
         result.setPolicyVersion(policy.getPolicyVersion());
         result.setPolicySnapshot(policySnapshot);
 
+        // Preview deliberately returns before every persistence/factor/evidence operation.
+        if (!persist) return result;
         MatchResult savedResult = matchResultRepository.save(result);
 
         // 5b. Idempotency & Duplicate Prevention: purge previous factors and evidences for this match result
@@ -514,15 +512,8 @@ public class MatchingEngineService {
 
         List<JobRequirement> allReqs = jobRequirementRepository.findByJobId(jobId);
 
-        String cvRawText = "";
-        if (application.getAppliedCv() != null && application.getAppliedCv().getRawText() != null) {
-            cvRawText = application.getAppliedCv().getRawText();
-        } else {
-            List<CV> cvs = cvRepository.findByCandidateId(candidateId);
-            if (!cvs.isEmpty() && cvs.get(0).getRawText() != null) {
-                cvRawText = cvs.get(0).getRawText();
-            }
-        }
+        com.platform.recruitment.cv.ConfirmedCvInput.requireConfirmed(application.getAppliedCvVersion(), candidateId);
+        String cvRawText = com.platform.recruitment.cv.ConfirmedCvInput.text(application.getAppliedCvVersion());
 
         List<Evidence> persistedEvidences = evidenceRepository != null
                 ? evidenceRepository.findByMatchResultId(result.getId())
@@ -638,9 +629,21 @@ public class MatchingEngineService {
                     .connected(true)
                     .status("SYNCED")
                     .username(gh.getUsername())
+                    .ownershipStatus(gh.getOwnershipStatus())
                     .publicRepoCount(gh.getPublicReposCount())
                     .activitySignal(gh.getActivitySignal() != null ? gh.getActivitySignal().name() : "HIGH")
                     .overallAssessment("Ứng viên có tài khoản GitHub công khai liên kết với hồ sơ tuyển dụng.")
+                    .build();
+        } else if (ghProfileOpt.isPresent()) {
+            com.platform.recruitment.github.GitHubProfile gh = ghProfileOpt.get();
+            ghInfo = MatchInspectionResponse.GitHubAssessmentInfo.builder()
+                    .connected(false)
+                    .status("PUBLIC_ONLY")
+                    .username(gh.getUsername())
+                    .ownershipStatus(gh.getOwnershipStatus())
+                    .publicRepoCount(gh.getPublicReposCount())
+                    .activitySignal(gh.getActivitySignal() != null ? gh.getActivitySignal().name() : null)
+                    .overallAssessment("Tín hiệu hồ sơ công khai chưa được dùng làm năng lực đã xác minh vì chưa xác nhận quyền sở hữu tài khoản.")
                     .build();
         } else {
             ghInfo = MatchInspectionResponse.GitHubAssessmentInfo.builder()
@@ -699,20 +702,14 @@ public class MatchingEngineService {
         matchFactorRepository.save(factor);
     }
 
-    private UUID findCvDocumentVersionId(CandidateProfile candidate) {
-        if (jdbcTemplate == null || candidate == null || candidate.getUser() == null) return null;
-        try {
-            List<UUID> ids = jdbcTemplate.query(
-                    "SELECT v.id FROM document_versions v JOIN documents d ON d.id=v.document_id " +
-                    "WHERE d.owner_id=? AND d.kind='CV' AND v.embedding IS NOT NULL AND v.state='READY' " +
-                    "ORDER BY v.version_no DESC LIMIT 1",
-                    (rs, rowNum) -> (UUID) rs.getObject("id"),
-                    candidate.getUser().getId()
-            );
-            return ids.isEmpty() ? null : ids.get(0);
-        } catch (Exception e) {
-            return null;
-        }
+    private boolean confirmedEmbeddingMatches(CVVersion version) {
+        if (jdbcTemplate == null || version.getId() == null) return false;
+        // Exact schema/content binding prevents an extraction vector from scoring edited review data.
+        Boolean matches = jdbcTemplate.queryForObject(
+                "SELECT EXISTS(SELECT 1 FROM document_versions WHERE id=? AND state='READY' "
+                        + "AND embedding IS NOT NULL AND normalized=?::jsonb)",
+                Boolean.class, version.getId(), version.getStructuredJsonContent());
+        return Boolean.TRUE.equals(matches);
     }
 
     private UUID findJdDocumentVersionId(UUID jobId) {
@@ -721,9 +718,9 @@ public class MatchingEngineService {
             List<UUID> ids = jdbcTemplate.query(
                     "SELECT v.id FROM document_versions v JOIN documents d ON d.id=v.document_id " +
                     "WHERE (d.id=? OR v.id IN (SELECT jd_version_id FROM screening_runs WHERE job_id=?)) " +
-                    "AND v.embedding IS NOT NULL AND v.state='READY' ORDER BY v.version_no DESC LIMIT 1",
+                    "AND v.embedding IS NOT NULL AND v.state='READY' AND v.raw_text=(SELECT CASE WHEN btrim(description)='' THEN title ELSE description END FROM jobs WHERE id=?) ORDER BY v.created_at DESC LIMIT 1",
                     (rs, rowNum) -> (UUID) rs.getObject("id"),
-                    jobId, jobId
+                    jobId, jobId, jobId
             );
             return ids.isEmpty() ? null : ids.get(0);
         } catch (Exception e) {

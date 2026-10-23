@@ -425,7 +425,7 @@ public class AuthService {
         }
     }
 
-    private JwtResponse buildJwtResponse(User user) {
+    JwtResponse buildJwtResponse(User user) {
         String accessToken =
                 tokenProvider.generateAccessToken(
                         user.getId(),

@@ -179,6 +179,7 @@ public class CandidateCvConfirmationIntegrationTest {
         when(candidateProfileRepository.findByUserId(candidateUserA.getId())).thenReturn(Optional.of(profileA));
         when(candidateProfileRepository.findByUserId(candidateUserB.getId())).thenReturn(Optional.of(profileB));
         when(cvRepository.findById(testCv.getId())).thenReturn(Optional.of(testCv));
+        when(cvRepository.findByIdForUpdate(testCv.getId())).thenReturn(Optional.of(testCv));
         when(cvRepository.save(any(CV.class))).thenAnswer(i -> i.getArgument(0));
         when(cvVersionRepository.save(any(CVVersion.class))).thenAnswer(i -> i.getArgument(0));
     }
@@ -299,7 +300,7 @@ public class CandidateCvConfirmationIntegrationTest {
         MatchResult expectedResult = MatchResult.builder()
                 .overallScore(BigDecimal.valueOf(88.5))
                 .build();
-        when(matchingEngineService.calculateAndPersistMatchResult(publishedJob.getId(), profileA.getId()))
+        when(matchingEngineService.previewMatch(publishedJob.getId(), profileA.getId(), draftVersion1.getId()))
                 .thenReturn(expectedResult);
 
         var matchRes = candidateMatchController.matchCandidateToJob(candidateUserA, publishedJob.getId(), testCv.getId());
@@ -365,8 +366,8 @@ public class CandidateCvConfirmationIntegrationTest {
     }
 
     @Test
-    @DisplayName("Freshness Policy: confirmCV invalidates cached embedding and marks candidate match results as STALE")
-    void testConfirmCV_InvalidatesEmbeddingAndMarksExistingMatchesStale() {
+    @DisplayName("Version Policy: confirming a new draft preserves historical application matching")
+    void testConfirmCV_InvalidatesEmbeddingAndPreservesHistoricalMatches() {
         when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(testCv.getId()))
                 .thenReturn(List.of(draftVersion1));
 
@@ -382,9 +383,9 @@ public class CandidateCvConfirmationIntegrationTest {
         // Verify embedding invalidation
         verify(embeddingService).invalidateEmbedding("CV", testCv.getId());
 
-        // Verify downstream match result marked as STALE
-        assertEquals("STALE", existingMatch.getStatus());
-        verify(matchResultRepository).save(existingMatch);
+        // Existing applications are bound to immutable applied versions.
+        assertEquals("ACTIVE", existingMatch.getStatus());
+        verify(matchResultRepository, never()).save(existingMatch);
     }
 
     @Test

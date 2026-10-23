@@ -4,37 +4,25 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { fetchCandidateProfile, saveCandidateProfile, confirmCandidateCV, fetchCandidateCVs, triggerGithubAnalysis } from '@/lib/api';
-import { Industry, CandidateProfile, CV } from '@/types';
-import { AnimatedStatus, Reveal, staggerDelay } from '@/components/motion';
+import { fetchCandidateProfile, saveCandidateProfile, confirmCandidateCV, fetchCandidateCVs, triggerGithubAnalysis, beginOAuthLink, fetchGithubConnection } from '@/lib/api';
+import { Industry, CandidateProfile } from '@/types';
+import { AnimatedStatus } from '@/components/motion';
 import {
-  User,
-  ShieldCheck,
   CheckCircle2,
   Save,
   GitBranch,
-  Calendar,
-  Send,
-  Eye,
-  Award,
-  Clock,
-  Sparkles,
-  ExternalLink,
-  ChevronRight,
-  Plus
 } from 'lucide-react';
 import { DeactivateAccountSection } from '@/components/common/DeactivateAccountSection';
 
 export default function CandidateProfilePage() {
   const { user } = useAuth();
-  const { t, locale } = useLanguage();
+  const { locale } = useLanguage();
   
   const [profile, setProfile] = useState<CandidateProfile | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [newSkill, setNewSkill] = useState<string>('');
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'profile'>('profile');
   const [activeCvId, setActiveCvId] = useState<string | null>(null);
   const [cvStatus, setCvStatus] = useState<string>('DRAFT');
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
@@ -43,34 +31,45 @@ export default function CandidateProfilePage() {
   const [githubUrlError, setGithubUrlError] = useState<string | null>(null);
   const [isSyncingGithub, setIsSyncingGithub] = useState<boolean>(false);
   const [githubSyncMessage, setGithubSyncMessage] = useState<string | null>(null);
+  const [githubConnection, setGithubConnection] = useState<{ connected: boolean; login?: string } | null>(null);
+  const [linkingGithub, setLinkingGithub] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
-  const loadProfile = () => {
-    setIsLoading(true);
-    setLoadError(null);
-    fetchCandidateProfile()
-      .then((data) => {
-        setProfile(data);
-        setLoadError(null);
-      })
-      .catch((err: any) => {
-        setLoadError(err.message || 'Không thể tải hồ sơ ứng viên.');
-      })
-      .finally(() => setIsLoading(false));
-
-    fetchCandidateCVs()
-      .then((cvs) => {
-        if (cvs && cvs.length > 0) {
-          const defaultCv = cvs.find((c) => c.isDefault) || cvs[0];
+  useEffect(() => {
+    let active = true;
+    const initializeProfile = async () => {
+      try {
+        const data = await fetchCandidateProfile();
+        if (active) setProfile(data);
+      } catch (error: unknown) {
+        if (active) setLoadError(error instanceof Error ? error.message : 'Không thể tải hồ sơ ứng viên.');
+      } finally {
+        if (active) setIsLoading(false);
+      }
+      try {
+        const cvs = await fetchCandidateCVs();
+        if (active && cvs.length > 0) {
+          const defaultCv = cvs.find((cv) => cv.isDefault) || cvs[0];
           setActiveCvId(defaultCv.id);
           setCvStatus(defaultCv.status || 'DRAFT');
         }
-      })
-      .catch(() => {});
-  };
+      } catch { /* The profile page remains usable without a saved CV. */ }
+      try {
+        const connection = await fetchGithubConnection();
+        if (active) setGithubConnection(connection);
+      } catch {
+        if (active) setGithubConnection(null);
+      }
+    };
+    void initializeProfile();
+    return () => { active = false; };
+  }, [loadAttempt]);
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
+  const handleLinkProvider = async (provider: 'google' | 'github') => {
+    setLinkingGithub(true);
+    try { window.location.assign(await beginOAuthLink(provider)); }
+    catch (error: unknown) { setGithubSyncMessage(error instanceof Error ? error.message : (locale === 'vi' ? 'Không thể bắt đầu liên kết tài khoản.' : 'Could not start account linking.')); setLinkingGithub(false); }
+  };
 
   if (isLoading) {
     return (
@@ -88,7 +87,7 @@ export default function CandidateProfilePage() {
             {loadError || (locale === 'vi' ? 'Không thể tải dữ liệu hồ sơ.' : 'Unable to load profile data.')}
           </p>
           <button
-            onClick={loadProfile}
+            onClick={() => setLoadAttempt((attempt) => attempt + 1)}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition"
           >
             {locale === 'vi' ? 'Thử lại' : 'Retry'}
@@ -146,8 +145,8 @@ export default function CandidateProfilePage() {
       setTimeout(() => setSavedSuccess(false), 3000);
       // NOTE: Automatic GitHub analysis is enqueued on the backend whenever githubUrl changes.
       // No duplicate frontend trigger here.
-    } catch (err: any) {
-      alert(err.message || (locale === 'vi' ? 'Không thể lưu hồ sơ.' : 'Failed to save profile.'));
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : (locale === 'vi' ? 'Không thể lưu hồ sơ.' : 'Failed to save profile.'));
     } finally {
       setIsSaving(false);
     }
@@ -172,9 +171,9 @@ export default function CandidateProfilePage() {
           : 'GitHub analysis queued for background processing.'
       );
       setTimeout(() => setGithubSyncMessage(null), 5000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setGithubSyncMessage(
-        err.message || (locale === 'vi' ? 'Không thể đồng bộ GitHub lúc này.' : 'Failed to sync GitHub at this time.')
+        err instanceof Error ? err.message : (locale === 'vi' ? 'Không thể đồng bộ GitHub lúc này.' : 'Failed to sync GitHub at this time.')
       );
     } finally {
       setIsSyncingGithub(false);
@@ -191,8 +190,8 @@ export default function CandidateProfilePage() {
         setConfirmedSuccess(true);
         setTimeout(() => setConfirmedSuccess(false), 5000);
       }
-    } catch (err: any) {
-      alert(err.message || 'Không thể xác nhận hồ sơ.');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Không thể xác nhận hồ sơ.');
     } finally {
       setIsConfirming(false);
     }
@@ -321,6 +320,13 @@ export default function CandidateProfilePage() {
                       </a>
                     </div>
                   )}
+                </div>
+                <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 pt-3 dark:border-slate-700">
+                  <button type="button" onClick={() => handleLinkProvider('github')} disabled={linkingGithub} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold hover:bg-white focus-visible:outline-2 focus-visible:outline-blue-600 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800">
+                    {linkingGithub ? (locale === 'vi' ? 'Đang chuyển đến GitHub…' : 'Opening GitHub…') : githubConnection?.connected ? (locale === 'vi' ? `Đã xác minh @${githubConnection.login} · Kết nối lại` : `Verified @${githubConnection.login} · Reconnect`) : (locale === 'vi' ? 'Xác minh tài khoản GitHub' : 'Verify GitHub ownership')}
+                  </button>
+                  <button type="button" onClick={() => handleLinkProvider('google')} disabled={linkingGithub} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold hover:bg-white focus-visible:outline-2 focus-visible:outline-blue-600 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800">{locale === 'vi' ? 'Liên kết Google' : 'Link Google'}</button>
+                  <span className="text-xs text-slate-600 dark:text-slate-400">{githubConnection?.connected ? (locale === 'vi' ? 'Quét công khai; không cấp quyền kho riêng tư.' : 'Public scanning only; private repositories are not authorized.') : (locale === 'vi' ? 'Username công khai tự nhập chưa chứng minh quyền sở hữu.' : 'A manually entered public username does not prove ownership.')}</span>
                 </div>
               </div>
             </div>

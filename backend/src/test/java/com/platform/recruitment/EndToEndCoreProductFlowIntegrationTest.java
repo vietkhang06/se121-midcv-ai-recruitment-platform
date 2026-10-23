@@ -117,13 +117,14 @@ public class EndToEndCoreProductFlowIntegrationTest {
                 .title("Nguyen Van A - Resume v1.0")
                 .status("CONFIRMED")
                 .rawTextContent(candidateCv.getRawText())
+                .structuredJsonContent("{\"summary\":\"Cloud Architect with 6 years experience in AWS, Kubernetes, Terraform, Go, Java\"}")
                 .confirmedAt(ZonedDateTime.now())
                 .build();
         confirmedVersion.setId(UUID.randomUUID());
     }
 
     @Test
-    @DisplayName("AC-P10-01: Full 15-step core flow - Application submission, snapshot freeze, matching calculation, recruiter ranking and status transition")
+    @DisplayName("Service-level lifecycle with mocked repositories and scorer; not full 15-step live E2E")
     void testFullRecruitmentLifecycle() {
         // Step 1: Candidate submits application
         when(candidateProfileRepository.findByUserId(candidateUser.getId())).thenReturn(Optional.of(candidateProfile));

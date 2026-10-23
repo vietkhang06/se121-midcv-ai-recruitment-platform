@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Job } from '@/types';
 import {
@@ -34,7 +34,6 @@ export default function RecruiterJobsListPage() {
   const { t, locale } = useLanguage();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [applicationCounts, setApplicationCounts] = useState<Record<string, number>>({});
-  const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [searchKeyword, setSearchKeyword] = useState<string>('');
@@ -81,10 +80,28 @@ export default function RecruiterJobsListPage() {
   }, [locale]);
 
   useEffect(() => {
-    void loadJobs();
-  }, [loadJobs]);
+    let active = true;
+    const loadInitialJobs = async () => {
+      try {
+        const data = await fetchRecruiterJobs();
+        if (!active) return;
+        setJobs(data);
+        const counts = await Promise.all(data.map(async (job) => {
+          try { return [job.id, (await fetchJobApplications(job.id)).length] as const; }
+          catch { return [job.id, 0] as const; }
+        }));
+        if (active) setApplicationCounts(Object.fromEntries(counts));
+      } catch (error: unknown) {
+        if (active) setFetchError(error instanceof Error ? error.message : 'Unable to load jobs list. / Không thể tải danh sách bài tuyển dụng.');
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+    void loadInitialJobs();
+    return () => { active = false; };
+  }, []);
 
-  useEffect(() => {
+  const filteredJobs = useMemo(() => {
     let result = [...jobs];
     const query = searchKeyword.trim().toLowerCase();
 
@@ -100,7 +117,7 @@ export default function RecruiterJobsListPage() {
       result = result.filter((job) => job.status === selectedStatus);
     }
 
-    setFilteredJobs(result);
+    return result;
   }, [searchKeyword, selectedStatus, jobs]);
 
   const handleExecutePublish = async () => {
@@ -321,7 +338,7 @@ export default function RecruiterJobsListPage() {
                           )}
                           <span className="inline-flex items-center gap-1.5">
                             <DollarSign className="w-3.5 h-3.5" />
-                            {formatSalary(job.salaryMin, job.salaryMax, job.salaryRange, locale)}
+                            {formatSalary(job.salaryMin, job.salaryMax, job.salaryRange, locale, job.salaryNegotiable, job.salaryCurrency)}
                           </span>
                         </div>
                       </div>

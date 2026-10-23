@@ -75,6 +75,10 @@ public class GitHubScoringService {
         }
 
         GitHubProfile profile = profileOpt.get();
+        if (!"OWNED".equalsIgnoreCase(profile.getOwnershipStatus())) {
+            log.info("Candidate '{}' GitHub profile is public but ownership is not verified; no verified competency score will be used", candidateId);
+            return Optional.empty();
+        }
         if (!"SYNCED".equalsIgnoreCase(profile.getStatus())) {
             log.info("Candidate '{}' GitHub status is '{}'. Returning fallback empty.", candidateId, profile.getStatus());
             return Optional.empty();

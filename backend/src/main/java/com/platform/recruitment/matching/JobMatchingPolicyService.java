@@ -95,12 +95,9 @@ public class JobMatchingPolicyService {
         int recalculatedCount = 0;
 
         for (Application app : applications) {
-            try {
-                matchingEngineService.calculateAndPersistMatchResult(jobId, app.getCandidate().getId());
-                recalculatedCount++;
-            } catch (Exception e) {
-                log.error("Failed to recalculate matching for application {}", app.getId(), e);
-            }
+            // Same synchronous/atomic failure policy as submit; never return a partial success count.
+            matchingEngineService.calculateAndPersistMatchResult(jobId, app.getCandidate().getId());
+            recalculatedCount++;
         }
 
         log.info("Recalculated {} applications for job {}", recalculatedCount, jobId);
@@ -115,6 +112,17 @@ public class JobMatchingPolicyService {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "Tất cả các trọng số bắt buộc phải được cung cấp.");
         }
 
+        for (BigDecimal value : java.util.List.of(dto.getSkillRequiredWeight(), dto.getSkillPreferredWeight(),
+                dto.getExperienceWeight(), dto.getEducationWeight(), dto.getProjectWeight(),
+                dto.getSemanticWeight(), dto.getCoreWeight(), dto.getGithubWeight())) {
+            if (value.signum() < 0 || value.compareTo(BigDecimal.ONE) > 0) {
+                throw new CustomException(ErrorCode.VALIDATION_ERROR, "Weights must be between zero and one");
+            }
+        }
+        if (dto.getGithubWeight().compareTo(new BigDecimal("0.15")) > 0) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "GitHub supporting weight cannot exceed 15%");
+        }
+
         BigDecimal coreSum = dto.getSkillRequiredWeight()
                 .add(dto.getSkillPreferredWeight())
                 .add(dto.getExperienceWeight())
@@ -127,7 +135,8 @@ public class JobMatchingPolicyService {
                     String.format("Tổng trọng số các tiêu chí cốt lõi phải bằng 1.0 (hoặc 100%%). Tổng hiện tại: %s", coreSum));
         }
 
-        if (Boolean.TRUE.equals(dto.getIsGithubActive())) {
+        // The database sum constraint also applies while GitHub is disabled.
+        {
             BigDecimal overallSum = dto.getCoreWeight().add(dto.getGithubWeight());
             if (overallSum.subtract(BigDecimal.ONE).abs().compareTo(new BigDecimal("0.005")) > 0) {
                 throw new CustomException(ErrorCode.VALIDATION_ERROR,

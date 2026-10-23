@@ -44,6 +44,7 @@ function JobsPageContent() {
   const [selectedModes, setSelectedModes] = useState<string[]>([]);
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
   const [minSalary, setMinSalary] = useState<number>(0);
+  const [salaryCurrencyFilter, setSalaryCurrencyFilter] = useState('VND');
   const [skillFilter, setSkillFilter] = useState<string>('');
   const [onlyTargetIndustries, setOnlyTargetIndustries] = useState<boolean>(false);
   const [candidateIndustries, setCandidateIndustries] = useState<string[]>([]);
@@ -145,7 +146,7 @@ function JobsPageContent() {
 
     // 7. Salary Filter
     if (minSalary > 0) {
-      result = result.filter((j) => (j.salaryMax ? j.salaryMax >= minSalary : true));
+      result = result.filter((j) => (j.salaryCurrency || 'VND') === salaryCurrencyFilter && (j.salaryMax != null ? j.salaryMax >= minSalary : true));
     }
 
     // 8. Skill Requirement Filter
@@ -165,7 +166,7 @@ function JobsPageContent() {
     if (sortBy === 'newest') {
       result.sort((a, b) => (b.publishedDate || '').localeCompare(a.publishedDate || ''));
     } else if (sortBy === 'salary_high') {
-      result.sort((a, b) => (b.salaryMax || 0) - (a.salaryMax || 0));
+      result.sort((a, b) => (a.salaryCurrency || 'VND').localeCompare(b.salaryCurrency || 'VND') || (b.salaryMax || 0) - (a.salaryMax || 0));
     }
 
     return result;
@@ -179,6 +180,7 @@ function JobsPageContent() {
     selectedModes,
     selectedLevels,
     minSalary,
+    salaryCurrencyFilter,
     skillFilter,
     sortBy
   ]);
@@ -425,14 +427,19 @@ function JobsPageContent() {
                 <div className="flex items-center justify-between text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
                   <span>{t('jobs.minSalaryLabel', 'MỨC LƯƠNG TỐI THIỂU')}</span>
                   <span className="text-[#00B14F] font-bold">
-                    {minSalary > 0 ? `$${minSalary.toLocaleString()} ${locale === 'vi' ? '/tháng' : '/mo'}` : t('jobs.all', 'Tất cả')}
+                    {minSalary > 0 ? `${new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { style: 'currency', currency: salaryCurrencyFilter }).format(minSalary)}${locale === 'vi' ? '/tháng' : '/month'}` : t('jobs.all', 'Tất cả')}
                   </span>
                 </div>
+                <label className="block text-xs text-slate-600 dark:text-slate-300">{locale === 'vi' ? 'Tiền tệ dùng cho bộ lọc' : 'Currency for salary filter'}
+                  <select value={salaryCurrencyFilter} onChange={(e) => setSalaryCurrencyFilter(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 dark:border-slate-700 dark:bg-slate-900">
+                    {['VND', 'USD', 'EUR', 'GBP', 'JPY', 'CNY', 'KRW', 'SGD', 'AUD', 'CAD'].map((code) => <option key={code} value={code}>{code}</option>)}
+                  </select>
+                </label>
                 <input
                   type="range"
                   min={0}
-                  max={10000}
-                  step={500}
+                  max={100000000}
+                  step={5000000}
                   value={minSalary}
                   onChange={(e) => setMinSalary(parseInt(e.target.value) || 0)}
                   className="w-full accent-[#2563EB] cursor-pointer"

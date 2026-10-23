@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { CV, CVQuota } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
-import { translateIndustry } from '@/lib/i18n';
-import { fetchCandidateCVs, saveCandidateCV, deleteCandidateCV, fetchCVQuota } from '@/lib/api';
+import { fetchCandidateCVs, deleteCandidateCV, fetchCVQuota } from '@/lib/api';
 import { CVUploadModal } from '@/components/cv/CVUploadModal';
 import { CVExtractionReviewModal } from '@/components/cv/CVExtractionReviewModal';
+import { CVCardMetadataModal } from '@/components/cv/CVCardMetadataModal';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Reveal } from '@/components/motion/Reveal';
 import { staggerDelay } from '@/components/motion/stagger';
@@ -18,15 +19,12 @@ import {
   Download,
   Trash2,
   GitBranch,
-  CheckCircle2,
-  Clock,
-  Sparkles,
   ExternalLink,
-  Edit3,
   Eye
 } from 'lucide-react';
 
 export default function CVLibraryPage() {
+  const router = useRouter();
   const { t, locale } = useLanguage();
   const isVi = locale === 'vi';
   const [cvList, setCvList] = useState<CV[]>([]);
@@ -36,6 +34,7 @@ export default function CVLibraryPage() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
   const [selectedCvForHistory, setSelectedCvForHistory] = useState<CV | null>(null);
   const [selectedCvForReview, setSelectedCvForReview] = useState<CV | null>(null);
+  const [selectedCvForMetadata, setSelectedCvForMetadata] = useState<CV | null>(null);
 
   const loadCVs = () => {
     setIsLoading(true);
@@ -58,7 +57,8 @@ export default function CVLibraryPage() {
   };
 
   useEffect(() => {
-    loadCVs();
+    const timer = window.setTimeout(loadCVs, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const handleDelete = async (targetCv: CV) => {
@@ -66,14 +66,14 @@ export default function CVLibraryPage() {
       try {
         await deleteCandidateCV(targetCv.id);
         loadCVs();
-      } catch (err: any) {
-        alert(err.message || 'Lỗi khi xóa CV');
+      } catch (err: unknown) {
+        alert(err instanceof Error ? err.message : 'Lỗi khi xóa CV');
       }
     }
   };
 
   const handleExport = (targetCv: CV) => {
-    window.location.href = `/candidate/cvs/builder?edit=${targetCv.id}`;
+    router.push(`/candidate/cvs/builder?edit=${targetCv.id}`);
   };
 
   return (
@@ -112,26 +112,26 @@ export default function CVLibraryPage() {
               <button
                 id="upload-cv-btn"
                 onClick={() => setIsUploadModalOpen(true)}
-                disabled={quota?.canUpload === false}
+                disabled={quota?.canUpload !== true}
                 className="px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
-                title={quota?.canUpload === false ? (isVi ? 'Đã đạt giới hạn số lượng CV' : 'CV quota limit reached') : undefined}
+                title={quota?.canUpload !== true ? (isVi ? 'Đã đạt giới hạn hoặc chưa kiểm tra được hạn mức CV' : 'CV limit reached or quota unavailable') : undefined}
               >
                 {t('candidatePages.uploadCv', 'Tải CV Lên / Ingest Repo')}
               </button>
               <Link
-                href={quota?.canUpload === false ? '#' : '/candidate/cvs/builder'}
+                href={quota?.canUpload === true ? '/candidate/cvs/builder' : '#'}
                 onClick={(e) => {
-                  if (quota?.canUpload === false) {
+                  if (quota?.canUpload !== true) {
                     e.preventDefault();
                     alert(isVi ? 'Bạn đã đạt giới hạn tối đa số lượng CV cho gói tài khoản này. Vui lòng xóa bớt CV cũ hoặc liên hệ nâng cấp PRO.' : 'You have reached the maximum CV quota for this account plan.');
                   }
                 }}
                 className={`px-4 py-2.5 rounded-xl text-xs font-semibold text-white transition shadow-xs flex items-center gap-1.5 ${
-                  quota?.canUpload === false
+                  quota?.canUpload !== true
                     ? 'bg-slate-400 dark:bg-slate-600 opacity-50 cursor-not-allowed'
                     : 'bg-[#2563EB] hover:bg-[#1D4ED8] cursor-pointer'
                 }`}
-                title={quota?.canUpload === false ? (isVi ? 'Đã đạt giới hạn số lượng CV' : 'CV quota limit reached') : undefined}
+                title={quota?.canUpload !== true ? (isVi ? 'Đã đạt giới hạn hoặc chưa kiểm tra được hạn mức CV' : 'CV limit reached or quota unavailable') : undefined}
               >
                 <Plus className="w-4 h-4" />
                 <span>{t('candidatePages.createCv', 'Tạo Hồ Sơ Mới')}</span>
@@ -157,10 +157,17 @@ export default function CVLibraryPage() {
           />
         ) : cvList.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {cvList.map((cv, idx) => (
+            {cvList.map((cv, idx) => {
+              const isConfirmed = cv.status?.toUpperCase() === 'CONFIRMED';
+              const statusCardStyle = isConfirmed
+                ? 'border-2 border-emerald-200 dark:border-emerald-900/70 shadow-md shadow-emerald-100/80 dark:shadow-emerald-950/40 hover:border-emerald-400 dark:hover:border-emerald-700'
+                : 'border-2 border-amber-200 dark:border-amber-900/70 shadow-md shadow-amber-100/80 dark:shadow-amber-950/40 hover:border-amber-400 dark:hover:border-amber-700';
+
+              return (
               <Reveal key={cv.id} delay={staggerDelay(idx)} className="h-full">
                 <div
-                  className="motion-hover-lift bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#2563EB] rounded-2xl p-6 shadow-xs flex flex-col justify-between h-full"
+                  data-testid={`cv-card-${cv.id}`}
+                  className={`motion-hover-lift bg-white dark:bg-[#111C38] rounded-2xl p-6 flex flex-col justify-between h-full transition-colors ${statusCardStyle}`}
                 >
                   <div className="space-y-4">
                     <div className="flex items-start justify-between gap-2">
@@ -186,15 +193,20 @@ export default function CVLibraryPage() {
                         </div>
                       </div>
 
-                      <div className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-[#EFF6FF] dark:bg-[#2563EB]/15 text-[#2563EB] dark:text-[#93C5FD] border border-[#BFDBFE] dark:border-[#2563EB]/30">
-                        {translateIndustry(cv.targetIndustry, locale)}
-                      </div>
                     </div>
 
                     {/* Tags */}
                     <div className="flex flex-wrap gap-1.5 text-[11px]">
-                      <span className="px-2 py-0.5 rounded-md bg-[#FEF9C3] dark:bg-[#FACC15]/15 text-[#92400E] dark:text-[#FACC15] border border-[#FACC15]/40">
-                        {cv.targetRole || (isVi ? 'Chuyên viên kỹ thuật' : 'Technical Specialist')}
+                      <span
+                        role="status"
+                        className={`inline-flex items-center rounded-full border px-2.5 py-1 font-semibold ${isConfirmed
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300'
+                          : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300'
+                        }`}
+                      >
+                        {isConfirmed
+                          ? (isVi ? 'Đã xác nhận' : 'Confirmed')
+                          : (isVi ? 'Bản nháp' : 'Draft')}
                       </span>
                       <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-[#0B1329] text-[#64748B] dark:text-[#94A3B8] border border-slate-200 dark:border-[#1E293B]">
                         {cv.creationPath === 'BUILDER' ? (isVi ? 'Hồ sơ có cấu trúc' : 'Structured Profile') : (isVi ? 'CV tải lên' : 'Uploaded Document')}
@@ -206,19 +218,21 @@ export default function CVLibraryPage() {
                   <div className="pt-5 mt-4 border-t border-slate-100 dark:border-[#1E293B] flex items-center justify-between gap-2">
                     <button
                       onClick={() => setSelectedCvForReview(cv)}
-                      title={isVi ? 'Chi Tiết Trích Xuất, Raw Text, JSON & Bằng Chứng' : 'Extracted Entities, Raw Text, JSON & Audit Evidence'}
+                      title={isVi ? 'Rà soát và chỉnh sửa CV' : 'Review and edit CV'}
                       className="py-2 px-3 rounded-xl text-center text-xs font-semibold border border-blue-200 dark:border-blue-900/60 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition cursor-pointer flex items-center gap-1.5"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       <span>{isVi ? 'Trích Xuất & Evidence' : 'Extracted & Evidence'}</span>
                     </button>
 
-                    <Link
-                      href={`/candidate/cvs/builder?edit=${cv.id}`}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCvForMetadata(cv)}
+                      title={isVi ? 'Sửa thông tin thẻ CV' : 'Edit CV card details'}
                       className="py-2 px-3 rounded-xl text-center text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition"
                     >
                       {t('common.edit', isVi ? 'Chỉnh Sửa' : 'Edit')}
-                    </Link>
+                    </button>
 
                     <button
                       onClick={() => handleExport(cv)}
@@ -237,20 +251,21 @@ export default function CVLibraryPage() {
                   </div>
                 </div>
               </Reveal>
-            ))}
+              );
+            })}
 
             {/* Upload New / Ingest Repo Card (Dashed) */}
             <Reveal delay={staggerDelay(cvList.length)} className="h-full">
               <div
                 onClick={() => {
-                  if (quota?.canUpload === false) {
+                  if (quota?.canUpload !== true) {
                     alert(isVi ? 'Bạn đã đạt giới hạn tối đa số lượng CV cho gói tài khoản này.' : 'You have reached the maximum CV quota for your account.');
                     return;
                   }
                   setIsUploadModalOpen(true);
                 }}
                 className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center transition min-h-[220px] h-full space-y-3 ${
-                  quota?.canUpload === false
+                  quota?.canUpload !== true
                     ? 'border-slate-200 dark:border-[#1E293B] opacity-50 cursor-not-allowed bg-slate-50/20 dark:bg-[#18294E]/20'
                     : 'border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] cursor-pointer hover:bg-slate-50/50 dark:hover:bg-[#18294E]/50'
                 }`}
@@ -276,14 +291,14 @@ export default function CVLibraryPage() {
             primaryCtaText={t('emptyStates.cvs.createCvCta', 'Tạo CV Mới')}
             primaryCtaHref="/candidate/cvs/builder"
             secondaryCtaText={t('emptyStates.cvs.uploadCvCta', 'Tải CV Lên')}
-            onSecondaryCtaClick={() => setIsUploadModalOpen(true)}
+            onSecondaryCtaClick={() => { if (quota?.canUpload === true) setIsUploadModalOpen(true); }}
           />
         )}
 
         </div>
 
       {/* Upload Modal */}
-      {isUploadModalOpen && (
+      {isUploadModalOpen && quota?.canUpload === true && (
         <CVUploadModal
           isOpen={true}
           quota={quota}
@@ -309,6 +324,16 @@ export default function CVLibraryPage() {
           onCvUpdated={loadCVs}
         />
       )}
+
+      <CVCardMetadataModal
+        key={selectedCvForMetadata?.id ?? 'closed'}
+        cv={selectedCvForMetadata}
+        onClose={() => setSelectedCvForMetadata(null)}
+        onSaved={(updatedCv) => {
+          setCvList((current) => current.map((cv) => cv.id === updatedCv.id ? updatedCv : cv));
+          setSelectedCvForMetadata(null);
+        }}
+      />
 
       {/* Version History Modal */}
       {selectedCvForHistory && (
