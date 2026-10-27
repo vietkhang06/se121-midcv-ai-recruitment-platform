@@ -159,6 +159,7 @@ if (
     Write-Host "ERROR: Selected JDK must provide both java and javac version 21." -ForegroundColor Red
     exit 1
 }
+. (Join-Path $ProjectRoot "scripts\Import-MidcvEnv.ps1") -EnvFile $EnvFile -PreserveExistingEnvironment
 
 Write-Host "  -> Selected JDK 21: $($selectedJavaHome)" -ForegroundColor Gray
 
@@ -445,6 +446,7 @@ if ([string]::IsNullOrWhiteSpace($databaseUrl) -or $databaseUrl -notmatch '^jdbc
     Write-Host "ERROR: DATABASE_URL must be a JDBC PostgreSQL URL in .env or the process environment." -ForegroundColor Red
     exit 1
 }
+Write-Host "  -> Configured PostgreSQL endpoint: ${databaseHost}:${databasePort}/${databaseName}" -ForegroundColor Gray
 
 try {
     $databaseUri = [Uri]($databaseUrl.Substring('jdbc:'.Length))
