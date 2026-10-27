@@ -45,11 +45,11 @@ export const FirstVisitModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 sm:p-8 text-slate-100 relative overflow-hidden">
+      <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-6 sm:p-8 text-slate-100 relative overflow-hidden">
         {step === 'CHOICE' ? (
           <div className="space-y-6 relative z-10 text-center">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-950/80 border border-indigo-500/30 text-xs font-semibold text-cyan-300">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-950/80 border border-indigo-500/30 text-xs font-semibold text-cyan-300">
                 <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
                 <span>{isVi ? 'Chào mừng bạn đến với Nền tảng AI Recruitment' : 'Welcome to the AI Recruitment Platform'}</span>
               </div>
@@ -64,7 +64,7 @@ export const FirstVisitModal: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <button
                 onClick={handleSelectCandidate}
-                className="group relative flex flex-col items-center justify-center p-5 rounded-2xl border border-indigo-500/40 bg-slate-950 hover:bg-indigo-950/40 hover:border-indigo-400 transition text-center space-y-3 cursor-pointer"
+                className="group relative flex flex-col items-center justify-center p-5 rounded-xl border border-indigo-500/40 bg-slate-950 hover:bg-indigo-950/40 hover:border-indigo-400 transition text-center space-y-3 cursor-pointer"
               >
                 <CandidateOnboardingIllustration className="w-20 h-20" />
                 <div>
@@ -79,7 +79,7 @@ export const FirstVisitModal: React.FC = () => {
 
               <button
                 onClick={handleSelectRecruiter}
-                className="group relative flex flex-col items-center justify-center p-5 rounded-2xl border border-slate-800 bg-slate-950 hover:bg-amber-950/40 hover:border-amber-500/50 transition text-center space-y-3 cursor-pointer"
+                className="group relative flex flex-col items-center justify-center p-5 rounded-xl border border-slate-800 bg-slate-950 hover:bg-amber-950/40 hover:border-amber-500/50 transition text-center space-y-3 cursor-pointer"
               >
                 <CompanyVerificationIllustration className="w-20 h-20" />
                 <div>

@@ -106,7 +106,7 @@ class ApplicationSnapshotImmutableTest {
         originalCV.setId(UUID.randomUUID());
 
         // AC-P3-04: CVVersion must be CONFIRMED to pass the confirmation gate
-        CVVersion version = CVVersion.builder().cv(originalCV).versionNumber(1).rawTextContent(originalCV.getRawText()).status("CONFIRMED").build();
+        CVVersion version = CVVersion.builder().cv(originalCV).title(originalCV.getTitle()).versionNumber(1).rawTextContent(originalCV.getRawText()).structuredJsonContent("{\"skills\":[\"Java\"]}").status("CONFIRMED").build();
         version.setId(UUID.randomUUID());
         lenient().when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(any())).thenReturn(List.of(version));
     }

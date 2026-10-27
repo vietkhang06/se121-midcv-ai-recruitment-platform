@@ -1,4 +1,9 @@
+@import "./inbox.css";
 @import "tailwindcss";
+@import "./retro-fonts.css";
+@import "./retro-theme.css";
+@import "./studio-fonts.css";
+@import "./studio-theme.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -348,14 +353,9 @@ h1, h2, h3, .font-editorial {
   transition-duration: 170ms;
 }
 
-.dark .auth-modal-panel .auth-modal-brand > a > div > div > span > span:first-child {
-  color: #173b73 !important;
-}
 
-.dark .auth-modal-panel .auth-modal-brand > a > div > div > span > span:nth-child(2),
-.dark .auth-modal-panel .auth-modal-brand > a > div > div > span > sup {
-  color: #2563eb !important;
-}
+
+
 
 .motion-status {
   animation: midcv-fade-in var(--motion-fast) var(--ease-standard) both;

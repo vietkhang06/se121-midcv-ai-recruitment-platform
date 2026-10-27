@@ -178,10 +178,10 @@ export function AiSettingsPanel() {
         {/* Local Ollama Card */}
         <div
           onClick={() => setSettings({ ...settings, provider: 'LOCAL_OLLAMA' })}
-          className={`cursor-pointer p-5 rounded-2xl border transition-all relative overflow-hidden ${
+          className={`cursor-pointer p-5 rounded-xl border transition-all relative overflow-hidden ${
             settings.provider === 'LOCAL_OLLAMA'
               ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20 shadow-md ring-2 ring-blue-500/20'
-              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C38] hover:border-slate-300 dark:hover:border-slate-700'
+              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[var(--surface)] hover:border-slate-300 dark:hover:border-slate-700'
           }`}
         >
           <div className="flex items-start justify-between">
@@ -198,7 +198,7 @@ export function AiSettingsPanel() {
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <span>Local Ollama</span>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
                     Offline / Zero-Cost
                   </span>
                 </h3>
@@ -219,10 +219,10 @@ export function AiSettingsPanel() {
         {/* Cloud OpenAI Compatible Card */}
         <div
           onClick={() => setSettings({ ...settings, provider: 'CLOUD_OPENAI_COMPATIBLE' })}
-          className={`cursor-pointer p-5 rounded-2xl border transition-all relative overflow-hidden ${
+          className={`cursor-pointer p-5 rounded-xl border transition-all relative overflow-hidden ${
             settings.provider === 'CLOUD_OPENAI_COMPATIBLE'
               ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 shadow-md ring-2 ring-indigo-500/20'
-              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C38] hover:border-slate-300 dark:hover:border-slate-700'
+              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[var(--surface)] hover:border-slate-300 dark:hover:border-slate-700'
           }`}
         >
           <div className="flex items-start justify-between">
@@ -239,7 +239,7 @@ export function AiSettingsPanel() {
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <span>Cloud AI (OpenAI Compatible)</span>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300">
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300">
                     High Accuracy
                   </span>
                 </h3>
@@ -259,7 +259,7 @@ export function AiSettingsPanel() {
       </div>
 
       {/* Configuration Details Box */}
-      <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C38] space-y-6">
+      <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[var(--surface)] space-y-6">
         {settings.provider === 'LOCAL_OLLAMA' ? (
           <div className="space-y-4">
             <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -277,7 +277,7 @@ export function AiSettingsPanel() {
                   value={settings.ollamaUrl}
                   onChange={(e) => setSettings({ ...settings, ollamaUrl: e.target.value })}
                   placeholder="http://localhost:11434"
-                  className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-mono"
+                  className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-sans"
                 />
               </div>
 
@@ -290,7 +290,7 @@ export function AiSettingsPanel() {
                   value={settings.ollamaModel}
                   onChange={(e) => setSettings({ ...settings, ollamaModel: e.target.value })}
                   placeholder="dna5rm/granite4.2:3b-8k"
-                  className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-mono"
+                  className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-sans"
                 />
               </div>
             </div>
@@ -350,7 +350,7 @@ export function AiSettingsPanel() {
                   value={settings.cloudBaseUrl}
                   onChange={(e) => setSettings({ ...settings, cloudBaseUrl: e.target.value })}
                   placeholder="https://api.openai.com/v1"
-                  className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-mono"
+                  className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-sans"
                 />
               </div>
 
@@ -363,7 +363,7 @@ export function AiSettingsPanel() {
                   value={settings.cloudModel}
                   onChange={(e) => setSettings({ ...settings, cloudModel: e.target.value })}
                   placeholder="gpt-4o-mini"
-                  className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-mono"
+                  className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-sans"
                 />
               </div>
             </div>
@@ -384,7 +384,7 @@ export function AiSettingsPanel() {
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder={settings.hasCloudApiKey ? 'Nhập key mới nếu muốn thay đổi' : 'sk-...'}
-                  className="w-full pl-3.5 pr-10 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-mono"
+                  className="w-full pl-3.5 pr-10 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-sans"
                 />
                 <button
                   type="button"
@@ -416,7 +416,7 @@ export function AiSettingsPanel() {
               <div className="font-bold flex items-center gap-2">
                 <span>{testResult.healthy ? 'Kết nối AI hoạt động tốt' : 'Lỗi kết nối AI'}</span>
                 {testResult.latencyMs != null && (
-                  <span className="flex items-center gap-1 font-mono text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
+                  <span className="flex items-center gap-1 font-sans text-[11px] px-2 py-0.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
                     <Clock className="w-3 h-3" />
                     {testResult.latencyMs}ms
                   </span>

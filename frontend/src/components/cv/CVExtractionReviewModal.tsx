@@ -837,25 +837,25 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
       descriptionId="cv-review-modal-description"
       testId="cv-review-modal"
       overlayClassName="p-3 sm:p-5 bg-slate-950/80 dark:bg-slate-950/80 backdrop-blur-md"
-      panelClassName="relative bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-2xl w-full max-w-6xl h-[92vh] flex flex-col shadow-2xl overflow-hidden text-slate-800 dark:text-slate-100"
+      panelClassName="relative bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl w-full max-w-6xl h-[92vh] flex flex-col shadow-2xl overflow-hidden text-slate-800 dark:text-slate-100"
     >
 
-        {showSaveToast && <div role="status" aria-live="polite" className="pointer-events-none fixed bottom-6 right-6 z-[70] rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800 shadow-lg">{isVi ? 'Đã lưu bản nháp' : 'Draft saved'}</div>}
+        {showSaveToast && <div role="status" aria-live="polite" className="pointer-events-none fixed bottom-6 right-6 z-[70] rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800 shadow-lg">{isVi ? 'Đã lưu bản nháp' : 'Draft saved'}</div>}
 
         {/* Top Header */}
-        <div className="px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-[#1E293B] flex flex-col gap-3 bg-slate-50/80 dark:bg-[#111C38]/90">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-[var(--border)] flex flex-col gap-3 bg-slate-50/80 dark:bg-[var(--surface)]/90">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
               <FileText className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 id="cv-review-modal-title" className="text-base sm:text-lg font-bold truncate text-[#0F2A52] dark:text-white">
+                <h2 id="cv-review-modal-title" className="text-base sm:text-lg font-bold truncate text-[var(--heading)] dark:text-white">
                   {data?.title || 'Đang tải dữ liệu hồ sơ...'}
                 </h2>
                 {currentProfile?.status && (
                   <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase tracking-wider ${currentProfile.status === 'CONFIRMED'
+                    className={`px-2.5 py-0.5 rounded-xl text-[10px] font-sans font-semibold uppercase tracking-wider ${currentProfile.status === 'CONFIRMED'
                       ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800'
                       : currentProfile.status === 'READY'
                         ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-800'
@@ -900,7 +900,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                   onClick={handleCancelChanges}
                   disabled={!hasUnsavedChanges || isSavingDraft || isConfirming}
                   aria-label={isVi ? 'Hủy thay đổi' : 'Discard changes'}
-                  className="px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-slate-300 dark:border-[#1E293B] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#18294E] transition flex items-center gap-1 cursor-pointer"
+                  className="px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-slate-300 dark:border-[var(--border)] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[var(--surface)] transition flex items-center gap-1 cursor-pointer"
                 >
                   <Undo2 className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Hủy thay đổi</span>
@@ -933,7 +933,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                 isProcessingStatus(data?.status)
               }
               title="Thử lại trích xuất CV"
-              className="px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#18294E] transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[var(--border)] text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[var(--surface)] transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRetrying ? 'animate-spin' : ''}`} />
               <span className="hidden md:inline">
@@ -948,7 +948,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
               disabled={isSavingDraft || isConfirming}
               data-autofocus="true"
               aria-label="Đóng chi tiết trích xuất CV"
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#18294E] transition cursor-pointer"
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[var(--surface)] transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -957,13 +957,13 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
         </div>
 
         {/* Tab Navigation & Action Bar */}
-        <div className="px-6 py-2 border-b border-slate-200 dark:border-[#1E293B] flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-[#0B1329]">
+        <div className="px-6 py-2 border-b border-slate-200 dark:border-[var(--border)] flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-[var(--surface)]">
           <div className="flex items-center gap-1 overflow-x-auto py-1">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${activeTab === 'overview'
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${activeTab === 'overview'
                 ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#18294E]'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[var(--surface)]'
                 }`}
             >
               <BookOpen className="w-3.5 h-3.5" />
@@ -973,21 +973,21 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
           </div>
 
           <details className="relative shrink-0">
-            <summary className="list-none cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-[#1E293B] dark:text-slate-200 dark:hover:bg-[#18294E]">Tùy chọn khác</summary>
-            <div className="absolute right-0 top-full z-20 mt-2 flex min-w-64 flex-col gap-1 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-[#1E293B] dark:bg-[#111C38]">
-              <button type="button" onClick={() => setActiveTab('raw_text')} className="rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-100 dark:hover:bg-[#18294E]">Văn bản thô ({data?.rawText ? `${data.rawText.length} ký tự` : '0'})</button>
-              <button type="button" onClick={() => setActiveTab('json')} className="rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-100 dark:hover:bg-[#18294E]">JSON trích xuất</button>
-              <button type="button" onClick={() => setActiveTab('warnings')} className="rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-100 dark:hover:bg-[#18294E]">Cảnh báo & audit ({warnings.length + unverifiedFacts.length})</button>
-              <div className="my-1 border-t border-slate-100 dark:border-[#1E293B]" />
-              <button type="button" onClick={() => handleDownload('raw')} disabled={downloadingFormat !== null} className="rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-[#18294E]">Tải raw.txt</button>
-              <button type="button" onClick={() => handleDownload('json')} disabled={downloadingFormat !== null} className="rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-[#18294E]">Tải structured.json</button>
-              <button type="button" onClick={() => handleDownload('original')} disabled={downloadingFormat !== null} className="rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-[#18294E]">Tải file gốc</button>
+            <summary className="list-none cursor-pointer rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-[var(--border)] dark:text-slate-200 dark:hover:bg-[var(--surface)]">Tùy chọn khác</summary>
+            <div className="absolute right-0 top-full z-20 mt-2 flex min-w-64 flex-col gap-1 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-[var(--border)] dark:bg-[var(--surface)]">
+              <button type="button" onClick={() => setActiveTab('raw_text')} className="rounded-xl px-3 py-2 text-left text-xs hover:bg-slate-100 dark:hover:bg-[var(--surface)]">Văn bản thô ({data?.rawText ? `${data.rawText.length} ký tự` : '0'})</button>
+              <button type="button" onClick={() => setActiveTab('json')} className="rounded-xl px-3 py-2 text-left text-xs hover:bg-slate-100 dark:hover:bg-[var(--surface)]">JSON trích xuất</button>
+              <button type="button" onClick={() => setActiveTab('warnings')} className="rounded-xl px-3 py-2 text-left text-xs hover:bg-slate-100 dark:hover:bg-[var(--surface)]">Cảnh báo & audit ({warnings.length + unverifiedFacts.length})</button>
+              <div className="my-1 border-t border-slate-100 dark:border-[var(--border)]" />
+              <button type="button" onClick={() => handleDownload('raw')} disabled={downloadingFormat !== null} className="rounded-xl px-3 py-2 text-left text-xs hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-[var(--surface)]">Tải raw.txt</button>
+              <button type="button" onClick={() => handleDownload('json')} disabled={downloadingFormat !== null} className="rounded-xl px-3 py-2 text-left text-xs hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-[var(--surface)]">Tải structured.json</button>
+              <button type="button" onClick={() => handleDownload('original')} disabled={downloadingFormat !== null} className="rounded-xl px-3 py-2 text-left text-xs hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-[var(--surface)]">Tải file gốc</button>
             </div>
           </details>
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 dark:bg-[#070D1E]/50" inert={isConfirming}>
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 dark:bg-[var(--surface)]/50" inert={isConfirming}>
           {isLoading ? (
             <AnimatedStatus stateKey="loading" isBusy className="h-full flex flex-col items-center justify-center space-y-3 py-16">
               <RefreshCw className="w-8 h-8 text-blue-600 animate-spin motion-reduce:animate-none" />
@@ -1001,7 +1001,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                 <p className="text-xs mt-1">{errorMessage}</p>
                 <button
                   onClick={handleRetry}
-                  className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 transition"
+                  className="mt-3 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 transition"
                 >
                   Thử lại trích xuất
                 </button>
@@ -1014,10 +1014,10 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                 <div className="animate-fade-in space-y-6 max-w-5xl mx-auto">
 
                   {/* Personal Header Card */}
-                  <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs">
+                  <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                       <div>
-                        <h3 className="text-xl font-bold text-[#0F2A52] dark:text-white">
+                        <h3 className="text-xl font-bold text-[var(--heading)] dark:text-white">
                           {personalInfo.fullName || personalInfo.full_name || structured.personalInfo?.fullName || structured.personal_info?.full_name || structured.fullName || structured.full_name || structured.name || 'Chưa xác định họ tên'}
                         </h3>
                         {(personalInfo.address || structured.personalInfo?.address || structured.address) && (
@@ -1030,11 +1030,11 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                   </div>
 
                   {/* 1. PERSONAL INFORMATION CARD */}
-                  <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
+                  <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-[var(--border)] pb-3">
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-blue-600" />
-                        <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white uppercase tracking-wider">
+                        <h4 className="text-sm font-bold text-[var(--heading)] dark:text-white uppercase tracking-wider">
                           Thông tin cá nhân & Liên hệ
                         </h4>
                       </div>
@@ -1043,7 +1043,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                     {!isEditing ? (
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                         <div>
-                          <h3 className="text-xl font-bold text-[#0F2A52] dark:text-white">
+                          <h3 className="text-xl font-bold text-[var(--heading)] dark:text-white">
                             {personalInfo.fullName || 'Chưa xác định họ tên'}
                           </h3>
                           {personalInfo.address && (
@@ -1109,7 +1109,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                               });
                             }}
                             placeholder="Nhập họ và tên đầy đủ"
-                            className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E] focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)] focus:outline-hidden focus:ring-1 focus:ring-blue-500"
                           />
                         </div>
 
@@ -1128,7 +1128,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                               });
                             }}
                             placeholder="email@example.com"
-                            className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E] focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)] focus:outline-hidden focus:ring-1 focus:ring-blue-500"
                           />
                         </div>
 
@@ -1146,7 +1146,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                               });
                             }}
                             placeholder="0912345678"
-                            className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E] focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)] focus:outline-hidden focus:ring-1 focus:ring-blue-500"
                           />
                         </div>
 
@@ -1164,7 +1164,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                               });
                             }}
                             placeholder="Thành phố Hồ Chí Minh, Việt Nam"
-                            className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E] focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)] focus:outline-hidden focus:ring-1 focus:ring-blue-500"
                           />
                         </div>
 
@@ -1182,7 +1182,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                               });
                             }}
                             placeholder="https://linkedin.com/in/..."
-                            className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E] focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)] focus:outline-hidden focus:ring-1 focus:ring-blue-500"
                           />
                         </div>
 
@@ -1200,7 +1200,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                               });
                             }}
                             placeholder="https://github.com/..."
-                            className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E] focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)] focus:outline-hidden focus:ring-1 focus:ring-blue-500"
                           />
                         </div>
                       </div>
@@ -1208,8 +1208,8 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                   </div>
 
                   {/* 2. SUMMARY (RICH TEXT) */}
-                  <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-3">
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-2">
+                  <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-[var(--border)] pb-2">
                       <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                         Tóm tắt năng lực (Summary)
                       </h4>
@@ -1241,9 +1241,9 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                   </div>
 
                   {/* 3. OVERALL SKILLS (TAGS WITH AUTOCOMPLETE) */}
-                  <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-3">
+                  <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs space-y-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white uppercase tracking-wider">
+                      <h4 className="text-sm font-bold text-[var(--heading)] dark:text-white uppercase tracking-wider">
                         Kỹ năng chuyên môn ({skillsList.length})
                       </h4>
                     </div>
@@ -1257,7 +1257,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                             return (
                               <span
                                 key={idx}
-                                className={`px-3 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 ${isCustom
+                                className={`px-3 py-1 rounded-xl text-xs font-medium border flex items-center gap-1.5 ${isCustom
                                   ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800'
                                   : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/40'
                                   }`}
@@ -1293,11 +1293,11 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                   </div>
 
                   {/* 4. WORK EXPERIENCE TIMELINE & CARDS */}
-                  <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
+                  <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-[var(--border)] pb-3">
                       <div className="flex items-center gap-2">
                         <Briefcase className="w-4 h-4 text-blue-600" />
-                        <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white uppercase tracking-wider">
+                        <h4 className="text-sm font-bold text-[var(--heading)] dark:text-white uppercase tracking-wider">
                           Kinh nghiệm làm việc ({experiences.length})
                         </h4>
                       </div>
@@ -1319,7 +1319,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                             ];
                             markDraftDirty({ ...draft!, work_experience: newExps });
                           }}
-                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 hover:bg-blue-100 transition flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 hover:bg-blue-100 transition flex items-center gap-1 cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>Thêm kinh nghiệm</span>
@@ -1332,15 +1332,15 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                         {experiences.map((exp, idx) => (
                           <div
                             key={idx}
-                            className="p-4 rounded-xl border border-slate-200 dark:border-[#1E293B] bg-slate-50/50 dark:bg-[#0B1329]/50 space-y-3"
+                            className="p-4 rounded-xl border border-slate-200 dark:border-[var(--border)] bg-slate-50/50 dark:bg-[var(--surface)]/50 space-y-3"
                           >
                             {!isEditing ? (
                               <>
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                                  <div className="font-semibold text-sm text-[#0F2A52] dark:text-white">
+                                  <div className="font-semibold text-sm text-[var(--heading)] dark:text-white">
                                     {exp.role || exp.position || 'Chức danh'} {exp.company ? `@ ${exp.company}` : ''}
                                   </div>
-                                  <div className="text-xs font-mono text-slate-500">
+                                  <div className="text-xs font-sans text-slate-500">
                                     {exp.start_date || exp.startDate || 'N/A'} — {exp.is_current ? 'Hiện tại' : (exp.end_date || exp.endDate || 'Hiện tại')}
                                   </div>
                                 </div>
@@ -1355,7 +1355,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                     {exp.technologies.map((t, tidx) => (
                                       <span
                                         key={tidx}
-                                        className="px-2 py-0.5 rounded-md text-[11px] bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900/40"
+                                        className="px-2 py-0.5 rounded-xl text-[11px] bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900/40"
                                       >
                                         {technologyName(t)}
                                       </span>
@@ -1365,7 +1365,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                               </>
                             ) : (
                               <div className="space-y-3">
-                                <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1E293B] pb-2">
+                                <div className="flex items-center justify-between border-b border-slate-200 dark:border-[var(--border)] pb-2">
                                   <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
                                     Kinh nghiệm #{idx + 1}
                                   </span>
@@ -1428,7 +1428,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                         markDraftDirty({ ...draft!, work_experience: copy });
                                       }}
                                       placeholder="Tên công ty"
-                                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                      className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                     />
                                   </div>
                                   <div>
@@ -1444,7 +1444,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                         markDraftDirty({ ...draft!, work_experience: copy });
                                       }}
                                       placeholder="Software Engineer, Team Leader..."
-                                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                      className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                     />
                                   </div>
                                   <div>
@@ -1460,7 +1460,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                         markDraftDirty({ ...draft!, work_experience: copy });
                                       }}
                                       placeholder="MM/YYYY hoặc YYYY"
-                                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                      className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                     />
                                   </div>
                                   <div>
@@ -1478,7 +1478,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                           markDraftDirty({ ...draft!, work_experience: copy });
                                         }}
                                         placeholder="MM/YYYY hoặc Hiện tại"
-                                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E] disabled:opacity-60"
+                                        className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)] disabled:opacity-60"
                                       />
                                       <label className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-300 shrink-0 cursor-pointer">
                                         <input
@@ -1537,11 +1537,11 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                   </div>
 
                   {/* 5. PROJECTS CARDS */}
-                  <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
+                  <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-[var(--border)] pb-3">
                       <div className="flex items-center gap-2">
                         <Layers className="w-4 h-4 text-blue-600" />
-                        <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white uppercase tracking-wider">
+                        <h4 className="text-sm font-bold text-[var(--heading)] dark:text-white uppercase tracking-wider">
                           Dự án ({projects.length})
                         </h4>
                       </div>
@@ -1560,7 +1560,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                             ];
                             markDraftDirty({ ...draft!, projects: newProjects });
                           }}
-                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 hover:bg-blue-100 transition flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 hover:bg-blue-100 transition flex items-center gap-1 cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>Thêm dự án</span>
@@ -1580,12 +1580,12 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                           return (
                             <div
                               key={idx}
-                              className="p-4 rounded-xl border border-slate-200 dark:border-[#1E293B] bg-slate-50/50 dark:bg-[#0B1329]/50 space-y-3"
+                              className="p-4 rounded-xl border border-slate-200 dark:border-[var(--border)] bg-slate-50/50 dark:bg-[var(--surface)]/50 space-y-3"
                             >
                               {!isEditing ? (
                                 <>
                                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                                    <div className="font-semibold text-sm text-[#0F2A52] dark:text-white">
+                                    <div className="font-semibold text-sm text-[var(--heading)] dark:text-white">
                                       {project.name || 'Dự án chưa xác định tên'}
                                     </div>
                                     {project.role && (
@@ -1605,7 +1605,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                       {techStack.map((technology, technologyIndex) => (
                                         <span
                                           key={technologyIndex}
-                                          className="px-2 py-0.5 rounded-md text-[11px] bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900/40"
+                                          className="px-2 py-0.5 rounded-xl text-[11px] bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900/40"
                                         >
                                           {technologyName(technology)}
                                         </span>
@@ -1615,7 +1615,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                 </>
                               ) : (
                                 <div className="space-y-3">
-                                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1E293B] pb-2">
+                                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-[var(--border)] pb-2">
                                     <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
                                       Dự án #{idx + 1}
                                     </span>
@@ -1678,7 +1678,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                           markDraftDirty({ ...draft!, projects: copy });
                                         }}
                                         placeholder="Ví dụ: E-Commerce Platform"
-                                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                        className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                       />
                                     </div>
                                     <div>
@@ -1694,7 +1694,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                           markDraftDirty({ ...draft!, projects: copy });
                                         }}
                                         placeholder="Full-stack Developer, Tech Lead..."
-                                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                        className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                       />
                                     </div>
                                   </div>
@@ -1740,11 +1740,11 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                   </div>
 
                   {/* 6. EDUCATION & GPA */}
-                  <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
+                  <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-[var(--border)] pb-3">
                       <div className="flex items-center gap-2">
                         <GraduationCap className="w-4 h-4 text-blue-600" />
-                        <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white uppercase tracking-wider">
+                        <h4 className="text-sm font-bold text-[var(--heading)] dark:text-white uppercase tracking-wider">
                           Học vấn & Điểm số (GPA) ({educations.length})
                         </h4>
                       </div>
@@ -1767,7 +1767,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                             ];
                             markDraftDirty({ ...draft!, education: newEdus });
                           }}
-                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 hover:bg-blue-100 transition flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 hover:bg-blue-100 transition flex items-center gap-1 cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>Thêm học vấn</span>
@@ -1788,7 +1788,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                           return (
                             <div
                               key={idx}
-                              className="p-3.5 rounded-xl border border-slate-200 dark:border-[#1E293B] bg-slate-50/50 dark:bg-[#0B1329]/50 space-y-2"
+                              className="p-3.5 rounded-xl border border-slate-200 dark:border-[var(--border)] bg-slate-50/50 dark:bg-[var(--surface)]/50 space-y-2"
                             >
                               {!isEditing ? (
                                 <div className="space-y-1 text-xs">
@@ -1796,7 +1796,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                     <div className="font-semibold text-sm text-slate-800 dark:text-slate-100">
                                       {edu.institution || edu.school || 'Cơ sở đào tạo'}
                                     </div>
-                                    <div className="text-[11px] font-mono text-slate-400">
+                                    <div className="text-[11px] font-sans text-slate-400">
                                       {edu.startYear || edu.start_year || 'N/A'} — {edu.endYear || edu.end_year || edu.graduationYear || 'Hiện tại'}
                                     </div>
                                   </div>
@@ -1810,11 +1810,11 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                   <div className="pt-1 flex items-center gap-2">
                                     <span className="text-[11px] text-slate-500 font-medium">Điểm trung bình (GPA):</span>
                                     {hasGpa ? (
-                                      <span className="px-2 py-0.5 rounded-md text-xs font-mono font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">
+                                      <span className="px-2 py-0.5 rounded-xl text-xs font-sans font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">
                                         {gpaText}
                                       </span>
                                     ) : (
-                                      <span className="px-2 py-0.5 rounded-md text-[11px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                      <span className="px-2 py-0.5 rounded-xl text-[11px] font-sans text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                                         Không cung cấp GPA
                                       </span>
                                     )}
@@ -1822,7 +1822,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                 </div>
                               ) : (
                                 <div className="space-y-3">
-                                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1E293B] pb-2">
+                                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-[var(--border)] pb-2">
                                     <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
                                       Học vấn #{idx + 1}
                                     </span>
@@ -1882,7 +1882,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                           markDraftDirty({ ...draft!, education: copy });
                                         }}
                                         placeholder="Ví dụ: Đại học Bách Khoa TP.HCM"
-                                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                        className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                       />
                                     </div>
                                     <div>
@@ -1898,7 +1898,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                           markDraftDirty({ ...draft!, education: copy });
                                         }}
                                         placeholder="Cử nhân, Kỹ sư, Thạc sĩ..."
-                                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                        className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                       />
                                     </div>
                                   </div>
@@ -1917,7 +1917,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                           markDraftDirty({ ...draft!, education: copy });
                                         }}
                                         placeholder="Công nghệ phần mềm..."
-                                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                        className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                       />
                                     </div>
                                     <div>
@@ -1933,7 +1933,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                           markDraftDirty({ ...draft!, education: copy });
                                         }}
                                         placeholder="2020"
-                                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                        className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                       />
                                     </div>
                                     <div>
@@ -1949,13 +1949,13 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                           markDraftDirty({ ...draft!, education: copy });
                                         }}
                                         placeholder="2024"
-                                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                        className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                       />
                                     </div>
                                   </div>
 
                                   {/* GPA inputs */}
-                                  <div className="p-3 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40">
+                                  <div className="p-3 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40">
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                       <div>
                                         <label className="block text-[11px] font-semibold text-blue-900 dark:text-blue-300 mb-1">
@@ -1980,7 +1980,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                             markDraftDirty({ ...draft!, education: copy });
                                           }}
                                           placeholder="8.3 hoặc 3.6"
-                                          className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                          className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                         />
                                       </div>
                                       <div>
@@ -2000,7 +2000,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                             };
                                             markDraftDirty({ ...draft!, education: copy });
                                           }}
-                                          className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                          className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                         >
                                           <option value={10}>Thang điểm 10 (/10)</option>
                                           <option value={4}>Thang điểm 4 (/4.0)</option>
@@ -2010,7 +2010,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                         <label className="block text-[11px] font-semibold text-blue-900 dark:text-blue-300 mb-1">
                                           Hiển thị dự kiến
                                         </label>
-                                        <div className="px-2.5 py-1.5 text-xs rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">
+                                        <div className="px-2.5 py-1.5 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-sans">
                                           {edu.gpa != null ? `${edu.gpa}/${edu.gpa_scale || 10}` : 'Không cung cấp GPA'}
                                         </div>
                                       </div>
@@ -2031,11 +2031,11 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                   </div>
 
                   {/* 7. CERTIFICATIONS & EVIDENCE ATTACHMENT */}
-                  <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
+                  <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-[var(--border)] pb-3">
                       <div className="flex items-center gap-2">
                         <Award className="w-4 h-4 text-amber-500" />
-                        <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white uppercase tracking-wider">
+                        <h4 className="text-sm font-bold text-[var(--heading)] dark:text-white uppercase tracking-wider">
                           Chứng chỉ & Minh chứng đính kèm ({certifications.length})
                         </h4>
                       </div>
@@ -2055,7 +2055,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                             ];
                             markDraftDirty({ ...draft!, certifications: newCerts });
                           }}
-                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60 hover:bg-amber-100 transition flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60 hover:bg-amber-100 transition flex items-center gap-1 cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>Thêm chứng chỉ</span>
@@ -2078,7 +2078,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                           return (
                             <div
                               key={idx}
-                              className="p-3.5 rounded-xl border border-slate-200 dark:border-[#1E293B] bg-slate-50/50 dark:bg-[#0B1329]/50 space-y-3"
+                              className="p-3.5 rounded-xl border border-slate-200 dark:border-[var(--border)] bg-slate-50/50 dark:bg-[var(--surface)]/50 space-y-3"
                             >
                               {!isEditing ? (
                                 <div className="space-y-1.5 text-xs">
@@ -2087,7 +2087,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                       {certName} {certIssuer ? `(${certIssuer})` : ''}
                                     </div>
                                     {(c.issueDate || c.date) && (
-                                      <div className="text-[11px] font-mono text-slate-400">
+                                      <div className="text-[11px] font-sans text-slate-400">
                                         Ngày cấp: {c.issueDate || c.date}
                                       </div>
                                     )}
@@ -2106,7 +2106,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                   )}
 
                                   {/* Evidence Attachment Control in View Mode */}
-                                  <div className="pt-2 border-t border-slate-100 dark:border-[#1E293B]">
+                                  <div className="pt-2 border-t border-slate-100 dark:border-[var(--border)]">
                                     {certId ? (
                                       <EvidenceAttachmentControl
                                         cvId={cvId}
@@ -2125,7 +2125,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                 </div>
                               ) : (
                                 <div className="space-y-3">
-                                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1E293B] pb-2">
+                                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-[var(--border)] pb-2">
                                     <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
                                       Chứng chỉ #{idx + 1}
                                     </span>
@@ -2155,7 +2155,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                           markDraftDirty({ ...draft!, certifications: copy });
                                         }}
                                         placeholder="Ví dụ: AWS Certified Solutions Architect"
-                                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                        className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                       />
                                     </div>
                                     <div>
@@ -2171,7 +2171,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                           markDraftDirty({ ...draft!, certifications: copy });
                                         }}
                                         placeholder="Amazon Web Services, Coursera..."
-                                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                        className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                       />
                                     </div>
                                     <div>
@@ -2187,7 +2187,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                           markDraftDirty({ ...draft!, certifications: copy });
                                         }}
                                         placeholder="MM/YYYY"
-                                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                        className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                       />
                                     </div>
                                     <div>
@@ -2203,13 +2203,13 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                           markDraftDirty({ ...draft!, certifications: copy });
                                         }}
                                         placeholder="https://..."
-                                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                        className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                       />
                                     </div>
                                   </div>
 
                                   {/* Evidence Attachment Control in Edit Mode */}
-                                  <div className="pt-2 border-t border-slate-200 dark:border-[#1E293B]">
+                                  <div className="pt-2 border-t border-slate-200 dark:border-[var(--border)]">
                                     {canUploadEvidence && certId ? (
                                       <EvidenceAttachmentControl
                                         cvId={cvId}
@@ -2224,7 +2224,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                         }}
                                       />
                                     ) : (
-                                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+                                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
                                         Vui lòng lưu bản nháp để hệ thống ghi nhận chứng chỉ trước khi tải minh chứng.
                                       </div>
                                     )}
@@ -2241,11 +2241,11 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                   </div>
 
                   {/* 8. LANGUAGES & EVIDENCE ATTACHMENT */}
-                  <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
+                  <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-[var(--border)] pb-3">
                       <div className="flex items-center gap-2">
                         <Globe className="w-4 h-4 text-emerald-500" />
-                        <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white uppercase tracking-wider">
+                        <h4 className="text-sm font-bold text-[var(--heading)] dark:text-white uppercase tracking-wider">
                           Ngoại ngữ & Trình độ ({languages.length})
                         </h4>
                       </div>
@@ -2262,7 +2262,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                             ];
                             markDraftDirty({ ...draft!, languages: newLangs });
                           }}
-                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60 hover:bg-emerald-100 transition flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60 hover:bg-emerald-100 transition flex items-center gap-1 cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>Thêm ngoại ngữ</span>
@@ -2285,7 +2285,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                           return (
                             <div
                               key={idx}
-                              className="p-3.5 rounded-xl border border-slate-200 dark:border-[#1E293B] bg-slate-50/50 dark:bg-[#0B1329]/50 space-y-3"
+                              className="p-3.5 rounded-xl border border-slate-200 dark:border-[var(--border)] bg-slate-50/50 dark:bg-[var(--surface)]/50 space-y-3"
                             >
                               {!isEditing ? (
                                 <div className="space-y-1.5 text-xs">
@@ -2293,7 +2293,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                     <div className="font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                                       <span>{langName}</span>
                                       {prof && (
-                                        <span className="px-2 py-0.5 rounded-md text-[11px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900">
+                                        <span className="px-2 py-0.5 rounded-xl text-[11px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900">
                                           {prof}
                                         </span>
                                       )}
@@ -2301,7 +2301,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                   </div>
 
                                   {/* Evidence Attachment Control in View Mode */}
-                                  <div className="pt-2 border-t border-slate-100 dark:border-[#1E293B]">
+                                  <div className="pt-2 border-t border-slate-100 dark:border-[var(--border)]">
                                     {langId ? (
                                       <EvidenceAttachmentControl
                                         cvId={cvId}
@@ -2320,7 +2320,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                 </div>
                               ) : (
                                 <div className="space-y-3">
-                                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1E293B] pb-2">
+                                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-[var(--border)] pb-2">
                                     <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                                       Ngoại ngữ #{idx + 1}
                                     </span>
@@ -2350,7 +2350,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                           markDraftDirty({ ...draft!, languages: copy });
                                         }}
                                         placeholder="Ví dụ: Tiếng Anh, Tiếng Nhật..."
-                                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                        className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                       />
                                     </div>
                                     <div>
@@ -2366,13 +2366,13 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                           markDraftDirty({ ...draft!, languages: copy });
                                         }}
                                         placeholder="Ví dụ: IELTS 7.5, TOEIC 850, JLPT N2..."
-                                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#070D1E]"
+                                        className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)]"
                                       />
                                     </div>
                                   </div>
 
                                   {/* Evidence Attachment Control in Edit Mode */}
-                                  <div className="pt-2 border-t border-slate-200 dark:border-[#1E293B]">
+                                  <div className="pt-2 border-t border-slate-200 dark:border-[var(--border)]">
                                     {canUploadEvidence && langId ? (
                                       <EvidenceAttachmentControl
                                         cvId={cvId}
@@ -2387,7 +2387,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                         }}
                                       />
                                     ) : (
-                                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+                                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
                                         Vui lòng lưu bản nháp để hệ thống ghi nhận ngoại ngữ trước khi tải minh chứng.
                                       </div>
                                     )}
@@ -2409,9 +2409,9 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
               {/* TAB 2: RAW TEXT (IMMUTABLE SNAPSHOT) */}
               {activeTab === 'raw_text' && (
                 <div className="animate-fade-in space-y-4 max-w-5xl mx-auto">
-                  <div className="flex items-center justify-between bg-white dark:bg-[#111C38] p-4 rounded-xl border border-slate-200 dark:border-[#1E293B]">
+                  <div className="flex items-center justify-between bg-white dark:bg-[var(--surface)] p-4 rounded-xl border border-slate-200 dark:border-[var(--border)]">
                     <div>
-                      <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white flex items-center gap-2">
+                      <h4 className="text-sm font-bold text-[var(--heading)] dark:text-white flex items-center gap-2">
                         <Lock className="w-4 h-4 text-slate-400" />
                         <span>Văn bản trích xuất thô nguyên bản (Extraction Snapshot - Bất biến)</span>
                       </h4>
@@ -2423,7 +2423,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                     </div>
                     <button
                       onClick={() => handleCopy(data?.rawText || '', 'raw_text')}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-[#1E293B] hover:bg-slate-100 dark:hover:bg-[#18294E] transition flex items-center gap-1.5 cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 dark:border-[var(--border)] hover:bg-slate-100 dark:hover:bg-[var(--surface)] transition flex items-center gap-1.5 cursor-pointer"
                     >
                       {copiedType === 'raw_text' ? (
                         <>
@@ -2444,15 +2444,15 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                       {pages.map((p, idx) => (
                         <div
                           key={idx}
-                          className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-4 shadow-xs space-y-3"
+                          className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-4 shadow-xs space-y-3"
                         >
-                          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-2 text-xs">
-                            <span className="font-bold text-blue-600 dark:text-blue-400 font-mono">
+                          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[var(--border)] pb-2 text-xs">
+                            <span className="font-bold text-blue-600 dark:text-blue-400 font-sans">
                               Trang {p.page_number}
                             </span>
                             <div className="flex items-center gap-2">
                               <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase ${p.used_ocr
+                                className={`px-2 py-0.5 rounded text-[10px] font-sans font-semibold uppercase ${p.used_ocr
                                   ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
                                   : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
                                   }`}
@@ -2460,21 +2460,21 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                 {p.method}
                               </span>
                               {p.ocr_confidence != null && (
-                                <span className="text-[10px] font-mono text-slate-500">
+                                <span className="text-[10px] font-sans text-slate-500">
                                   OCR: {p.ocr_confidence.toFixed(1)}%
                                 </span>
                               )}
                             </div>
                           </div>
-                          <pre className="font-mono text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed overflow-x-auto">
+                          <pre className="font-sans text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed overflow-x-auto">
                             {p.text}
                           </pre>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-4 shadow-xs">
-                      <pre className="font-mono text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed overflow-x-auto max-h-[65vh]">
+                    <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-4 shadow-xs">
+                      <pre className="font-sans text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed overflow-x-auto max-h-[65vh]">
                         {data?.rawText || 'Không có nội dung văn bản thô.'}
                       </pre>
                     </div>
@@ -2488,14 +2488,14 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                   <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/40 p-4 rounded-xl text-xs text-blue-800 dark:text-blue-300 flex items-start gap-3">
                     <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white">
+                      <h4 className="text-sm font-bold text-[var(--heading)] dark:text-white">
                         Bằng chứng đối chiếu (Evidence Citations)
                       </h4>
                       <p className="text-xs text-slate-500 mt-0.5">
                         Mỗi thực thể trích xuất được gắn kèm vị trí ký tự và trích dẫn nguyên văn trong văn bản gốc.
                       </p>
                     </div>
-                    <span className="px-2.5 py-1 rounded-md text-xs font-mono bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900">
+                    <span className="px-2.5 py-1 rounded-xl text-xs font-sans bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900">
                       {evidences.length} trích dẫn xác thực
                     </span>
                   </div>
@@ -2505,13 +2505,13 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                       {evidences.map((ev, idx) => (
                         <div
                           key={idx}
-                          className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-4 shadow-xs space-y-2"
+                          className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-4 shadow-xs space-y-2"
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 font-mono">
+                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 font-sans">
                               {ev.field_path}
                             </span>
-                            <div className="flex items-center gap-2 text-[11px] font-mono text-slate-500">
+                            <div className="flex items-center gap-2 text-[11px] font-sans text-slate-500">
                               {(ev.page_number || ev.source_page) && (
                                 <span>Trang {ev.page_number || ev.source_page}</span>
                               )}
@@ -2524,7 +2524,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                             </div>
                           </div>
 
-                          <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#070D1E] border border-slate-100 dark:border-[#1E293B]/60 text-xs text-slate-700 dark:text-slate-300 font-mono">
+                          <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-100 dark:border-[var(--border)]/60 text-xs text-slate-700 dark:text-slate-300 font-sans">
                             <span className="text-slate-400 mr-2">Trích dẫn:</span>
                             <span className="text-blue-700 dark:text-blue-300 font-medium">&quot;{ev.quote}&quot;</span>
                           </div>
@@ -2541,7 +2541,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-12 bg-white dark:bg-[#111C38] rounded-xl border border-slate-200 dark:border-[#1E293B]">
+                    <div className="text-center py-12 bg-white dark:bg-[var(--surface)] rounded-xl border border-slate-200 dark:border-[var(--border)]">
                       <p className="text-xs text-slate-400">Chưa ghi nhận bằng chứng đối chiếu cho hồ sơ này.</p>
                     </div>
                   )}
@@ -2551,9 +2551,9 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
               {/* TAB 4: STRUCTURED JSON SNAPSHOT */}
               {activeTab === 'json' && (
                 <div className="animate-fade-in space-y-4 max-w-5xl mx-auto">
-                  <div className="flex items-center justify-between bg-white dark:bg-[#111C38] p-4 rounded-xl border border-slate-200 dark:border-[#1E293B]">
+                  <div className="flex items-center justify-between bg-white dark:bg-[var(--surface)] p-4 rounded-xl border border-slate-200 dark:border-[var(--border)]">
                     <div>
-                      <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white flex items-center gap-2">
+                      <h4 className="text-sm font-bold text-[var(--heading)] dark:text-white flex items-center gap-2">
                         <Lock className="w-4 h-4 text-slate-400" />
                         <span>{isVi ? 'Dữ liệu JSON đã trích xuất' : 'Extracted JSON data'}</span>
                       </h4>
@@ -2563,7 +2563,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                     </div>
                     <button
                       onClick={() => handleCopy(JSON.stringify(data?.structured || {}, null, 2), 'json')}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-[#1E293B] hover:bg-slate-100 dark:hover:bg-[#18294E] transition flex items-center gap-1.5 cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 dark:border-[var(--border)] hover:bg-slate-100 dark:hover:bg-[var(--surface)] transition flex items-center gap-1.5 cursor-pointer"
                     >
                       {copiedType === 'json' ? (
                         <>
@@ -2579,8 +2579,8 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                     </button>
                   </div>
 
-                  <div className="bg-[#0D1117] border border-slate-800 rounded-xl p-4 overflow-hidden">
-                    <pre className="font-mono text-xs text-emerald-400 whitespace-pre-wrap leading-relaxed overflow-x-auto max-h-[60vh]">
+                  <div className="bg-[var(--retro-deep)] border border-slate-800 rounded-xl p-4 overflow-hidden">
+                    <pre className="font-sans text-xs text-emerald-400 whitespace-pre-wrap leading-relaxed overflow-x-auto max-h-[60vh]">
                       {JSON.stringify(data?.structured || {}, null, 2)}
                     </pre>
                   </div>
@@ -2592,10 +2592,10 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                 <div className="animate-fade-in space-y-4 max-w-5xl mx-auto">
 
                   {/* Warnings List */}
-                  <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-3">
+                  <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs space-y-3">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-amber-500" />
-                      <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white uppercase tracking-wider">
+                      <h4 className="text-sm font-bold text-[var(--heading)] dark:text-white uppercase tracking-wider">
                         Cảnh báo phát sinh ({warnings.length})
                       </h4>
                     </div>
@@ -2605,7 +2605,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                         {warnings.map((w, idx) => (
                           <div
                             key={idx}
-                            className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2"
+                            className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2"
                           >
                             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
                             <span>{w}</span>
@@ -2620,10 +2620,10 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                     )}
                   </div>
 
-                  <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-3">
+                  <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs space-y-3">
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-rose-500" />
-                      <h4 className="text-sm font-bold text-[#0F2A52] dark:text-white uppercase tracking-wider">
+                      <h4 className="text-sm font-bold text-[var(--heading)] dark:text-white uppercase tracking-wider">
                         Sự thật chưa được đối chiếu (Unverified Facts: {unverifiedFacts.length})
                       </h4>
                     </div>
@@ -2636,10 +2636,10 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                         {unverifiedFacts.map((uf, idx) => (
                           <div
                             key={idx}
-                            className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-xs text-rose-800 dark:text-rose-300 space-y-1"
+                            className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-xs text-rose-800 dark:text-rose-300 space-y-1"
                           >
-                            <div className="font-mono font-semibold">{uf.field_path}</div>
-                            <div className="text-[11px] font-mono">
+                            <div className="font-sans font-semibold">{uf.field_path}</div>
+                            <div className="text-[11px] font-sans">
                               Trích dẫn đề xuất: &quot;{uf.quote}&quot;
                             </div>
                             <div className="text-[11px] text-rose-600 dark:text-rose-400">
@@ -2663,13 +2663,13 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
             {/* CONFIRM PROFILE MODAL DIALOG */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+          <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl w-full max-w-md p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-600 flex items-center justify-center shrink-0">
                 <CheckSquare className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-[#0F2A52] dark:text-white">
+                <h3 className="text-base font-bold text-[var(--heading)] dark:text-white">
                   Xác nhận hồ sơ chính thức
                 </h3>
                 <p className="text-xs text-slate-500">
@@ -2688,14 +2688,14 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
               <li>Bản trích xuất raw text và JSON gốc của AI vẫn được bảo toàn nguyên vẹn.</li>
             </ul>
 
-            {confirmError && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">{confirmError}</p>}
+            {confirmError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">{confirmError}</p>}
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[var(--border)]">
               <button
                 type="button"
                 disabled={isConfirming}
                 onClick={() => setShowConfirmModal(false)}
-                className="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 dark:border-[#1E293B] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#18294E] transition"
+                className="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 dark:border-[var(--border)] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[var(--surface)] transition"
               >
                 Hủy bỏ
               </button>

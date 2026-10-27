@@ -113,11 +113,11 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
   return (
     <div ref={containerRef} className={`relative space-y-2 ${className}`}>
       {/* Chips Container + Input */}
-      <div className="flex flex-wrap items-center gap-2 p-2.5 bg-white dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl min-h-[46px] shadow-2xs focus-within:border-[#2563EB] dark:focus-within:border-[#3B82F6] transition-colors">
+      <div className="flex flex-wrap items-center gap-2 p-2.5 bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl min-h-[46px] shadow-2xs focus-within:border-[var(--border)] dark:focus-within:border-[var(--border)] transition-colors">
         {skills.map((skill) => (
           <span
             key={skill}
-            className="animate-chip-in inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-medium bg-[#F8FAF9] dark:bg-[#18294E] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-[#1E3A5F] shadow-2xs transition-[color,background-color,border-color,box-shadow] group"
+            className="animate-chip-in inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-sans font-medium bg-[var(--surface)] dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-[var(--border)] shadow-2xs transition-[color,background-color,border-color,box-shadow] group"
           >
             <span>{skill}</span>
             <button
@@ -157,8 +157,8 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
 
       {/* Intelligent Autocomplete Dropdown */}
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute left-0 right-0 z-50 mt-1 bg-white dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl shadow-xl overflow-hidden animate-slide-up divide-y divide-slate-100 dark:divide-[#1E293B]">
-          <div className="px-3 py-1.5 bg-[#F8FAF9] dark:bg-[#0B1528] flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <div className="absolute left-0 right-0 z-50 mt-1 bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl shadow-xl overflow-hidden animate-slide-up divide-y divide-slate-100 dark:divide-[var(--border)]">
+          <div className="px-3 py-1.5 bg-[var(--surface)] dark:bg-[var(--surface)] flex items-center justify-between text-[10px] font-sans uppercase tracking-wider text-slate-500 dark:text-slate-400">
             <span>Intelligent Taxonomy Matches</span>
             <span>Use ↑↓ to navigate, Enter to select</span>
           </div>
@@ -173,24 +173,24 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
                 onMouseEnter={() => setHighlightedIndex(idx)}
                 className={`px-3.5 py-2 text-xs flex items-center justify-between cursor-pointer transition-colors ${
                   idx === highlightedIndex
-                    ? 'bg-[#2563EB] text-white'
-                    : 'text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E]'
+                    ? 'bg-[var(--primary)] text-white'
+                    : 'text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[var(--surface)]'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <Sparkles className={`w-3.5 h-3.5 ${idx === highlightedIndex ? 'text-amber-400' : 'text-[#3B82F6]'}`} />
+                  <Sparkles className={`w-3.5 h-3.5 ${idx === highlightedIndex ? 'text-amber-400' : 'text-[var(--primary)]'}`} />
                   <span className="font-semibold">{item.name}</span>
                   {item.aliases && item.aliases.length > 0 && (
-                    <span className={`text-[10px] font-mono ${idx === highlightedIndex ? 'text-blue-200' : 'text-slate-400 dark:text-slate-500'}`}>
+                    <span className={`text-[10px] font-sans ${idx === highlightedIndex ? 'text-blue-200' : 'text-slate-400 dark:text-slate-500'}`}>
                       (aka {item.aliases.join(', ')})
                     </span>
                   )}
                 </div>
                 <span
-                  className={`text-[10px] font-mono px-2 py-0.5 rounded ${
+                  className={`text-[10px] font-sans px-2 py-0.5 rounded ${
                     idx === highlightedIndex
                       ? 'bg-blue-800 text-blue-100'
-                      : 'bg-slate-100 dark:bg-[#18294E] text-slate-600 dark:text-slate-400'
+                      : 'bg-slate-100 dark:bg-[var(--surface)] text-slate-600 dark:text-slate-400'
                   }`}
                 >
                   {item.category}

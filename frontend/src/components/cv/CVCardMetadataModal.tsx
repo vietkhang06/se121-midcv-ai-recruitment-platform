@@ -62,7 +62,7 @@ export const CVCardMetadataModal: React.FC<CVCardMetadataModalProps> = ({ cv, on
       descriptionId="cv-card-metadata-description"
       testId="cv-card-metadata-modal"
       overlayClassName="p-4 bg-slate-950/70 backdrop-blur-sm"
-      panelClassName="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-2xl dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+      panelClassName="w-full max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-900 shadow-2xl dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
     >
       {cv && (
         <form onSubmit={save}>
@@ -80,7 +80,7 @@ export const CVCardMetadataModal: React.FC<CVCardMetadataModalProps> = ({ cv, on
               onClick={close}
               disabled={isSaving}
               aria-label={isVi ? 'Đóng' : 'Close'}
-              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-slate-800"
+              className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-slate-800"
             >
               <X className="h-4 w-4" />
             </button>

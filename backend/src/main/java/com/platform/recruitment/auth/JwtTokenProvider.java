@@ -37,6 +37,7 @@ public class JwtTokenProvider {
                 .subject(userId.toString())
                 .claim("email", email)
                 .claim("role", role.name())
+                .claim("iat_ms",now.getTime())
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(key)
@@ -49,6 +50,7 @@ public class JwtTokenProvider {
 
         return Jwts.builder()
                 .subject(userId.toString())
+                .claim("iat_ms",now.getTime())
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(key)
@@ -73,6 +75,10 @@ public class JwtTokenProvider {
         return claims.get("role", String.class);
     }
 
+    public long getIssuedAtMillis(String token) {
+        Claims c=Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+        Number n=c.get("iat_ms",Number.class);return n!=null?n.longValue():c.getIssuedAt()==null?0:c.getIssuedAt().getTime();
+    }
     public boolean validateToken(String token) {
         try {
             Jwts.parser().verifyWith(key).build().parseSignedClaims(token);

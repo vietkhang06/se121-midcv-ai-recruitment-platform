@@ -1,5 +1,6 @@
 'use client';
 
+import { AccountTools } from '@/components/inbox/AccountTools';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -93,7 +94,7 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-md border-b border-blue-100/80 dark:border-[#1E293B] text-[#173B73] dark:text-[#D6E4E1] transition-colors">
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-[var(--surface)]/95 backdrop-blur-md border-b border-blue-100/80 dark:border-[var(--border)] text-[var(--heading)] dark:text-[var(--text-secondary)] transition-colors">
       <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-2.5 xl:gap-4">
         
         {/* Brand Logo */}
@@ -101,12 +102,12 @@ export const Navbar: React.FC = () => {
           <BrandLogo size="md" />
 
           {isRecruiter && (
-            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-[#0F2A52] dark:bg-[#13233F] text-white dark:text-[#3B82F6] border border-[#2563EB]/40 uppercase whitespace-nowrap">
+            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold tracking-wider bg-[var(--retro-deep)] dark:bg-[var(--surface)] text-white dark:text-[var(--retro-sky)] border border-[var(--border)]/40 uppercase whitespace-nowrap">
               HR PORTAL
             </span>
           )}
           {isAdmin && (
-            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-indigo-950 text-indigo-300 border border-indigo-500/40 uppercase whitespace-nowrap">
+            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-xl text-[10px] font-bold tracking-wider bg-indigo-950 text-indigo-300 border border-indigo-500/40 uppercase whitespace-nowrap">
               ADMIN
             </span>
           )}
@@ -118,8 +119,8 @@ export const Navbar: React.FC = () => {
           {/* 1. Việc làm (Public / Shared) */}
           <Link
             href="/jobs"
-            className={`px-2.5 xl:px-3 py-1.5 rounded-lg hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition-colors whitespace-nowrap shrink-0 ${
-              isTabActive('/jobs') ? 'text-[#2563EB] font-bold' : ''
+            className={`px-2.5 xl:px-3 py-1.5 rounded-xl hover:text-[var(--primary)] dark:hover:text-[var(--retro-sky)] transition-colors whitespace-nowrap shrink-0 ${
+              isTabActive('/jobs') ? 'text-[var(--primary)] font-bold' : ''
             }`}
           >
             {locale === 'vi' ? 'Việc làm' : 'Jobs'}
@@ -132,23 +133,23 @@ export const Navbar: React.FC = () => {
               <div className="relative group py-3 shrink-0">
                 <Link
                   href="/candidate/cvs"
-                  className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-lg hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition-colors whitespace-nowrap shrink-0 ${
-                    isTabActive('/candidate/cvs') ? 'text-[#2563EB] font-bold' : ''
+                  className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-xl hover:text-[var(--primary)] dark:hover:text-[var(--retro-sky)] transition-colors whitespace-nowrap shrink-0 ${
+                    isTabActive('/candidate/cvs') ? 'text-[var(--primary)] font-bold' : ''
                   }`}
                 >
                   <span className="whitespace-nowrap">{locale === 'vi' ? 'Tạo CV' : 'Create CV'}</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#2563EB] group-hover:rotate-180 transition-transform duration-200 shrink-0" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-[var(--primary)] group-hover:rotate-180 transition-transform duration-200 shrink-0" />
                 </Link>
 
-                <div className="absolute top-full left-0 hidden group-hover:block bg-white dark:bg-[#111C38] border border-blue-100 dark:border-[#1E293B] rounded-xl shadow-xl py-2 w-60 z-50 animate-fade-in">
-                  <Link href="/candidate/cvs" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
+                <div className="absolute top-full left-0 hidden group-hover:block bg-white dark:bg-[var(--surface)] border border-blue-100 dark:border-[var(--border)] rounded-xl shadow-xl py-2 w-60 z-50 animate-fade-in">
+                  <Link href="/candidate/cvs" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[var(--surface)] hover:text-[var(--primary)] whitespace-nowrap">
                     {locale === 'vi' ? 'Thư viện CV của tôi' : 'My CV Repository'}
                   </Link>
-                  <Link href="/candidate/cvs" aria-disabled={cvCreationLocked} onClick={(event) => { if (cvCreationLocked) event.preventDefault(); }} className={`flex items-center justify-between gap-3 px-4 py-2 text-xs font-medium whitespace-nowrap ${cvCreationLocked ? 'cursor-not-allowed text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB]'}`}>
+                  <Link href="/candidate/cvs" aria-disabled={cvCreationLocked} onClick={(event) => { if (cvCreationLocked) event.preventDefault(); }} className={`flex items-center justify-between gap-3 px-4 py-2 text-xs font-medium whitespace-nowrap ${cvCreationLocked ? 'cursor-not-allowed text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[var(--surface)] hover:text-[var(--primary)]'}`}>
                     <span>{locale === 'vi' ? 'Tải lên CV & Trích xuất AI' : 'Upload CV & AI Parser'}</span>
                     {cvCreationLocked && <span className="text-[10px] font-semibold">{!cvQuotaLoaded ? '…' : cvLockLabel}</span>}
                   </Link>
-                  <Link href="/candidate/cvs/builder" aria-disabled={cvCreationLocked} onClick={(event) => { if (cvCreationLocked) event.preventDefault(); }} className={`flex items-center justify-between gap-3 px-4 py-2 text-xs font-medium whitespace-nowrap ${cvCreationLocked ? 'cursor-not-allowed text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB]'}`}>
+                  <Link href="/candidate/cvs/builder" aria-disabled={cvCreationLocked} onClick={(event) => { if (cvCreationLocked) event.preventDefault(); }} className={`flex items-center justify-between gap-3 px-4 py-2 text-xs font-medium whitespace-nowrap ${cvCreationLocked ? 'cursor-not-allowed text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[var(--surface)] hover:text-[var(--primary)]'}`}>
                     <span>{locale === 'vi' ? 'Trình tạo CV chuẩn ATS' : 'ATS Resume Studio'}</span>
                     {cvCreationLocked && <span className="text-[10px] font-semibold">{!cvQuotaLoaded ? '…' : cvLockLabel}</span>}
                   </Link>
@@ -159,19 +160,19 @@ export const Navbar: React.FC = () => {
               <div className="relative group py-3 shrink-0">
                 <Link
                   href="/candidate/applications"
-                  className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-lg hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition-colors whitespace-nowrap shrink-0 ${
-                    isTabActive('/candidate/applications') ? 'text-[#2563EB] font-bold' : ''
+                  className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-xl hover:text-[var(--primary)] dark:hover:text-[var(--retro-sky)] transition-colors whitespace-nowrap shrink-0 ${
+                    isTabActive('/candidate/applications') ? 'text-[var(--primary)] font-bold' : ''
                   }`}
                 >
                   <span className="whitespace-nowrap">{locale === 'vi' ? 'Công cụ' : 'Tools'}</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#2563EB] group-hover:rotate-180 transition-transform duration-200 shrink-0" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-[var(--primary)] group-hover:rotate-180 transition-transform duration-200 shrink-0" />
                 </Link>
 
-                <div className="absolute top-full left-0 hidden group-hover:block bg-white dark:bg-[#111C38] border border-blue-100 dark:border-[#1E293B] rounded-xl shadow-xl py-2 w-64 z-50 animate-fade-in">
-                  <Link href="/candidate/applications" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
+                <div className="absolute top-full left-0 hidden group-hover:block bg-white dark:bg-[var(--surface)] border border-blue-100 dark:border-[var(--border)] rounded-xl shadow-xl py-2 w-64 z-50 animate-fade-in">
+                  <Link href="/candidate/applications" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[var(--surface)] hover:text-[var(--primary)] whitespace-nowrap">
                     {locale === 'vi' ? 'Báo cáo ứng tuyển & Đối sánh' : 'Match & Application Reports'}
                   </Link>
-                  <Link href="/candidate/profile" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[#18294E] hover:text-[#2563EB] whitespace-nowrap">
+                  <Link href="/candidate/profile" className="block px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-[var(--surface)] hover:text-[var(--primary)] whitespace-nowrap">
                     {locale === 'vi' ? 'Xác thực hồ sơ & GitHub Signal' : 'Profile & GitHub Verification'}
                   </Link>
                 </div>
@@ -182,8 +183,8 @@ export const Navbar: React.FC = () => {
           {/* Hướng dẫn / Help (Public) */}
           <Link
             href="/help"
-            className={`px-3 py-1.5 rounded-lg hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition-colors whitespace-nowrap ${
-              isTabActive('/help') ? 'text-[#2563EB] font-bold' : ''
+            className={`px-3 py-1.5 rounded-xl hover:text-[var(--primary)] dark:hover:text-[var(--retro-sky)] transition-colors whitespace-nowrap ${
+              isTabActive('/help') ? 'text-[var(--primary)] font-bold' : ''
             }`}
           >
             {locale === 'vi' ? 'Cẩm nang' : 'Help & Guides'}
@@ -192,10 +193,10 @@ export const Navbar: React.FC = () => {
           {/* midCV Pro Badge */}
           <Link
             href="/help"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-200 hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition whitespace-nowrap shrink-0"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-slate-700 dark:text-slate-200 hover:text-[var(--primary)] dark:hover:text-[var(--retro-sky)] transition whitespace-nowrap shrink-0"
           >
             <span className="whitespace-nowrap">midCV</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold font-mono bg-[#FEF3C7] dark:bg-amber-950/80 text-[#D97706] dark:text-amber-300 border border-[#FDE68A] dark:border-amber-700">
+            <span className="px-1.5 py-0.2 rounded-xl text-[10px] font-bold font-sans bg-[var(--surface-secondary)] dark:bg-amber-950/80 text-[var(--warning)] dark:text-amber-300 border border-[var(--border-soft)] dark:border-amber-700">
               Pro
             </span>
           </Link>
@@ -208,10 +209,10 @@ export const Navbar: React.FC = () => {
           {/* Language Switcher */}
           <button
             onClick={toggleLocale}
-            className="flex items-center gap-1 px-2.5 py-1 text-xs font-mono font-bold rounded-lg border border-blue-100 dark:border-[#1E293B] bg-blue-50/50 dark:bg-[#111C38] text-slate-700 dark:text-slate-200 hover:border-[#2563EB] hover:text-[#2563EB] transition cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-sans font-bold rounded-xl border border-blue-100 dark:border-[var(--border)] bg-blue-50/50 dark:bg-[var(--surface)] text-slate-700 dark:text-slate-200 hover:border-[var(--border)] hover:text-[var(--primary)] transition cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
             title={locale === 'vi' ? 'Chuyển sang English' : 'Switch to Tiếng Việt'}
           >
-            <Globe className="w-3.5 h-3.5 text-[#2563EB]" />
+            <Globe className="w-3.5 h-3.5 text-[var(--primary)]" />
             <span className="whitespace-nowrap">{locale.toUpperCase()}</span>
           </button>
 
@@ -224,57 +225,20 @@ export const Navbar: React.FC = () => {
               {isAdmin ? (
                 <Link
                   href="/admin"
-                  className="hidden xl:inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 transition whitespace-nowrap shrink-0"
+                  className="hidden xl:inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 transition whitespace-nowrap shrink-0"
                 >
                   {locale === 'vi' ? 'Cổng Quản trị (Admin)' : 'Admin Portal'}
                 </Link>
               ) : isRecruiter ? (
                 <Link
                   href="/recruiter"
-                  className="hidden xl:inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 transition whitespace-nowrap shrink-0"
+                  className="hidden xl:inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 transition whitespace-nowrap shrink-0"
                 >
                   {locale === 'vi' ? 'Cổng Tuyển dụng (HR)' : 'Recruiter Portal'}
                 </Link>
               ) : null}
 
-              {/* User Name & Role */}
-              <div className="text-right hidden sm:block">
-                <span className="text-xs font-semibold text-[#0F2A52] dark:text-[#F1F5F9] block truncate max-w-[100px] xl:max-w-[130px]">{user?.fullName}</span>
-                {user?.role && (
-                  <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border uppercase inline-block ${
-                    user.role === 'ADMIN'
-                      ? 'text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-900'
-                      : user.role === 'RECRUITER'
-                      ? 'text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-900'
-                      : 'text-[#2563EB] dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-900'
-                  }`}>
-                    {user.role}
-                  </span>
-                )}
-              </div>
-
-              {/* Avatar */}
-              <Link
-                href={isAdmin ? '/admin' : isRecruiter ? '/recruiter/jobs' : '/candidate/cvs'}
-                title={locale === 'vi' ? 'Mở hồ sơ của bạn' : 'Open your workspace'}
-                className="relative w-8 h-8 rounded-full overflow-hidden border border-[#CBD5E1] dark:border-[#1E293B] shadow-xs shrink-0 hover:border-[#2563EB] transition"
-              >
-                <div className="w-full h-full bg-blue-50 dark:bg-[#152342] text-[#2563EB] text-xs font-bold flex items-center justify-center select-none">
-                  {user?.fullName ? user.fullName.trim().charAt(0).toUpperCase() : 'U'}
-                </div>
-              </Link>
-
-              {/* Desktop Logout Button */}
-              <button
-                id="navbar-logout-btn"
-                onClick={() => setIsLogoutModalOpen(true)}
-                aria-label={t('nav.signOut', 'Sign Out')}
-                title={t('nav.signOut', 'Sign Out')}
-                className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#1E293B] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-[#FEF2F2] dark:hover:bg-rose-950/30 transition cursor-pointer whitespace-nowrap shrink-0"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="whitespace-nowrap">{t('nav.signOut', 'Sign Out')}</span>
-              </button>
+              <AccountTools />
             </div>
           ) : (
             <div className="hidden sm:flex items-center gap-2 xl:gap-2.5 shrink-0">
@@ -282,7 +246,7 @@ export const Navbar: React.FC = () => {
               <button
                 type="button"
                 onClick={() => openAuthModal('LOGIN')}
-                className="px-3.5 py-2 rounded-full text-xs font-bold text-[#173B73] dark:text-slate-200 hover:text-[#2563EB] dark:hover:text-[#3B82F6] hover:bg-blue-50/70 dark:hover:bg-[#152342] transition cursor-pointer whitespace-nowrap shrink-0"
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-[var(--heading)] dark:text-slate-200 hover:text-[var(--primary)] dark:hover:text-[var(--retro-sky)] hover:bg-blue-50/70 dark:hover:bg-[var(--surface)] transition cursor-pointer whitespace-nowrap shrink-0"
               >
                 {locale === 'vi' ? 'Đăng nhập' : 'Sign In'}
               </button>
@@ -291,7 +255,7 @@ export const Navbar: React.FC = () => {
               <button
                 type="button"
                 onClick={() => openAuthModal('REGISTER')}
-                className="px-5 py-2 rounded-full text-xs font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-xs cursor-pointer whitespace-nowrap shrink-0 active:scale-95"
+                className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-[var(--primary)] hover:bg-[var(--primary)] transition shadow-xs cursor-pointer whitespace-nowrap shrink-0 active:scale-95"
               >
                 {locale === 'vi' ? 'Đăng ký' : 'Register'}
               </button>
@@ -299,7 +263,7 @@ export const Navbar: React.FC = () => {
               {/* Dành cho Doanh nghiệp (Anonymous only) */}
               <Link
                 href="/recruiter"
-                className="hidden xl:inline-flex items-center px-3.5 py-2 rounded-full text-xs font-semibold bg-blue-50/80 dark:bg-[#152342] hover:bg-blue-100 dark:hover:bg-[#1C2F57] text-[#173B73] dark:text-blue-200 border border-blue-200/60 dark:border-blue-900/50 transition cursor-pointer whitespace-nowrap shrink-0"
+                className="hidden xl:inline-flex items-center px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-50/80 dark:bg-[var(--surface)] hover:bg-blue-100 dark:hover:bg-[var(--surface)] text-[var(--heading)] dark:text-blue-200 border border-blue-200/60 dark:border-blue-900/50 transition cursor-pointer whitespace-nowrap shrink-0"
               >
                 {locale === 'vi' ? 'Dành cho Doanh nghiệp' : 'For Employers'}
               </Link>
@@ -311,7 +275,7 @@ export const Navbar: React.FC = () => {
             id="mobile-menu-btn"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label={isMobileMenuOpen ? t('common.close', 'Đóng menu') : t('nav.mobileMenu', 'Menu điều hướng')}
-            className="lg:hidden p-2 rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#111C38] text-slate-800 dark:text-slate-200 hover:border-[#2563EB] transition cursor-pointer"
+            className="lg:hidden p-2 rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)] text-slate-800 dark:text-slate-200 hover:border-[var(--border)] transition cursor-pointer"
           >
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -331,13 +295,13 @@ export const Navbar: React.FC = () => {
       {/* Mobile Drawer Panel */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed top-16 left-0 right-0 max-h-[calc(100vh-4rem)] overflow-y-auto bg-white dark:bg-[#0B1329] border-b border-slate-200 dark:border-[#1E293B] p-5 shadow-2xl space-y-4 z-50 lg:hidden animate-fade-in"
+          className="fixed top-16 left-0 right-0 max-h-[calc(100vh-4rem)] overflow-y-auto bg-white dark:bg-[var(--surface)] border-b border-slate-200 dark:border-[var(--border)] p-5 shadow-2xl space-y-4 z-50 lg:hidden animate-fade-in"
         >
           {/* User Info Row in Mobile */}
           {isAuthenticated ? (
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#1E293B]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[var(--border)]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] text-xs font-bold flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] text-xs font-bold flex items-center justify-center">
                   {user?.fullName ? user.fullName.trim().charAt(0).toUpperCase() : 'U'}
                 </div>
                 <div>
@@ -345,19 +309,19 @@ export const Navbar: React.FC = () => {
                   <span className="text-[10px] text-slate-500 dark:text-slate-400">{user?.email}</span>
                 </div>
               </div>
-              <span className="text-[10px] font-mono font-bold text-[#2563EB] dark:text-[#3B82F6] bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800 uppercase">
+              <span className="text-[10px] font-sans font-bold text-[var(--primary)] dark:text-[var(--retro-sky)] bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800 uppercase">
                 {user?.role}
               </span>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2 pb-3 border-b border-slate-100 dark:border-[#1E293B]">
+            <div className="grid grid-cols-2 gap-2 pb-3 border-b border-slate-100 dark:border-[var(--border)]">
               <button
                 type="button"
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   openAuthModal('LOGIN');
                 }}
-                className="w-full py-2 text-center text-xs font-semibold rounded-lg border border-slate-200 dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition cursor-pointer"
+                className="w-full py-2 text-center text-xs font-semibold rounded-xl border border-slate-200 dark:border-[var(--border)] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[var(--surface)] transition cursor-pointer"
               >
                 {t('nav.signIn', 'Sign In')}
               </button>
@@ -367,7 +331,7 @@ export const Navbar: React.FC = () => {
                   setIsMobileMenuOpen(false);
                   openAuthModal('REGISTER');
                 }}
-                className="w-full py-2 text-center text-xs font-semibold rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white transition cursor-pointer shadow-xs"
+                className="w-full py-2 text-center text-xs font-semibold rounded-xl bg-[var(--primary)] hover:bg-[var(--primary)] text-white transition cursor-pointer shadow-xs"
               >
                 {t('nav.register', 'Register')}
               </button>
@@ -381,17 +345,17 @@ export const Navbar: React.FC = () => {
                 <Link
                   href="/recruiter/jobs"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/recruiter/jobs') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/recruiter/jobs') ? 'bg-[var(--surface-secondary)] dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] font-bold' : 'text-[var(--heading)] dark:text-[var(--text-secondary)] hover:bg-[var(--surface)] dark:hover:bg-[var(--surface)]'}`}
                 >
-                  <FileText className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                  <FileText className="w-4 h-4 text-[var(--primary)] dark:text-[var(--retro-sky)]" />
                   <span>{t('recruiterNav.jobs', 'Quản lý Bài đăng')}</span>
                 </Link>
                 <Link
                   href="/recruiter/company"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/recruiter/company') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/recruiter/company') ? 'bg-[var(--surface-secondary)] dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] font-bold' : 'text-[var(--heading)] dark:text-[var(--text-secondary)] hover:bg-[var(--surface)] dark:hover:bg-[var(--surface)]'}`}
                 >
-                  <ShieldCheck className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                  <ShieldCheck className="w-4 h-4 text-[var(--primary)] dark:text-[var(--retro-sky)]" />
                   <span>{t('recruiterNav.company', 'Doanh nghiệp')}</span>
                 </Link>
               </>
@@ -401,9 +365,9 @@ export const Navbar: React.FC = () => {
                 <Link
                   href="/jobs"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/jobs') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/jobs') ? 'bg-[var(--surface-secondary)] dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] font-bold' : 'text-[var(--heading)] dark:text-[var(--text-secondary)] hover:bg-[var(--surface)] dark:hover:bg-[var(--surface)]'}`}
                 >
-                  <Search className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                  <Search className="w-4 h-4 text-[var(--primary)] dark:text-[var(--retro-sky)]" />
                   <span>{t('nav.searchJobs', 'Tìm Việc Làm')}</span>
                 </Link>
 
@@ -411,9 +375,9 @@ export const Navbar: React.FC = () => {
                 <Link
                   href="/candidate/applications"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/candidate/applications') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/candidate/applications') ? 'bg-[var(--surface-secondary)] dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] font-bold' : 'text-[var(--heading)] dark:text-[var(--text-secondary)] hover:bg-[var(--surface)] dark:hover:bg-[var(--surface)]'}`}
                 >
-                  <GitCompare className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                  <GitCompare className="w-4 h-4 text-[var(--primary)] dark:text-[var(--retro-sky)]" />
                   <span>{t('nav.matchReports', 'Báo Cáo Phù Hợp')}</span>
                 </Link>
 
@@ -421,9 +385,9 @@ export const Navbar: React.FC = () => {
                 <Link
                   href="/candidate/cvs"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/candidate/cvs') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/candidate/cvs') ? 'bg-[var(--surface-secondary)] dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] font-bold' : 'text-[var(--heading)] dark:text-[var(--text-secondary)] hover:bg-[var(--surface)] dark:hover:bg-[var(--surface)]'}`}
                 >
-                  <FileText className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                  <FileText className="w-4 h-4 text-[var(--primary)] dark:text-[var(--retro-sky)]" />
                   <span>{t('nav.cvManagement', 'Quản Lý CV')}</span>
                 </Link>
 
@@ -431,9 +395,9 @@ export const Navbar: React.FC = () => {
                 <Link
                   href="/candidate/profile"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/candidate/profile') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/candidate/profile') ? 'bg-[var(--surface-secondary)] dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] font-bold' : 'text-[var(--heading)] dark:text-[var(--text-secondary)] hover:bg-[var(--surface)] dark:hover:bg-[var(--surface)]'}`}
                 >
-                  <UserIcon className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                  <UserIcon className="w-4 h-4 text-[var(--primary)] dark:text-[var(--retro-sky)]" />
                   <span>{locale === 'vi' ? 'Hồ sơ cá nhân' : 'Profile'}</span>
                 </Link>
 
@@ -442,17 +406,17 @@ export const Navbar: React.FC = () => {
                     <a
                       href="#pipeline"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E] transition"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-[var(--heading)] dark:text-[var(--text-secondary)] hover:bg-[var(--surface)] dark:hover:bg-[var(--surface)] transition"
                     >
-                      <Sparkles className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                      <Sparkles className="w-4 h-4 text-[var(--primary)] dark:text-[var(--retro-sky)]" />
                       <span>{t('nav.features', 'Tính Năng')}</span>
                     </a>
                     <Link
                       href="/recruiter"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E] transition"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-[var(--heading)] dark:text-[var(--text-secondary)] hover:bg-[var(--surface)] dark:hover:bg-[var(--surface)] transition"
                     >
-                      <Briefcase className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                      <Briefcase className="w-4 h-4 text-[var(--primary)] dark:text-[var(--retro-sky)]" />
                       <span>{t('nav.forEmployers', 'Dành Cho Doanh Nghiệp')}</span>
                     </Link>
                   </>
@@ -464,16 +428,16 @@ export const Navbar: React.FC = () => {
             <Link
               href="/help"
               onClick={() => setIsMobileMenuOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/help') ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-bold' : 'text-[#1E3A5F] dark:text-[#D6E4E1] hover:bg-[#F8FAFC] dark:hover:bg-[#18294E]'}`}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${isTabActive('/help') ? 'bg-[var(--surface-secondary)] dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] font-bold' : 'text-[var(--heading)] dark:text-[var(--text-secondary)] hover:bg-[var(--surface)] dark:hover:bg-[var(--surface)]'}`}
             >
-              <HelpCircle className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+              <HelpCircle className="w-4 h-4 text-[var(--primary)] dark:text-[var(--retro-sky)]" />
               <span>{t('nav.help', 'Hướng Dẫn Sử Dụng')}</span>
             </Link>
           </nav>
 
           {/* Mobile Logout Action */}
           {isAuthenticated && (
-            <div className="pt-3 border-t border-slate-100 dark:border-[#1E293B]">
+            <div className="pt-3 border-t border-slate-100 dark:border-[var(--border)]">
               <button
                 id="mobile-drawer-logout-btn"
                 onClick={() => {

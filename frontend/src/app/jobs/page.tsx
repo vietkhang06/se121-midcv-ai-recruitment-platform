@@ -215,32 +215,32 @@ function JobsPageContent() {
     (onlyTargetIndustries ? 1 : 0);
 
   return (
-    <div className="bg-slate-50/60 dark:bg-[#0B1329] min-h-screen py-8 text-[#0F2A52] dark:text-[#F1F5F9] transition-colors">
+    <div className="bg-slate-50/60 dark:bg-[var(--surface)] min-h-screen py-8 text-[var(--heading)] dark:text-[var(--retro-cream)] transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
         {/* Page Header */}
         <Reveal direction="up" delay={0}>
-          <div className="border-b border-slate-200 dark:border-[#1E293B] pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="border-b border-slate-200 dark:border-[var(--border)] pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] font-mono">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] dark:text-[var(--text-secondary)] font-sans">
                 Vector Validation Directory
               </span>
-              <h1 className="text-2xl sm:text-3xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9] mt-1">
+              <h1 className="text-2xl sm:text-3xl font-editorial font-bold text-[var(--heading)] dark:text-[var(--retro-cream)] mt-1">
                 {t('jobs.pageTitle', 'Khám Phá & Đối Sánh Việc Làm')}
               </h1>
-              <p className="text-xs sm:text-sm text-[#64748B] dark:text-[#94A3B8] mt-0.5">
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)] dark:text-[var(--text-secondary)] mt-0.5">
                 {t('jobs.pageSubtitle', 'Tìm kiếm vị trí tuyển dụng với tiêu chuẩn minh bạch và đối soát năng lực số.')}
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-xs font-mono text-[#64748B] dark:text-[#94A3B8]">
-                {t('jobs.showing', 'Hiển thị')} <strong className="text-[#0F2A52] dark:text-white">{filteredJobs.length}</strong> {t('jobs.of', '/')} {jobs.length} {t('jobs.jobsCount', 'công việc')}
+              <span className="text-xs font-sans text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
+                {t('jobs.showing', 'Hiển thị')} <strong className="text-[var(--heading)] dark:text-white">{filteredJobs.length}</strong> {t('jobs.of', '/')} {jobs.length} {t('jobs.jobsCount', 'công việc')}
               </span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#111C38] text-xs font-medium text-[#0F2A52] dark:text-slate-200 focus:outline-none focus:border-[#2563EB]"
+                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)] text-xs font-medium text-[var(--heading)] dark:text-slate-200 focus:outline-none focus:border-[var(--border)]"
               >
                 <option value="newest">{t('jobs.newestFirst', 'Mới nhất trước')}</option>
                 <option value="salary_high">{t('jobs.salaryHighLow', 'Lương cao đến thấp')}</option>
@@ -254,15 +254,15 @@ function JobsPageContent() {
 
           {/* Left Column: Refine Matches Filters Sidebar */}
           <Reveal direction="up" delay={80} className="lg:col-span-4">
-            <aside className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 space-y-5 shadow-xs transition-colors">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
+            <aside className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 space-y-5 shadow-xs transition-colors">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[var(--border)] pb-3">
                 <div className="flex items-center gap-2">
-                  <SlidersHorizontal className="w-4 h-4 text-[#2563EB]" />
-                  <h2 className="font-semibold text-sm text-[#0F2A52] dark:text-white uppercase tracking-wide">
+                  <SlidersHorizontal className="w-4 h-4 text-[var(--primary)]" />
+                  <h2 className="font-semibold text-sm text-[var(--heading)] dark:text-white uppercase tracking-wide">
                     {t('jobs.refineMatches', 'Bộ Lọc Đối Sánh')}
                   </h2>
                   {activeFiltersCount > 0 && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#2563EB] text-white">
+                    <span className="px-2 py-0.5 rounded-xl text-[10px] font-bold bg-[var(--primary)] text-white">
                       {activeFiltersCount}
                     </span>
                   )}
@@ -281,28 +281,28 @@ function JobsPageContent() {
 
               {/* Candidate Target Industries Recommendation Toggle */}
               {candidateIndustries.length > 0 && (
-                <div className="p-3 rounded-xl bg-[#E8F8EE] dark:bg-[#00B14F]/15 border border-[#00B14F]/30 space-y-1.5">
+                <div className="p-3 rounded-xl bg-[var(--surface-secondary)] dark:bg-[var(--success)]/15 border border-[var(--border)]/30 space-y-1.5">
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={onlyTargetIndustries}
                       onChange={(e) => setOnlyTargetIndustries(e.target.checked)}
-                      className="accent-[#00B14F] rounded"
+                      className="accent-[var(--success)] rounded"
                     />
-                    <span className="text-xs font-semibold text-[#00873D] dark:text-[#10B981]">
+                    <span className="text-xs font-semibold text-[var(--heading)] dark:text-[var(--success)]">
                       {t('jobs.prioritizeTarget', 'Ưu tiên ngành nghề mục tiêu của tôi')}
                     </span>
                   </label>
-                  <p className="text-[11px] text-[#00873D] dark:text-[#10B981] pl-5">
+                  <p className="text-[11px] text-[var(--heading)] dark:text-[var(--success)] pl-5">
                     {t('jobs.filtering', 'Đang lọc:')} {candidateIndustries.map(ind => translateIndustry(ind, locale)).join(', ')}
                   </p>
                 </div>
               )}
-              {profileFetchError ? <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">{profileFetchError}</p> : null}
+              {profileFetchError ? <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">{profileFetchError}</p> : null}
 
               {/* Role Keyword Filter */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
+                <label className="text-[11px] font-sans font-semibold uppercase text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
                   {t('jobs.roleKeyword', 'TỪ KHÓA VỊ TRÍ')}
                 </label>
                 <div className="relative">
@@ -311,7 +311,7 @@ function JobsPageContent() {
                     placeholder={t('jobs.rolePlaceholder', 'Ví dụ: Frontend, Java, Senior...')}
                     value={searchKeyword}
                     onChange={(e) => setSearchKeyword(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
+                    className="w-full bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl px-3 py-2 text-xs text-[var(--heading)] dark:text-[var(--retro-cream)] focus:outline-none focus:border-[var(--border)]"
                   />
                   {searchKeyword && (
                     <button
@@ -326,7 +326,7 @@ function JobsPageContent() {
 
               {/* Location Filter */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
+                <label className="text-[11px] font-sans font-semibold uppercase text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
                   {t('jobs.locationKeyword', 'ĐỊA ĐIỂM')}
                 </label>
                 <div className="relative">
@@ -335,7 +335,7 @@ function JobsPageContent() {
                     placeholder={t('jobs.locationPlaceholder', 'Ví dụ: TP. Hồ Chí Minh, Hà Nội, Remote...')}
                     value={locationKeyword}
                     onChange={(e) => setLocationKeyword(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
+                    className="w-full bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl px-3 py-2 text-xs text-[var(--heading)] dark:text-[var(--retro-cream)] focus:outline-none focus:border-[var(--border)]"
                   />
                   {locationKeyword && (
                     <button
@@ -350,7 +350,7 @@ function JobsPageContent() {
 
               {/* Required Skill Filter */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
+                <label className="text-[11px] font-sans font-semibold uppercase text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
                   {t('jobs.requiredSkills', 'KỸ NĂNG YÊU CẦU')}
                 </label>
                 <input
@@ -358,23 +358,23 @@ function JobsPageContent() {
                   placeholder={t('jobs.skillPlaceholder', 'Ví dụ: React, TypeScript, Docker...')}
                   value={skillFilter}
                   onChange={(e) => setSkillFilter(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl px-3 py-2 text-xs text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
+                  className="w-full bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl px-3 py-2 text-xs text-[var(--heading)] dark:text-[var(--retro-cream)] focus:outline-none focus:border-[var(--border)]"
                 />
               </div>
 
               {/* Industry Sector Filter */}
-              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
-                <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[var(--border)]">
+                <label className="text-[11px] font-sans font-semibold uppercase text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
                   {t('jobs.industrySector', 'LĨNH VỰC HOẠT ĐỘNG')}
                 </label>
-                <div className="space-y-1.5 text-xs text-[#0F2A52] dark:text-slate-300">
+                <div className="space-y-1.5 text-xs text-[var(--heading)] dark:text-slate-300">
                   {['Technology', 'Marketing', 'Design', 'Finance', 'Healthcare', 'Engineering'].map((sector) => (
-                    <label key={sector} className="flex items-center gap-2 cursor-pointer hover:text-[#2563EB] dark:hover:text-white select-none">
+                    <label key={sector} className="flex items-center gap-2 cursor-pointer hover:text-[var(--primary)] dark:hover:text-white select-none">
                       <input
                         type="checkbox"
                         checked={selectedSectors.includes(sector)}
                         onChange={() => toggleItem(selectedSectors, setSelectedSectors, sector)}
-                        className="accent-[#2563EB] rounded cursor-pointer"
+                        className="accent-[var(--primary)] rounded cursor-pointer"
                       />
                       <span>{translateIndustry(sector, locale)}</span>
                     </label>
@@ -383,18 +383,18 @@ function JobsPageContent() {
               </div>
 
               {/* Employment Mode */}
-              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
-                <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[var(--border)]">
+                <label className="text-[11px] font-sans font-semibold uppercase text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
                   {t('jobs.employmentMode', 'HÌNH THỨC LÀM VIỆC')}
                 </label>
-                <div className="space-y-1.5 text-xs text-[#0F2A52] dark:text-slate-300">
+                <div className="space-y-1.5 text-xs text-[var(--heading)] dark:text-slate-300">
                   {['Remote', 'Hybrid', 'Full-time', 'Contract'].map((mode) => (
-                    <label key={mode} className="flex items-center gap-2 cursor-pointer hover:text-[#2563EB] dark:hover:text-white select-none">
+                    <label key={mode} className="flex items-center gap-2 cursor-pointer hover:text-[var(--primary)] dark:hover:text-white select-none">
                       <input
                         type="checkbox"
                         checked={selectedModes.includes(mode)}
                         onChange={() => toggleItem(selectedModes, setSelectedModes, mode)}
-                        className="accent-[#2563EB] rounded cursor-pointer"
+                        className="accent-[var(--primary)] rounded cursor-pointer"
                       />
                       <span>{translateWorkMode(mode, locale)}</span>
                     </label>
@@ -403,18 +403,18 @@ function JobsPageContent() {
               </div>
 
               {/* Experience Level */}
-              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
-                <label className="text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[var(--border)]">
+                <label className="text-[11px] font-sans font-semibold uppercase text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
                   {t('jobs.experienceLevel', 'CẤP BẬC KINH NGHIỆM')}
                 </label>
-                <div className="space-y-1.5 text-xs text-[#0F2A52] dark:text-slate-300">
+                <div className="space-y-1.5 text-xs text-[var(--heading)] dark:text-slate-300">
                   {['Junior', 'Mid', 'Senior', 'Lead'].map((lvl) => (
-                    <label key={lvl} className="flex items-center gap-2 cursor-pointer hover:text-[#2563EB] dark:hover:text-white select-none">
+                    <label key={lvl} className="flex items-center gap-2 cursor-pointer hover:text-[var(--primary)] dark:hover:text-white select-none">
                       <input
                         type="checkbox"
                         checked={selectedLevels.includes(lvl)}
                         onChange={() => toggleItem(selectedLevels, setSelectedLevels, lvl)}
-                        className="accent-[#2563EB] rounded cursor-pointer"
+                        className="accent-[var(--primary)] rounded cursor-pointer"
                       />
                       <span>{translateSeniority(lvl, locale)}</span>
                     </label>
@@ -423,15 +423,15 @@ function JobsPageContent() {
               </div>
 
               {/* Salary Range Slider */}
-              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#1E293B]">
-                <div className="flex items-center justify-between text-[11px] font-mono font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[var(--border)]">
+                <div className="flex items-center justify-between text-[11px] font-sans font-semibold uppercase text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
                   <span>{t('jobs.minSalaryLabel', 'MỨC LƯƠNG TỐI THIỂU')}</span>
-                  <span className="text-[#00B14F] font-bold">
+                  <span className="text-[var(--success)] font-bold">
                     {minSalary > 0 ? `${new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { style: 'currency', currency: salaryCurrencyFilter }).format(minSalary)}${locale === 'vi' ? '/tháng' : '/month'}` : t('jobs.all', 'Tất cả')}
                   </span>
                 </div>
                 <label className="block text-xs text-slate-600 dark:text-slate-300">{locale === 'vi' ? 'Tiền tệ dùng cho bộ lọc' : 'Currency for salary filter'}
-                  <select value={salaryCurrencyFilter} onChange={(e) => setSalaryCurrencyFilter(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 dark:border-slate-700 dark:bg-slate-900">
+                  <select value={salaryCurrencyFilter} onChange={(e) => setSalaryCurrencyFilter(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2 dark:border-slate-700 dark:bg-slate-900">
                     {['VND', 'USD', 'EUR', 'GBP', 'JPY', 'CNY', 'KRW', 'SGD', 'AUD', 'CAD'].map((code) => <option key={code} value={code}>{code}</option>)}
                   </select>
                 </label>
@@ -442,7 +442,7 @@ function JobsPageContent() {
                   step={5000000}
                   value={minSalary}
                   onChange={(e) => setMinSalary(parseInt(e.target.value) || 0)}
-                  className="w-full accent-[#2563EB] cursor-pointer"
+                  className="w-full accent-[var(--primary)] cursor-pointer"
                 />
               </div>
             </aside>

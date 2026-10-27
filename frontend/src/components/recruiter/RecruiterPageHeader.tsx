@@ -29,11 +29,11 @@ export const RecruiterPageHeader: React.FC<RecruiterPageHeaderProps> = ({
   isCompanyVerified,
 }) => {
   return (
-    <div className="border-b border-[#E2E8F0] dark:border-[#1E293B] pb-5 mb-6 space-y-3">
+    <div className="border-b border-[var(--border-soft)] dark:border-[var(--border)] pb-5 mb-6 space-y-3">
       {backLink && (
         <Link
           href={backLink.href}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#64748B] dark:text-[#94A3B8] hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition group"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] dark:text-[var(--text-secondary)] hover:text-[var(--primary)] dark:hover:text-[var(--retro-sky)] transition group"
         >
           <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
           <span>{backLink.label}</span>
@@ -44,19 +44,19 @@ export const RecruiterPageHeader: React.FC<RecruiterPageHeaderProps> = ({
         <div className="space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
             {categoryTag && (
-              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#2563EB] dark:text-[#3B82F6] bg-[#EFF6FF] dark:bg-[#152342] px-2 py-0.5 rounded-md border border-[#2563EB]/20">
+              <span className="text-[11px] font-sans font-bold uppercase tracking-wider text-[var(--primary)] dark:text-[var(--retro-sky)] bg-[var(--surface-secondary)] dark:bg-[var(--surface)] px-2 py-0.5 rounded-xl border border-[var(--border)]/20">
                 {categoryTag}
               </span>
             )}
 
             {companyName && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1E3A5F] dark:text-[#D6E4E1] bg-[#F8FAFC] dark:bg-[#111C38] px-2 py-0.5 rounded-md border border-[#E2E8F0] dark:border-[#1E293B]">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--heading)] dark:text-[var(--text-secondary)] bg-[var(--surface)] dark:bg-[var(--surface)] px-2 py-0.5 rounded-xl border border-[var(--border-soft)] dark:border-[var(--border)]">
                 {isCompanyVerified ? (
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#00B14F]" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-[var(--success)]" />
                 ) : null}
                 <span>{companyName}</span>
                 {isCompanyVerified && (
-                  <span className="text-[10px] text-[#00B14F] font-bold">✓ Xác minh</span>
+                  <span className="text-[10px] text-[var(--success)] font-bold">✓ Xác minh</span>
                 )}
               </span>
             )}
@@ -64,17 +64,17 @@ export const RecruiterPageHeader: React.FC<RecruiterPageHeaderProps> = ({
 
           <div className="flex items-center gap-2.5">
             {Icon && (
-              <div className="p-2 rounded-xl bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] border border-[#2563EB]/20 shrink-0">
+              <div className="p-2 rounded-xl bg-[var(--surface-secondary)] dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] border border-[var(--border)]/20 shrink-0">
                 <Icon className="w-5 h-5" />
               </div>
             )}
-            <h1 className="text-2xl sm:text-3xl font-editorial font-bold text-[#0F2A52] dark:text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-editorial font-bold text-[var(--heading)] dark:text-white tracking-tight">
               {title}
             </h1>
           </div>
 
           {subtitle && (
-            <p className="text-xs sm:text-sm text-[#64748B] dark:text-[#94A3B8] leading-relaxed max-w-3xl">
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)] dark:text-[var(--text-secondary)] leading-relaxed max-w-3xl">
               {subtitle}
             </p>
           )}

@@ -52,7 +52,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       case 'ERROR':
         return <AlertCircle className="w-8 h-8 text-rose-600 dark:text-rose-400" />;
       case 'LOADING':
-        return <Loader2 className="w-8 h-8 text-[#2563EB] dark:text-[#3B82F6] animate-spin" />;
+        return <Loader2 className="w-8 h-8 text-[var(--primary)] dark:text-[var(--retro-sky)] animate-spin" />;
       case 'EMPTY':
       default:
         return <Inbox className="w-8 h-8 text-slate-400 dark:text-slate-500" />;
@@ -66,10 +66,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       case 'ERROR':
         return 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/40';
       case 'LOADING':
-        return 'bg-white dark:bg-[#111C38] border-slate-200 dark:border-[#1E293B]';
+        return 'bg-white dark:bg-[var(--surface)] border-slate-200 dark:border-[var(--border)]';
       case 'EMPTY':
       default:
-        return 'bg-white dark:bg-[#111C38] border-slate-200 dark:border-[#1E293B]';
+        return 'bg-white dark:bg-[var(--surface)] border-slate-200 dark:border-[var(--border)]';
     }
   };
 
@@ -80,21 +80,21 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       case 'ERROR':
         return 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300';
       case 'LOADING':
-        return 'bg-blue-50 dark:bg-blue-950/60 text-[#2563EB] dark:text-[#3B82F6]';
+        return 'bg-blue-50 dark:bg-blue-950/60 text-[var(--primary)] dark:text-[var(--retro-sky)]';
       case 'EMPTY':
       default:
-        return 'bg-slate-100 dark:bg-[#18294E] text-slate-500 dark:text-slate-400';
+        return 'bg-slate-100 dark:bg-[var(--surface)] text-slate-500 dark:text-slate-400';
     }
   };
 
   return (
     <div
       data-testid={`empty-state-${type.toLowerCase()}`}
-      className={`rounded-2xl border text-center flex flex-col items-center justify-center transition-all ${
+      className={`rounded-xl border text-center flex flex-col items-center justify-center transition-all ${
         compact ? 'p-6 sm:p-8 space-y-3' : 'py-16 px-6 sm:px-12 space-y-4'
       } ${getContainerBg()} ${className}`}
     >
-      <div className={`rounded-2xl p-4 flex items-center justify-center shadow-xs ${getIconBadgeBg()}`}>
+      <div className={`rounded-xl p-4 flex items-center justify-center shadow-xs ${getIconBadgeBg()}`}>
         {icon || getDefaultIcon()}
       </div>
 
@@ -113,7 +113,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             primaryCtaHref ? (
               <Link
                 href={primaryCtaHref}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] dark:bg-[#2563EB] dark:hover:bg-[#1D4ED8] dark:text-white transition shadow-xs cursor-pointer active:scale-95"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary)] dark:bg-[var(--primary)] dark:hover:bg-[var(--primary)] dark:text-white transition shadow-xs cursor-pointer active:scale-95"
               >
                 <span>{primaryCtaText}</span>
               </Link>
@@ -121,7 +121,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
               <button
                 type="button"
                 onClick={onPrimaryCtaClick}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] dark:bg-[#2563EB] dark:hover:bg-[#1D4ED8] dark:text-white transition shadow-xs cursor-pointer active:scale-95"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary)] dark:bg-[var(--primary)] dark:hover:bg-[var(--primary)] dark:text-white transition shadow-xs cursor-pointer active:scale-95"
               >
                 <span>{primaryCtaText}</span>
               </button>
@@ -132,7 +132,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             secondaryCtaHref ? (
               <Link
                 href={secondaryCtaHref}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-[#1E293B] hover:bg-slate-100 dark:hover:bg-[#18294E] transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-[var(--border)] hover:bg-slate-100 dark:hover:bg-[var(--surface)] transition cursor-pointer"
               >
                 <span>{secondaryCtaText}</span>
               </Link>
@@ -140,7 +140,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
               <button
                 type="button"
                 onClick={onSecondaryCtaClick}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-[#1E293B] hover:bg-slate-100 dark:hover:bg-[#18294E] transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-[var(--border)] hover:bg-slate-100 dark:hover:bg-[var(--surface)] transition cursor-pointer"
               >
                 <span>{secondaryCtaText}</span>
               </button>

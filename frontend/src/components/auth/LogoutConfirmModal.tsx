@@ -36,14 +36,14 @@ export const LogoutConfirmModal: React.FC<LogoutConfirmModalProps> = ({
       descriptionId="logout-modal-description"
       testId="logout-modal"
       overlayClassName="z-[100] p-4 sm:p-6 overflow-y-auto backdrop-blur-xs"
-      panelClassName="w-full max-w-md my-auto bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl shadow-2xl p-6 text-slate-800 dark:text-slate-100 relative transition-colors max-h-[calc(100vh-2rem)] overflow-y-auto"
+      panelClassName="w-full max-w-md my-auto bg-white dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl shadow-2xl p-6 text-slate-800 dark:text-slate-100 relative transition-colors max-h-[calc(100vh-2rem)] overflow-y-auto"
     >
         {/* Close Button */}
         <button
           onClick={onClose}
           data-autofocus="true"
           aria-label={t('common.close', 'Đóng')}
-          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#18294E] transition cursor-pointer"
+          className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[var(--surface)] transition cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
@@ -64,11 +64,11 @@ export const LogoutConfirmModal: React.FC<LogoutConfirmModalProps> = ({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-slate-100 dark:border-[#1E293B]">
+        <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-slate-100 dark:border-[var(--border)]">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#18294E] transition cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[var(--surface)] transition cursor-pointer"
           >
             {t('logoutModal.cancel', 'Hủy')}
           </button>

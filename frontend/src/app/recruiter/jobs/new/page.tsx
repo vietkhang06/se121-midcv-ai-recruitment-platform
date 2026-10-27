@@ -212,10 +212,10 @@ export default function CreateJobPage() {
             <button
               type="button"
               onClick={() => setActiveTab('edit')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
                 activeTab === 'edit'
-                  ? 'bg-[#2563EB] text-white shadow-2xs'
-                  : 'bg-white dark:bg-[#111C38] text-[#64748B] dark:text-[#94A3B8] border border-[#E2E8F0] dark:border-[#1E293B]'
+                  ? 'bg-[var(--primary)] text-white shadow-2xs'
+                  : 'bg-white dark:bg-[var(--surface)] text-[var(--text-secondary)] dark:text-[var(--text-secondary)] border border-[var(--border-soft)] dark:border-[var(--border)]'
               }`}
             >
               <Edit3 className="w-3.5 h-3.5" />
@@ -224,10 +224,10 @@ export default function CreateJobPage() {
             <button
               type="button"
               onClick={() => setActiveTab('preview')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
                 activeTab === 'preview'
-                  ? 'bg-[#2563EB] text-white shadow-2xs'
-                  : 'bg-white dark:bg-[#111C38] text-[#64748B] dark:text-[#94A3B8] border border-[#E2E8F0] dark:border-[#1E293B]'
+                  ? 'bg-[var(--primary)] text-white shadow-2xs'
+                  : 'bg-white dark:bg-[var(--surface)] text-[var(--text-secondary)] dark:text-[var(--text-secondary)] border border-[var(--border-soft)] dark:border-[var(--border)]'
               }`}
             >
               <Eye className="w-3.5 h-3.5" />
@@ -254,7 +254,7 @@ export default function CreateJobPage() {
 
       {/* Verification Warning if not verified */}
       {company && company.verificationStatus !== 'VERIFIED' && (
-        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-3">
+        <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-3">
           <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
           <span>
             {locale === 'vi'
@@ -268,14 +268,14 @@ export default function CreateJobPage() {
       {activeTab === 'edit' && (
         <div className="space-y-6">
           {/* Section 1: Basic Job Info */}
-          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl p-6 shadow-xs space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-[#0F2A52] dark:text-white border-b border-[#E2E8F0] dark:border-[#1E293B] pb-3">
+          <div className="bg-white dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl p-6 shadow-xs space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--heading)] dark:text-white border-b border-[var(--border-soft)] dark:border-[var(--border)] pb-3">
               1. Thông Tin Tuyển Dụng Cơ Bản
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div className="sm:col-span-2">
-                <label className="block font-semibold text-[#1E3A5F] dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[var(--heading)] dark:text-slate-300 mb-1">
                   Tiêu đề vị trí tuyển dụng <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -283,19 +283,19 @@ export default function CreateJobPage() {
                   placeholder="Ví dụ: Senior Java Backend Engineer, Data Scientist..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#F8FAFC] dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] rounded-xl text-[#0F2A52] dark:text-white focus:outline-none focus:border-[#2563EB]"
+                  className="w-full px-3.5 py-2.5 bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white focus:outline-none focus:border-[var(--border)]"
                   required
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-[#1E3A5F] dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[var(--heading)] dark:text-slate-300 mb-1">
                   Lĩnh vực hoạt động (Industry)
                 </label>
                 <select
                   value={industry}
                   onChange={(e) => setIndustry(e.target.value as Industry)}
-                  className="w-full px-3.5 py-2.5 bg-[#F8FAFC] dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] rounded-xl text-[#0F2A52] dark:text-white focus:outline-none focus:border-[#2563EB]"
+                  className="w-full px-3.5 py-2.5 bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white focus:outline-none focus:border-[var(--border)]"
                 >
                   <option value="Technology">Technology (Công nghệ thông tin)</option>
                   <option value="Marketing">Marketing (Tiếp thị & Truyền thông)</option>
@@ -305,17 +305,17 @@ export default function CreateJobPage() {
                   <option value="Sales">Sales (Kinh doanh)</option>
                   <option value="OTHER">{locale === 'vi' ? 'Khác' : 'Other'}</option>
                 </select>
-                {industry === 'OTHER' && <input aria-label={locale === 'vi' ? 'Lĩnh vực khác' : 'Other industry'} maxLength={80} required value={industryOther} onChange={(e) => setIndustryOther(e.target.value)} placeholder={locale === 'vi' ? 'Nhập lĩnh vực (tối đa 80 ký tự)' : 'Enter industry (up to 80 characters)'} className="mt-2 w-full rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] px-3.5 py-2.5 text-sm dark:border-[#1E3A5F] dark:bg-[#13233F] dark:text-white" />}
+                {industry === 'OTHER' && <input aria-label={locale === 'vi' ? 'Lĩnh vực khác' : 'Other industry'} maxLength={80} required value={industryOther} onChange={(e) => setIndustryOther(e.target.value)} placeholder={locale === 'vi' ? 'Nhập lĩnh vực (tối đa 80 ký tự)' : 'Enter industry (up to 80 characters)'} className="mt-2 w-full rounded-xl border border-[var(--border-soft)] bg-[var(--surface)] px-3.5 py-2.5 text-sm dark:border-[var(--border)] dark:bg-[var(--surface)] dark:text-white" />}
               </div>
 
               <div>
-                <label className="block font-semibold text-[#1E3A5F] dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[var(--heading)] dark:text-slate-300 mb-1">
                   Cấp bậc / Trình độ (Seniority)
                 </label>
                 <select
                   value={seniority}
                   onChange={(e) => setSeniority(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#F8FAFC] dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] rounded-xl text-[#0F2A52] dark:text-white focus:outline-none focus:border-[#2563EB]"
+                  className="w-full px-3.5 py-2.5 bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white focus:outline-none focus:border-[var(--border)]"
                 >
                   <option value="Intern">Intern / Thực tập sinh</option>
                   <option value="Junior">Junior (0 - 2 năm)</option>
@@ -325,17 +325,17 @@ export default function CreateJobPage() {
                   <option value="Manager">Engineering Manager / Director</option>
                   <option value="OTHER">{locale === 'vi' ? 'Khác' : 'Other'}</option>
                 </select>
-                {seniority === 'OTHER' && <input aria-label={locale === 'vi' ? 'Cấp bậc khác' : 'Other seniority'} maxLength={80} required value={seniorityOther} onChange={(e) => setSeniorityOther(e.target.value)} placeholder={locale === 'vi' ? 'Nhập cấp bậc' : 'Enter seniority'} className="mt-2 w-full rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] px-3.5 py-2.5 text-sm dark:border-[#1E3A5F] dark:bg-[#13233F] dark:text-white" />}
+                {seniority === 'OTHER' && <input aria-label={locale === 'vi' ? 'Cấp bậc khác' : 'Other seniority'} maxLength={80} required value={seniorityOther} onChange={(e) => setSeniorityOther(e.target.value)} placeholder={locale === 'vi' ? 'Nhập cấp bậc' : 'Enter seniority'} className="mt-2 w-full rounded-xl border border-[var(--border-soft)] bg-[var(--surface)] px-3.5 py-2.5 text-sm dark:border-[var(--border)] dark:bg-[var(--surface)] dark:text-white" />}
               </div>
 
               <div>
-                <label className="block font-semibold text-[#1E3A5F] dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[var(--heading)] dark:text-slate-300 mb-1">
                   Hình thức làm việc
                 </label>
                 <select
                   value={employmentType}
                   onChange={(e) => setEmploymentType(e.target.value as EmploymentType)}
-                  className="w-full px-3.5 py-2.5 bg-[#F8FAFC] dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] rounded-xl text-[#0F2A52] dark:text-white focus:outline-none focus:border-[#2563EB]"
+                  className="w-full px-3.5 py-2.5 bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white focus:outline-none focus:border-[var(--border)]"
                 >
                   <option value="FULL_TIME">Toàn thời gian (Full-time)</option>
                   <option value="PART_TIME">Bán thời gian (Part-time)</option>
@@ -343,11 +343,11 @@ export default function CreateJobPage() {
                   <option value="HYBRID">Linh hoạt (Hybrid)</option>
                   <option value="OTHER">{locale === 'vi' ? 'Khác' : 'Other'}</option>
                 </select>
-                {employmentType === 'OTHER' && <input aria-label={locale === 'vi' ? 'Hình thức làm việc khác' : 'Other employment type'} maxLength={80} required value={employmentTypeOther} onChange={(e) => setEmploymentTypeOther(e.target.value)} placeholder={locale === 'vi' ? 'Nhập hình thức làm việc' : 'Enter employment type'} className="mt-2 w-full rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] px-3.5 py-2.5 text-sm dark:border-[#1E3A5F] dark:bg-[#13233F] dark:text-white" />}
+                {employmentType === 'OTHER' && <input aria-label={locale === 'vi' ? 'Hình thức làm việc khác' : 'Other employment type'} maxLength={80} required value={employmentTypeOther} onChange={(e) => setEmploymentTypeOther(e.target.value)} placeholder={locale === 'vi' ? 'Nhập hình thức làm việc' : 'Enter employment type'} className="mt-2 w-full rounded-xl border border-[var(--border-soft)] bg-[var(--surface)] px-3.5 py-2.5 text-sm dark:border-[var(--border)] dark:bg-[var(--surface)] dark:text-white" />}
               </div>
 
               <div>
-                <label className="block font-semibold text-[#1E3A5F] dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[var(--heading)] dark:text-slate-300 mb-1">
                   Địa điểm làm việc
                 </label>
                 <input
@@ -355,14 +355,14 @@ export default function CreateJobPage() {
                   placeholder="Ví dụ: Cầu Giấy, Hà Nội hoặc Quận 1, TP.HCM"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#F8FAFC] dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] rounded-xl text-[#0F2A52] dark:text-white focus:outline-none focus:border-[#2563EB]"
+                  className="w-full px-3.5 py-2.5 bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white focus:outline-none focus:border-[var(--border)]"
                 />
               </div>
 
               {/* Salary Section */}
-              <div className="sm:col-span-2 space-y-2 pt-2 border-t border-[#E2E8F0] dark:border-[#1E293B]">
+              <div className="sm:col-span-2 space-y-2 pt-2 border-t border-[var(--border-soft)] dark:border-[var(--border)]">
                 <div className="flex items-center justify-between">
-                  <label className="font-semibold text-[#1E3A5F] dark:text-slate-300">
+                  <label className="font-semibold text-[var(--heading)] dark:text-slate-300">
                     {locale === 'vi' ? 'Mức lương (VND / tháng)' : 'Salary (VND / month)'}
                   </label>
                   <label className="inline-flex items-center gap-1.5 cursor-pointer">
@@ -370,15 +370,15 @@ export default function CreateJobPage() {
                       type="checkbox"
                       checked={isSalaryNegotiable}
                       onChange={(e) => setIsSalaryNegotiable(e.target.checked)}
-                      className="rounded text-[#2563EB]"
+                      className="rounded text-[var(--primary)]"
                     />
-                    <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8]">Mức lương Thỏa thuận</span>
+                    <span className="text-[11px] text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">Mức lương Thỏa thuận</span>
                   </label>
                 </div>
 
-                {!isSalaryNegotiable && <label className="block max-w-sm text-xs font-medium text-[#1E3A5F] dark:text-slate-300">
+                {!isSalaryNegotiable && <label className="block max-w-sm text-xs font-medium text-[var(--heading)] dark:text-slate-300">
                   {locale === 'vi' ? 'Đơn vị tiền tệ (giữ nguyên khi đổi ngôn ngữ)' : 'Currency (unchanged when language changes)'}
-                  <select value={salaryCurrency} onChange={(e) => setSalaryCurrency(e.target.value as NonNullable<Job['salaryCurrency']>)} className="mt-1 w-full rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-2 text-sm dark:border-[#1E3A5F] dark:bg-[#13233F] dark:text-white">
+                  <select value={salaryCurrency} onChange={(e) => setSalaryCurrency(e.target.value as NonNullable<Job['salaryCurrency']>)} className="mt-1 w-full rounded-xl border border-[var(--border-soft)] bg-[var(--surface)] px-3 py-2 text-sm dark:border-[var(--border)] dark:bg-[var(--surface)] dark:text-white">
                     {[
                       ['VND', 'Đồng Việt Nam'], ['USD', 'US Dollar'], ['EUR', 'Euro'], ['GBP', 'British Pound'], ['JPY', 'Japanese Yen'], ['CNY', 'Chinese Yuan'], ['KRW', 'South Korean Won'], ['SGD', 'Singapore Dollar'], ['AUD', 'Australian Dollar'], ['CAD', 'Canadian Dollar'],
                     ].map(([code, name]) => <option key={code} value={code}>{code} — {locale === 'vi' ? name : ({ VND: 'Vietnamese Dong', USD: 'US Dollar', EUR: 'Euro', GBP: 'British Pound', JPY: 'Japanese Yen', CNY: 'Chinese Yuan', KRW: 'South Korean Won', SGD: 'Singapore Dollar', AUD: 'Australian Dollar', CAD: 'Canadian Dollar' } as Record<string, string>)[code]}</option>)}
@@ -388,7 +388,7 @@ export default function CreateJobPage() {
                 {!isSalaryNegotiable && (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <span className="text-[10px] text-[#94A3B8] block mb-1">{locale === 'vi' ? `Lương tối thiểu (${salaryCurrency})` : `Minimum salary (${salaryCurrency})`}</span>
+                      <span className="text-[10px] text-[var(--text-secondary)] block mb-1">{locale === 'vi' ? `Lương tối thiểu (${salaryCurrency})` : `Minimum salary (${salaryCurrency})`}</span>
                       <input
                         type="text"
                         inputMode="numeric"
@@ -396,11 +396,11 @@ export default function CreateJobPage() {
                         value={salaryMin}
                         onChange={(e) => setSalaryMin(e.target.value)}
                         placeholder={locale === 'vi' ? 'Ví dụ: 15.000.000' : 'Example: 15,000,000'}
-                        className="w-full px-3.5 py-2 bg-[#F8FAFC] dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] rounded-xl text-[#0F2A52] dark:text-white font-mono"
+                        className="w-full px-3.5 py-2 bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white font-sans"
                       />
                     </div>
                     <div>
-                      <span className="text-[10px] text-[#94A3B8] block mb-1">{locale === 'vi' ? `Lương tối đa (${salaryCurrency})` : `Maximum salary (${salaryCurrency})`}</span>
+                      <span className="text-[10px] text-[var(--text-secondary)] block mb-1">{locale === 'vi' ? `Lương tối đa (${salaryCurrency})` : `Maximum salary (${salaryCurrency})`}</span>
                       <input
                         type="text"
                         inputMode="numeric"
@@ -408,7 +408,7 @@ export default function CreateJobPage() {
                         value={salaryMax}
                         onChange={(e) => setSalaryMax(e.target.value)}
                         placeholder={locale === 'vi' ? 'Ví dụ: 30.000.000' : 'Example: 30,000,000'}
-                        className="w-full px-3.5 py-2 bg-[#F8FAFC] dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] rounded-xl text-[#0F2A52] dark:text-white font-mono"
+                        className="w-full px-3.5 py-2 bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white font-sans"
                       />
                     </div>
                   </div>
@@ -418,14 +418,14 @@ export default function CreateJobPage() {
           </div>
 
           {/* Section 2: Dynamic Rubric & Requirements Builder */}
-          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl p-6 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E2E8F0] dark:border-[#1E293B] pb-3">
+          <div className="bg-white dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border-soft)] dark:border-[var(--border)] pb-3">
               <div>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-[#0F2A52] dark:text-white flex items-center gap-2">
-                  <Award className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--heading)] dark:text-white flex items-center gap-2">
+                  <Award className="w-4 h-4 text-[var(--primary)] dark:text-[var(--retro-sky)]" />
                   <span>2. Rubric Kỹ Năng & Tiêu Chuẩn Năng Lực (Vector Baseline)</span>
                 </h3>
-                <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8]">
+                <p className="text-[11px] text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
                   Kỹ năng Bắt buộc (REQUIRED) sẽ tham gia cơ chế Gating loại trừ; Kỹ năng Ưu tiên (PREFERRED) tính điểm thưởng.
                 </p>
               </div>
@@ -433,12 +433,12 @@ export default function CreateJobPage() {
 
             {/* Existing Requirements Chips */}
             <div className="space-y-2">
-              <span className="text-xs font-semibold text-[#1E3A5F] dark:text-slate-300 block">
+              <span className="text-xs font-semibold text-[var(--heading)] dark:text-slate-300 block">
                 Danh sách tiêu chuẩn đã thiết lập ({requirements.length}):
               </span>
 
               {requirements.length === 0 ? (
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#13233F] text-center text-xs text-[#94A3B8]">
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[var(--surface)] text-center text-xs text-[var(--text-secondary)]">
                   Chưa có kỹ năng nào được thêm. Hãy nhập kỹ năng bên dưới để xây dựng rubric.
                 </div>
               ) : (
@@ -446,15 +446,15 @@ export default function CreateJobPage() {
                   {requirements.map((req) => (
                     <div
                       key={req.id}
-                      className="p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-[#13233F] border border-[#E2E8F0] dark:border-[#1E293B] flex items-center justify-between gap-2 shadow-2xs"
+                      className="p-2.5 rounded-xl bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] flex items-center justify-between gap-2 shadow-2xs"
                     >
                       <div className="space-y-0.5 min-w-0">
-                        <div className="font-bold text-xs text-[#0F2A52] dark:text-white truncate">
+                        <div className="font-bold text-xs text-[var(--heading)] dark:text-white truncate">
                           {req.skillName}
                         </div>
                         <div className="flex items-center gap-1.5 text-[10px]">
                           <span
-                            className={`px-1.5 py-0.2 rounded font-mono font-bold uppercase ${
+                            className={`px-1.5 py-0.2 rounded font-sans font-bold uppercase ${
                               req.requirementType === 'REQUIRED'
                                 ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/40'
                                 : 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-300/40'
@@ -462,7 +462,7 @@ export default function CreateJobPage() {
                           >
                             {req.requirementType}
                           </span>
-                          <span className="text-[#64748B] dark:text-[#94A3B8]">
+                          <span className="text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
                             ≥ {req.minYearsExperience} năm
                           </span>
                         </div>
@@ -471,7 +471,7 @@ export default function CreateJobPage() {
                       <button
                         type="button"
                         onClick={() => handleRemoveSkill(req.id)}
-                        className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition shrink-0"
+                        className="p-1 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition shrink-0"
                         title="Xóa kỹ năng"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -483,13 +483,13 @@ export default function CreateJobPage() {
             </div>
 
             {/* Add New Skill Form using Canonical Catalog Autocomplete & Favorites */}
-            <div className="p-4 rounded-xl bg-[#EFF6FF] dark:bg-[#0B1528] border border-[#DBEAFE] dark:border-[#1E3A5F] space-y-3">
+            <div className="p-4 rounded-xl bg-[var(--surface-secondary)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-[#2563EB] dark:text-[#3B82F6] flex items-center gap-1.5">
+                <span className="text-[11px] font-bold text-[var(--primary)] dark:text-[var(--retro-sky)] flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>+ Thêm tiêu chuẩn kỹ năng vào Rubric (Taxonomy Autocomplete & Quick-Pick Yêu thích):</span>
                 </span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-sans">
                   Phân tách REQUIRED vs PREFERRED
                 </span>
               </div>
@@ -521,14 +521,14 @@ export default function CreateJobPage() {
           </div>
 
           {/* Section 3: Job Description & Responsibilities */}
-          <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl p-6 shadow-xs space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-[#0F2A52] dark:text-white border-b border-[#E2E8F0] dark:border-[#1E293B] pb-3">
+          <div className="bg-white dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl p-6 shadow-xs space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--heading)] dark:text-white border-b border-[var(--border-soft)] dark:border-[var(--border)] pb-3">
               3. Mô Tả Công Việc (JD Description)
             </h3>
 
             <div className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-[#1E3A5F] dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[var(--heading)] dark:text-slate-300 mb-1">
                   Mô tả tổng quát công việc <span className="text-rose-500">*</span>
                 </label>
                 <textarea
@@ -536,13 +536,13 @@ export default function CreateJobPage() {
                   placeholder="Mô tả bối cảnh dự án, sứ mệnh của vai trò, văn hóa đội ngũ..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full p-3.5 bg-[#F8FAFC] dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] rounded-xl text-[#0F2A52] dark:text-white focus:outline-none focus:border-[#2563EB] leading-relaxed"
+                  className="w-full p-3.5 bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white focus:outline-none focus:border-[var(--border)] leading-relaxed"
                   required
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-[#1E3A5F] dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[var(--heading)] dark:text-slate-300 mb-1">
                   Trách nhiệm chính (Mỗi dòng một gạch đầu dòng)
                 </label>
                 <textarea
@@ -550,7 +550,7 @@ export default function CreateJobPage() {
                   placeholder="- Thiết kế và phát triển RESTful APIs&#10;- Tối ưu hóa hiệu năng cơ sở dữ liệu&#10;- Review code và hướng dẫn các thành viên junior"
                   value={responsibilities}
                   onChange={(e) => setResponsibilities(e.target.value)}
-                  className="w-full p-3.5 bg-[#F8FAFC] dark:bg-[#13233F] border border-[#CBD5E1] dark:border-[#1E3A5F] rounded-xl text-[#0F2A52] dark:text-white focus:outline-none focus:border-[#2563EB] leading-relaxed"
+                  className="w-full p-3.5 bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white focus:outline-none focus:border-[var(--border)] leading-relaxed"
                 />
               </div>
             </div>
@@ -560,7 +560,7 @@ export default function CreateJobPage() {
           <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-3">
             <Link
               href="/recruiter/jobs"
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-semibold text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#111C38] text-center transition"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] dark:text-[var(--text-secondary)] hover:text-[var(--heading)] dark:hover:text-white border border-[var(--border-soft)] dark:border-[var(--border)] bg-white dark:bg-[var(--surface)] text-center transition"
             >
               Hủy bỏ
             </Link>
@@ -569,7 +569,7 @@ export default function CreateJobPage() {
               type="button"
               disabled={isSubmitting}
               onClick={() => handleSubmit('DRAFT')}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#F8FAFC] dark:bg-[#13233F] text-[#1E3A5F] dark:text-slate-200 border border-[#CBD5E1] dark:border-[#1E3A5F] hover:bg-[#F1F5F9] transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-semibold bg-[var(--surface)] dark:bg-[var(--surface)] text-[var(--heading)] dark:text-slate-200 border border-[var(--border-soft)] dark:border-[var(--border)] hover:bg-[var(--surface-secondary)] transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               <span>{isSubmitting ? 'Đang lưu...' : 'Lưu Bản Nháp (Draft)'}</span>
@@ -584,7 +584,7 @@ export default function CreateJobPage() {
                   ? 'Chỉ doanh nghiệp Đã Xác Minh (VERIFIED) mới được quyền xuất bản tin'
                   : undefined
               }
-              className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary)] shadow-sm transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="w-4 h-4" />
               <span>
@@ -601,25 +601,25 @@ export default function CreateJobPage() {
 
       {/* PREVIEW TAB */}
       {activeTab === 'preview' && (
-        <div className="bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
-          <div className="border-b border-[#E2E8F0] dark:border-[#1E293B] pb-6 space-y-3">
+        <div className="bg-white dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl p-6 sm:p-8 shadow-xs space-y-6">
+          <div className="border-b border-[var(--border-soft)] dark:border-[var(--border)] pb-6 space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] border border-[#2563EB]/20">
+              <span className="px-2.5 py-0.5 rounded text-[11px] font-sans font-bold bg-[var(--surface-secondary)] dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] border border-[var(--border)]/20">
                 {industry}
               </span>
-              <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00B14F] border border-[#00B14F]/20">
+              <span className="px-2.5 py-0.5 rounded text-[11px] font-sans font-bold bg-[var(--surface-secondary)] dark:bg-[var(--success)]/15 text-[var(--success)] border border-[var(--border)]/20">
                 {seniority}
               </span>
-              <span className="px-2.5 py-0.5 rounded text-[11px] font-mono text-[#64748B] dark:text-[#94A3B8]">
+              <span className="px-2.5 py-0.5 rounded text-[11px] font-sans text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
                 {employmentType}
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-editorial font-bold text-[#0F2A52] dark:text-white">
+            <h1 className="text-2xl sm:text-3xl font-editorial font-bold text-[var(--heading)] dark:text-white">
               {title || 'Tiêu đề vị trí tuyển dụng'}
             </h1>
 
-            <div className="flex items-center gap-4 text-xs text-[#64748B] dark:text-[#94A3B8] flex-wrap">
+            <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)] flex-wrap">
               <span className="flex items-center gap-1">
                 <Building2 className="w-3.5 h-3.5" />
                 <span>{company?.name || 'Doanh nghiệp'}</span>
@@ -630,7 +630,7 @@ export default function CreateJobPage() {
                 <span>{location || 'Toàn quốc'}</span>
               </span>
               <span>•</span>
-              <span className="flex items-center gap-1 font-mono text-[#00B14F] font-semibold">
+              <span className="flex items-center gap-1 font-sans text-[var(--success)] font-semibold">
                 <DollarSign className="w-3.5 h-3.5" />
                 <span>
                   {isSalaryNegotiable
@@ -642,8 +642,8 @@ export default function CreateJobPage() {
           </div>
 
           {/* Description */}
-          <div className="space-y-2 text-xs leading-relaxed text-[#1E3A5F] dark:text-slate-300">
-            <h4 className="font-bold text-sm text-[#0F2A52] dark:text-white">
+          <div className="space-y-2 text-xs leading-relaxed text-[var(--heading)] dark:text-slate-300">
+            <h4 className="font-bold text-sm text-[var(--heading)] dark:text-white">
               Mô tả công việc:
             </h4>
             <p className="whitespace-pre-wrap">{description || 'Chưa nhập mô tả công việc.'}</p>
@@ -651,8 +651,8 @@ export default function CreateJobPage() {
 
           {/* Responsibilities */}
           {responsibilities && (
-            <div className="space-y-2 text-xs leading-relaxed text-[#1E3A5F] dark:text-slate-300 pt-3 border-t border-[#E2E8F0] dark:border-[#1E293B]">
-              <h4 className="font-bold text-sm text-[#0F2A52] dark:text-white">
+            <div className="space-y-2 text-xs leading-relaxed text-[var(--heading)] dark:text-slate-300 pt-3 border-t border-[var(--border-soft)] dark:border-[var(--border)]">
+              <h4 className="font-bold text-sm text-[var(--heading)] dark:text-white">
                 Trách nhiệm chính:
               </h4>
               <ul className="list-disc pl-5 space-y-1">
@@ -667,14 +667,14 @@ export default function CreateJobPage() {
           )}
 
           {/* Rubric Breakdown */}
-          <div className="space-y-3 pt-3 border-t border-[#E2E8F0] dark:border-[#1E293B]">
-            <h4 className="font-bold text-sm text-[#0F2A52] dark:text-white">
+          <div className="space-y-3 pt-3 border-t border-[var(--border-soft)] dark:border-[var(--border)]">
+            <h4 className="font-bold text-sm text-[var(--heading)] dark:text-white">
               Rubric kỹ năng đối sánh AI ({requirements.length}):
             </h4>
 
             <div className="space-y-2">
               <div>
-                <span className="text-[11px] font-mono font-bold text-amber-700 dark:text-amber-300 block mb-1.5 uppercase">
+                <span className="text-[11px] font-sans font-bold text-amber-700 dark:text-amber-300 block mb-1.5 uppercase">
                   Required Skills (Gating bắt buộc):
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -683,7 +683,7 @@ export default function CreateJobPage() {
                     .map((r) => (
                       <span
                         key={r.id}
-                        className="px-2.5 py-1 rounded-lg text-xs font-mono font-medium bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300"
+                        className="px-2.5 py-1 rounded-xl text-xs font-sans font-medium bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300"
                       >
                         {r.skillName} (≥ {r.minYearsExperience} năm)
                       </span>
@@ -692,7 +692,7 @@ export default function CreateJobPage() {
               </div>
 
               <div>
-                <span className="text-[11px] font-mono font-bold text-blue-700 dark:text-blue-300 block mb-1.5 uppercase pt-2">
+                <span className="text-[11px] font-sans font-bold text-blue-700 dark:text-blue-300 block mb-1.5 uppercase pt-2">
                   Preferred Skills (Kỹ năng ưu tiên):
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -701,7 +701,7 @@ export default function CreateJobPage() {
                     .map((r) => (
                       <span
                         key={r.id}
-                        className="px-2.5 py-1 rounded-lg text-xs font-mono font-medium bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 text-blue-800 dark:text-blue-300"
+                        className="px-2.5 py-1 rounded-xl text-xs font-sans font-medium bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 text-blue-800 dark:text-blue-300"
                       >
                         {r.skillName} (≥ {r.minYearsExperience} năm)
                       </span>

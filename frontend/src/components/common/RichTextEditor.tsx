@@ -48,14 +48,14 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   };
 
   return (
-    <div className={`border border-slate-200 dark:border-[#1E293B] rounded-xl overflow-hidden bg-white dark:bg-[#0B1329] focus-within:border-blue-500 transition shadow-xs ${className}`}>
+    <div className={`border border-slate-200 dark:border-[var(--border)] rounded-xl overflow-hidden bg-white dark:bg-[var(--surface)] focus-within:border-blue-500 transition shadow-xs ${className}`}>
       {/* Formatting Toolbar */}
-      <div className="flex flex-wrap items-center gap-1 p-1.5 border-b border-slate-100 dark:border-[#1E293B] bg-slate-50/80 dark:bg-[#111C38]/80 text-slate-600 dark:text-slate-300">
+      <div className="flex flex-wrap items-center gap-1 p-1.5 border-b border-slate-100 dark:border-[var(--border)] bg-slate-50/80 dark:bg-[var(--surface)]/80 text-slate-600 dark:text-slate-300">
         <button
           type="button"
           onClick={() => exec('bold')}
           title="In đậm (Bold)"
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[#18294E] transition text-xs flex items-center justify-center cursor-pointer"
+          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition text-xs flex items-center justify-center cursor-pointer"
         >
           <Bold className="w-3.5 h-3.5" />
         </button>
@@ -63,7 +63,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           type="button"
           onClick={() => exec('italic')}
           title="In nghiêng (Italic)"
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[#18294E] transition text-xs flex items-center justify-center cursor-pointer"
+          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition text-xs flex items-center justify-center cursor-pointer"
         >
           <Italic className="w-3.5 h-3.5" />
         </button>
@@ -71,18 +71,18 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           type="button"
           onClick={() => exec('underline')}
           title="Gạch chân (Underline)"
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[#18294E] transition text-xs flex items-center justify-center cursor-pointer"
+          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition text-xs flex items-center justify-center cursor-pointer"
         >
           <Underline className="w-3.5 h-3.5" />
         </button>
 
-        <div className="w-px h-4 bg-slate-200 dark:bg-[#1E293B] mx-1" />
+        <div className="w-px h-4 bg-slate-200 dark:bg-[var(--surface)] mx-1" />
 
         <button
           type="button"
           onClick={() => exec('insertUnorderedList')}
           title="Danh sách dấu đầu dòng (Bullet list)"
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[#18294E] transition text-xs flex items-center justify-center cursor-pointer"
+          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition text-xs flex items-center justify-center cursor-pointer"
         >
           <List className="w-3.5 h-3.5" />
         </button>
@@ -90,18 +90,18 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           type="button"
           onClick={() => exec('insertOrderedList')}
           title="Danh sách số (Numbered list)"
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[#18294E] transition text-xs flex items-center justify-center cursor-pointer"
+          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition text-xs flex items-center justify-center cursor-pointer"
         >
           <ListOrdered className="w-3.5 h-3.5" />
         </button>
 
-        <div className="w-px h-4 bg-slate-200 dark:bg-[#1E293B] mx-1" />
+        <div className="w-px h-4 bg-slate-200 dark:bg-[var(--surface)] mx-1" />
 
         <button
           type="button"
           onClick={() => exec('undo')}
           title="Hoàn tác (Undo)"
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[#18294E] transition text-xs flex items-center justify-center cursor-pointer"
+          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition text-xs flex items-center justify-center cursor-pointer"
         >
           <Undo className="w-3.5 h-3.5" />
         </button>
@@ -109,7 +109,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           type="button"
           onClick={() => exec('redo')}
           title="Làm lại (Redo)"
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[#18294E] transition text-xs flex items-center justify-center cursor-pointer"
+          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition text-xs flex items-center justify-center cursor-pointer"
         >
           <Redo className="w-3.5 h-3.5" />
         </button>
@@ -117,7 +117,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           type="button"
           onClick={() => exec('removeFormat')}
           title="Xóa định dạng"
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[#18294E] transition text-xs flex items-center justify-center cursor-pointer"
+          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition text-xs flex items-center justify-center cursor-pointer"
         >
           <RemoveFormatting className="w-3.5 h-3.5" />
         </button>

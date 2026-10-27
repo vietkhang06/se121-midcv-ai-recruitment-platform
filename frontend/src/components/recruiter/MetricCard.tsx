@@ -21,32 +21,32 @@ export interface MetricCardProps {
 
 const variantStyles = {
   primary: {
-    bg: 'bg-white dark:bg-[#111C38]',
-    border: 'border-[#E2E8F0] dark:border-[#1E293B]',
-    iconBg: 'bg-[#EFF6FF] dark:bg-[#152342]',
-    iconColor: 'text-[#2563EB] dark:text-[#3B82F6]',
-    valueColor: 'text-[#0F2A52] dark:text-white',
+    bg: 'bg-white dark:bg-[var(--surface)]',
+    border: 'border-[var(--border-soft)] dark:border-[var(--border)]',
+    iconBg: 'bg-[var(--surface-secondary)] dark:bg-[var(--surface)]',
+    iconColor: 'text-[var(--primary)] dark:text-[var(--retro-sky)]',
+    valueColor: 'text-[var(--heading)] dark:text-white',
   },
   success: {
-    bg: 'bg-white dark:bg-[#111C38]',
-    border: 'border-[#E2E8F0] dark:border-[#1E293B]',
-    iconBg: 'bg-[#E8F8EE] dark:bg-[#00B14F]/15',
-    iconColor: 'text-[#00B14F] dark:text-[#10B981]',
-    valueColor: 'text-[#0F2A52] dark:text-white',
+    bg: 'bg-white dark:bg-[var(--surface)]',
+    border: 'border-[var(--border-soft)] dark:border-[var(--border)]',
+    iconBg: 'bg-[var(--surface-secondary)] dark:bg-[var(--success)]/15',
+    iconColor: 'text-[var(--success)] dark:text-[var(--success)]',
+    valueColor: 'text-[var(--heading)] dark:text-white',
   },
   warning: {
-    bg: 'bg-white dark:bg-[#111C38]',
-    border: 'border-[#E2E8F0] dark:border-[#1E293B]',
-    iconBg: 'bg-[#FEF3C7] dark:bg-[#FACC15]/15',
-    iconColor: 'text-[#F59E0B] dark:text-[#FACC15]',
-    valueColor: 'text-[#0F2A52] dark:text-white',
+    bg: 'bg-white dark:bg-[var(--surface)]',
+    border: 'border-[var(--border-soft)] dark:border-[var(--border)]',
+    iconBg: 'bg-[var(--surface-secondary)] dark:bg-[var(--warning)]/15',
+    iconColor: 'text-[var(--warning)] dark:text-[var(--warning)]',
+    valueColor: 'text-[var(--heading)] dark:text-white',
   },
   neutral: {
-    bg: 'bg-white dark:bg-[#111C38]',
-    border: 'border-[#E2E8F0] dark:border-[#1E293B]',
-    iconBg: 'bg-[#F8FAFC] dark:bg-[#13233F]',
-    iconColor: 'text-[#64748B] dark:text-[#94A3B8]',
-    valueColor: 'text-[#0F2A52] dark:text-white',
+    bg: 'bg-white dark:bg-[var(--surface)]',
+    border: 'border-[var(--border-soft)] dark:border-[var(--border)]',
+    iconBg: 'bg-[var(--surface)] dark:bg-[var(--surface)]',
+    iconColor: 'text-[var(--text-secondary)] dark:text-[var(--text-secondary)]',
+    valueColor: 'text-[var(--heading)] dark:text-white',
   },
 };
 
@@ -65,7 +65,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
   if (loading) {
     return (
-      <div className={`p-5 rounded-2xl border ${styles.border} ${styles.bg} shadow-xs animate-pulse space-y-3 min-w-0 w-full`}>
+      <div className={`p-5 rounded-xl border ${styles.border} ${styles.bg} shadow-xs animate-pulse space-y-3 min-w-0 w-full`}>
         <div className="flex items-center justify-between">
           <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
           <div className="h-9 w-9 bg-slate-200 dark:bg-slate-700 rounded-xl" />
@@ -81,20 +81,20 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <Component
       onClick={onClick}
-      className={`p-5 rounded-2xl border ${styles.border} ${styles.bg} shadow-xs text-left transition-all min-w-0 w-full ${
+      className={`p-5 rounded-xl border ${styles.border} ${styles.bg} shadow-xs text-left transition-all min-w-0 w-full ${
         onClick
-          ? 'cursor-pointer hover:border-[#2563EB] dark:hover:border-[#3B82F6] hover:shadow-md active:scale-[0.99]'
+          ? 'cursor-pointer hover:border-[var(--border)] dark:hover:border-[var(--border)] hover:shadow-md active:scale-[0.99]'
           : ''
       }`}
     >
       <div className="flex items-center justify-between gap-3 mb-2">
-        <span className="text-xs font-semibold text-[#64748B] dark:text-[#94A3B8] block truncate">
+        <span className="text-xs font-semibold text-[var(--text-secondary)] dark:text-[var(--text-secondary)] block truncate">
           {label}
         </span>
 
         <div className="flex items-center gap-1.5 shrink-0">
           {badge && (
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+            <span className="text-[10px] font-sans font-bold px-2 py-0.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
               {badge}
             </span>
           )}
@@ -111,10 +111,10 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
         {trend && (
           <span
-            className={`inline-flex items-center gap-0.5 text-xs font-semibold font-mono ${
+            className={`inline-flex items-center gap-0.5 text-xs font-semibold font-sans ${
               trend.isPositive
-                ? 'text-[#00B14F] dark:text-[#10B981]'
-                : 'text-[#EF4444] dark:text-[#F87171]'
+                ? 'text-[var(--success)] dark:text-[var(--success)]'
+                : 'text-[var(--danger)] dark:text-[var(--danger)]'
             }`}
           >
             {trend.isPositive ? (
@@ -128,7 +128,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       </div>
 
       {subtext && (
-        <p className="text-[11px] text-[#94A3B8] dark:text-[#64748B] leading-tight truncate">
+        <p className="text-[11px] text-[var(--text-secondary)] dark:text-[var(--text-secondary)] leading-tight truncate">
           {subtext}
         </p>
       )}

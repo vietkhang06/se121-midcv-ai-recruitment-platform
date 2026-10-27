@@ -32,7 +32,7 @@ export const JobFilter: React.FC<JobFilterProps> = ({
   onReset
 }) => {
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+    <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-xl space-y-4">
       {/* Search Input Bar */}
       <div className="relative">
         <Search className="w-5 h-5 absolute left-3.5 top-3.5 text-slate-400" />

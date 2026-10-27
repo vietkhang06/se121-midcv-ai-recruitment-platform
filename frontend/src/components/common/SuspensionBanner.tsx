@@ -94,13 +94,13 @@ export const SuspensionBanner: React.FC = () => {
   const getAppealStatusBadge = () => {
     switch (notice.appealStatus) {
       case 'SUBMITTED':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">Đã gửi khiếu nại</span>;
+        return <span className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">Đã gửi khiếu nại</span>;
       case 'UNDER_REVIEW':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Đang được xét duyệt</span>;
+        return <span className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Đang được xét duyệt</span>;
       case 'REJECTED':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300">Khiếu nại bị từ chối</span>;
+        return <span className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300">Khiếu nại bị từ chối</span>;
       case 'CANCELLED':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">Đã hủy khiếu nại</span>;
+        return <span className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">Đã hủy khiếu nại</span>;
       default:
         return null;
     }
@@ -110,7 +110,7 @@ export const SuspensionBanner: React.FC = () => {
     <div className="w-full bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-900/60 p-4 transition-all">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-start gap-3">
-          <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex-shrink-0 mt-0.5">
+          <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex-shrink-0 mt-0.5">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
@@ -162,7 +162,7 @@ export const SuspensionBanner: React.FC = () => {
           {(!notice.appealStatus || notice.appealStatus === 'NONE' || notice.appealStatus === 'CANCELLED' || notice.appealStatus === 'REJECTED') && (
             <button
               onClick={handleOpenAppealModal}
-              className="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-sm transition-colors"
+              className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-sm transition-colors"
             >
               Gửi khiếu nại
             </button>
@@ -171,7 +171,7 @@ export const SuspensionBanner: React.FC = () => {
           {notice.appealStatus === 'SUBMITTED' && (
             <button
               onClick={() => setShowCancelModal(true)}
-              className="px-3 py-1.5 rounded-lg border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-xs font-semibold transition-colors"
+              className="px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-xs font-semibold transition-colors"
             >
               Hủy khiếu nại
             </button>
@@ -180,7 +180,7 @@ export const SuspensionBanner: React.FC = () => {
       </div>
 
       {successMsg && (
-        <div className="max-w-7xl mx-auto mt-2 p-2 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-lg text-xs text-emerald-700 dark:text-emerald-300 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto mt-2 p-2 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-xl text-xs text-emerald-700 dark:text-emerald-300 flex justify-between items-center">
           <span>{successMsg}</span>
           <button onClick={() => setSuccessMsg(null)} className="font-bold ml-2">✕</button>
         </div>
@@ -189,7 +189,7 @@ export const SuspensionBanner: React.FC = () => {
       {/* Appeal Form Modal */}
       {showAppealModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+          <div className="relative bg-white dark:bg-slate-900 rounded-xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">
               Gửi đơn khiếu nại đình chỉ
             </h3>
@@ -207,7 +207,7 @@ export const SuspensionBanner: React.FC = () => {
                   required
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
                 />
               </div>
 
@@ -221,7 +221,7 @@ export const SuspensionBanner: React.FC = () => {
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Mô tả hoàn cảnh, căn cứ khiếu nại và các tài liệu liên quan..."
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
                 />
               </div>
 
@@ -234,12 +234,12 @@ export const SuspensionBanner: React.FC = () => {
                   value={evidenceUrl}
                   onChange={(e) => setEvidenceUrl(e.target.value)}
                   placeholder="https://drive.google.com/... hoặc liên kết minh chứng"
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
                 />
               </div>
 
               {errorMsg && (
-                <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg text-sm text-red-600 dark:text-red-400">
+                <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl text-sm text-red-600 dark:text-red-400">
                   {errorMsg}
                 </div>
               )}
@@ -249,14 +249,14 @@ export const SuspensionBanner: React.FC = () => {
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => setShowAppealModal(false)}
-                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   Đóng
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold shadow-sm transition-colors disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold shadow-sm transition-colors disabled:opacity-50"
                 >
                   {isSubmitting ? 'Đang gửi...' : 'Gửi khiếu nại'}
                 </button>

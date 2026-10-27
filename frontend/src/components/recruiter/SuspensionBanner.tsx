@@ -41,7 +41,7 @@ export const SuspensionBanner: React.FC<SuspensionBannerProps> = ({
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3">
-          <div className="p-2 rounded-lg bg-red-500/20 text-red-600 dark:text-red-400 mt-0.5 shrink-0">
+          <div className="p-2 rounded-xl bg-red-500/20 text-red-600 dark:text-red-400 mt-0.5 shrink-0">
             {isUserSuspended ? <ShieldAlert className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
           </div>
           <div>
@@ -58,7 +58,7 @@ export const SuspensionBanner: React.FC<SuspensionBannerProps> = ({
           {onOpenAppealModal ? (
             <button
               onClick={onOpenAppealModal}
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 transition shadow-sm"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-xl bg-red-600 text-white hover:bg-red-700 transition shadow-sm"
             >
               <FileText className="w-4 h-4" />
               Gửi khiếu nại
@@ -66,7 +66,7 @@ export const SuspensionBanner: React.FC<SuspensionBannerProps> = ({
           ) : (
             <Link
               href="/recruiter/company?tab=appeals"
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 transition shadow-sm"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-xl bg-red-600 text-white hover:bg-red-700 transition shadow-sm"
             >
               <FileText className="w-4 h-4" />
               Gửi khiếu nại

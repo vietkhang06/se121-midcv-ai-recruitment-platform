@@ -114,7 +114,7 @@ public class ApplicationDuplicateProtectionTest {
         CVVersion version = CVVersion.builder()
                 .cv(cv)
                 .versionNumber(1)
-                .status("CONFIRMED")
+                .structuredJsonContent("{\"skills\":[\"Java\"]}").status("CONFIRMED")
                 .build();
         version.setId(UUID.randomUUID());
         lenient().when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(any())).thenReturn(List.of(version));

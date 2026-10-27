@@ -36,6 +36,8 @@ import java.util.ArrayList;
 @Service
 public class ApplicationService {
 
+    private com.platform.recruitment.communication.InboxService inbox;
+    @Autowired public void setInbox(com.platform.recruitment.communication.InboxService inbox) { this.inbox=inbox; }
     private final ApplicationRepository applicationRepository;
     private final ApplicationCVSnapshotRepository snapshotRepository;
     private final JobRepository jobRepository;
@@ -157,6 +159,7 @@ public class ApplicationService {
         // Matching failure propagates: the transaction rolls back application and snapshot together.
         matchingEngineService.calculateAndPersistMatchResult(job.getId(), candidate.getId());
 
+        if(inbox!=null) inbox.applicationEvent(savedApplication,false);
         return mapToResponse(savedApplication, snapshot);
     }
 
@@ -292,6 +295,7 @@ public class ApplicationService {
         auditLogRepository.save(auditLog);
 
         ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(savedApplication.getId()).orElse(null);
+        if(inbox!=null && previousStatus!=savedApplication.getStatus()) inbox.applicationEvent(savedApplication,true);
         return mapToResponse(savedApplication, snap);
     }
 
@@ -422,7 +426,7 @@ public class ApplicationService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ApplicationResponse getApplicationById(User recruiterUser, UUID applicationId) {
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
@@ -436,6 +440,7 @@ public class ApplicationService {
         }
 
         ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(application.getId()).orElse(null);
+        if(inbox!=null) inbox.view(application,recruiterUser);
         return mapToResponse(application, snap);
     }
 
