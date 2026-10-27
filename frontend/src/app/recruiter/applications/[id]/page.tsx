@@ -101,7 +101,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center">
         <EmptyState
           type="LOADING"
           title={t('common.loading', locale === 'vi' ? 'Đang tải dữ liệu hồ sơ...' : 'Loading candidate data...')}
@@ -113,7 +113,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
 
   if (fetchError) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 transition-colors py-12 px-4 sm:px-6 max-w-4xl mx-auto">
+      <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 transition-colors py-12 px-4 sm:px-6 max-w-4xl mx-auto">
         <div className="mb-6">
           <Link href="/recruiter/jobs" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-600 transition">
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -133,7 +133,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
 
   if (!data && !application) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 transition-colors py-12 px-4 sm:px-6 max-w-4xl mx-auto">
+      <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 transition-colors py-12 px-4 sm:px-6 max-w-4xl mx-auto">
         <div className="mb-6">
           <Link href="/recruiter/jobs" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-600 transition">
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -165,7 +165,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
   const totalSkillsCount = data?.requiredSkillsStatus?.length || 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors pb-20 w-full min-w-0">
+    <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors pb-20 w-full min-w-0">
       <main className="flex-1 w-full max-w-6xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Top Back Navigation */}
         <div className="flex items-center justify-between">
@@ -177,8 +177,8 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
             <span>{locale === 'vi' ? 'Quay lại danh sách đơn ứng tuyển của tin' : 'Back to Job Applications'}</span>
           </Link>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-slate-500 dark:text-slate-400">Application #{resolvedParams.id.slice(0, 8)}</span>
-            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold font-mono border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}>
+            <span className="text-xs font-sans text-slate-500 dark:text-slate-400">Application #{resolvedParams.id.slice(0, 8)}</span>
+            <span className={`px-2.5 py-0.5 rounded-xl text-xs font-bold font-sans border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}>
               {locale === 'vi' ? statusCfg.labelVi : statusCfg.labelEn}
             </span>
           </div>
@@ -187,7 +187,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
         {/* Header: Candidate & Job Target */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
           <div className="space-y-1.5">
-            <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 tracking-wider uppercase font-mono block">
+            <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 tracking-wider uppercase font-sans block">
               EVIDENCE VERIFICATION INDEX
             </span>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
@@ -203,7 +203,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
           <div className="flex items-center gap-3 flex-shrink-0">
             <button
               onClick={() => alert(locale === 'vi' ? 'Đã sao chép liên kết báo cáo đối sánh' : 'Match report link copied')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C38] text-slate-700 dark:text-slate-300 hover:bg-slate-50 font-semibold text-xs transition shadow-xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[var(--surface)] text-slate-700 dark:text-slate-300 hover:bg-slate-50 font-semibold text-xs transition shadow-xs cursor-pointer"
             >
               <Share2 className="w-3.5 h-3.5" />
               <span>{locale === 'vi' ? 'Chia sẻ' : 'Share'}</span>
@@ -221,8 +221,8 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
         {/* Top 2-Card Row: Overall Fit Index & Match Explanation Narrative */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* Card 1: Overall Fit Index (Radial progress) */}
-          <div className="md:col-span-4 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-7 shadow-xs flex flex-col items-center justify-center text-center space-y-4 transition-colors">
-            <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider block font-mono">
+          <div className="md:col-span-4 bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 sm:p-7 shadow-xs flex flex-col items-center justify-center text-center space-y-4 transition-colors">
+            <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider block font-sans">
               Overall Fit Index
             </span>
 
@@ -237,8 +237,8 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                   cx="50"
                   cy="50"
                   r="40"
-                  stroke="#E2E8F0"
-                  className="stroke-slate-200 dark:stroke-[#1E293B]"
+                  stroke="var(--retro-cream)"
+                  className="stroke-slate-200 dark:stroke-[var(--heading)]"
                   strokeWidth="8"
                   fill="transparent"
                 />
@@ -246,7 +246,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                   cx="50"
                   cy="50"
                   r="40"
-                  stroke="#10B981"
+                  stroke="var(--success)"
                   strokeWidth="8"
                   strokeDasharray="251.2"
                   strokeDashoffset={251.2 * (1 - Math.min(100, overallScore ?? 0) / 100)}
@@ -259,12 +259,12 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                 <span className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
                   {overallScore !== null ? `${overallScore.toFixed(1)}%` : 'N/A'}
                 </span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold font-mono">MATCH</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold font-sans">MATCH</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-500 dark:text-slate-400">{locale === 'vi' ? 'Hiện tại:' : 'Current:'}</span>
-              <span className={`px-2.5 py-1 rounded-md text-xs font-bold font-mono border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}>
+              <span className={`px-2.5 py-1 rounded-xl text-xs font-bold font-sans border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}>
                 {locale === 'vi' ? statusCfg.labelVi : statusCfg.labelEn}
               </span>
             </div>
@@ -327,7 +327,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
 
           {/* Decision Note Drawer */}
           {selectedDecision && (
-            <div className="bg-slate-50 dark:bg-[#0B1329] border border-blue-200 dark:border-blue-900/60 rounded-xl p-4 mt-3 space-y-3">
+            <div className="bg-slate-50 dark:bg-[var(--surface)] border border-blue-200 dark:border-blue-900/60 rounded-xl p-4 mt-3 space-y-3">
               <div className="flex items-center justify-between text-xs font-semibold text-slate-800 dark:text-slate-200">
                 <span>
                   {locale === 'vi'
@@ -348,14 +348,14 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                 value={decisionNote}
                 onChange={(e) => setDecisionNote(e.target.value)}
                 placeholder={locale === 'vi' ? 'Nhập ghi chú lý do / nhận xét tuyển dụng (tùy chọn)...' : 'Enter internal decision note / interview feedback (optional)...'}
-                className="w-full text-xs p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#111C38] text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[var(--surface)] text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
 
               <div className="flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setSelectedDecision(null)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800"
+                  className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800"
                 >
                   {locale === 'vi' ? 'Hủy' : 'Cancel'}
                 </button>
@@ -363,7 +363,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                   type="button"
                   disabled={isSubmittingDecision}
                   onClick={() => handleApplyDecision(selectedDecision)}
-                  className="px-4 py-1.5 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition active:scale-95 disabled:opacity-50"
+                  className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition active:scale-95 disabled:opacity-50"
                 >
                   {isSubmittingDecision ? (locale === 'vi' ? 'Đang lưu...' : 'Saving...') : (locale === 'vi' ? 'Lưu quyết định' : 'Confirm Decision')}
                 </button>
@@ -373,7 +373,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
         </div>
 
         {/* Real Candidate Contact & Profile Card */}
-        <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
+        <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-3">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -381,7 +381,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                 {locale === 'vi' ? 'Thông Tin Hồ Sơ Ứng Viên (Candidate Identity)' : 'Candidate Identity & Contact Information'}
               </h3>
             </div>
-            <span className="text-[11px] font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-full font-semibold">
+            <span className="text-[11px] font-sans text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-xl font-semibold">
               ✓ Verified Candidate Profile
             </span>
           </div>
@@ -395,14 +395,14 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
               <span className="text-slate-400 block mb-0.5">{locale === 'vi' ? 'Email liên hệ:' : 'Email Address:'}</span>
               <span className="font-semibold text-slate-900 dark:text-white flex items-center gap-1">
                 <Mail className="w-3.5 h-3.5 text-blue-500" />
-                <span className="font-mono">{application?.candidateEmail || 'email@candidate.midcv'}</span>
+                <span className="font-sans">{application?.candidateEmail || 'email@candidate.midcv'}</span>
               </span>
             </div>
             <div>
               <span className="text-slate-400 block mb-0.5">{locale === 'vi' ? 'Số điện thoại:' : 'Phone Number:'}</span>
               <span className="font-semibold text-slate-900 dark:text-white flex items-center gap-1">
                 <Phone className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="font-mono">{application?.candidatePhone || (locale === 'vi' ? 'Chưa cập nhật SĐT' : 'Not provided')}</span>
+                <span className="font-sans">{application?.candidatePhone || (locale === 'vi' ? 'Chưa cập nhật SĐT' : 'Not provided')}</span>
               </span>
             </div>
             <div>
@@ -429,8 +429,8 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
         {data && (
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             {/* Card 1: Overall Fit Index */}
-            <div className="md:col-span-4 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-7 shadow-xs flex flex-col items-center justify-center text-center space-y-4 transition-colors">
-              <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider block font-mono">
+            <div className="md:col-span-4 bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-7 shadow-xs flex flex-col items-center justify-center text-center space-y-4 transition-colors">
+              <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider block font-sans">
                 Overall Fit Index
               </span>
 
@@ -441,7 +441,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                     cx="50"
                     cy="50"
                     r="40"
-                    stroke="#E2E8F0"
+                    stroke="var(--retro-cream)"
                     className="stroke-slate-200 dark:stroke-slate-800"
                     strokeWidth="8"
                     fill="transparent"
@@ -450,7 +450,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                     cx="50"
                     cy="50"
                     r="40"
-                    stroke="#2563EB"
+                    stroke="var(--primary)"
                     strokeWidth="8"
                     strokeDasharray="251.2"
                     strokeDashoffset={251.2 * (1 - Math.min(100, data.overallScore ?? 0) / 100)}
@@ -460,26 +460,26 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-bold text-slate-900 dark:text-white font-mono">
+                  <span className="text-3xl font-bold text-slate-900 dark:text-white font-sans">
                     {data.overallScore !== null && data.overallScore !== undefined ? `${data.overallScore.toFixed(1)}%` : 'N/A'}
                   </span>
-                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold font-mono">FIT SCORE</span>
+                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold font-sans">FIT SCORE</span>
                 </div>
               </div>
 
-              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <span className="text-[11px] font-sans text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 {locale === 'vi' ? 'KHOẢNG TIN CẬY: 94-98%' : 'CONFIDENCE INTERVAL: 94-98%'}
               </span>
             </div>
 
             {/* Card 2: Match Explanation Narrative */}
-            <div className="md:col-span-8 bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-7 shadow-xs flex flex-col justify-between space-y-4 transition-colors">
+            <div className="md:col-span-8 bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-7 shadow-xs flex flex-col justify-between space-y-4 transition-colors">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold font-mono text-slate-900 dark:text-white uppercase tracking-wider">
+                  <h3 className="text-xs font-bold font-sans text-slate-900 dark:text-white uppercase tracking-wider">
                     Match Explanation Narrative
                   </h3>
-                  <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 px-2.5 py-0.5 rounded-full font-mono">
+                  <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 px-2.5 py-0.5 rounded-xl font-sans">
                     {data.overallScore !== null && data.overallScore >= 80 ? (locale === 'vi' ? 'Độ Phù Hợp Cao' : 'High Match') : (locale === 'vi' ? 'Độ Phù Hợp Trung Bình' : 'Moderate Match')}
                   </span>
                 </div>
@@ -503,18 +503,18 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
               {/* Bottom KPI metrics */}
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
                 <div>
-                  <span className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 block font-mono">
+                  <span className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 block font-sans">
                     {data.overallScore !== null && data.overallScore !== undefined ? `${Math.round(data.overallScore)}%` : 'N/A'}
                   </span>
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-mono">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-sans">
                     {locale === 'vi' ? 'ĐIỂM ĐỐI SÁNH TỔNG HỢP' : 'OVERALL MATCH'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400 block font-mono">
+                  <span className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400 block font-sans">
                     {matchedSkillsCount} / {totalSkillsCount}
                   </span>
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-mono">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-sans">
                     {locale === 'vi' ? 'KỸ NĂNG XÁC THỰC' : 'SKILLS VERIFIED'}
                   </span>
                 </div>
@@ -530,7 +530,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
         {data && <GitHubAssessmentCard assessment={data.githubAssessment} />}
 
         {/* Audit Log / Lịch sử Xét duyệt */}
-        <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
+        <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-4">
           <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
             <History className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -551,11 +551,11 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                   <div key={log.id} className="p-3.5 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-semibold ${prevCfg.bg} ${prevCfg.text}`}>
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-sans font-semibold ${prevCfg.bg} ${prevCfg.text}`}>
                           {locale === 'vi' ? prevCfg.labelVi : prevCfg.labelEn}
                         </span>
                         <span className="text-slate-400">→</span>
-                        <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold ${newCfg.bg} ${newCfg.text}`}>
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-sans font-bold ${newCfg.bg} ${newCfg.text}`}>
                           {locale === 'vi' ? newCfg.labelVi : newCfg.labelEn}
                         </span>
                       </div>
@@ -565,7 +565,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                         </p>
                       )}
                     </div>
-                    <span className="text-[11px] text-slate-400 font-mono flex-shrink-0">
+                    <span className="text-[11px] text-slate-400 font-sans flex-shrink-0">
                       {log.createdAt ? new Date(log.createdAt).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US') : ''}
                     </span>
                   </div>
@@ -577,7 +577,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
 
         {/* Snapshot CV Inspection Section */}
         {application?.snapshot && (
-          <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-7 shadow-xs space-y-4 transition-colors">
+          <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-7 shadow-xs space-y-4 transition-colors">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4">
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -585,7 +585,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
                   {locale === 'vi' ? 'Bản Ghi Snapshot CV Tại Thời Điểm Nộp Đơn' : 'CV Snapshot at Time of Submission'}
                 </h3>
               </div>
-              <span className="text-xs font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-3 py-1 rounded-full font-semibold">
+              <span className="text-xs font-sans text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-3 py-1 rounded-xl font-semibold">
                 ✓ Immutable Snapshot Preserved
               </span>
             </div>
@@ -594,11 +594,11 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
               <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
                 <span>{locale === 'vi' ? 'Tiêu đề CV:' : 'CV Title:'} <strong className="text-slate-800 dark:text-slate-200">{application.snapshot.cvTitle || 'CV Ứng tuyển'}</strong></span>
                 {application.snapshot.snapshotCreatedAt && (
-                  <span className="font-mono">{new Date(application.snapshot.snapshotCreatedAt).toLocaleDateString()}</span>
+                  <span className="font-sans">{new Date(application.snapshot.snapshotCreatedAt).toLocaleDateString()}</span>
                 )}
               </div>
               {application.snapshot.rawTextSnapshot && (
-                <div className="mt-2 max-h-60 overflow-y-auto p-3 rounded-lg bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 font-mono text-[11px] text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                <div className="mt-2 max-h-60 overflow-y-auto p-3 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 font-sans text-[11px] text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
                   {application.snapshot.rawTextSnapshot}
                 </div>
               )}

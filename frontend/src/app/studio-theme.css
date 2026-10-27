@@ -1,0 +1,130 @@
+/* MidCV Paper Studio: thin outlined stationery + calm pastel components.
+   Visual declarations only. Motion definitions remain in the existing styles. */
+html:root {
+  --studio-paper: #FFFEFA;
+  --studio-line: #405B68;
+  --studio-peach: #F1CDBD;
+  --studio-butter: #F7E7BD;
+  --studio-lavender: #DCD4EA;
+  --studio-sage: #DCE9D9;
+  --studio-sky: #D9ECF4;
+  --studio-shadow-paper: #F7E7BD;
+  --studio-shadow-outline: #7D969F;
+  --studio-shadow-sm: 2px 2px 0 -1px var(--studio-shadow-paper), 2px 2px 0 0 var(--studio-shadow-outline);
+  --studio-shadow-md: 3px 3px 0 -1px var(--studio-shadow-paper), 3px 3px 0 0 var(--studio-shadow-outline);
+  --studio-shadow-xl: 5px 5px 0 -1px var(--studio-shadow-paper), 5px 5px 0 0 var(--studio-shadow-outline);
+  --studio-auth-bg: #DDECE8;
+  --studio-auth-paper: #FFFEFA;
+  --studio-auth-ink: #274256;
+}
+html.dark {
+  --studio-paper: #223F4E;
+  --studio-line: #91AEB8;
+  --studio-peach: #704F4B;
+  --studio-butter: #645A3F;
+  --studio-lavender: #504B68;
+  --studio-sage: #3C5C50;
+  --studio-sky: #385C70;
+  --studio-shadow-paper: #182F3D;
+  --studio-shadow-outline: #6E909E;
+  --studio-auth-bg: #294957;
+  --studio-auth-paper: #355464;
+  --studio-auth-ink: #D0E0DF;
+}
+html body { font-family: var(--font-sans); background-image: none; line-height: 1.65; }
+html :is(h1,h2,h3,h4,h5,h6,.font-editorial) { font-family: var(--font-sans); letter-spacing: -.025em; }
+html :is(code,pre,kbd,samp) { font-family: var(--font-mono); }
+html :is(button,[role="button"]) { border-radius: 10px !important; }
+html :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),textarea,select) { border-radius: 10px !important; }
+html :is(span.status-chip,.badge-midcv,.job-highlight-badge) { border-radius: 999px !important; border-width: 1px; letter-spacing: 0; }
+html :is(span,small)[class*="rounded-"][class*="bg-"] { border-radius: 8px !important; }
+html [class~="rounded-full"] { border-radius: 999px !important; }
+html :is([role="switch"]) { border-radius: 999px !important; }
+html :is(button[role="switch"]) :is(span[class*="shadow-"]) { border-radius: 999px !important; }
+html :is(input[type="checkbox"],input[type="radio"]) { border: 1px solid var(--input-border); border-radius: 5px !important; }
+html input[type="radio"] { border-radius: 50% !important; }
+html input[type="checkbox"]:checked {
+  background-color: var(--primary); border-color: var(--primary); box-shadow: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='m4 10 4 4 8-8' fill='none' stroke='%23fffefa' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+html input[type="radio"]:checked { background: var(--primary); box-shadow: inset 0 0 0 3px var(--input-bg); }
+html input[type="range"]::-webkit-slider-thumb { border-radius: 999px; }
+html input[type="range"]::-moz-range-thumb { border-radius: 999px; }
+html :is(input,textarea,select):disabled { opacity: .65; }
+html :is(input,textarea,select)[aria-invalid="true"] { border-color: var(--danger); background-color: var(--danger-bg); }
+html :is(th,td) { border-color: var(--border-subtle); }
+html thead { background: var(--surface-secondary); }
+html tbody tr:hover { background: var(--primary-light); }
+html .timeline-step::before { background: repeating-linear-gradient(to bottom,var(--border-soft) 0,var(--border-soft) 4px,transparent 4px,transparent 9px); }
+html .timeline-step.completed::before { background: var(--success); }
+html .timeline-dot { border-radius: 50% !important; }
+html :is(.kanban-col,.kanban-card,.midcv-card,.priority-alert-card) { border-radius: 14px !important; }
+html .card-hover-lift:hover,html .motion-hover-lift:hover { box-shadow: var(--studio-shadow-xl); }
+html .kanban-card:hover { box-shadow: var(--studio-shadow-md); }
+html svg.lucide { stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+html ::-webkit-scrollbar-thumb { border-radius: 999px; }
+/* Both public and role portals share the stationery surface language. */
+html header { border-bottom-color: var(--border-soft); }
+html footer { background-color: var(--surface); border-top-color: var(--border-soft); }
+html [data-retro-shell="admin"] { background-color: var(--retro-deep); }
+html [data-retro-brand] { letter-spacing: -.035em; }
+html [data-retro-brand] > div { filter: none; }
+/* Access screens use product line art, without changing the role-switch animation. */
+html [data-testid="auth-hero-banner"] { background: var(--studio-auth-bg); border-right: 1px solid var(--border-soft); }
+html [data-testid="auth-hero-banner"] :is(h1,h2,h3,p,span) { color: var(--studio-auth-ink); text-shadow: none; filter: none; }
+html [data-testid="auth-hero-banner"] > [class*="bg-gradient-"] { background: transparent !important; }
+html [data-testid="auth-hero-banner"] svg { shape-rendering: geometricPrecision; }
+html [data-testid="auth-hero-banner"] .drop-shadow-md,html [data-testid="auth-hero-banner"] .drop-shadow-sm { filter: none; }
+/* Inbox controls are not Tailwind utility cards, so give them the same tokens. */
+html .inbox-icon { border-width: 1px; box-shadow: var(--studio-shadow-sm); }
+html :is(.inbox-box,.inbox-popover) { border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--studio-shadow-md); }
+html .inbox-badge,html .inbox-count { border-radius: 999px; padding-inline: 5px; }
+html .inbox-notice { border-radius: 10px; }
+html .inbox-message { border-radius: 14px 14px 14px 4px; background: var(--surface); }
+html .inbox-message.own { border-radius: 14px 14px 4px 14px; background: var(--primary-light); box-shadow: var(--studio-shadow-sm); }
+html .inbox-thread { border-radius: 10px; }
+html .inbox-thread.selected { background: var(--primary-light); }
+html .inbox-tabs a { border-radius: 999px; padding: 8px 14px; }
+html .inbox-popover details { border-top-color: var(--border-subtle); }
+html .inbox-menu-link { border-radius: 8px; }
+html .inbox-identity > svg { padding: 8px; width: 52px; height: 52px; background: var(--primary-light); border: 1px solid var(--border-soft); border-radius: 14px; }
+html .inbox-list-row { border-bottom-color: var(--border-subtle); }
+html.dark .inbox-message.own { background: var(--primary-light); }
+html.dark :is([class*="bg-emerald-50"],[class*="bg-green-50"]):not([class*="dark:bg-"]) { background-color: var(--success-bg); color: var(--success); }
+html.dark :is([class*="bg-amber-50"],[class*="bg-yellow-50"]):not([class*="dark:bg-"]) { background-color: var(--warning-bg); color: var(--warning); }
+html.dark :is([class*="bg-rose-50"],[class*="bg-red-50"]):not([class*="dark:bg-"]) { background-color: var(--danger-bg); color: var(--danger); }
+/* CV paper is still an ink-on-paper artifact in either app theme. */
+html #printable-cv { background: #FFFEFA !important; color: #274256 !important; }
+@media(max-width:640px) {
+ html body { font-size:14px; }
+ html :is(.inbox-box,.inbox-popover) { box-shadow:var(--studio-shadow-sm); }
+}
+
+/* Compact workflow labels retain a comfortable readable minimum. */
+html .text-xs { font-size: .8125rem; line-height: 1.55; }
+html [class~="text-[10px]"] { font-size: 11px; }
+html:not(.dark) :is([class~="text-purple-400"],[class~="text-violet-400"],[class~="text-indigo-400"]) { color: var(--color-purple-600); }
+html:not(.dark) :is([class~="text-amber-400"],[class~="text-yellow-400"]) { color: var(--color-amber-700); }
+
+html #indexes .grid > div > a { background-color: color-mix(in srgb,var(--studio-sky) 40%,var(--surface)); }
+html #indexes .grid > div:nth-child(3n + 2) > a { background-color: color-mix(in srgb,var(--studio-lavender) 40%,var(--surface)); }
+html #indexes .grid > div:nth-child(3n) > a { background-color: color-mix(in srgb,var(--studio-peach) 40%,var(--surface)); }
+html .motion-hover-lift.text-white > span { color: var(--retro-mint); }
+
+/* Status and verification surfaces keep text legible in both themes. */
+html [data-studio-verification] { background: var(--surface-secondary); color: var(--text-primary); }
+html [data-studio-verification] :is(span,p,strong,svg) { color: inherit; }
+html [data-studio-verification] > span { background: var(--primary-light); color: var(--primary); white-space: nowrap; }
+html [data-studio-verification] [class*="justify-between"] { flex-wrap: wrap; }
+html td > span[class*="rounded-"][class*="bg-"] { white-space: nowrap; overflow-wrap: normal; }
+html [data-retro-shell="admin"] > div > nav svg.lucide { color: inherit; }
+html [data-retro-shell="admin"] button:has(.lucide-globe) svg { color: var(--retro-mint); }
+@media(max-width:640px) { html [data-studio-verification] { flex-wrap: wrap; } }
+
+/* Long salary ranges wrap inside their own badge; compact nav rows retain every action. */
+html .job-highlight-badge.badge-salary { max-width:100%; min-width:0; height:auto; min-height:30px; padding-block:4px; white-space:normal; line-height:1.5; }
+@media(max-width:360px) {
+ html header [class~="max-w-[1440px]"] { padding-inline:10px; column-gap:6px; }
+ html header :is([class~="gap-2"],[class~="gap-1.5"]) { column-gap:4px; }
+ html header .inbox-tools { gap:4px; }
+}

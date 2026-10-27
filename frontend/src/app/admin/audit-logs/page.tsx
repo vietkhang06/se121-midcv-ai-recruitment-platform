@@ -51,7 +51,7 @@ export default function AdminAuditLogsPage() {
   }, [fetchLogs]);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#060D1E] text-slate-800 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 transition-colors">
       <main className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6">
 
         {/* Breadcrumb */}
@@ -88,8 +88,8 @@ export default function AdminAuditLogsPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-slate-500">Đối tượng tác động:</span>
             {(['ALL', 'COMPANY', 'USER', 'JOB', 'REPORT', 'TAXONOMY'] as const).map((t) => (
               <button
@@ -98,7 +98,7 @@ export default function AdminAuditLogsPage() {
                   setTargetTypeFilter(t);
                   setCurrentPage(0);
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                   targetTypeFilter === t
                     ? 'bg-indigo-600 text-white shadow-xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
@@ -120,7 +120,7 @@ export default function AdminAuditLogsPage() {
 
         {/* Loading */}
         {loading && (
-          <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-[#0B1329] rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-[var(--surface)] rounded-xl border border-slate-200 dark:border-slate-800">
             <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-3" />
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Đang tải nhật ký quản trị...</p>
           </div>
@@ -128,7 +128,7 @@ export default function AdminAuditLogsPage() {
 
         {/* Error */}
         {!loading && error && (
-          <div className="p-8 rounded-2xl bg-white dark:bg-[#0B1329] border border-rose-200 dark:border-rose-900/50 text-center space-y-4">
+          <div className="p-8 rounded-xl bg-white dark:bg-[var(--surface)] border border-rose-200 dark:border-rose-900/50 text-center space-y-4">
             <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">Lỗi tải dữ liệu</h3>
             <p className="text-xs text-rose-600 dark:text-rose-400 max-w-md mx-auto">{error}</p>
@@ -143,7 +143,7 @@ export default function AdminAuditLogsPage() {
 
         {/* Empty */}
         {!loading && !error && logs.length === 0 && (
-          <div className="p-12 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 text-center space-y-3">
+          <div className="p-12 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 text-center space-y-3">
             <FileText className="w-10 h-10 text-slate-400 mx-auto" />
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">Không có bản ghi nhật ký</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
@@ -154,9 +154,9 @@ export default function AdminAuditLogsPage() {
 
         {/* Log Table */}
         {!loading && !error && logs.length > 0 && (
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1329] shadow-xs">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[var(--surface)] shadow-xs">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-[#111C38] text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider">
+              <thead className="bg-slate-50 dark:bg-[var(--surface)] text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider">
                 <tr>
                   <th className="py-3.5 px-4">Thời Gian</th>
                   <th className="py-3.5 px-4">Admin Phụ Trách</th>
@@ -168,21 +168,21 @@ export default function AdminAuditLogsPage() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {logs.map((l) => (
                   <tr key={l.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
-                    <td className="py-4 px-4 font-mono text-slate-500 whitespace-nowrap">
+                    <td className="py-4 px-4 font-sans text-slate-500 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-slate-400" />
                         <span>{new Date(l.createdAt).toLocaleString('vi-VN')}</span>
                       </div>
                     </td>
-                    <td className="py-4 px-4 font-mono font-medium text-slate-900 dark:text-white">
+                    <td className="py-4 px-4 font-sans font-medium text-slate-900 dark:text-white">
                       {l.adminEmail || l.adminId}
                     </td>
                     <td className="py-4 px-4">
-                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                      <span className="px-2 py-0.5 rounded-xl text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                         {l.action}
                       </span>
                     </td>
-                    <td className="py-4 px-4 font-mono text-slate-600 dark:text-slate-300">
+                    <td className="py-4 px-4 font-sans text-slate-600 dark:text-slate-300">
                       <span className="font-semibold text-slate-800 dark:text-slate-200 mr-1.5">
                         {l.targetType}:
                       </span>
@@ -202,18 +202,18 @@ export default function AdminAuditLogsPage() {
                 <span className="text-xs text-slate-500">
                   Trang {currentPage + 1} / {totalPages} (Tổng {totalElements} bản ghi)
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
                     disabled={currentPage === 0}
-                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
+                    className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
                     disabled={currentPage >= totalPages - 1}
-                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
+                    className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>

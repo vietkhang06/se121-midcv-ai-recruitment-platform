@@ -64,7 +64,7 @@ export default function RecruiterAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] p-12 text-center text-slate-500 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] p-12 text-center text-slate-500 flex items-center justify-center">
         <EmptyState
           type="LOADING"
           title={locale === 'vi' ? 'Đang phân tích dữ liệu tuyển dụng...' : 'Calculating recruitment analytics...'}
@@ -76,7 +76,7 @@ export default function RecruiterAnalyticsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] p-12 text-center flex flex-col items-center justify-center space-y-4">
+      <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] p-12 text-center flex flex-col items-center justify-center space-y-4">
         <EmptyState
           type="ERROR"
           title={locale === 'vi' ? 'Lỗi tải phân tích' : 'Analytics Load Error'}
@@ -110,7 +110,7 @@ export default function RecruiterAnalyticsPage() {
   const highMatchCount = scoredApps.filter(a => (a.matchScore || 0) >= 80).length;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-20 w-full min-w-0">
+    <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-20 w-full min-w-0">
       <main className="flex-1 w-full max-w-7xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Recruiter Header */}
         <RecruiterPageHeader
@@ -152,7 +152,7 @@ export default function RecruiterAnalyticsPage() {
         </div>
 
         {/* Recruitment Conversion Funnel */}
-        <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-7 shadow-xs space-y-6">
+        <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-7 shadow-xs space-y-6">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4">
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white">
@@ -162,16 +162,16 @@ export default function RecruiterAnalyticsPage() {
                 {locale === 'vi' ? 'Tỷ lệ tiến triển qua các chặng đánh giá nhân sự của MidCV' : 'Candidate progression through evaluation stages'}
               </p>
             </div>
-            <span className="text-xs font-mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-3 py-1 rounded-full font-semibold">
+            <span className="text-xs font-sans text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-3 py-1 rounded-xl font-semibold">
               Live Pipeline Data
             </span>
           </div>
 
           {/* Visual SVG Funnel Graph (Adapted from SE347 RecruitmentFunnelChart) */}
-          <div className="bg-slate-50/70 dark:bg-[#13233F]/60 border border-slate-200/80 dark:border-slate-800 p-5 rounded-xl space-y-4">
+          <div className="bg-slate-50/70 dark:bg-[var(--surface)]/60 border border-slate-200/80 dark:border-slate-800 p-5 rounded-xl space-y-4">
             <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
               <span>{locale === 'vi' ? 'Biểu Đồ Tỷ Lệ Chuyển Đổi Phễu (Funnel Velocity)' : 'Conversion Velocity Chart'}</span>
-              <span className="font-mono text-slate-500">{totalApps} {locale === 'vi' ? 'ứng viên đầu vào' : 'inbound applicants'}</span>
+              <span className="font-sans text-slate-500">{totalApps} {locale === 'vi' ? 'ứng viên đầu vào' : 'inbound applicants'}</span>
             </div>
 
             <div className="space-y-3">
@@ -184,13 +184,13 @@ export default function RecruiterAnalyticsPage() {
                 <div key={stage.name} className="space-y-1">
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="font-semibold text-slate-800 dark:text-slate-200">{stage.name}</span>
-                    <span className="font-mono font-bold text-slate-900 dark:text-white">
+                    <span className="font-sans font-bold text-slate-900 dark:text-white">
                       {stage.count} <span className="text-slate-400 font-normal">({stage.pct.toFixed(1)}%)</span>
                     </span>
                   </div>
-                  <div className="w-full bg-slate-200/70 dark:bg-slate-700/50 h-3 rounded-full overflow-hidden">
+                  <div className="w-full bg-slate-200/70 dark:bg-slate-700/50 h-3 rounded-xl overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${stage.color}`}
+                      className={`h-full rounded-xl transition-all duration-500 ${stage.color}`}
                       style={{ width: `${Math.max(stage.pct, stage.count > 0 ? 3 : 0)}%` }}
                     />
                   </div>
@@ -202,50 +202,50 @@ export default function RecruiterAnalyticsPage() {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             {/* Step 1: Submitted */}
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-2">
-              <span className="text-[11px] font-mono text-slate-400 uppercase font-semibold">1. Nộp hồ sơ</span>
-              <div className="text-2xl font-bold text-slate-900 dark:text-white font-mono">{totalApps}</div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-blue-600 h-full w-full rounded-full" />
+              <span className="text-[11px] font-sans text-slate-400 uppercase font-semibold">1. Nộp hồ sơ</span>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white font-sans">{totalApps}</div>
+              <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-xl overflow-hidden">
+                <div className="bg-blue-600 h-full w-full rounded-xl" />
               </div>
               <span className="text-[10px] text-slate-500 font-medium">{totalApps} {locale === 'vi' ? 'hồ sơ đã nộp' : 'applications submitted'}</span>
             </div>
 
             {/* Step 2: Shortlisted */}
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-2">
-              <span className="text-[11px] font-mono text-slate-400 uppercase font-semibold">2. Duyệt hồ sơ</span>
-              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-mono">{shortlistedCount}</div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${shortlistRate}%` }} />
+              <span className="text-[11px] font-sans text-slate-400 uppercase font-semibold">2. Duyệt hồ sơ</span>
+              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-sans">{shortlistedCount}</div>
+              <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-xl overflow-hidden">
+                <div className="bg-emerald-500 h-full rounded-xl" style={{ width: `${shortlistRate}%` }} />
               </div>
               <span className="text-[10px] text-slate-500 font-medium">{shortlistRate}% chuyển đổi</span>
             </div>
 
             {/* Step 3: Interviewing */}
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-2">
-              <span className="text-[11px] font-mono text-slate-400 uppercase font-semibold">3. Phỏng vấn</span>
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 font-mono">{interviewingCount}</div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-purple-500 h-full rounded-full" style={{ width: `${interviewRate}%` }} />
+              <span className="text-[11px] font-sans text-slate-400 uppercase font-semibold">3. Phỏng vấn</span>
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 font-sans">{interviewingCount}</div>
+              <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-xl overflow-hidden">
+                <div className="bg-purple-500 h-full rounded-xl" style={{ width: `${interviewRate}%` }} />
               </div>
               <span className="text-[10px] text-slate-500 font-medium">{interviewRate}% chuyển đổi</span>
             </div>
 
             {/* Step 4: Hired */}
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-2">
-              <span className="text-[11px] font-mono text-slate-400 uppercase font-semibold">4. Tuyển dụng</span>
-              <div className="text-2xl font-bold text-green-700 dark:text-green-400 font-mono">{hiredCount}</div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-green-600 h-full rounded-full" style={{ width: `${hireRate}%` }} />
+              <span className="text-[11px] font-sans text-slate-400 uppercase font-semibold">4. Tuyển dụng</span>
+              <div className="text-2xl font-bold text-green-700 dark:text-green-400 font-sans">{hiredCount}</div>
+              <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-xl overflow-hidden">
+                <div className="bg-green-600 h-full rounded-xl" style={{ width: `${hireRate}%` }} />
               </div>
               <span className="text-[10px] text-slate-500 font-medium">{hireRate}% tuyển dụng</span>
             </div>
 
             {/* Step 5: Rejected */}
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-2">
-              <span className="text-[11px] font-mono text-slate-400 uppercase font-semibold">Chưa phù hợp</span>
-              <div className="text-2xl font-bold text-rose-600 dark:text-rose-400 font-mono">{rejectedCount}</div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-rose-500 h-full rounded-full" style={{ width: totalApps > 0 ? `${(rejectedCount / totalApps) * 100}%` : '0%' }} />
+              <span className="text-[11px] font-sans text-slate-400 uppercase font-semibold">Chưa phù hợp</span>
+              <div className="text-2xl font-bold text-rose-600 dark:text-rose-400 font-sans">{rejectedCount}</div>
+              <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-xl overflow-hidden">
+                <div className="bg-rose-500 h-full rounded-xl" style={{ width: totalApps > 0 ? `${(rejectedCount / totalApps) * 100}%` : '0%' }} />
               </div>
               <span className="text-[10px] text-slate-500 font-medium">Đã lưu trữ hồ sơ</span>
             </div>
@@ -254,7 +254,7 @@ export default function RecruiterAnalyticsPage() {
 
         {/* AI Match Quality Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-3">
+          <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-3">
             <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
               <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               <h4 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -262,7 +262,7 @@ export default function RecruiterAnalyticsPage() {
               </h4>
             </div>
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-extrabold text-blue-600 dark:text-blue-400 font-mono">{avgScore}%</span>
+              <span className="text-3xl font-extrabold text-blue-600 dark:text-blue-400 font-sans">{avgScore}%</span>
               <span className="text-xs text-slate-500">Điểm tương thích trung bình toàn bộ hồ sơ</span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -272,7 +272,7 @@ export default function RecruiterAnalyticsPage() {
             </p>
           </div>
 
-          <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-3">
+          <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-3">
             <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
               <Briefcase className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               <h4 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -280,7 +280,7 @@ export default function RecruiterAnalyticsPage() {
               </h4>
             </div>
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 font-mono">{jobs.length}</span>
+              <span className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 font-sans">{jobs.length}</span>
               <span className="text-xs text-slate-500">Tổng số tin tuyển dụng đã tạo</span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -292,7 +292,7 @@ export default function RecruiterAnalyticsPage() {
         </div>
 
         {/* Job Performance Breakdown Table */}
-        <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+        <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
           <div className="p-5 border-b border-slate-100 dark:border-slate-800">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               {locale === 'vi' ? 'Hiệu Suất Tuyển Dụng Từng Vị Trí' : 'Performance by Job Opening'}
@@ -302,7 +302,7 @@ export default function RecruiterAnalyticsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50 dark:bg-[#0B1329] border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-mono uppercase text-[11px]">
+                <tr className="bg-slate-50 dark:bg-[var(--surface)] border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-sans uppercase text-[11px]">
                   <th className="py-3 px-5">Vị trí tuyển dụng</th>
                   <th className="py-3 px-5 text-center">Trạng thái</th>
                   <th className="py-3 px-5 text-center">Tổng đơn nộp</th>
@@ -323,7 +323,7 @@ export default function RecruiterAnalyticsPage() {
                         <span className="text-[11px] text-slate-400">{job.industry} • {job.location || 'Remote'}</span>
                       </td>
                       <td className="py-4 px-5 text-center">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase ${
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-sans uppercase ${
                           job.status === 'PUBLISHED'
                             ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200'
                             : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200'
@@ -331,9 +331,9 @@ export default function RecruiterAnalyticsPage() {
                           {job.status}
                         </span>
                       </td>
-                      <td className="py-4 px-5 text-center font-mono font-bold">{jobApps.length}</td>
-                      <td className="py-4 px-5 text-center font-mono text-emerald-600 dark:text-emerald-400 font-bold">{shortlisted}</td>
-                      <td className="py-4 px-5 text-center font-mono text-blue-600 dark:text-blue-400 font-bold">{hired}</td>
+                      <td className="py-4 px-5 text-center font-sans font-bold">{jobApps.length}</td>
+                      <td className="py-4 px-5 text-center font-sans text-emerald-600 dark:text-emerald-400 font-bold">{shortlisted}</td>
+                      <td className="py-4 px-5 text-center font-sans text-blue-600 dark:text-blue-400 font-bold">{hired}</td>
                       <td className="py-4 px-5 text-right">
                         <Link
                           href={`/recruiter/jobs/${job.id}/applications`}

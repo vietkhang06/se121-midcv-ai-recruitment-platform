@@ -12,16 +12,7 @@ import { SuspensionBanner } from "@/components/common/SuspensionBanner";
 export const metadata: Metadata = {
   title: "midCV® — AI-Powered Intelligent Recruitment Platform",
   description: "Objective evaluation layer for modern technical recruitment. Built to empower candidates and recruiters with transparent matching vectors.",
-  icons: {
-    icon: [
-      { url: '/icon.svg', type: 'image/svg+xml' },
-      { url: '/favicon.ico' },
-      { url: '/icon.png', sizes: '256x256', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-    ],
-  },
+  icons: { icon: [{ url: '/icon.svg', type: 'image/svg+xml' }] },
 };
 
 export default function RootLayout({
@@ -30,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="vi" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -38,7 +29,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="bg-[var(--background)] text-[var(--foreground)] min-h-screen flex flex-col antialiased selection:bg-[#2563EB] selection:text-white transition-colors duration-200">
+      <body className="bg-[var(--background)] text-[var(--foreground)] min-h-screen flex flex-col antialiased selection:bg-[var(--primary)] selection:text-white transition-colors duration-200">
         <ThemeProvider>
           <LanguageProvider>
             <AuthProvider>

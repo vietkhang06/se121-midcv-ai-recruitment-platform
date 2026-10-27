@@ -72,35 +72,35 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#060D1E] text-slate-800 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 transition-colors">
       <main className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
         
         {/* Executive Header Banner */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0B1329] via-[#111C38] to-[#1E1B4B] p-6 sm:p-8 border border-indigo-900/40 text-white shadow-xl">
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-[var(--retro-deep)] via-[var(--retro-deep)] to-[var(--retro-deep)] p-6 sm:p-8 border border-indigo-900/40 text-white shadow-xl">
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2.5">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase">
+                <span className="px-2.5 py-0.5 rounded-xl text-[10px] font-sans font-bold tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase">
                   Central Admin Command
                 </span>
                 {error ? (
-                  <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                    <span className="w-2 h-2 rounded-full bg-rose-400" />
+                  <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                    <span className="w-2 h-2 rounded-xl bg-rose-400" />
                     Mất kết nối máy chủ quản trị
                   </span>
                 ) : loading ? (
-                  <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/20 text-slate-300 border border-slate-500/30">
-                    <span className="w-2 h-2 rounded-full bg-slate-400 animate-pulse" />
+                  <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-slate-500/20 text-slate-300 border border-slate-500/30">
+                    <span className="w-2 h-2 rounded-xl bg-slate-400 animate-pulse" />
                     Đang đồng bộ...
                   </span>
                 ) : stats?.aiStatus?.provider ? (
-                  <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <span className="w-2 h-2 rounded-xl bg-emerald-400 animate-pulse" />
                     Hệ Thống Hoạt Động (Production Active)
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    <span className="w-2 h-2 rounded-xl bg-amber-400" />
                     Cần kiểm tra động cơ AI
                   </span>
                 )}
@@ -134,7 +134,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {error && (
-          <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 flex items-center justify-between">
+          <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-medium">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
@@ -151,12 +151,12 @@ export default function AdminDashboardPage() {
         {/* 4 Core Management Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
           {/* Card 1: Users */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+          <div className="p-5 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
                 <Users className="w-5 h-5" />
               </div>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+              <span className="text-[10px] font-sans font-bold px-2 py-0.5 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
                 {loading ? '...' : `${stats?.activeUsersCount || 0} Hoạt động`}
               </span>
             </div>
@@ -177,12 +177,12 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Card 2: Company Verification Queue */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+          <div className="p-5 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
                 <Building2 className="w-5 h-5" />
               </div>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
+              <span className="text-[10px] font-sans font-bold px-2 py-0.5 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
                 {loading ? '...' : `${stats?.companiesPendingCount || 0} Chờ duyệt`}
               </span>
             </div>
@@ -203,12 +203,12 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Card 3: Active Jobs & Moderation */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+          <div className="p-5 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
                 <Briefcase className="w-5 h-5" />
               </div>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+              <span className="text-[10px] font-sans font-bold px-2 py-0.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
                 {loading ? '...' : `${stats?.activeJobsCount || 0} Xuất bản`}
               </span>
             </div>
@@ -229,12 +229,12 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Card 4: Reports & Violations */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+          <div className="p-5 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400">
                 <ShieldAlert className="w-5 h-5" />
               </div>
-              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${
+              <span className={`text-[10px] font-sans font-bold px-2 py-0.5 rounded-xl ${
                 (stats?.pendingReportsCount || 0) > 0
                   ? 'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 animate-pulse'
                   : 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
@@ -262,7 +262,7 @@ export default function AdminDashboardPage() {
         {/* Quick Navigation Panels */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="p-6 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Activity className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -277,11 +277,11 @@ export default function AdminDashboardPage() {
                 {/* 1. Doanh nghiệp */}
                 <Link
                   href="/admin/companies"
-                  className="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-[#111C38] transition flex flex-col justify-between"
+                  className="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-[var(--surface)] transition flex flex-col justify-between"
                 >
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300">
+                      <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300">
                         <Building2 className="w-4 h-4" />
                       </div>
                       <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
@@ -301,11 +301,11 @@ export default function AdminDashboardPage() {
                 {/* 2. Người dùng */}
                 <Link
                   href="/admin/users"
-                  className="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-[#111C38] transition flex flex-col justify-between"
+                  className="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-[var(--surface)] transition flex flex-col justify-between"
                 >
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+                      <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
                         <Users className="w-4 h-4" />
                       </div>
                       <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
@@ -325,11 +325,11 @@ export default function AdminDashboardPage() {
                 {/* 3. Kiểm duyệt */}
                 <Link
                   href="/admin/moderation"
-                  className="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-[#111C38] transition flex flex-col justify-between"
+                  className="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-[var(--surface)] transition flex flex-col justify-between"
                 >
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <div className="p-2 rounded-lg bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300">
+                      <div className="p-2 rounded-xl bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300">
                         <ShieldAlert className="w-4 h-4" />
                       </div>
                       <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
@@ -349,11 +349,11 @@ export default function AdminDashboardPage() {
                 {/* 4. Taxonomy */}
                 <Link
                   href="/admin/taxonomy"
-                  className="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-[#111C38] transition flex flex-col justify-between"
+                  className="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-[var(--surface)] transition flex flex-col justify-between"
                 >
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
+                      <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
                         <Tags className="w-4 h-4" />
                       </div>
                       <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
@@ -373,7 +373,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Recent Audit Logs Table */}
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="p-6 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <History className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -405,18 +405,18 @@ export default function AdminDashboardPage() {
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-slate-600 dark:text-slate-300">
                       {stats.recentAuditLogs.map((log) => (
                         <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition">
-                          <td className="py-2.5 whitespace-nowrap text-slate-400 font-mono text-[11px]">
+                          <td className="py-2.5 whitespace-nowrap text-slate-400 font-sans text-[11px]">
                             {log.createdAt ? new Date(log.createdAt).toLocaleString('vi-VN') : '—'}
                           </td>
                           <td className="py-2.5 font-medium whitespace-nowrap">
                             {log.adminEmail}
                           </td>
                           <td className="py-2.5">
-                            <span className="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/40">
+                            <span className="px-2 py-0.5 rounded font-sans text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/40">
                               {log.action}
                             </span>
                           </td>
-                          <td className="py-2.5 whitespace-nowrap font-mono text-[11px] text-slate-400">
+                          <td className="py-2.5 whitespace-nowrap font-sans text-[11px] text-slate-400">
                             {log.targetType}
                           </td>
                           <td className="py-2.5 max-w-[200px] truncate text-slate-500 dark:text-slate-400">
@@ -433,7 +433,7 @@ export default function AdminDashboardPage() {
 
           {/* Right Column: AI Engine Health & System Shield */}
           <div className="space-y-6">
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="p-6 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Cpu className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -454,19 +454,19 @@ export default function AdminDashboardPage() {
               <div className="space-y-3 text-xs">
                 <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
                   <span className="text-slate-500 dark:text-slate-400">Chế độ hoạt động</span>
-                  <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                  <span className="font-sans font-bold text-indigo-600 dark:text-indigo-400">
                     {stats?.aiStatus?.provider || 'LOCAL_OLLAMA'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
                   <span className="text-slate-500 dark:text-slate-400">Model nội bộ</span>
-                  <span className="font-mono text-slate-700 dark:text-slate-300">
+                  <span className="font-sans text-slate-700 dark:text-slate-300">
                     {stats?.aiStatus?.ollamaModel || 'dna5rm/granite4.2'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
                   <span className="text-slate-500 dark:text-slate-400">Model Cloud</span>
-                  <span className="font-mono text-slate-700 dark:text-slate-300">
+                  <span className="font-sans text-slate-700 dark:text-slate-300">
                     {stats?.aiStatus?.cloudModel || 'gpt-4o-mini'}
                   </span>
                 </div>
@@ -492,7 +492,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* SLA Priority Tasks (Adapted from SE347 AdminOverviewView) */}
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="p-6 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ShieldAlert className="w-5 h-5 text-amber-500" />
@@ -500,7 +500,7 @@ export default function AdminDashboardPage() {
                     Nhiệm Vụ SLA Cần Xử Lý
                   </h3>
                 </div>
-                <span className="text-[10px] font-mono text-slate-400">Live Queue</span>
+                <span className="text-[10px] font-sans text-slate-400">Live Queue</span>
               </div>
 
               <div className="space-y-2.5">
@@ -511,7 +511,7 @@ export default function AdminDashboardPage() {
                         <strong className="text-xs text-rose-600 dark:text-rose-400 font-bold">
                           {stats?.pendingReportsCount} Báo cáo vi phạm
                         </strong>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-sans font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">
                           SLA Ưu tiên
                         </span>
                       </div>
@@ -529,7 +529,7 @@ export default function AdminDashboardPage() {
                         <strong className="text-xs text-amber-600 dark:text-amber-400 font-bold">
                           {stats?.companiesPendingCount} Doanh nghiệp chờ duyệt
                         </strong>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-sans font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
                           Đang đợi
                         </span>
                       </div>
@@ -555,7 +555,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Security Architecture Invariant Box */}
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+            <div className="p-6 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 <h3 className="font-bold text-sm text-slate-900 dark:text-white">

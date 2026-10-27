@@ -1,5 +1,6 @@
 'use client';
 
+import { AccountTools } from '@/components/inbox/AccountTools';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -53,19 +54,19 @@ export const AdminNavbar: React.FC = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-[#0B1329]/95 dark:bg-[#060D1E]/95 backdrop-blur-md border-b border-indigo-900/30 dark:border-indigo-900/40 text-slate-100 transition-colors shadow-sm">
+      <header data-retro-shell="admin" className="sticky top-0 z-40 bg-[var(--retro-deep)]/95 dark:bg-[var(--surface)]/95 backdrop-blur-md border-b border-indigo-900/30 dark:border-indigo-900/40 text-slate-100 transition-colors shadow-sm">
         <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
           
           {/* Brand & Admin Portal Indicator */}
           <div className="flex items-center gap-2.5 shrink-0">
             <BrandLogo href="/admin" size="md" />
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-mono tracking-wider uppercase whitespace-nowrap">
+            <span className="hidden sm:inline-flex text-[11px] font-bold px-2 py-0.5 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-sans tracking-wider uppercase whitespace-nowrap">
               Admin Portal
             </span>
           </div>
 
           {/* Admin Navigation Links (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-1 xl:gap-2 text-xs font-semibold shrink-0">
+          <nav className="hidden xl:flex min-w-0 flex-1 overflow-x-auto items-center gap-1 text-xs font-semibold">
             <Link
               href="/admin"
               className={`px-2.5 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
@@ -156,7 +157,7 @@ export const AdminNavbar: React.FC = () => {
             {/* Language Switcher */}
             <button
               onClick={toggleLocale}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-mono font-bold rounded-lg border border-slate-700 bg-slate-800/80 text-slate-200 hover:border-indigo-400 transition cursor-pointer whitespace-nowrap shrink-0 shadow-2xs"
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-sans font-bold rounded-xl border border-slate-700 bg-slate-800/80 text-slate-200 hover:border-indigo-400 transition cursor-pointer whitespace-nowrap shrink-0 shadow-2xs"
               title={t('nav.switchLang', 'Switch Language')}
             >
               <Globe className="w-3.5 h-3.5 text-indigo-400" />
@@ -165,42 +166,14 @@ export const AdminNavbar: React.FC = () => {
 
             {/* Theme Toggle Slider Switch */}
             <ThemeSwitch />
-
-            {/* Admin User Profile Info (Desktop) */}
-            <div className="hidden md:flex items-center gap-2.5 pl-2 border-l border-slate-700/80 shrink-0">
-              <div className="text-right">
-                <span className="text-xs font-bold text-white block truncate max-w-[120px]">
-                  {user?.fullName || 'System Admin'}
-                </span>
-                <span className="text-[10px] font-mono font-bold text-rose-300 bg-rose-950/60 px-1.5 py-0.2 rounded border border-rose-800/60 uppercase inline-block">
-                  ADMIN
-                </span>
-              </div>
-              <div className="relative w-8 h-8 rounded-full overflow-hidden border border-indigo-400/40 shadow-xs shrink-0">
-                <div className="w-full h-full bg-indigo-950 text-indigo-200 text-xs font-bold flex items-center justify-center select-none">
-                  {user?.fullName ? user.fullName.trim().charAt(0).toUpperCase() : 'A'}
-                </div>
-              </div>
-            </div>
-
-            {/* Admin Desktop Logout Button */}
-            <button
-              id="admin-navbar-logout-btn"
-              onClick={() => setIsLogoutModalOpen(true)}
-              aria-label={t('nav.signOut', 'Sign Out')}
-              title={t('nav.signOut', 'Sign Out')}
-              className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-700 text-xs font-semibold text-slate-300 hover:text-rose-400 hover:bg-rose-950/40 hover:border-rose-800 transition cursor-pointer whitespace-nowrap shrink-0"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="whitespace-nowrap">{t('nav.signOut', 'Sign Out')}</span>
-            </button>
+            <AccountTools />
 
             {/* Admin Mobile Menu Hamburger */}
             <button
               id="admin-mobile-menu-btn"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label={isMobileMenuOpen ? t('common.close', 'Đóng menu') : 'Menu Quản trị'}
-              className="lg:hidden p-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 hover:border-indigo-400 transition cursor-pointer"
+              className="xl:hidden p-2 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 hover:border-indigo-400 transition cursor-pointer"
             >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -210,7 +183,7 @@ export const AdminNavbar: React.FC = () => {
         {/* Mobile Drawer Backdrop Overlay */}
         {isMobileMenuOpen && (
           <div 
-            className="fixed inset-0 top-16 bg-black/60 backdrop-blur-xs z-40 lg:hidden animate-fade-in"
+            className="fixed inset-0 top-16 bg-black/60 backdrop-blur-xs z-40 xl:hidden animate-fade-in"
             onClick={() => setIsMobileMenuOpen(false)}
           />
         )}
@@ -218,11 +191,11 @@ export const AdminNavbar: React.FC = () => {
         {/* Admin Mobile Drawer Panel */}
         {isMobileMenuOpen && (
           <div 
-            className="fixed top-16 left-0 right-0 max-h-[calc(100vh-4rem)] overflow-y-auto bg-[#0B1329] border-b border-indigo-900/40 p-5 shadow-2xl space-y-4 z-50 lg:hidden animate-fade-in text-slate-100"
+            className="fixed top-16 left-0 right-0 max-h-[calc(100vh-4rem)] overflow-y-auto bg-[var(--retro-deep)] border-b border-indigo-900/40 p-5 shadow-2xl space-y-4 z-50 xl:hidden animate-fade-in text-slate-100"
           >
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-indigo-950 text-indigo-300 text-xs font-bold flex items-center justify-center border border-indigo-800">
+                <div className="w-8 h-8 rounded-xl bg-indigo-950 text-indigo-300 text-xs font-bold flex items-center justify-center border border-indigo-800">
                   {user?.fullName ? user.fullName.trim().charAt(0).toUpperCase() : 'A'}
                 </div>
                 <div>
@@ -230,7 +203,7 @@ export const AdminNavbar: React.FC = () => {
                   <span className="text-[10px] text-slate-400">{user?.email}</span>
                 </div>
               </div>
-              <span className="text-[10px] font-mono font-bold text-rose-300 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800 uppercase">
+              <span className="text-[10px] font-sans font-bold text-rose-300 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800 uppercase">
                 ADMIN
               </span>
             </div>

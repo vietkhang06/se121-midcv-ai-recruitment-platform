@@ -117,7 +117,7 @@ export default function AdminTaxonomyPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#060D1E] text-slate-800 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 transition-colors">
       <main className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6">
 
         {/* Breadcrumb */}
@@ -181,7 +181,7 @@ export default function AdminTaxonomyPage() {
         )}
 
         {/* Controls */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 shadow-xs">
           <div className="relative w-full sm:w-80">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -204,7 +204,7 @@ export default function AdminTaxonomyPage() {
                   setActiveFilter(s);
                   setCurrentPage(0);
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                   activeFilter === s
                     ? 'bg-indigo-600 text-white shadow-xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
@@ -218,7 +218,7 @@ export default function AdminTaxonomyPage() {
 
         {/* Loading State */}
         {loading && (
-          <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-[#0B1329] rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-[var(--surface)] rounded-xl border border-slate-200 dark:border-slate-800">
             <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-3" />
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Đang tải danh mục kỹ năng...</p>
           </div>
@@ -226,7 +226,7 @@ export default function AdminTaxonomyPage() {
 
         {/* Error State */}
         {!loading && error && (
-          <div className="p-8 rounded-2xl bg-white dark:bg-[#0B1329] border border-rose-200 dark:border-rose-900/50 text-center space-y-4">
+          <div className="p-8 rounded-xl bg-white dark:bg-[var(--surface)] border border-rose-200 dark:border-rose-900/50 text-center space-y-4">
             <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">Lỗi tải dữ liệu</h3>
             <p className="text-xs text-rose-600 dark:text-rose-400 max-w-md mx-auto">{error}</p>
@@ -241,7 +241,7 @@ export default function AdminTaxonomyPage() {
 
         {/* Empty State */}
         {!loading && !error && skills.length === 0 && (
-          <div className="p-12 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 text-center space-y-3">
+          <div className="p-12 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 text-center space-y-3">
             <Tag className="w-10 h-10 text-slate-400 mx-auto" />
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">Không tìm thấy kỹ năng</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
@@ -252,9 +252,9 @@ export default function AdminTaxonomyPage() {
 
         {/* Skills Table */}
         {!loading && !error && skills.length > 0 && (
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1329] shadow-xs">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[var(--surface)] shadow-xs">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-[#111C38] text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider">
+              <thead className="bg-slate-50 dark:bg-[var(--surface)] text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider">
                 <tr>
                   <th className="py-3.5 px-4">Tên Kỹ Năng (Display Name)</th>
                   <th className="py-3.5 px-4">Normalized Key</th>
@@ -269,11 +269,11 @@ export default function AdminTaxonomyPage() {
                     <td className="py-4 px-4 font-bold text-slate-900 dark:text-white">
                       {s.name}
                     </td>
-                    <td className="py-4 px-4 font-mono text-slate-500 dark:text-slate-400">
+                    <td className="py-4 px-4 font-sans text-slate-500 dark:text-slate-400">
                       {s.normalizedKey}
                     </td>
                     <td className="py-4 px-4">
-                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40">
+                      <span className="px-2 py-0.5 rounded-xl text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40">
                         {s.category || 'General'}
                       </span>
                     </td>
@@ -292,7 +292,7 @@ export default function AdminTaxonomyPage() {
                       <button
                         onClick={() => handleToggleActive(s)}
                         disabled={togglingId === s.id}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
+                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold transition cursor-pointer ${
                           s.active
                             ? 'border border-amber-300 dark:border-amber-800 text-amber-600 hover:bg-amber-50'
                             : 'bg-emerald-600 hover:bg-emerald-500 text-white'
@@ -323,14 +323,14 @@ export default function AdminTaxonomyPage() {
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
                     disabled={currentPage === 0}
-                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
+                    className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
                     disabled={currentPage >= totalPages - 1}
-                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
+                    className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -343,7 +343,7 @@ export default function AdminTaxonomyPage() {
         {/* Create Skill Modal */}
         {isCreateModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-            <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 p-6 shadow-xl space-y-4">
+            <div className="w-full max-w-md rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 p-6 shadow-xl space-y-4">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600">
                   <Tag className="w-6 h-6" />

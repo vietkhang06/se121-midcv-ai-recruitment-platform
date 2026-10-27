@@ -1,0 +1,12 @@
+/* Full OFL font files retain combining marks for NFC and NFD Vietnamese. Self-hosted; no font network requests. */
+@font-face { font-family: 'Be Vietnam Pro'; font-style: normal; font-weight: 300; font-display: swap; src: url('/fonts/be-vietnam-pro/be-vietnam-pro-full-300-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Be Vietnam Pro'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/be-vietnam-pro/be-vietnam-pro-full-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Be Vietnam Pro'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/be-vietnam-pro/be-vietnam-pro-full-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Be Vietnam Pro'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/be-vietnam-pro/be-vietnam-pro-full-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Be Vietnam Pro'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/be-vietnam-pro/be-vietnam-pro-full-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Be Vietnam Pro'; font-style: normal; font-weight: 800; font-display: swap; src: url('/fonts/be-vietnam-pro/be-vietnam-pro-full-800-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Be Vietnam Pro'; font-style: normal; font-weight: 900; font-display: swap; src: url('/fonts/be-vietnam-pro/be-vietnam-pro-full-900-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Be Vietnam Pro'; font-style: italic; font-weight: 400; font-display: swap; src: url('/fonts/be-vietnam-pro/be-vietnam-pro-full-400-italic.woff2') format('woff2'); }
+@font-face { font-family: 'Be Vietnam Pro'; font-style: italic; font-weight: 500; font-display: swap; src: url('/fonts/be-vietnam-pro/be-vietnam-pro-full-500-italic.woff2') format('woff2'); }
+@font-face { font-family: 'Be Vietnam Pro'; font-style: italic; font-weight: 600; font-display: swap; src: url('/fonts/be-vietnam-pro/be-vietnam-pro-full-600-italic.woff2') format('woff2'); }
+@font-face { font-family: 'Be Vietnam Pro'; font-style: italic; font-weight: 700; font-display: swap; src: url('/fonts/be-vietnam-pro/be-vietnam-pro-full-700-italic.woff2') format('woff2'); }

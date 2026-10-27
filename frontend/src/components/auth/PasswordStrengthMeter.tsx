@@ -105,9 +105,9 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({ pa
       </div>
 
       {/* Strength Progress Bar */}
-      <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+      <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-xl overflow-hidden">
         <div
-          className={`h-full transition-all duration-300 rounded-full ${levelColor.split(' ')[0]}`}
+          className={`h-full transition-all duration-300 rounded-xl ${levelColor.split(' ')[0]}`}
           style={{ width: password ? barWidth : '0%' }}
         />
       </div>

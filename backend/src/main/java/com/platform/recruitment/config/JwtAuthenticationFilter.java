@@ -38,7 +38,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String role = tokenProvider.getRoleFromToken(jwt);
 
                 User user = userRepository.findById(userId).orElse(null);
-                if (user != null && user.getRole() != null && !user.isDeactivated()) {
+                if (user != null && user.getRole() != null && !user.isDeactivated()
+                        && (user.getAuthInvalidBefore()==null || tokenProvider.getIssuedAtMillis(jwt)>user.getAuthInvalidBefore().toEpochMilli())) {
                     java.util.List<SimpleGrantedAuthority> authorities = new java.util.ArrayList<>();
                     authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
                     if (user.isSuspended()) {

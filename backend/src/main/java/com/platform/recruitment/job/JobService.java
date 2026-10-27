@@ -20,6 +20,8 @@ import java.util.UUID;
 @Service
 public class JobService {
 
+    private com.platform.recruitment.communication.InboxService inbox;
+    @Autowired public void setInbox(com.platform.recruitment.communication.InboxService inbox) { this.inbox=inbox; }
     private final JobRepository jobRepository;
     private final RecruiterProfileRepository recruiterProfileRepository;
     private final com.platform.recruitment.suspension.SuspensionGuard suspensionGuard;
@@ -112,8 +114,10 @@ public class JobService {
             suspensionGuard.assertCanManageJob(recruiterUser, job);
         }
 
+        boolean newlyPublished=job.getStatus()!=JobStatus.PUBLISHED;
         job.setStatus(JobStatus.PUBLISHED);
         Job publishedJob = jobRepository.save(job);
+        if(inbox!=null && newlyPublished) inbox.publishedJob(publishedJob);
         return mapToResponse(publishedJob);
     }
 

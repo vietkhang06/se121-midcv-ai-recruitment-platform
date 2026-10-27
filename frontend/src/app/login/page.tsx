@@ -119,7 +119,7 @@ function LoginFormContent() {
   const isCandidate = role === 'CANDIDATE';
 
   return (
-    <div className="min-h-screen w-full flex flex-col md:flex-row bg-white dark:bg-[#0B1329] transition-colors">
+    <div className="min-h-screen w-full flex flex-col md:flex-row bg-white dark:bg-[var(--surface)] transition-colors">
       {/* Left Column: Visual Hero Banner with Role-Synchronized Imagery */}
       <div className="w-full md:w-1/2 lg:w-1/2 h-72 sm:h-96 md:h-auto md:min-h-screen relative shrink-0">
         <AuthHeroBanner role={role} />
@@ -138,10 +138,10 @@ function LoginFormContent() {
                 type="button"
                 id="login-lang-switch-btn"
                 onClick={toggleLocale}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-[#111C38] text-slate-700 dark:text-slate-200 hover:border-[#2563EB] hover:text-[#2563EB] transition cursor-pointer shadow-xs"
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-sans font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-[var(--surface)] text-slate-700 dark:text-slate-200 hover:border-[var(--border)] hover:text-[var(--primary)] transition cursor-pointer shadow-xs"
                 title={locale === 'vi' ? 'Switch to English' : 'Chuyển sang Tiếng Việt'}
               >
-                <Globe className="w-3.5 h-3.5 text-[#2563EB]" />
+                <Globe className="w-3.5 h-3.5 text-[var(--primary)]" />
                 <span>{locale.toUpperCase()}</span>
               </button>
               <ThemeSwitch />
@@ -150,7 +150,7 @@ function LoginFormContent() {
 
           {/* Header Section */}
           <div className="mb-6">
-            <h2 className="text-2xl sm:text-[30px] font-extrabold text-[#0F172A] dark:text-white tracking-tight leading-tight mb-2">
+            <h2 className="text-2xl sm:text-[30px] font-extrabold text-[var(--heading)] dark:text-white tracking-tight leading-tight mb-2">
               {locale === 'vi' ? 'Chào mừng quay trở lại!' : 'Welcome back!'}
             </h2>
             <p className="text-xs sm:text-[13px] text-slate-500 dark:text-slate-400 leading-relaxed">
@@ -161,18 +161,18 @@ function LoginFormContent() {
           </div>
 
           {/* Role Switcher Tabs (Figma Pixel-Perfect Pill Style) */}
-          <div className="grid grid-cols-2 gap-3 mb-6 p-1 bg-slate-100/80 dark:bg-[#111C38] rounded-2xl border border-slate-200/60 dark:border-slate-800">
+          <div className="grid grid-cols-2 gap-3 mb-6 p-1 bg-slate-100/80 dark:bg-[var(--surface)] rounded-xl border border-slate-200/60 dark:border-slate-800">
             <button
               type="button"
               id="login-role-candidate-btn"
               onClick={() => handleRoleChange('CANDIDATE')}
               className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
                 isCandidate
-                  ? 'bg-white dark:bg-[#1E293B] text-[#2563EB] dark:text-[#38BDF8] shadow-sm border border-blue-500/20'
+                  ? 'bg-white dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] shadow-sm border border-blue-500/20'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent'
               }`}
             >
-              <User className={`w-4 h-4 ${isCandidate ? 'text-[#2563EB] dark:text-[#38BDF8]' : 'text-slate-500'}`} />
+              <User className={`w-4 h-4 ${isCandidate ? 'text-[var(--primary)] dark:text-[var(--retro-sky)]' : 'text-slate-500'}`} />
               <span>{locale === 'vi' ? 'Ứng viên' : 'Candidate'}</span>
             </button>
 
@@ -182,11 +182,11 @@ function LoginFormContent() {
               onClick={() => handleRoleChange('RECRUITER')}
               className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
                 !isCandidate
-                  ? 'bg-white dark:bg-[#1E293B] text-[#2563EB] dark:text-[#38BDF8] shadow-sm border border-blue-500/20'
+                  ? 'bg-white dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] shadow-sm border border-blue-500/20'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent'
               }`}
             >
-              <Briefcase className={`w-4 h-4 ${!isCandidate ? 'text-[#2563EB] dark:text-[#38BDF8]' : 'text-slate-500'}`} />
+              <Briefcase className={`w-4 h-4 ${!isCandidate ? 'text-[var(--primary)] dark:text-[var(--retro-sky)]' : 'text-slate-500'}`} />
               <span>{locale === 'vi' ? 'Nhà tuyển dụng' : 'Recruiter'}</span>
             </button>
           </div>
@@ -201,7 +201,7 @@ function LoginFormContent() {
                   <div className="pt-1">
                     <Link
                       href="/verify-email"
-                      className="text-[#2563EB] dark:text-[#38BDF8] underline font-semibold hover:text-[#1D4ED8]"
+                      className="text-[var(--primary)] dark:text-[var(--retro-sky)] underline font-semibold hover:text-[var(--primary)]"
                     >
                       {locale === 'vi' ? 'Đến trang xác thực email' : 'Go to email verification'}
                     </Link>
@@ -233,7 +233,7 @@ function LoginFormContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[var(--surface)] text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--border)]/20 focus:border-[var(--border)] transition"
               />
             </div>
 
@@ -250,7 +250,7 @@ function LoginFormContent() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full pl-4 pr-11 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition"
+                  className="w-full pl-4 pr-11 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[var(--surface)] text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--border)]/20 focus:border-[var(--border)] transition"
                 />
                 <button
                   type="button"
@@ -270,7 +270,7 @@ function LoginFormContent() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 text-[#2563EB] focus:ring-[#2563EB]/30 cursor-pointer"
+                  className="w-4 h-4 rounded border-slate-300 text-[var(--primary)] focus:ring-[var(--border)]/30 cursor-pointer"
                 />
                 <span>{locale === 'vi' ? 'Ghi nhớ đăng nhập' : 'Remember me'}</span>
               </label>
@@ -285,7 +285,7 @@ function LoginFormContent() {
                       : 'Password reset feature is currently being updated.'
                   );
                 }}
-                className="font-medium text-[#2563EB] hover:text-[#1D4ED8] dark:text-[#38BDF8] hover:underline"
+                className="font-medium text-[var(--primary)] hover:text-[var(--primary)] dark:text-[var(--retro-sky)] hover:underline"
               >
                 {locale === 'vi' ? 'Quên mật khẩu?' : 'Forgot password?'}
               </a>
@@ -296,7 +296,7 @@ function LoginFormContent() {
               id="login-submit-btn"
               type="submit"
               disabled={isLoading}
-              className="w-full mt-2 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-[0.99] shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full mt-2 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary)] active:scale-[0.99] shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
@@ -318,7 +318,7 @@ function LoginFormContent() {
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-slate-200 dark:border-slate-800" />
             </div>
-            <span className="relative px-3 bg-white dark:bg-[#0B1329] text-xs text-slate-400 font-medium">
+            <span className="relative px-3 bg-white dark:bg-[var(--surface)] text-xs text-slate-400 font-medium">
               {locale === 'vi' ? '- Hoặc tiếp tục với -' : '- Or continue with -'}
             </span>
           </div>
@@ -330,10 +330,10 @@ function LoginFormContent() {
               type="button"
               onClick={() => handleOAuth('google')}
               disabled={oauthLoading !== null}
-              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-xs disabled:opacity-60"
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[var(--surface)] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-xs disabled:opacity-60"
             >
               {oauthLoading === 'google' ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-[#2563EB]" />
+                <RefreshCw className="w-4 h-4 animate-spin text-[var(--primary)]" />
               ) : (
                 <GoogleIcon className="w-4 h-4 shrink-0" />
               )}
@@ -345,10 +345,10 @@ function LoginFormContent() {
               type="button"
               onClick={() => handleOAuth('github')}
               disabled={oauthLoading !== null}
-              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-xs disabled:opacity-60"
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[var(--surface)] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-xs disabled:opacity-60"
             >
               {oauthLoading === 'github' ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-[#2563EB]" />
+                <RefreshCw className="w-4 h-4 animate-spin text-[var(--primary)]" />
               ) : (
                 <GitHubIcon className="w-4 h-4 shrink-0" />
               )}
@@ -362,7 +362,7 @@ function LoginFormContent() {
             {locale === 'vi' ? 'Chưa có tài khoản?' : "Don't have an account?"}{' '}
             <Link
               href={`/register?role=${isCandidate ? 'candidate' : 'hr'}`}
-              className="font-semibold text-[#2563EB] hover:text-[#1D4ED8] dark:text-[#38BDF8] hover:underline"
+              className="font-semibold text-[var(--primary)] hover:text-[var(--primary)] dark:text-[var(--retro-sky)] hover:underline"
             >
               {locale === 'vi' ? 'Đăng ký ngay' : 'Register now'}
             </Link>
@@ -377,8 +377,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[#0B1329]">
-          <RefreshCw className="w-6 h-6 animate-spin text-[#2563EB]" />
+        <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[var(--surface)]">
+          <RefreshCw className="w-6 h-6 animate-spin text-[var(--primary)]" />
         </div>
       }
     >

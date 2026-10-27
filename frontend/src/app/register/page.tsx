@@ -119,7 +119,7 @@ function RegisterFormContent() {
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
 
   return (
-    <div className="min-h-screen w-full flex flex-col md:flex-row bg-white dark:bg-[#0B1329] transition-colors">
+    <div className="min-h-screen w-full flex flex-col md:flex-row bg-white dark:bg-[var(--surface)] transition-colors">
       {/* Left Column: Hero Visual Banner synchronized with Role */}
       <div className="w-full md:w-1/2 lg:w-1/2 h-72 sm:h-96 md:h-auto md:min-h-screen relative shrink-0">
         <AuthHeroBanner role={role} />
@@ -134,7 +134,7 @@ function RegisterFormContent() {
               <span>{isVi ? 'Đã có tài khoản?' : 'Already have an account?'} </span>
               <Link
                 href={`/login?role=${isCandidate ? 'candidate' : 'hr'}`}
-                className="font-semibold text-[#2563EB] hover:text-[#1D4ED8] dark:text-[#38BDF8] hover:underline ml-0.5"
+                className="font-semibold text-[var(--primary)] hover:text-[var(--primary)] dark:text-[var(--retro-sky)] hover:underline ml-0.5"
               >
                 {isVi ? 'Đăng nhập' : 'Sign in'}
               </Link>
@@ -144,10 +144,10 @@ function RegisterFormContent() {
                 type="button"
                 id="register-lang-switch-btn"
                 onClick={toggleLocale}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-[#111C38] text-slate-700 dark:text-slate-200 hover:border-[#2563EB] hover:text-[#2563EB] transition cursor-pointer shadow-xs"
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-sans font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-[var(--surface)] text-slate-700 dark:text-slate-200 hover:border-[var(--border)] hover:text-[var(--primary)] transition cursor-pointer shadow-xs"
                 title={isVi ? 'Switch to English' : 'Chuyển sang Tiếng Việt'}
               >
-                <Globe className="w-3.5 h-3.5 text-[#2563EB]" />
+                <Globe className="w-3.5 h-3.5 text-[var(--primary)]" />
                 <span>{locale.toUpperCase()}</span>
               </button>
               <ThemeSwitch />
@@ -156,7 +156,7 @@ function RegisterFormContent() {
 
           {/* Form Title & Subtitle */}
           <div className="mb-5">
-            <h2 className="text-2xl sm:text-[28px] font-extrabold text-[#0F172A] dark:text-white tracking-tight leading-tight mb-1.5">
+            <h2 className="text-2xl sm:text-[28px] font-extrabold text-[var(--heading)] dark:text-white tracking-tight leading-tight mb-1.5">
               {isCandidate
                 ? (isVi ? 'Tạo tài khoản ứng viên' : 'Create Candidate Account')
                 : (isVi ? 'Tạo tài khoản nhà tuyển dụng' : 'Create Recruiter Account')}
@@ -173,18 +173,18 @@ function RegisterFormContent() {
           </div>
 
           {/* Role Switcher Tabs (Figma Pixel-Perfect Pill Style) */}
-          <div className="grid grid-cols-2 gap-3 mb-6 p-1 bg-slate-100/80 dark:bg-[#111C38] rounded-2xl border border-slate-200/60 dark:border-slate-800">
+          <div className="grid grid-cols-2 gap-3 mb-6 p-1 bg-slate-100/80 dark:bg-[var(--surface)] rounded-xl border border-slate-200/60 dark:border-slate-800">
             <button
               type="button"
               id="register-role-candidate-btn"
               onClick={() => handleRoleChange('CANDIDATE')}
               className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
                 isCandidate
-                  ? 'bg-white dark:bg-[#1E293B] text-[#2563EB] dark:text-[#38BDF8] shadow-sm border border-blue-500/20'
+                  ? 'bg-white dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] shadow-sm border border-blue-500/20'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent'
               }`}
             >
-              <User className={`w-4 h-4 ${isCandidate ? 'text-[#2563EB] dark:text-[#38BDF8]' : 'text-slate-500'}`} />
+              <User className={`w-4 h-4 ${isCandidate ? 'text-[var(--primary)] dark:text-[var(--retro-sky)]' : 'text-slate-500'}`} />
               <span>{isVi ? 'Ứng viên' : 'Candidate'}</span>
             </button>
 
@@ -194,11 +194,11 @@ function RegisterFormContent() {
               onClick={() => handleRoleChange('RECRUITER')}
               className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
                 !isCandidate
-                  ? 'bg-white dark:bg-[#1E293B] text-[#2563EB] dark:text-[#38BDF8] shadow-sm border border-blue-500/20'
+                  ? 'bg-white dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] shadow-sm border border-blue-500/20'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent'
               }`}
             >
-              <Briefcase className={`w-4 h-4 ${!isCandidate ? 'text-[#2563EB] dark:text-[#38BDF8]' : 'text-slate-500'}`} />
+              <Briefcase className={`w-4 h-4 ${!isCandidate ? 'text-[var(--primary)] dark:text-[var(--retro-sky)]' : 'text-slate-500'}`} />
               <span>{isVi ? 'Nhà tuyển dụng' : 'Recruiter'}</span>
             </button>
           </div>
@@ -244,7 +244,7 @@ function RegisterFormContent() {
                   setError(null);
                 }}
                 required
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[var(--surface)] text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--border)]/20 focus:border-[var(--border)] transition"
               />
             </div>
 
@@ -264,7 +264,7 @@ function RegisterFormContent() {
                     setError(null);
                   }}
                   required
-                  className="w-full pl-4 pr-11 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition"
+                  className="w-full pl-4 pr-11 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[var(--surface)] text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--border)]/20 focus:border-[var(--border)] transition"
                 />
                 <button
                   type="button"
@@ -296,12 +296,12 @@ function RegisterFormContent() {
                     setError(null);
                   }}
                   required
-                  className={`w-full pl-4 pr-11 py-2.5 rounded-xl border bg-white dark:bg-[#13233F] text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition ${
+                  className={`w-full pl-4 pr-11 py-2.5 rounded-xl border bg-white dark:bg-[var(--surface)] text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition ${
                     passwordsMatch
                       ? 'border-emerald-500 focus:ring-emerald-500/20'
                       : passwordsMismatch
                       ? 'border-rose-400 focus:ring-rose-500/20'
-                      : 'border-slate-200 dark:border-slate-700 focus:ring-[#2563EB]/20 focus:border-[#2563EB]'
+                      : 'border-slate-200 dark:border-slate-700 focus:ring-[var(--border)]/20 focus:border-[var(--border)]'
                   }`}
                 />
                 <button
@@ -336,14 +336,14 @@ function RegisterFormContent() {
                   type="checkbox"
                   checked={agreedTerms}
                   onChange={(e) => setAgreedTerms(e.target.checked)}
-                  className="w-4 h-4 mt-0.5 rounded border-slate-300 text-[#2563EB] focus:ring-[#2563EB]/30 cursor-pointer shrink-0"
+                  className="w-4 h-4 mt-0.5 rounded border-slate-300 text-[var(--primary)] focus:ring-[var(--border)]/30 cursor-pointer shrink-0"
                 />
                 <span>
                   {isVi ? 'Tôi đồng ý với ' : 'I agree to the '}
                   <a
                     href="#"
                     onClick={(e) => e.preventDefault()}
-                    className="text-[#2563EB] dark:text-[#38BDF8] hover:underline font-semibold"
+                    className="text-[var(--primary)] dark:text-[var(--retro-sky)] hover:underline font-semibold"
                   >
                     {isVi ? 'Điều khoản dịch vụ' : 'Terms of Service'}
                   </a>
@@ -351,7 +351,7 @@ function RegisterFormContent() {
                   <a
                     href="#"
                     onClick={(e) => e.preventDefault()}
-                    className="text-[#2563EB] dark:text-[#38BDF8] hover:underline font-semibold"
+                    className="text-[var(--primary)] dark:text-[var(--retro-sky)] hover:underline font-semibold"
                   >
                     {isVi ? 'Chính sách bảo mật' : 'Privacy Policy'}
                   </a>
@@ -365,7 +365,7 @@ function RegisterFormContent() {
               id="register-submit-btn"
               type="submit"
               disabled={isLoading}
-              className="w-full mt-2 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-[0.99] shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full mt-2 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary)] active:scale-[0.99] shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
@@ -385,7 +385,7 @@ function RegisterFormContent() {
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-slate-200 dark:border-slate-800" />
             </div>
-            <span className="relative px-3 bg-white dark:bg-[#0B1329] text-xs text-slate-400 font-medium">
+            <span className="relative px-3 bg-white dark:bg-[var(--surface)] text-xs text-slate-400 font-medium">
               {isVi ? '- Hoặc tiếp tục với -' : '- Or continue with -'}
             </span>
           </div>
@@ -397,10 +397,10 @@ function RegisterFormContent() {
               type="button"
               onClick={() => handleOAuth('google')}
               disabled={oauthLoading !== null}
-              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-xs disabled:opacity-60"
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[var(--surface)] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-xs disabled:opacity-60"
             >
               {oauthLoading === 'google' ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-[#2563EB]" />
+                <RefreshCw className="w-4 h-4 animate-spin text-[var(--primary)]" />
               ) : (
                 <GoogleIcon className="w-4 h-4 shrink-0" />
               )}
@@ -412,10 +412,10 @@ function RegisterFormContent() {
               type="button"
               onClick={() => handleOAuth('github')}
               disabled={oauthLoading !== null}
-              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#13233F] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-xs disabled:opacity-60"
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[var(--surface)] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-xs disabled:opacity-60"
             >
               {oauthLoading === 'github' ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-[#2563EB]" />
+                <RefreshCw className="w-4 h-4 animate-spin text-[var(--primary)]" />
               ) : (
                 <GitHubIcon className="w-4 h-4 shrink-0" />
               )}
@@ -429,7 +429,7 @@ function RegisterFormContent() {
             {isVi ? 'Đã có tài khoản? ' : 'Already have an account? '}
             <Link
               href={`/login?role=${isCandidate ? 'candidate' : 'hr'}`}
-              className="font-semibold text-[#2563EB] hover:text-[#1D4ED8] dark:text-[#38BDF8] hover:underline"
+              className="font-semibold text-[var(--primary)] hover:text-[var(--primary)] dark:text-[var(--retro-sky)] hover:underline"
             >
               {isCandidate
                 ? (isVi ? 'Đăng nhập ngay' : 'Sign in now')
@@ -446,8 +446,8 @@ export default function RegisterPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[#0B1329]">
-          <RefreshCw className="w-6 h-6 animate-spin text-[#2563EB]" />
+        <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[var(--surface)]">
+          <RefreshCw className="w-6 h-6 animate-spin text-[var(--primary)]" />
         </div>
       }
     >

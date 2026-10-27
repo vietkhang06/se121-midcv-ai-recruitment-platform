@@ -26,13 +26,13 @@ export const CandidateCompareModal: React.FC<CandidateCompareModalProps> = ({
       descriptionId="candidate-compare-description"
       testId="candidate-compare-modal"
       overlayClassName="bg-slate-950/80 dark:bg-slate-950/80 backdrop-blur-md"
-      panelClassName="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 text-slate-100 relative max-h-[90vh] overflow-y-auto space-y-6"
+      panelClassName="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-6 text-slate-100 relative max-h-[90vh] overflow-y-auto space-y-6"
     >
         <button
           onClick={onClose}
           data-autofocus="true"
           aria-label="Đóng so sánh ứng viên"
-          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+          className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
         >
           <X className="w-5 h-5" />
         </button>
@@ -46,7 +46,7 @@ export const CandidateCompareModal: React.FC<CandidateCompareModalProps> = ({
         {/* Side-by-Side Grid */}
         <div className={`grid gap-4 ${candidates.length === 1 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
           {candidates.map((cand, idx) => (
-            <div key={cand.applicationId} className="animate-fade-in bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs" style={{ animationDelay: `${staggerDelay(idx)}ms` }}>
+            <div key={cand.applicationId} className="animate-fade-in bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-4 text-xs" style={{ animationDelay: `${staggerDelay(idx)}ms` }}>
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400">Ứng viên #{idx + 1}</span>

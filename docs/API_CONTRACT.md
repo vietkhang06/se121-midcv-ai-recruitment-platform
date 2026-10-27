@@ -562,3 +562,8 @@ Provider identity is stored by `(provider, provider_subject)`, not email. New so
 ### Job salary representation
 
 `minSalary` and `maxSalary` remain JSON decimal numbers backed by PostgreSQL `DECIMAL(12,2)`. Requests accept `salaryCurrency` from `VND`, `USD`, `EUR`, `GBP`, `JPY`, `CNY`, `KRW`, `SGD`, `AUD`, `CAD`; responses include that ISO code and `salaryPeriod: "MONTH"`. Currency and period are independent. Existing records remain numerically unchanged and are migrated as VND/month. Missing values are `null`; zero is numeric zero. `salaryNegotiable: true` requires both amounts to be null; otherwise an empty range means undisclosed. Negative and inverted ranges are rejected. No exchange-rate conversion or cross-currency numeric filtering/comparison occurs.
+
+
+## Inbox & account workspace — 27/10/2026
+
+The authenticated `/api/v1/inbox` extension, ownership rules, transactional notifications, application-scoped chat, account preferences and SMTP outbox are specified in [INBOX_ACCOUNT_EXTENSION_20261027.md](INBOX_ACCOUNT_EXTENSION_20261027.md). Existing CV/matching/OAuth contracts above remain unchanged.

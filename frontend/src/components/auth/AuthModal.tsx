@@ -26,8 +26,8 @@ const TARGET_INDUSTRIES_LIST = [
 type AuthView = 'LOGIN' | 'REGISTER' | 'VERIFICATION_PENDING';
 type OAuthProvider = 'google' | 'github' | 'linkedin';
 
-const inputClass = 'h-12 w-full rounded-xl border border-[#cbdcff] bg-white px-4 text-sm text-[#09266e] outline-none transition placeholder:text-[#7894c8] hover:border-[#9bbcff] focus:border-[#0759f9] focus:ring-4 focus:ring-[#0759f9]/12 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:opacity-70';
-const labelClass = 'mb-1.5 block text-xs font-semibold text-[#16356f]';
+const inputClass = 'h-12 w-full rounded-xl border border-[var(--border-soft)] bg-white px-4 text-sm text-[var(--heading)] outline-none transition placeholder:text-[var(--primary)] hover:border-[var(--border-soft)] focus:border-[var(--border)] focus:ring-4 focus:ring-[var(--border)]/12 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:opacity-70';
+const labelClass = 'mb-1.5 block text-xs font-semibold text-[var(--heading)]';
 
 function SocialButtons({
   oauthLoading,
@@ -43,12 +43,12 @@ function SocialButtons({
           ? <GoogleIcon className="h-4 w-4 shrink-0" />
           : provider === 'github'
             ? <GitHubIcon className="h-4 w-4 shrink-0" />
-            : <LinkedInIcon className="h-4 w-4 shrink-0 text-[#0a66c2]" />;
+            : <LinkedInIcon className="h-4 w-4 shrink-0 text-[var(--primary)]" />;
         const label = provider === 'google' ? 'Google' : provider === 'github' ? 'GitHub' : 'LinkedIn';
         return (
           <button key={provider} type="button" onClick={() => onOAuth(provider)} disabled={oauthLoading !== null}
-            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#cfddf7] bg-white px-3 text-xs font-semibold text-[#173b73] shadow-[0_3px_10px_rgba(37,99,235,0.05)] transition hover:-translate-y-0.5 hover:border-[#8eb4ff] hover:bg-[#f8fbff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0759f9]/15 disabled:translate-y-0 disabled:opacity-60">
-            {oauthLoading === provider ? <RefreshCw className="h-4 w-4 animate-spin text-[#0759f9]" /> : icon}
+            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border-soft)] bg-white px-3 text-xs font-semibold text-[var(--heading)] shadow-lg transition hover:-translate-y-0.5 hover:border-[var(--border-soft)] hover:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--border)]/15 disabled:translate-y-0 disabled:opacity-60">
+            {oauthLoading === provider ? <RefreshCw className="h-4 w-4 animate-spin text-[var(--primary)]" /> : icon}
             <span>{label}</span>
           </button>
         );
@@ -273,7 +273,7 @@ export const AuthModal: React.FC = () => {
     <AnimatedModalShell isOpen={isAuthModalOpen} onRequestClose={closeAuthModal}
       titleId="auth-modal-title" descriptionId="auth-modal-description" testId="auth-modal"
       overlayClassName="auth-modal-overlay"
-      panelClassName="auth-modal-panel relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-[820px] flex-col overflow-hidden rounded-[26px] bg-[#f8fbff] text-[#09266e] shadow-[0_32px_90px_rgba(8,47,120,0.28)] sm:max-h-[calc(100dvh-2.5rem)]">
+      panelClassName="auth-modal-panel relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-[820px] flex-col overflow-hidden rounded-xl bg-[var(--surface)] text-[var(--heading)] shadow-lg sm:max-h-[calc(100dvh-2.5rem)]">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-[radial-gradient(circle_at_50%_0%,rgba(14,165,233,0.12),transparent_68%)]" />
       <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-5 pb-6 pt-5 sm:px-10 sm:pb-7 sm:pt-7 md:px-14">
         <header className="relative grid min-h-12 grid-cols-[1fr_auto_1fr] items-start">
@@ -281,12 +281,12 @@ export const AuthModal: React.FC = () => {
           <div className="auth-modal-brand justify-self-center"><BrandLogo size="lg" onClick={closeAuthModal} /></div>
           <div className="flex items-center justify-end gap-2">
             <button type="button" onClick={toggleLocale}
-              className="flex h-10 items-center gap-1.5 rounded-full border border-[#cbdcff] bg-white/85 px-3 text-xs font-bold text-[#0759f9] shadow-sm transition hover:border-[#7eabff] hover:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0759f9]/15"
+              className="flex h-10 items-center gap-1.5 rounded-xl border border-[var(--border-soft)] bg-white/85 px-3 text-xs font-bold text-[var(--primary)] shadow-sm transition hover:border-[var(--border-soft)] hover:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--border)]/15"
               aria-label={locale === 'vi' ? 'Chuyển sang tiếng Anh' : 'Switch to Vietnamese'} title={locale === 'vi' ? 'Chuyển sang English' : 'Chuyển sang Tiếng Việt'}>
               <Globe className="h-4 w-4" /><span>{locale.toUpperCase()}</span>
             </button>
             <button type="button" onClick={closeAuthModal}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-[#cbdcff] bg-white/90 text-[#173b73] shadow-sm transition hover:rotate-6 hover:border-[#7eabff] hover:text-[#0759f9] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0759f9]/15"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border-soft)] bg-white/90 text-[var(--heading)] shadow-sm transition hover:rotate-6 hover:border-[var(--border-soft)] hover:text-[var(--primary)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--border)]/15"
               aria-label={locale === 'vi' ? 'Đóng cửa sổ đăng nhập' : 'Close authentication dialog'}>
               <X className="h-5 w-5" />
             </button>
@@ -295,12 +295,12 @@ export const AuthModal: React.FC = () => {
 
         <section className="mx-auto mt-3 w-full max-w-[635px]">
           <div className="text-center">
-            <h2 id="auth-modal-title" className="font-editorial text-[clamp(1.8rem,4vw,2.35rem)] font-bold leading-tight tracking-[-0.025em] text-[#09266e]">{title}</h2>
-            <p id="auth-modal-description" className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#6688d5]">{subtitle}</p>
+            <h2 id="auth-modal-title" className="font-editorial text-[clamp(1.8rem,4vw,2.35rem)] font-bold leading-tight tracking-[-0.025em] text-[var(--heading)]">{title}</h2>
+            <p id="auth-modal-description" className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[var(--primary)]">{subtitle}</p>
           </div>
 
           {intendedAction && activeTab !== 'VERIFICATION_PENDING' && (
-            <div className="mt-4 rounded-xl border border-[#bcd2ff] bg-[#eef5ff] px-4 py-2.5 text-xs text-[#2455a4]">
+            <div className="mt-4 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-secondary)] px-4 py-2.5 text-xs text-[var(--primary)]">
               {locale === 'vi' ? 'Vui lòng đăng nhập để tiếp tục thao tác đang thực hiện.' : 'Please sign in to continue your current action.'}
             </div>
           )}
@@ -312,7 +312,7 @@ export const AuthModal: React.FC = () => {
                   <div role="alert" className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-xs text-rose-700">
                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                     <div><p>{loginError}</p>{isEmailUnverified && (
-                      <button type="button" onClick={handleResend} disabled={resendCooldown > 0} className="mt-1 font-semibold text-[#0759f9] underline disabled:opacity-60">
+                      <button type="button" onClick={handleResend} disabled={resendCooldown > 0} className="mt-1 font-semibold text-[var(--primary)] underline disabled:opacity-60">
                         {resendCooldown > 0 ? (locale === 'vi' ? `Gửi lại sau ${resendCooldown}s` : `Resend in ${resendCooldown}s`) : (locale === 'vi' ? 'Gửi lại email xác thực' : 'Resend verification email')}
                       </button>
                     )}</div>
@@ -331,35 +331,35 @@ export const AuthModal: React.FC = () => {
                       value={loginPassword} onChange={(event) => setLoginPassword(event.target.value)}
                       placeholder={locale === 'vi' ? 'Nhập mật khẩu...' : 'Enter your password...'} className={`${inputClass} pr-12`} required />
                     <button type="button" onClick={() => setShowLoginPassword((current) => !current)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-[#0759f9] transition hover:bg-[#eef5ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0759f9]/30"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-1.5 text-[var(--primary)] transition hover:bg-[var(--surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border)]/30"
                       aria-label={showLoginPassword ? (locale === 'vi' ? 'Ẩn mật khẩu' : 'Hide password') : (locale === 'vi' ? 'Hiện mật khẩu' : 'Show password')}>
                       {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <label className="flex cursor-pointer items-center gap-2 text-[#536f9f]">
-                    <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} className="h-4 w-4 cursor-pointer rounded border-[#a7bde7] accent-[#0759f9]" />
+                  <label className="flex cursor-pointer items-center gap-2 text-[var(--primary)]">
+                    <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} className="h-4 w-4 cursor-pointer rounded border-[var(--border-soft)] accent-[var(--primary)]" />
                     <span>{locale === 'vi' ? 'Ghi nhớ đăng nhập' : 'Remember me'}</span>
                   </label>
                   <button type="button" onClick={() => setLoginError(locale === 'vi' ? 'Tính năng cấp lại mật khẩu đang được nâng cấp.' : 'Password reset is currently being updated.')}
-                    className="font-semibold text-[#0759f9] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0759f9]/30">
+                    className="font-semibold text-[var(--primary)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border)]/30">
                     {locale === 'vi' ? 'Quên mật khẩu?' : 'Forgot password?'}
                   </button>
                 </div>
                 <button id="auth-login-submit" type="submit" disabled={isLoginLoading}
-                  className="flex h-13 w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#0759f9] to-[#0aa8ff] px-5 text-sm font-bold text-white shadow-[0_10px_25px_rgba(7,89,249,0.24)] transition hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0759f9]/25 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60">
+                  className="flex h-13 w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary)] px-5 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--border)]/25 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60">
                   {isLoginLoading && <RefreshCw className="h-4 w-4 animate-spin" />}
                   <span>{isLoginLoading ? (locale === 'vi' ? 'Đang đăng nhập...' : 'Signing in...') : (locale === 'vi' ? 'Đăng nhập ngay' : 'Sign in now')}</span>
                   {!isLoginLoading && <ArrowRight className="h-5 w-5" />}
                 </button>
               </form>
-              <div className="my-5 flex items-center gap-4 text-xs text-[#7894c8]"><span className="h-px flex-1 bg-[#cbdcff]" /><span>{locale === 'vi' ? 'Hoặc tiếp tục với' : 'Or continue with'}</span><span className="h-px flex-1 bg-[#cbdcff]" /></div>
+              <div className="my-5 flex items-center gap-4 text-xs text-[var(--primary)]"><span className="h-px flex-1 bg-[var(--surface-secondary)]" /><span>{locale === 'vi' ? 'Hoặc tiếp tục với' : 'Or continue with'}</span><span className="h-px flex-1 bg-[var(--surface-secondary)]" /></div>
               <SocialButtons oauthLoading={oauthLoading} onOAuth={handleOAuth} />
-              {oauthNotice && <p role="status" className="mt-3 text-center text-xs text-[#6688d5]">{oauthNotice}</p>}
-              <p className="mt-5 text-center text-xs text-[#6688a8]">
+              {oauthNotice && <p role="status" className="mt-3 text-center text-xs text-[var(--primary)]">{oauthNotice}</p>}
+              <p className="mt-5 text-center text-xs text-[var(--text-secondary)]">
                 {locale === 'vi' ? 'Chưa có tài khoản?' : "Don't have an account?"}{' '}
-                <button type="button" onClick={() => switchView('REGISTER')} className="font-bold text-[#0759f9] hover:underline">{locale === 'vi' ? 'Đăng ký ngay' : 'Register now'}</button>
+                <button type="button" onClick={() => switchView('REGISTER')} className="font-bold text-[var(--primary)] hover:underline">{locale === 'vi' ? 'Đăng ký ngay' : 'Register now'}</button>
               </p>
             </div>
           )}
@@ -368,15 +368,15 @@ export const AuthModal: React.FC = () => {
             <div className="mt-5">
               <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
                 {registerError && <div role="alert" className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-xs text-rose-700"><AlertCircle className="h-4 w-4 shrink-0" /><span>{registerError}</span></div>}
-                <div className="grid grid-cols-2 rounded-xl border border-[#d5e2f8] bg-[#edf2f8] p-1">
+                <div className="grid grid-cols-2 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-secondary)] p-1">
                   <button type="button" onClick={() => setRegisterRole('CANDIDATE')}
                     aria-pressed={registerRole === 'CANDIDATE'}
-                    className={`flex h-10 items-center justify-center gap-2 rounded-lg text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0759f9]/30 ${registerRole === 'CANDIDATE' ? 'bg-white text-[#0759f9] shadow-sm ring-1 ring-[#c5d8fb]' : 'text-[#53657f] hover:text-[#173b73]'}`}>
+                    className={`flex h-10 items-center justify-center gap-2 rounded-xl text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border)]/30 ${registerRole === 'CANDIDATE' ? 'bg-white text-[var(--primary)] shadow-sm ring-1 ring-[var(--border-soft)]' : 'text-[var(--text-secondary)] hover:text-[var(--heading)]'}`}>
                     <User className="h-4 w-4" />{locale === 'vi' ? 'Ứng viên' : 'Candidate'}
                   </button>
                   <button type="button" onClick={() => setRegisterRole('RECRUITER')}
                     aria-pressed={registerRole === 'RECRUITER'}
-                    className={`flex h-10 items-center justify-center gap-2 rounded-lg text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0759f9]/30 ${registerRole === 'RECRUITER' ? 'bg-white text-[#0759f9] shadow-sm ring-1 ring-[#c5d8fb]' : 'text-[#53657f] hover:text-[#173b73]'}`}>
+                    className={`flex h-10 items-center justify-center gap-2 rounded-xl text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border)]/30 ${registerRole === 'RECRUITER' ? 'bg-white text-[var(--primary)] shadow-sm ring-1 ring-[var(--border-soft)]' : 'text-[var(--text-secondary)] hover:text-[var(--heading)]'}`}>
                     <BriefcaseBusiness className="h-4 w-4" />{locale === 'vi' ? 'Nhà tuyển dụng' : 'Recruiter'}
                   </button>
                 </div>
@@ -390,7 +390,7 @@ export const AuthModal: React.FC = () => {
                     <input id="auth-register-email" type="email" autoComplete="email" value={regEmail} onChange={(event) => handleEmailChange(event.target.value)} placeholder="name@example.com"
                       className={`${inputClass} ${emailCheckStatus === 'AVAILABLE' ? 'border-emerald-400' : emailCheckStatus === 'ALREADY_EXISTS' ? 'border-rose-400' : ''}`} required />
                     {emailCheckStatus !== 'UNKNOWN' && (
-                      <p className={`mt-1 flex items-center gap-1 text-[11px] ${emailCheckStatus === 'AVAILABLE' ? 'text-emerald-600' : emailCheckStatus === 'ALREADY_EXISTS' ? 'text-rose-600' : 'text-[#6688a8]'}`}>
+                      <p className={`mt-1 flex items-center gap-1 text-[11px] ${emailCheckStatus === 'AVAILABLE' ? 'text-emerald-600' : emailCheckStatus === 'ALREADY_EXISTS' ? 'text-rose-600' : 'text-[var(--text-secondary)]'}`}>
                         {emailCheckStatus === 'CHECKING' && <RefreshCw className="h-3 w-3 animate-spin" />}
                         {emailCheckStatus === 'AVAILABLE' && <CheckCircle2 className="h-3 w-3" />}
                         {emailCheckStatus === 'ALREADY_EXISTS' && <AlertCircle className="h-3 w-3" />}
@@ -401,10 +401,10 @@ export const AuthModal: React.FC = () => {
                 </div>
                 {registerRole === 'CANDIDATE' ? (
                   <div className="space-y-3">
-                    <div className="flex items-start gap-2.5 rounded-xl border border-[#cbdcff] bg-[#eef5ff] px-3.5 py-2.5 text-[11px] leading-5 text-[#536f9f]">
-                      <User className="mt-0.5 h-4 w-4 shrink-0 text-[#0759f9]" />
+                    <div className="flex items-start gap-2.5 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-secondary)] px-3.5 py-2.5 text-[11px] leading-5 text-[var(--primary)]">
+                      <User className="mt-0.5 h-4 w-4 shrink-0 text-[var(--primary)]" />
                       <p>
-                        <strong className="text-[#173b73]">{locale === 'vi' ? 'Hồ sơ ứng viên' : 'Candidate profile'}:</strong>{' '}
+                        <strong className="text-[var(--heading)]">{locale === 'vi' ? 'Hồ sơ ứng viên' : 'Candidate profile'}:</strong>{' '}
                         {locale === 'vi' ? 'chọn ngành nghề mục tiêu để midCV cá nhân hóa cơ hội phù hợp.' : 'choose target industries so midCV can personalize relevant opportunities.'}
                       </p>
                     </div>
@@ -415,10 +415,10 @@ export const AuthModal: React.FC = () => {
                       </div>
                       <fieldset>
                         <legend className={labelClass}>{locale === 'vi' ? 'Ngành nghề mục tiêu' : 'Target industries'}</legend>
-                        <div className="flex max-h-[104px] flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-[#cbdcff] bg-white p-2.5">
+                        <div className="flex max-h-[104px] flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-[var(--border-soft)] bg-white p-2.5">
                           {TARGET_INDUSTRIES_LIST.map((industry) => {
                             const selected = regTargetIndustries.includes(industry);
-                            return <label key={industry} className={`cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${selected ? 'border-[#0759f9] bg-[#0759f9] text-white' : 'border-[#d7e2f5] text-[#536f9f] hover:border-[#8eb4ff]'}`}>
+                            return <label key={industry} className={`cursor-pointer rounded-xl border px-2.5 py-1 text-[11px] font-medium transition ${selected ? 'border-[var(--border)] bg-[var(--primary)] text-white' : 'border-[var(--border-soft)] text-[var(--primary)] hover:border-[var(--border-soft)]'}`}>
                               <input type="checkbox" checked={selected} onChange={() => toggleRegIndustry(industry)} className="sr-only" />{industry}
                             </label>;
                           })}
@@ -428,17 +428,17 @@ export const AuthModal: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <div className="flex items-start gap-2.5 rounded-xl border border-[#bfe7dc] bg-[#f1fbf7] px-3.5 py-2.5 text-[11px] leading-5 text-[#4b6f67]">
-                      <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-[#008f64]" />
+                    <div className="flex items-start gap-2.5 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-secondary)] px-3.5 py-2.5 text-[11px] leading-5 text-[var(--text-primary)]">
+                      <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-[var(--heading)]" />
                       <p>
-                        <strong className="text-[#155c4b]">{locale === 'vi' ? 'Tài khoản nhà tuyển dụng' : 'Recruiter account'}:</strong>{' '}
+                        <strong className="text-[var(--heading)]">{locale === 'vi' ? 'Tài khoản nhà tuyển dụng' : 'Recruiter account'}:</strong>{' '}
                         {locale === 'vi' ? 'thông tin doanh nghiệp giúp xác minh hồ sơ và xây dựng độ tin cậy với ứng viên.' : 'company details support profile verification and build candidate trust.'}
                       </p>
                     </div>
                     <div className="grid gap-3.5 sm:grid-cols-2">
                       <div>
                         <label htmlFor="auth-company-name" className={labelClass}>{locale === 'vi' ? 'Tên công ty / Doanh nghiệp' : 'Company name'} <span className="text-rose-500">*</span></label>
-                        <div className="relative"><Building2 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7894c8]" />
+                        <div className="relative"><Building2 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--primary)]" />
                           <input id="auth-company-name" type="text" autoComplete="organization" value={regCompanyName} onChange={(event) => setRegCompanyName(event.target.value)} placeholder="CloudScale Systems Corp" className={`${inputClass} pl-11`} required />
                         </div>
                       </div>
@@ -456,44 +456,44 @@ export const AuthModal: React.FC = () => {
                     <label htmlFor="auth-register-password" className={labelClass}>{locale === 'vi' ? 'Mật khẩu' : 'Password'} <span className="text-rose-500">*</span></label>
                     <div className="relative">
                       <input id="auth-register-password" type={showRegisterPassword ? 'text' : 'password'} autoComplete="new-password" value={regPassword} onChange={(event) => setRegPassword(event.target.value)} placeholder={locale === 'vi' ? 'Tối thiểu 6 ký tự' : 'At least 6 characters'} className={`${inputClass} pr-11`} required />
-                      <button type="button" onClick={() => setShowRegisterPassword((current) => !current)} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-[#0759f9]" aria-label={showRegisterPassword ? 'Hide password' : 'Show password'}>{showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+                      <button type="button" onClick={() => setShowRegisterPassword((current) => !current)} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-1 text-[var(--primary)]" aria-label={showRegisterPassword ? 'Hide password' : 'Show password'}>{showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                     </div>
                   </div>
                   <div>
                     <label htmlFor="auth-register-confirm" className={labelClass}>{locale === 'vi' ? 'Nhập lại mật khẩu' : 'Confirm password'} <span className="text-rose-500">*</span></label>
                     <div className="relative">
                       <input id="auth-register-confirm" type={showConfirmPassword ? 'text' : 'password'} autoComplete="new-password" value={regConfirmPassword} onChange={(event) => setRegConfirmPassword(event.target.value)} placeholder={locale === 'vi' ? 'Xác nhận lại mật khẩu' : 'Confirm your password'} className={`${inputClass} pr-11`} required />
-                      <button type="button" onClick={() => setShowConfirmPassword((current) => !current)} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-[#0759f9]" aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}>{showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+                      <button type="button" onClick={() => setShowConfirmPassword((current) => !current)} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-1 text-[var(--primary)]" aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}>{showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                     </div>
                   </div>
                 </div>
                 {regPassword && <PasswordStrengthMeter password={regPassword} />}
-                <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-5 text-[#536f9f]">
-                  <input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#0759f9]" />
+                <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-5 text-[var(--primary)]">
+                  <input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--primary)]" />
                   <span>{locale === 'vi' ? 'Tôi đồng ý với Điều khoản dịch vụ và Chính sách bảo mật của midCV.' : 'I agree to the midCV Terms of Service and Privacy Policy.'}</span>
                 </label>
                 <button type="submit" disabled={isRegisterLoading || emailCheckStatus === 'ALREADY_EXISTS'}
-                  className="flex h-13 w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#0759f9] to-[#0aa8ff] px-5 text-sm font-bold text-white shadow-[0_10px_25px_rgba(7,89,249,0.24)] transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0759f9]/25 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60">
+                  className="flex h-13 w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary)] px-5 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--border)]/25 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60">
                   {isRegisterLoading && <RefreshCw className="h-4 w-4 animate-spin" />}<span>{isRegisterLoading ? (locale === 'vi' ? 'Đang tạo tài khoản...' : 'Creating account...') : (locale === 'vi' ? 'Tạo tài khoản & nhận link xác thực' : 'Create account & get verification link')}</span>{!isRegisterLoading && <ArrowRight className="h-5 w-5" />}
                 </button>
               </form>
-              <div className="my-4 flex items-center gap-4 text-xs text-[#7894c8]"><span className="h-px flex-1 bg-[#cbdcff]" /><span>{locale === 'vi' ? 'Hoặc đăng ký với' : 'Or register with'}</span><span className="h-px flex-1 bg-[#cbdcff]" /></div>
+              <div className="my-4 flex items-center gap-4 text-xs text-[var(--primary)]"><span className="h-px flex-1 bg-[var(--surface-secondary)]" /><span>{locale === 'vi' ? 'Hoặc đăng ký với' : 'Or register with'}</span><span className="h-px flex-1 bg-[var(--surface-secondary)]" /></div>
               <SocialButtons oauthLoading={oauthLoading} onOAuth={handleOAuth} />
-              {oauthNotice && <p role="status" className="mt-3 text-center text-xs text-[#6688d5]">{oauthNotice}</p>}
-              <p className="mt-4 text-center text-xs text-[#6688a8]">{locale === 'vi' ? 'Đã có tài khoản?' : 'Already have an account?'}{' '}<button type="button" onClick={() => switchView('LOGIN')} className="font-bold text-[#0759f9] hover:underline">{locale === 'vi' ? 'Đăng nhập ngay' : 'Sign in now'}</button></p>
+              {oauthNotice && <p role="status" className="mt-3 text-center text-xs text-[var(--primary)]">{oauthNotice}</p>}
+              <p className="mt-4 text-center text-xs text-[var(--text-secondary)]">{locale === 'vi' ? 'Đã có tài khoản?' : 'Already have an account?'}{' '}<button type="button" onClick={() => switchView('LOGIN')} className="font-bold text-[var(--primary)] hover:underline">{locale === 'vi' ? 'Đăng nhập ngay' : 'Sign in now'}</button></p>
             </div>
           )}
 
           {activeTab === 'VERIFICATION_PENDING' && (
             <div className="mt-7 space-y-4">
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-800">
-                <div className="flex items-start gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white"><Mail className="h-5 w-5" /></div><div><h3 className="font-bold text-[#09266e]">{locale === 'vi' ? 'Kiểm tra hộp thư của bạn' : 'Check your inbox'}</h3><p className="mt-1 text-xs leading-5 text-emerald-700">{locale === 'vi' ? 'Nhấn liên kết bảo mật trong email để kích hoạt tài khoản.' : 'Use the secure link in the email to activate your account.'}</p><strong className="mt-1 block break-all text-xs">{pendingVerificationEmail}</strong></div></div>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-800">
+                <div className="flex items-start gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white"><Mail className="h-5 w-5" /></div><div><h3 className="font-bold text-[var(--heading)]">{locale === 'vi' ? 'Kiểm tra hộp thư của bạn' : 'Check your inbox'}</h3><p className="mt-1 text-xs leading-5 text-emerald-700">{locale === 'vi' ? 'Nhấn liên kết bảo mật trong email để kích hoạt tài khoản.' : 'Use the secure link in the email to activate your account.'}</p><strong className="mt-1 block break-all text-xs">{pendingVerificationEmail}</strong></div></div>
               </div>
-              {devVerificationToken && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900"><p className="font-bold">{locale === 'vi' ? 'Môi trường phát triển: mã xác thực' : 'Development verification token'}</p><code className="mt-2 block break-all rounded-lg bg-white p-2 text-[#09266e]">{devVerificationToken}</code><Link href={`/verify-email?token=${devVerificationToken}`} onClick={closeAuthModal} className="mt-2 inline-flex items-center gap-1 font-semibold text-[#0759f9] underline"><ExternalLink className="h-3.5 w-3.5" />{locale === 'vi' ? 'Xác thực ngay (mở liên kết)' : 'Verify now (open link)'}</Link></div>}
-              {resendMessage && <p role="status" className="rounded-xl bg-[#eef5ff] p-3 text-xs text-[#2455a4]">{resendMessage}</p>}
+              {devVerificationToken && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900"><p className="font-bold">{locale === 'vi' ? 'Môi trường phát triển: mã xác thực' : 'Development verification token'}</p><code className="mt-2 block break-all rounded-xl bg-white p-2 text-[var(--heading)]">{devVerificationToken}</code><Link href={`/verify-email?token=${devVerificationToken}`} onClick={closeAuthModal} className="mt-2 inline-flex items-center gap-1 font-semibold text-[var(--primary)] underline"><ExternalLink className="h-3.5 w-3.5" />{locale === 'vi' ? 'Xác thực ngay (mở liên kết)' : 'Verify now (open link)'}</Link></div>}
+              {resendMessage && <p role="status" className="rounded-xl bg-[var(--surface-secondary)] p-3 text-xs text-[var(--primary)]">{resendMessage}</p>}
               <div className="flex flex-col-reverse items-stretch justify-between gap-3 sm:flex-row sm:items-center">
-                <button type="button" onClick={() => switchView('LOGIN')} className="text-xs font-semibold text-[#0759f9] hover:underline">{locale === 'vi' ? 'Quay lại đăng nhập' : 'Back to sign in'}</button>
-                <button type="button" onClick={handleResend} disabled={resendCooldown > 0} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#cbdcff] bg-white px-4 text-xs font-semibold text-[#173b73] hover:border-[#8eb4ff] disabled:opacity-60"><RefreshCw className={`h-3.5 w-3.5 ${resendCooldown > 0 ? 'animate-spin' : ''}`} />{resendCooldown > 0 ? (locale === 'vi' ? `Gửi lại sau ${resendCooldown}s` : `Resend in ${resendCooldown}s`) : (locale === 'vi' ? 'Gửi lại email xác thực' : 'Resend verification email')}</button>
+                <button type="button" onClick={() => switchView('LOGIN')} className="text-xs font-semibold text-[var(--primary)] hover:underline">{locale === 'vi' ? 'Quay lại đăng nhập' : 'Back to sign in'}</button>
+                <button type="button" onClick={handleResend} disabled={resendCooldown > 0} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border-soft)] bg-white px-4 text-xs font-semibold text-[var(--heading)] hover:border-[var(--border-soft)] disabled:opacity-60"><RefreshCw className={`h-3.5 w-3.5 ${resendCooldown > 0 ? 'animate-spin' : ''}`} />{resendCooldown > 0 ? (locale === 'vi' ? `Gửi lại sau ${resendCooldown}s` : `Resend in ${resendCooldown}s`) : (locale === 'vi' ? 'Gửi lại email xác thực' : 'Resend verification email')}</button>
               </div>
             </div>
           )}

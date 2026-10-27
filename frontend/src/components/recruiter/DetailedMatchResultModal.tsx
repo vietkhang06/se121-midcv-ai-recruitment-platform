@@ -57,12 +57,12 @@ export function DetailedMatchResultModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white dark:bg-[#0F1A36] border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transition-colors">
+      <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transition-colors">
         {/* Header */}
         <div className="p-6 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-900/40">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-mono">
+              <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-sans">
                 {details.algorithm || 'midcv-score-v1'}
               </span>
               <span className="text-xs text-slate-500 dark:text-slate-400">
@@ -90,24 +90,24 @@ export function DetailedMatchResultModal({
           {/* 3-Tier Official Scores Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
             {/* Overall Match */}
-            <div className="bg-[#111C38] border border-[#1E293B] rounded-2xl p-4 text-white shadow-xs space-y-1">
-              <span className="text-[10px] font-bold text-[#3B82F6] uppercase tracking-wider block font-mono">
+            <div className="bg-[var(--retro-deep)] border border-[var(--border)] rounded-xl p-4 text-white shadow-xs space-y-1">
+              <span className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-wider block font-sans">
                 Overall Match
               </span>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl font-black text-white font-mono">{overallScore.toFixed(1)}%</span>
+                <span className="text-3xl font-black text-white font-sans">{overallScore.toFixed(1)}%</span>
                 <span className="text-xs text-blue-200/80">/ 100</span>
               </div>
               <p className="text-[10px] text-slate-300">Điểm tổng hợp cuối cùng</p>
             </div>
 
             {/* Core Score */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-4 shadow-xs space-y-1">
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block font-mono">
+            <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-4 shadow-xs space-y-1">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block font-sans">
                 Core JD–CV Score
               </span>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-extrabold text-slate-900 dark:text-white font-mono">
+                <span className="text-2xl font-extrabold text-slate-900 dark:text-white font-sans">
                   {baseScore.toFixed(1)}%
                 </span>
               </div>
@@ -115,13 +115,13 @@ export function DetailedMatchResultModal({
             </div>
 
             {/* GitHub Bonus */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-4 shadow-xs space-y-1">
-              <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block font-mono flex items-center gap-1">
+            <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-4 shadow-xs space-y-1">
+              <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block font-sans flex items-center gap-1">
                 <GitBranch className="w-3 h-3" />
                 <span>GitHub Bonus</span>
               </span>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 font-mono">
+                <span className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 font-sans">
                   +{githubBonus.toFixed(1)}%
                 </span>
                 <span className="text-[10px] text-slate-400">/ tối đa 5%</span>
@@ -130,13 +130,13 @@ export function DetailedMatchResultModal({
             </div>
 
             {/* Pgvector Semantic */}
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-4 shadow-xs space-y-1">
-              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block font-mono flex items-center gap-1">
+            <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-4 shadow-xs space-y-1">
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block font-sans flex items-center gap-1">
                 <Sparkles className="w-3 h-3" />
                 <span>Ngữ nghĩa Vector</span>
               </span>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+                <span className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-sans">
                   {semanticScore.toFixed(1)}%
                 </span>
               </div>
@@ -166,21 +166,21 @@ export function DetailedMatchResultModal({
               {criteria.map((c, i) => (
                 <div
                   key={c.id || i}
-                  className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C38] space-y-3"
+                  className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[var(--surface)] space-y-3"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white uppercase font-sans">
                         {c.id}
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
+                      <span className="text-[10px] px-2 py-0.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
                         Trọng số: {c.weight}%
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <span
-                        className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md font-mono ${
+                        className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-xl font-sans ${
                           c.status === 'MET'
                             ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300'
                             : c.status === 'PARTIAL'
@@ -191,7 +191,7 @@ export function DetailedMatchResultModal({
                         {c.status}
                       </span>
                       {c.score != null && (
-                        <span className="text-xs font-extrabold font-mono text-slate-900 dark:text-white">
+                        <span className="text-xs font-extrabold font-sans text-slate-900 dark:text-white">
                           {Number(c.score).toFixed(0)}%
                         </span>
                       )}
@@ -208,7 +208,7 @@ export function DetailedMatchResultModal({
                         >
                           {ev.name && (
                             <div className="flex items-center justify-between font-semibold">
-                              <span className="text-slate-900 dark:text-white font-mono">{ev.name}</span>
+                              <span className="text-slate-900 dark:text-white font-sans">{ev.name}</span>
                               <span
                                 className={`text-[10px] px-1.5 py-0.5 rounded ${
                                   ev.status === 'MET'
@@ -253,7 +253,7 @@ export function DetailedMatchResultModal({
                   {!Array.isArray(c.evidence) && typeof c.evidence === 'object' && c.evidence !== null && (
                     <div className="text-xs text-slate-600 dark:text-slate-400 pt-1">
                       {c.evidence.note && <p>{c.evidence.note}</p>}
-                      {c.evidence.method && <p className="font-mono text-[11px] text-slate-400">{c.evidence.method}</p>}
+                      {c.evidence.method && <p className="font-sans text-[11px] text-slate-400">{c.evidence.method}</p>}
                     </div>
                   )}
                 </div>
@@ -276,7 +276,7 @@ export function DetailedMatchResultModal({
                     className="p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/40 dark:bg-indigo-950/20 text-xs space-y-1.5"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-indigo-700 dark:text-indigo-300 font-mono uppercase">
+                      <span className="font-bold text-indigo-700 dark:text-indigo-300 font-sans uppercase">
                         {ge.skill}
                       </span>
                       {ge.url && (
@@ -303,7 +303,7 @@ export function DetailedMatchResultModal({
 
         {/* Footer */}
         <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-900/40">
-          <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">
+          <span className="text-xs text-slate-400 dark:text-slate-500 font-sans">
             Algorithm: {details.algorithm || 'midcv-score-v1'} · Kết luận: Cần HR duyệt
           </span>
 
