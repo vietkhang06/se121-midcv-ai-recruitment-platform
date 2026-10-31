@@ -29,6 +29,7 @@ public class CandidateMatchController {
     private final CVVersionRepository cvVersionRepository;
     private final MatchingEngineService matchingEngineService;
 
+    @org.springframework.transaction.annotation.Transactional
     @PostMapping("/{jobId}")
     public ResponseEntity<ApiResponse<com.platform.recruitment.matching.MatchScoreResponse>> matchCandidateToJob(
             @AuthenticationPrincipal User currentUser,

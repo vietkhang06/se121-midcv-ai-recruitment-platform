@@ -123,9 +123,9 @@ public class ApplicationDuplicateProtectionTest {
     @Test
     @DisplayName("Case A: Normal Application Submission -> Success")
     void testNormalApplication_Success() {
-        when(candidateProfileRepository.findByUserId(candidateUser.getId())).thenReturn(Optional.of(candidate));
-        when(jobRepository.findById(job1.getId())).thenReturn(Optional.of(job1));
-        when(cvRepository.findById(cv.getId())).thenReturn(Optional.of(cv));
+        when(candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())).thenReturn(Optional.of(candidate));
+        when(jobRepository.findByIdForApply(job1.getId())).thenReturn(Optional.of(job1));
+        when(cvRepository.findByIdForUpdate(cv.getId())).thenReturn(Optional.of(cv));
         when(applicationRepository.existsByJobIdAndCandidateId(job1.getId(), candidate.getId())).thenReturn(false);
 
         Application mockApp = Application.builder().job(job1).candidate(candidate).appliedCv(cv)
@@ -145,9 +145,9 @@ public class ApplicationDuplicateProtectionTest {
     @Test
     @DisplayName("Case B: Duplicate Application Submission -> Rejected with 409 Conflict")
     void testDuplicateApplication_Rejection409() {
-        when(candidateProfileRepository.findByUserId(candidateUser.getId())).thenReturn(Optional.of(candidate));
-        when(jobRepository.findById(job1.getId())).thenReturn(Optional.of(job1));
-        when(cvRepository.findById(cv.getId())).thenReturn(Optional.of(cv));
+        when(candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())).thenReturn(Optional.of(candidate));
+        when(jobRepository.findByIdForApply(job1.getId())).thenReturn(Optional.of(job1));
+        when(cvRepository.findByIdForUpdate(cv.getId())).thenReturn(Optional.of(cv));
         when(applicationRepository.existsByJobIdAndCandidateId(job1.getId(), candidate.getId())).thenReturn(true);
 
         DuplicateApplicationException exception = assertThrows(
@@ -166,9 +166,9 @@ public class ApplicationDuplicateProtectionTest {
         request2.setJobId(job2.getId());
         request2.setCvId(cv.getId());
 
-        when(candidateProfileRepository.findByUserId(candidateUser.getId())).thenReturn(Optional.of(candidate));
-        when(jobRepository.findById(job2.getId())).thenReturn(Optional.of(job2));
-        when(cvRepository.findById(cv.getId())).thenReturn(Optional.of(cv));
+        when(candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())).thenReturn(Optional.of(candidate));
+        when(jobRepository.findByIdForApply(job2.getId())).thenReturn(Optional.of(job2));
+        when(cvRepository.findByIdForUpdate(cv.getId())).thenReturn(Optional.of(cv));
         when(applicationRepository.existsByJobIdAndCandidateId(job2.getId(), candidate.getId())).thenReturn(false);
 
         Application mockApp2 = Application.builder().job(job2).candidate(candidate).appliedCv(cv)

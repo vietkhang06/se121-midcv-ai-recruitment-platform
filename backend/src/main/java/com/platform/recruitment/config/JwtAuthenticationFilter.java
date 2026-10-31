@@ -26,6 +26,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
     private final UserRepository userRepository;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.platform.recruitment.auth.AuthSessionService sessions;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -33,12 +35,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = getJwtFromRequest(request);
 
-            if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
+            if (StringUtils.hasText(jwt) && tokenProvider.isAccessToken(jwt)) {
                 UUID userId = tokenProvider.getUserIdFromToken(jwt);
                 String role = tokenProvider.getRoleFromToken(jwt);
 
                 User user = userRepository.findById(userId).orElse(null);
-                if (user != null && user.getRole() != null && !user.isDeactivated()
+                UUID sid = tokenProvider.getSessionId(jwt);
+                if ((sid == null || sessions.active(sid, userId)) && user != null && user.getRole() != null && !user.isDeactivated()
                         && (user.getAuthInvalidBefore()==null || tokenProvider.getIssuedAtMillis(jwt)>user.getAuthInvalidBefore().toEpochMilli())) {
                     java.util.List<SimpleGrantedAuthority> authorities = new java.util.ArrayList<>();
                     authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));

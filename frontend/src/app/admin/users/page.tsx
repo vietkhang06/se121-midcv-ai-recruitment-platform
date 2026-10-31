@@ -30,7 +30,7 @@ export default function AdminUsersPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'ALL' | UserRole>('ALL');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'SUSPENDED'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED'>('ALL');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -202,7 +202,7 @@ export default function AdminUsersPage() {
 
             {/* Status Filter */}
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl">
-              {(['ALL', 'ACTIVE', 'SUSPENDED'] as const).map((s) => (
+              {(['ALL', 'ACTIVE', 'SUSPENDED', 'DEACTIVATED'] as const).map((s) => (
                 <button
                   key={s}
                   onClick={() => {
@@ -215,7 +215,7 @@ export default function AdminUsersPage() {
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  {s === 'ALL' ? 'Mọi trạng thái' : s === 'ACTIVE' ? 'Hoạt động' : 'Đã đình chỉ'}
+                  {s === 'ALL' ? 'Mọi trạng thái' : s === 'ACTIVE' ? 'Hoạt động' : s === 'SUSPENDED' ? 'Đã đình chỉ' : 'Đã vô hiệu hóa'}
                 </button>
               ))}
             </div>
@@ -323,7 +323,7 @@ export default function AdminUsersPage() {
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                          <Ban className="w-3 h-3" /> Đình chỉ
+                          <Ban className="w-3 h-3" /> {u.accountStatus === 'SUSPENDED' ? 'Đình chỉ' : 'Đã vô hiệu hóa'}
                         </span>
                       )}
                     </td>

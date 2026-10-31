@@ -2,8 +2,10 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BASE_URL } from '@/lib/api';
+import { BASE_URL, saveAuthTokens } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
+
+const exchanges = new Map<string, Promise<Response>>();
 
 function OAuthCallbackContent() {
   const router = useRouter();
@@ -21,15 +23,16 @@ function OAuthCallbackContent() {
       const safeNext = requestedNext.startsWith('/') && !requestedNext.startsWith('//') && !requestedNext.includes('\\') ? requestedNext : '/candidate';
       window.history.replaceState(null, '', '/oauth/callback');
       try {
-        const response = await fetch(`${BASE_URL}/api/v1/auth/oauth/exchange`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticket }), cache: 'no-store' });
+        if (!exchanges.has(ticket)) exchanges.set(ticket, fetch(`${BASE_URL}/api/v1/auth/oauth/exchange`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticket }), cache: 'no-store' }));
+        const response = (await exchanges.get(ticket)!).clone();
         const body = await response.json();
         if (!response.ok || !body?.data?.accessToken) throw new Error(currentLocaleIsVi() ? 'Đăng nhập đã hết hạn hoặc không thể hoàn tất. Vui lòng thử lại.' : 'Sign-in expired or could not be completed. Please try again.');
         if (!active) return;
         const auth = body.data;
         const user = { id: auth.userId, email: auth.email, fullName: auth.email, role: auth.role === 'HR' ? 'RECRUITER' : auth.role, emailVerified: true, isActive: true };
         localStorage.setItem('auth_user', JSON.stringify(user));
-        localStorage.setItem('auth_token', auth.accessToken);
-        router.replace(safeNext);
+        saveAuthTokens(auth);
+        window.location.replace(auth.role === 'ADMIN' ? '/admin' : auth.role === 'HR' ? '/recruiter' : safeNext);
       } catch (error: unknown) { if (active) setMessage(error instanceof Error ? error.message : (currentLocaleIsVi() ? 'Đăng nhập không thành công. Vui lòng thử lại.' : 'Sign-in failed. Please try again.')); }
     };
     void complete(); return () => { active = false; };

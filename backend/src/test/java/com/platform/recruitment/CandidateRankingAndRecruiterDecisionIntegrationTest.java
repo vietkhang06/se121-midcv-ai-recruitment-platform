@@ -173,7 +173,7 @@ public class CandidateRankingAndRecruiterDecisionIntegrationTest {
     @DisplayName("AC-P9-02: Recruiter executes human decision (SHORTLISTED) with auditable logging")
     void testRecruiterShortlistsCandidate_CreatesAuditLog() {
         when(recruiterProfileRepository.findByUserId(recruiterUser.getId())).thenReturn(Optional.of(recruiter));
-        when(applicationRepository.findById(app1.getId())).thenReturn(Optional.of(app1));
+        when(applicationRepository.findByIdForUpdate(app1.getId())).thenReturn(Optional.of(app1));
         when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArgument(0));
 
         UpdateApplicationStatusRequest request = UpdateApplicationStatusRequest.builder()
@@ -202,7 +202,7 @@ public class CandidateRankingAndRecruiterDecisionIntegrationTest {
     @DisplayName("AC-P9-02: Recruiter executes human decision (REJECTED) with explicit decision note")
     void testRecruiterRejectsCandidate_HumanActionRecorded() {
         when(recruiterProfileRepository.findByUserId(recruiterUser.getId())).thenReturn(Optional.of(recruiter));
-        when(applicationRepository.findById(app2.getId())).thenReturn(Optional.of(app2));
+        when(applicationRepository.findByIdForUpdate(app2.getId())).thenReturn(Optional.of(app2));
         when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArgument(0));
 
         UpdateApplicationStatusRequest request = UpdateApplicationStatusRequest.builder()
@@ -228,7 +228,7 @@ public class CandidateRankingAndRecruiterDecisionIntegrationTest {
     @DisplayName("AC-P9-02 & AC-P10-02: Cross-company recruiter cannot change application status or view ranked candidates")
     void testUnauthorizedRecruiter_CannotManageApplication() {
         when(recruiterProfileRepository.findByUserId(otherRecruiterUser.getId())).thenReturn(Optional.of(otherRecruiter));
-        when(applicationRepository.findById(app1.getId())).thenReturn(Optional.of(app1));
+        when(applicationRepository.findByIdForUpdate(app1.getId())).thenReturn(Optional.of(app1));
 
         UpdateApplicationStatusRequest request = UpdateApplicationStatusRequest.builder()
                 .status(ApplicationStatus.HIRED)

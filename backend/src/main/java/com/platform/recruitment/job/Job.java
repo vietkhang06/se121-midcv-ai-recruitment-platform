@@ -69,6 +69,11 @@ public class Job extends BaseEntity {
     @Column(name = "description", nullable = false, columnDefinition = "TEXT")
     private String description;
 
+    @Builder.Default
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "responsibilities", nullable = false, columnDefinition = "jsonb")
+    private List<String> responsibilities = new ArrayList<>();
+
     @Column(name = "moderation_reason", columnDefinition = "TEXT")
     private String moderationReason;
 

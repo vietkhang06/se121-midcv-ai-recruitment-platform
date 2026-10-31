@@ -21,7 +21,7 @@ class OAuthServiceStateTest {
     private OAuthService service;
     @BeforeEach void setup() {
         states = mock(OAuthLoginStateRepository.class);
-        service = new OAuthService(mock(OAuthAccountRepository.class), states, mock(OAuthLoginTicketRepository.class), mock(OAuthPendingRegistrationRepository.class), mock(UserRepository.class), mock(CandidateProfileRepository.class), mock(AuthService.class), mock(PasswordEncoder.class), new ObjectMapper());
+        service = new OAuthService(mock(OAuthAccountRepository.class), states, mock(OAuthLoginTicketRepository.class), mock(OAuthPendingRegistrationRepository.class), mock(UserRepository.class), mock(CandidateProfileRepository.class), mock(AuthService.class), mock(PasswordEncoder.class), new ObjectMapper(), new OAuthStateConsumer(states));
         ReflectionTestUtils.setField(service, "googleClientId", "test-client");
         ReflectionTestUtils.setField(service, "googleClientSecret", "server-only-secret");
         ReflectionTestUtils.setField(service, "backendBaseUrl", "http://localhost:8080");

@@ -117,6 +117,14 @@ public class GitHubPipelineIntegrationTest {
                 .candidate(candidate)
                 .build();
         application.setId(UUID.randomUUID());
+        CV fixtureCv = CV.builder().candidate(candidate).rawText("Java Spring Boot backend").build();
+        fixtureCv.setId(UUID.randomUUID());
+        com.platform.recruitment.cv.CVVersion confirmed = com.platform.recruitment.cv.CVVersion.builder()
+                .cv(fixtureCv).versionNumber(1).status("CONFIRMED")
+                .structuredJsonContent("{\"skills\":[\"Java\",\"Spring Boot\"],\"summary\":\"Java Spring Boot backend\"}").build();
+        confirmed.setId(UUID.randomUUID());
+        application.setAppliedCv(fixtureCv);
+        application.setAppliedCvVersion(confirmed);
     }
 
     @Test
@@ -190,12 +198,12 @@ public class GitHubPipelineIntegrationTest {
     @Test
     @DisplayName("GH-09, GH-10: Matching Engine Integrates S_github with S_core and Saves GITHUB Evidence & Factor")
     void testMatchingEngine_IntegratesGitHubEvidenceAndFactors() {
-        when(jobRepository.findById(job.getId())).thenReturn(Optional.of(job));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
+
+
         when(applicationRepository.findByJobIdAndCandidateId(job.getId(), candidate.getId())).thenReturn(Optional.of(application));
 
         CV cv = CV.builder().candidate(candidate).rawText("3 years experience in Java, Spring Boot, PostgreSQL.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+
 
         JobRequirement reqJava = JobRequirement.builder()
                 .job(job)
@@ -208,6 +216,7 @@ public class GitHubPipelineIntegrationTest {
         GitHubProfile profile = GitHubProfile.builder()
                 .candidate(candidate)
                 .status("SYNCED")
+                .ownershipStatus("OWNED") // Explicit OAuth-owned fixture; provider calls are mocked in this suite.
                 .activitySignal(GitHubActivitySignal.HIGH)
                 .build();
         profile.setId(UUID.randomUUID());
@@ -235,8 +244,8 @@ public class GitHubPipelineIntegrationTest {
         MatchResult result = matchingEngineService.calculateAndPersistMatchResult(job.getId(), candidate.getId());
 
         assertNotNull(result.getGithubScore(), "GitHub score must be present for technical role");
-        assertEquals(BigDecimal.valueOf(0.15), result.getGithubWeight(), "GitHub weight must be 0.15");
-        assertEquals(BigDecimal.valueOf(0.85), result.getCoreWeight(), "Core weight must be 0.85");
+        assertEquals(0, BigDecimal.valueOf(0.15).compareTo(result.getGithubWeight()), "GitHub weight must be 0.15");
+        assertEquals(0, BigDecimal.valueOf(0.85).compareTo(result.getCoreWeight()), "Core weight must be 0.85");
 
         // Verify MatchFactor saved for GITHUB_SUPPORTING
         ArgumentCaptor<MatchFactor> factorCaptor = ArgumentCaptor.forClass(MatchFactor.class);
@@ -256,12 +265,12 @@ public class GitHubPipelineIntegrationTest {
     @Test
     @DisplayName("GH-11 & GH-12: Unavailable GitHub or Non-Technical Job Applies S_overall = S_core with Zero Penalty")
     void testZeroPenaltyFallback_UnavailableOrNonTechnical() {
-        when(jobRepository.findById(job.getId())).thenReturn(Optional.of(job));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
+
+
         when(applicationRepository.findByJobIdAndCandidateId(job.getId(), candidate.getId())).thenReturn(Optional.of(application));
 
         CV cv = CV.builder().candidate(candidate).rawText("3 years experience in Java, Spring Boot, PostgreSQL.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+
 
         JobRequirement reqJava = JobRequirement.builder()
                 .job(job)

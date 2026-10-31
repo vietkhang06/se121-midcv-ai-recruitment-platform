@@ -1,3 +1,4 @@
+import { subscribeProgress } from './sse';
 import {
   Job,
   CV,
@@ -214,7 +215,7 @@ function unwrapApiData<T>(value: ApiEnvelope<T> | T): T {
 export async function beginOAuthLink(provider: 'google' | 'github'): Promise<string> {
   const token = getAuthToken();
   if (!token) throw new Error('Vui lòng đăng nhập lại trước khi liên kết tài khoản.');
-  const response = await fetch(`${BASE_URL}/api/v1/auth/oauth/${provider}/link`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+  const response = await authorizedFetch(`${BASE_URL}/api/v1/auth/oauth/${provider}/link`, { method: 'POST', credentials: 'include', headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
   const body = await response.json();
   if (!response.ok || !body?.data?.authorizationUrl) throw new Error(body?.message || 'Không thể bắt đầu liên kết tài khoản.');
   return body.data.authorizationUrl;
@@ -223,17 +224,17 @@ export async function beginOAuthLink(provider: 'google' | 'github'): Promise<str
 export async function fetchGithubConnection(): Promise<{ connected: boolean; login?: string; ownershipVerified: boolean; scanScope: string }> {
   const token = getAuthToken();
   if (!token) return { connected: false, ownershipVerified: false, scanScope: 'PUBLIC_PROFILE_ONLY' };
-  const response = await fetch(`${BASE_URL}/api/v1/auth/oauth/github/connection`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+  const response = await authorizedFetch(`${BASE_URL}/api/v1/auth/oauth/github/connection`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
   const body = await response.json();
   if (!response.ok) throw new Error(body?.message || 'Không thể tải trạng thái liên kết GitHub.');
   return body.data;
 }
 
 export interface CVProcessingEvent {
-  eventId?: string;
+  eventId: string;
   jobId: string;
-  step?: string | null;
-  code?: string | null;
+  step: string;
+  code: string;
   level?: string | null;
   progress: number;
   message?: string | null;
@@ -244,7 +245,7 @@ export interface CVProcessingEvent {
 function isCVProcessingEvent(value: unknown): value is CVProcessingEvent {
   if (typeof value !== 'object' || value === null) return false;
   const event = value as Record<string, unknown>;
-  return typeof event.jobId === 'string' && typeof event.progress === 'number';
+  return typeof event.eventId === 'string' && typeof event.jobId === 'string' && typeof event.step === 'string' && typeof event.code === 'string' && typeof event.progress === 'number' && Number.isFinite(event.progress);
 }
 
 // ============================================================
@@ -303,17 +304,65 @@ export function getAuthUser(): User | null {
 }
 
 export function getAuthToken(): string | null {
+  return typeof window === 'undefined' ? null : localStorage.getItem('auth_token');
+}
+
+export function clearAuthSession(): void {
+  if (typeof window === 'undefined') return;
+  for (const key of ['auth_user', 'auth_token', 'auth_refresh_token', 'auth_session']) localStorage.removeItem(key);
+  window.dispatchEvent(new CustomEvent('midcv:session_expired'));
+}
+
+export function saveAuthTokens(auth: { accessToken: string; refreshToken?: string }): void {
+  localStorage.setItem('auth_token', auth.accessToken);
+  if (auth.refreshToken) localStorage.setItem('auth_refresh_token', auth.refreshToken);
+}
+
+let refreshPromise: Promise<string | null> | null = null;
+export async function ensureAuthToken(rejectedToken?: string): Promise<string | null> {
   if (typeof window === 'undefined') return null;
-  const token = localStorage.getItem('auth_token');
-  if (token && isJwtExpired(token)) {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('midcv:session_expired'));
+  const refresh = async () => {
+    const current = getAuthToken();
+    if (current && !isJwtExpired(current) && current !== rejectedToken) return current;
+    const refreshToken = localStorage.getItem('auth_refresh_token');
+    if (!refreshToken) { if (current) clearAuthSession(); return null; }
+    const response = await fetch(`${BASE_URL}/api/v1/auth/refresh`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }), cache: 'no-store'
+    });
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 400) clearAuthSession();
+      throw new Error('Không thể gia hạn phiên đăng nhập. Vui lòng thử lại.');
     }
-    return null;
+    const body = await response.json();
+    if (!body?.data?.accessToken || !body?.data?.refreshToken) throw new Error('Phản hồi gia hạn phiên không hợp lệ.');
+    // A logout or a newer login may have happened while the refresh was in flight.
+    if (localStorage.getItem('auth_refresh_token') !== refreshToken) return getAuthToken();
+    saveAuthTokens(body.data);
+    return body.data.accessToken as string;
+  };
+  if (!refreshPromise) {
+    // Serialize rotation across tabs as well as concurrent requests in this tab.
+    refreshPromise = (typeof navigator !== 'undefined' && navigator.locks
+      ? navigator.locks.request('midcv-token-refresh', async () => refresh()).then(value => value) : refresh()).finally(() => { refreshPromise = null; });
   }
-  return token;
+  return refreshPromise;
+}
+
+export async function authorizedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(options.headers);
+  const token = await ensureAuthToken();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  else headers.delete('Authorization');
+  let response = await fetch(url, { ...options, headers });
+  if (response.status === 401 && token && !options.signal?.aborted) {
+    const renewed = await ensureAuthToken(token);
+    if (renewed) {
+      headers.set('Authorization', `Bearer ${renewed}`);
+      response = await fetch(url, { ...options, headers });
+    }
+  }
+  return response;
 }
 
 export async function apiRequest<T>(
@@ -334,10 +383,8 @@ export async function apiRequest<T>(
 
   let res: Response;
   try {
-    res = await fetch(url, {
-      ...options,
-      headers
-    });
+    res = await (['/api/v1/auth/login', '/api/v1/auth/verify-email', '/api/v1/auth/resend-verification', '/api/v1/auth/check-email', '/api/v1/auth/forgot-password', '/api/v1/auth/reset-password'].includes(endpoint.split('?')[0])
+      || endpoint.startsWith('/api/v1/auth/register') ? fetch : authorizedFetch)(url, { ...options, headers });
   } catch (netErr: unknown) {
     const errMsg = netErr instanceof Error ? netErr.message : 'Lỗi kết nối mạng đến máy chủ backend.';
     console.error(`[API ERROR] Network failure: method=${method} url=${url}`, netErr);
@@ -365,8 +412,7 @@ export async function apiRequest<T>(
         ));
 
     if (typeof window !== 'undefined' && isExpiredSessionResponse) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
+      clearAuthSession();
 
       window.dispatchEvent(
         new CustomEvent('midcv:session_expired', {
@@ -433,6 +479,7 @@ export function mapBackendJobToFrontend(value: unknown): Job {
     salaryPeriod: 'MONTH',
     publishedDate: readString(raw.createdAt).split('T')[0],
     description: readString(raw.description),
+    responsibilities: Array.isArray(raw.responsibilities) ? raw.responsibilities.filter((value): value is string => typeof value === 'string') : [],
     requirements: rawRequirements.filter(isRecord).map((req) => ({
       id: readString(req.id),
       skillName: readString(req.skillName),
@@ -440,7 +487,7 @@ export function mapBackendJobToFrontend(value: unknown): Job {
       minYearsExperience: readNumber(req.minYearsExp) ?? undefined,
       minExperienceYears: readNumber(req.minYearsExp) ?? undefined
     })),
-    status: (['DRAFT', 'PUBLISHED', 'CLOSED'].includes(readString(raw.status)) ? readString(raw.status) : 'DRAFT') as Job['status']
+    status: (['DRAFT', 'PUBLISHED', 'CLOSED', 'SUSPENDED'].includes(readString(raw.status)) ? readString(raw.status) : 'DRAFT') as Job['status']
   };
 }
 
@@ -520,6 +567,7 @@ export interface LoginResponse {
 
 export interface ApiClient {
   fetchJobs(industry?: string): Promise<Job[]>;
+  fetchJobCatalog?(query?: string, location?: string): Promise<Job[]>;
   fetchJobById(id: string): Promise<Job | null>;
   fetchCandidateProfile(): Promise<CandidateProfile>;
   saveCandidateProfile(profile: CandidateProfile): Promise<CandidateProfile>;
@@ -554,7 +602,7 @@ export interface ApiClient {
   submitApplication(app: Application): Promise<Application>;
   fetchJobApplications(jobId: string): Promise<Application[]>;
   fetchApplicationById(applicationId: string): Promise<Application | null>;
-  updateApplicationStatus(applicationId: string, status: ApplicationStatus, decisionNote?: string): Promise<Application>;
+  updateApplicationStatus(applicationId: string, status: ApplicationStatus, decisionNote?: string, expectedStatus?: ApplicationStatus): Promise<Application>;
   fetchApplicationAuditLogs(applicationId: string): Promise<ApplicationAuditLogItem[]>;
   fetchRecruiterProfile(): Promise<RecruiterProfile>;
   fetchRecruiterCompany(): Promise<Company>;
@@ -592,6 +640,23 @@ export interface PaginatedResponse<T> {
   };
 }
 
+async function fetchAllApiRows(path: string): Promise<unknown[]> {
+  const rows: unknown[] = [];
+  let pages = 1;
+  for (let page = 0; page < pages; page++) {
+    const separator = path.includes('?') ? '&' : '?';
+    const response = await apiRequest<unknown>(`${path}${separator}page=${page}&size=100`);
+    rows.push(...getApiRows(response));
+    const data = getApiData(response);
+    if (isRecord(data) && data.totalPages != null) {
+      if (typeof data.totalPages !== 'number' || !Number.isInteger(data.totalPages) || data.totalPages < 0 || data.totalPages > 200)
+        throw new Error('Không thể tải đầy đủ danh sách: thông tin phân trang không hợp lệ hoặc vượt giới hạn.');
+      if (page === 0) pages = data.totalPages;
+    }
+  }
+  return rows;
+}
+
 export class RealApiClient implements ApiClient {
 
   async fetchJobs(industry?: string, page = 0, size = 20, sort = 'createdAt', direction = 'desc'): Promise<Job[]> {
@@ -606,11 +671,26 @@ export class RealApiClient implements ApiClient {
     return getApiRows(json).map(mapBackendJobToFrontend);
   }
 
+  async fetchJobCatalog(query = '', location = ''): Promise<Job[]> {
+    const result: Job[] = [];
+    let totalPages = 1;
+    for (let page = 0; page < totalPages; page++) {
+      const response = await apiRequest<{ data: ApiPage<JsonRecord> }>(`/api/v1/jobs?page=${page}&size=100&sort=createdAt&direction=desc&query=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}`);
+      const data = response.data;
+      if (!data || !Array.isArray(data.content) || !Number.isInteger(data.totalPages) || data.totalPages < 0 || data.totalPages > 200) {
+        throw new Error('Không thể tải đầy đủ danh mục việc làm. Phản hồi phân trang không hợp lệ hoặc vượt giới hạn.');
+      }
+      if (page === 0) totalPages = data.totalPages;
+      result.push(...data.content.map(mapBackendJobToFrontend));
+    }
+    return [...new Map(result.map(job => [job.id, job])).values()];
+  }
+
   async fetchJobById(id: string): Promise<Job | null> {
     const url = `${BASE_URL}/api/v1/jobs/${id}`;
     let res: Response;
     try {
-      res = await fetch(url);
+      res = await authorizedFetch(url);
     } catch (netErr: unknown) {
       console.error(`[API ERROR] Network failure: GET ${url}`, netErr);
       throw new ApiError('GET', url, 0, 'NETWORK_ERROR', getErrorMessage(netErr, 'Lỗi kết nối mạng.'));
@@ -829,85 +909,23 @@ export class RealApiClient implements ApiClient {
     onEvent: (event: CVProcessingEvent) => void,
     onError?: (err: Error) => void
   ): () => void {
-    const token = getAuthToken();
     const endpoint = identifier.jobId
       ? `/api/v1/candidate/cvs/processing/${identifier.jobId}/events`
       : `/api/v1/candidate/cvs/${identifier.cvId}/events`;
-    const fullUrl = `${BASE_URL}${endpoint}`;
-    const controller = new AbortController();
-
-    const readEventStream = async () => {
-      try {
-        const response = await fetch(fullUrl, {
-          method: 'GET',
-          headers: {
-            Accept: 'text/event-stream',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
-          cache: 'no-store',
-          signal: controller.signal
-        });
-
-        if (!response.ok || !response.body) {
-          throw new Error(`CV progress stream unavailable (HTTP ${response.status})`);
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        while (!controller.signal.aborted) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
-
-          let frameEnd = buffer.indexOf('\n\n');
-          while (frameEnd >= 0) {
-            const frame = buffer.slice(0, frameEnd);
-            buffer = buffer.slice(frameEnd + 2);
-            const lines = frame.split('\n');
-            const eventName = lines.find((line) => line.startsWith('event:'))?.slice(6).trim();
-            const data = lines.filter((line) => line.startsWith('data:'))
-              .map((line) => line.slice(5).trimStart()).join('\n');
-
-            if (eventName === 'cv-processing-progress' && data) {
-              try {
-                const event: unknown = JSON.parse(data);
-                if (isCVProcessingEvent(event)) {
-                  onEvent(event);
-                } else if (onError) {
-                  onError(new Error('Invalid CV progress event payload.'));
-                }
-              } catch (err) {
-                console.error('Failed to parse SSE event data', err);
-              }
-            }
-            frameEnd = buffer.indexOf('\n\n');
-          }
-        }
-
-        if (!controller.signal.aborted && onError) {
-          onError(new Error('CV progress stream closed; polling remains active.'));
-        }
-      } catch (err) {
-        if (!controller.signal.aborted && onError) {
-          onError(err instanceof Error ? err : new Error('CV progress stream failed.'));
-        }
-      }
-    };
-
-    void readEventStream();
-
-    return () => {
-      controller.abort();
-    };
+    return subscribeProgress(
+      (lastId, signal) => authorizedFetch(`${BASE_URL}${endpoint}`, {
+        headers: { Accept: 'text/event-stream', ...(lastId ? { 'Last-Event-ID': lastId } : {}) },
+        cache: 'no-store', signal
+      }),
+      isCVProcessingEvent, onEvent, onError
+    );
   }
 
 
   async downloadCVFile(cvId: string, format: string, defaultFilename: string): Promise<void> {
     const token = getAuthToken();
     const url = `${BASE_URL}/api/v1/candidate/cvs/${cvId}/download/${format}`;
-    const res = await fetch(url, {
+    const res = await authorizedFetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {}
     });
     if (!res.ok) {
@@ -1044,7 +1062,7 @@ export class RealApiClient implements ApiClient {
     formData.append('itemId', itemId);
 
     const url = `${BASE_URL}/api/v1/candidate/cvs/${cvId}/attachments`;
-    const res = await fetch(url, {
+    const res = await authorizedFetch(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: formData
@@ -1074,7 +1092,7 @@ export class RealApiClient implements ApiClient {
       throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập.');
     }
     const url = `${BASE_URL}/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`;
-    const res = await fetch(url, {
+    const res = await authorizedFetch(url, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (!res.ok) {
@@ -1098,7 +1116,7 @@ export class RealApiClient implements ApiClient {
     const token = getAuthToken();
     if (!token) throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập.');
     const url = `${BASE_URL}/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`;
-    const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+    const response = await authorizedFetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
     if (!response.ok) throw new ApiError('GET', url, response.status, response.statusText, 'Không thể mở tệp minh chứng.');
     const blob = await response.blob();
     if (!blob.size || (response.headers.get('content-type') || '').includes('application/json')) throw new Error('Tệp minh chứng trống hoặc phản hồi không phải là tệp.');
@@ -1112,12 +1130,8 @@ export class RealApiClient implements ApiClient {
       throw new ApiError('GET', '/api/v1/candidate/applications', 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
 
-    const json = await apiRequest<unknown>('/api/v1/candidate/applications?page=0&size=100', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
     const user = getAuthUser();
-    const rawList = getApiRows(json).filter(isBackendApplication);
+    const rawList = (await fetchAllApiRows('/api/v1/candidate/applications')).filter(isBackendApplication);
     return rawList.map((app) => ({
       id: String(app.id),
       job: {
@@ -1181,11 +1195,7 @@ export class RealApiClient implements ApiClient {
       throw new ApiError('GET', `/api/v1/recruiter/jobs/${jobId}/applications`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
     }
 
-    const json = await apiRequest<unknown>(`/api/v1/recruiter/jobs/${jobId}/applications`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    const rawList = getApiRows(json).filter(isBackendApplication);
+    const rawList = (await fetchAllApiRows(`/api/v1/recruiter/jobs/${jobId}/applications`)).filter(isBackendApplication);
     return rawList.map((app) => ({
       id: String(app.id),
       job: {
@@ -1276,7 +1286,7 @@ export class RealApiClient implements ApiClient {
     };
   }
 
-  async updateApplicationStatus(applicationId: string, status: ApplicationStatus, decisionNote?: string): Promise<Application> {
+  async updateApplicationStatus(applicationId: string, status: ApplicationStatus, decisionNote?: string, expectedStatus?: ApplicationStatus): Promise<Application> {
     const token = getAuthToken();
     if (!token) {
       throw new ApiError('PUT', `/api/v1/recruiter/applications/${applicationId}/status`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
@@ -1290,7 +1300,8 @@ export class RealApiClient implements ApiClient {
       },
       body: JSON.stringify({
         status,
-        decisionNote: decisionNote || ''
+        decisionNote: decisionNote || '',
+        expectedStatus
       })
     });
 
@@ -1462,16 +1473,7 @@ export class RealApiClient implements ApiClient {
   }
 
   async fetchRecruiterJobs(): Promise<Job[]> {
-    const token = getAuthToken();
-    if (!token) {
-      throw new ApiError('GET', '/api/v1/recruiter/jobs', 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
-    }
-
-    const json = await apiRequest<unknown>('/api/v1/recruiter/jobs', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    return getApiRows(json).map(mapBackendJobToFrontend);
+    return (await fetchAllApiRows('/api/v1/recruiter/jobs')).map(mapBackendJobToFrontend);
   }
 
   async saveJob(job: Job): Promise<Job> {
@@ -1494,6 +1496,7 @@ export class RealApiClient implements ApiClient {
       employmentType: job.employmentTypeOther ? 'OTHER' : job.employmentType,
       employmentTypeOther: job.employmentTypeOther,
       description: job.description || (job.responsibilities ? job.responsibilities.join('\n') : job.title),
+      responsibilities: job.responsibilities || [],
       requirements: (job.requirements || []).map(r => ({
         skillName: r.skillName,
         type: r.requirementType,
@@ -1501,8 +1504,9 @@ export class RealApiClient implements ApiClient {
       }))
     };
 
-    const json = await apiRequest<ApiEnvelope<unknown>>('/api/v1/jobs/draft', {
-      method: 'POST',
+    const existingId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(job.id);
+    const json = await apiRequest<ApiEnvelope<unknown>>(existingId ? `/api/v1/jobs/${job.id}` : '/api/v1/jobs/draft', {
+      method: existingId ? 'PUT' : 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
@@ -1512,7 +1516,7 @@ export class RealApiClient implements ApiClient {
 
     const savedJob = mapBackendJobToFrontend(json.data);
 
-    if (job.status === 'PUBLISHED') {
+    if (job.status === 'PUBLISHED' && savedJob.status !== 'PUBLISHED') {
       return (await this.publishJob(savedJob.id)) || savedJob;
     }
 
@@ -1606,7 +1610,7 @@ export class RealApiClient implements ApiClient {
     const url = `${BASE_URL}/api/v1/matching/applications/${applicationId}/inspection`;
     let res: Response;
     try {
-      res = await fetch(url, {
+      res = await authorizedFetch(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (netErr: unknown) {
@@ -1818,6 +1822,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
 // 7. EXPORTED BUSINESS FUNCTIONS (DELEGATE TO CURRENT CLIENT)
 // ============================================================
 
+export const fetchJobCatalog = (query = '', location = '') => currentApiClient.fetchJobCatalog ? currentApiClient.fetchJobCatalog(query, location) : currentApiClient.fetchJobs();
 export const fetchJobs = (industry?: string) => currentApiClient.fetchJobs(industry);
 export const fetchJobById = (id: string) => currentApiClient.fetchJobById(id);
 export async function fetchRecruiterJobById(id: string): Promise<Job> {
@@ -1868,8 +1873,8 @@ export const saveJob = (job: Job) => currentApiClient.saveJob(job);
 export const publishJob = (jobId: string) => currentApiClient.publishJob(jobId);
 export const closeJob = (jobId: string) => currentApiClient.closeJob(jobId);
 export const fetchApplicationById = (applicationId: string) => currentApiClient.fetchApplicationById(applicationId);
-export const updateApplicationStatus = (applicationId: string, status: ApplicationStatus, decisionNote?: string) =>
-  currentApiClient.updateApplicationStatus(applicationId, status, decisionNote);
+export const updateApplicationStatus = (applicationId: string, status: ApplicationStatus, decisionNote?: string, expectedStatus?: ApplicationStatus) =>
+  currentApiClient.updateApplicationStatus(applicationId, status, decisionNote, expectedStatus);
 export const fetchApplicationAuditLogs = (applicationId: string) => currentApiClient.fetchApplicationAuditLogs(applicationId);
 export const fetchCandidateRankings = (jobId: string) => currentApiClient.fetchCandidateRankings(jobId);
 export const fetchMatchInspection = (applicationId: string) => currentApiClient.fetchMatchInspection(applicationId);
@@ -1883,6 +1888,32 @@ export const loginAccount = (email: string, password: string) => currentApiClien
 // ============================================================
 // 8. MIDCV AI ENGINE & QUICK SCREENING API CLIENTS
 // ============================================================
+
+export interface WorkerRuntimeConfiguration {
+  status: string;
+  configurationSource: string;
+  restartRequiredForChanges?: boolean;
+  primary?: { enabled: boolean; provider: string; model: string };
+  fallback?: { enabled: boolean; provider: string; model: string };
+  embedding?: { model: string; dimension: number };
+  mockMode?: boolean;
+}
+
+export async function fetchAiRuntime(): Promise<{ backend: AiSettings; worker: WorkerRuntimeConfiguration; lastBackendCall: Record<string, string> }> {
+  return apiRequest('/api/v1/admin/ai-settings/runtime');
+}
+
+export async function fetchJobApplicationCount(jobId: string): Promise<number> {
+  const result = await apiRequest<ApiEnvelope<ApiPage<JsonRecord>>>(`/api/v1/recruiter/jobs/${jobId}/applications?page=0&size=1`);
+  const count = result.data?.totalElements;
+  if (typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0)
+    throw new Error('Không thể xác nhận số lượng đơn ứng tuyển.');
+  return count;
+}
+
+export async function deleteDraftJob(jobId: string): Promise<void> {
+  await apiRequest(`/api/v1/jobs/${jobId}`, { method: 'DELETE' });
+}
 
 export async function fetchAiSettings(): Promise<AiSettings> {
   return apiRequest<AiSettings>('/api/v1/admin/ai-settings');
@@ -2192,43 +2223,17 @@ export const adminApi = {
     page?: number;
     size?: number;
   }) => {
-    const q = params?.query || params?.search;
-    const isActive = params?.status === 'ACTIVE' ? true : params?.status === 'SUSPENDED' ? false : undefined;
-
-    if (params?.role === 'CANDIDATE') {
-      const res = await fetchAdminCandidates({ query: q, isActive, page: params?.page, size: params?.size });
-      return {
-        ...res,
-        content: res.content.map((u) => ({
-          ...u,
-          accountStatus: (u.isActive ? 'ACTIVE' : 'SUSPENDED') as 'ACTIVE' | 'SUSPENDED',
-        })),
-      };
-    } else if (params?.role === 'RECRUITER') {
-      const res = await fetchAdminRecruiters({ query: q, isActive, page: params?.page, size: params?.size });
-      return {
-        ...res,
-        content: res.content.map((u) => ({
-          ...u,
-          accountStatus: (u.isActive ? 'ACTIVE' : 'SUSPENDED') as 'ACTIVE' | 'SUSPENDED',
-        })),
-      };
-    } else {
-      // Both or ALL
-      const [candRes, recRes] = await Promise.all([
-        fetchAdminCandidates({ query: q, isActive, page: params?.page || 0, size: params?.size || 10 }),
-        fetchAdminRecruiters({ query: q, isActive, page: params?.page || 0, size: params?.size || 10 }),
-      ]);
-      const combined = [...candRes.content, ...recRes.content].map((u) => ({
-        ...u,
-        accountStatus: (u.isActive ? 'ACTIVE' : 'SUSPENDED') as 'ACTIVE' | 'SUSPENDED',
-      }));
-      return {
-        content: combined,
-        totalElements: candRes.totalElements + recRes.totalElements,
-        totalPages: Math.max(candRes.totalPages, recRes.totalPages),
-      };
-    }
+    const query = new URLSearchParams({ page: String(params?.page ?? 0), size: String(params?.size ?? 10) });
+    const role = params?.role === 'RECRUITER' ? 'HR' : params?.role;
+    if (role && role !== 'ALL') query.set('role', role);
+    if (params?.status && params.status !== 'ALL') query.set('accountStatus', params.status);
+    if (params?.query || params?.search) query.set('query', params.query || params.search || '');
+    type WireUser = Omit<UserAdminDto, 'role'> & { role: 'HR' | UserAdminDto['role'] };
+    const result = await apiRequest<ApiEnvelope<ApiPage<WireUser>>>(`/api/v1/admin/users?${query}`);
+    return { ...result.data, content: result.data.content.map((u) => ({
+      ...u, role: u.role === 'HR' ? 'RECRUITER' as const : u.role,
+      accountStatus: u.accountStatus ?? (u.isActive ? 'ACTIVE' as const : 'DEACTIVATED' as const),
+    })) };
   },
   moderateUser: async (id: string, data: { action: 'SUSPEND' | 'REACTIVATE'; reason?: string }) => {
     if (data.action === 'SUSPEND') {

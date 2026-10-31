@@ -1,0 +1,21 @@
+Actual Maven Surefire reports from the final clean package execution.
+{"tests": 100, "failures": 0, "errors": 0, "skipped": 8, "passed": 92}
+Not PostgreSQL/provider acceptance. See skipped suites.
+com.platform.recruitment.AdminBootstrapRunnerTest: tests=5 failures=0 errors=0 skipped=0
+com.platform.recruitment.AsyncPipelineReliabilityTest: tests=9 failures=0 errors=0 skipped=0
+com.platform.recruitment.AuditCvLifecycleRegressionTest: tests=7 failures=0 errors=0 skipped=0
+com.platform.recruitment.AuditRemediationRegressionTest: tests=15 failures=0 errors=0 skipped=0
+com.platform.recruitment.AuthServiceTest: tests=12 failures=0 errors=0 skipped=0
+com.platform.recruitment.CVProcessingSseTest: tests=4 failures=0 errors=0 skipped=0
+com.platform.recruitment.DisposableMigrationValidationTest: tests=1 failures=0 errors=0 skipped=1
+com.platform.recruitment.FileStorageRobustnessTest: tests=11 failures=0 errors=0 skipped=0
+com.platform.recruitment.TaskHttpAcceptanceTest: tests=7 failures=0 errors=0 skipped=7
+com.platform.recruitment.UnifiedCandidateCvIngestionTest: tests=6 failures=0 errors=0 skipped=0
+com.platform.recruitment.auth.AuthTokenLifecycleTest: tests=7 failures=0 errors=0 skipped=0
+com.platform.recruitment.auth.OAuthBrowserBindingTest: tests=3 failures=0 errors=0 skipped=0
+com.platform.recruitment.auth.OAuthEntityMappingTest: tests=2 failures=0 errors=0 skipped=0
+com.platform.recruitment.auth.OAuthServiceStateTest: tests=3 failures=0 errors=0 skipped=0
+com.platform.recruitment.auth.SmtpEmailServiceTest: tests=1 failures=0 errors=0 skipped=0
+com.platform.recruitment.config.JwtAuthenticationFilterTest: tests=2 failures=0 errors=0 skipped=0
+com.platform.recruitment.job.JobPublicAccessTest: tests=4 failures=0 errors=0 skipped=0
+com.platform.recruitment.matching.CandidateRankingFetchContractTest: tests=1 failures=0 errors=0 skipped=0

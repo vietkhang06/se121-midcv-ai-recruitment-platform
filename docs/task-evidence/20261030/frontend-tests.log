@@ -1,0 +1,42 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> frontend@0.1.0 test:contracts
+> node --test tests/*.test.mjs
+
+✔ recalculation accepts numeric count 0 (6.135228ms)
+✔ recalculation accepts numeric count 2 (0.504848ms)
+✔ recalculation rejects invalid count null (0.881234ms)
+✔ recalculation rejects invalid count -1 (0.548193ms)
+✔ recalculation rejects invalid count 1.5 (0.581383ms)
+✔ recalculation rejects invalid count "2" (0.556276ms)
+✔ recalculation rejects invalid count {} (2.102298ms)
+✔ application mapper preserves actual or unknown version 1 (0.982867ms)
+✔ application mapper preserves actual or unknown version 2 (0.635675ms)
+✔ application mapper preserves actual or unknown version 3 (0.71903ms)
+✔ application mapper preserves actual or unknown version null (0.37931ms)
+✔ catalog filters receive every page rather than only the first twenty jobs (1.939153ms)
+✔ ten concurrent calls rotate a refresh token once (6.522379ms)
+✔ a rejected refresh clears access, refresh and user together (0.970578ms)
+✔ transient refresh failure preserves credentials for retry (0.553421ms)
+✔ an in-flight refresh cannot restore a logged-out session (0.551368ms)
+✔ /api/v1/auth/login remains available when an old session cannot refresh (1.099131ms)
+✔ /api/v1/auth/verify-email remains available when an old session cannot refresh (0.512249ms)
+✔ /api/v1/auth/resend-verification remains available when an old session cannot refresh (0.421433ms)
+✔ /api/v1/auth/check-email?email=fixture remains available when an old session cannot refresh (0.321824ms)
+✔ /api/v1/auth/forgot-password remains available when an old session cannot refresh (0.385208ms)
+✔ an authenticated request renews after 401 and retries once (4.149354ms)
+✔ localized whole VND inputs parse without scaling (1.253063ms)
+✔ empty, malformed, negative, fractional and unsafe values stay invalid (0.390727ms)
+✔ formatting preserves zero and treats empty as unknown (12.721267ms)
+✔ CRLF split between reads delivers one complete terminal event (6.200555ms)
+✔ disconnect reconnects with durable cursor and suppresses replay duplicates (1003.866452ms)
+✔ unsubscribe aborts the active transport (0.490918ms)
+✔ forbidden stream reports an error without retrying (25.690587ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1510.153851

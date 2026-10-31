@@ -80,15 +80,19 @@ public class CVController {
     @GetMapping(value = "/processing/{jobId}/events", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
     public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamJobEvents(
             @AuthenticationPrincipal User currentUser,
-            @PathVariable UUID jobId) {
-        return cvProcessingSseService.subscribe(jobId, currentUser);
+            @PathVariable UUID jobId,
+            @RequestHeader(value="Last-Event-ID", required=false) String lastId,
+            @RequestHeader("Authorization") String authorization) {
+        return cvProcessingSseService.subscribe(jobId, currentUser, lastId, authorization.substring(7));
     }
 
     @GetMapping(value = "/{id}/events", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
     public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamCvEvents(
             @AuthenticationPrincipal User currentUser,
-            @PathVariable UUID id) {
-        return cvProcessingSseService.subscribeByCvId(id, currentUser);
+            @PathVariable UUID id,
+            @RequestHeader(value="Last-Event-ID", required=false) String lastId,
+            @RequestHeader("Authorization") String authorization) {
+        return cvProcessingSseService.subscribeByCvId(id, currentUser, lastId, authorization.substring(7));
     }
 
     @GetMapping("/{id}")
@@ -195,7 +199,12 @@ public class CVController {
             @PathVariable UUID attachmentId) {
         DownloadResult result = cvService.getEvidenceAttachmentFile(currentUser, id, attachmentId);
         return ResponseEntity.ok()
-                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + result.filename() + "\"")
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        org.springframework.http.ContentDisposition.inline()
+                                .filename(result.filename(), java.nio.charset.StandardCharsets.UTF_8).build().toString())
+                .header("X-Content-Type-Options", "nosniff")
+                .header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "private, no-store")
+                .contentLength(result.data().length)
                 .contentType(org.springframework.http.MediaType.parseMediaType(result.contentType()))
                 .body(result.data());
     }

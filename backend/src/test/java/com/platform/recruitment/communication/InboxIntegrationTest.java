@@ -144,6 +144,9 @@ class InboxIntegrationTest {
     assertEquals(
         m.get("id"), call(() -> s.send(hr, c, nonce, "Xin chào tiếng Việt <script>")).get("id"));
     assertEquals(1, ((List<?>) call(() -> s.messages(candidate, c, null)).get("items")).size());
+    assertThrows(CustomException.class, () -> call(() -> s.send(hr, c, nonce, "Different payload")));
+    var reloadedService = new InboxService(db, encoder);
+    assertEquals(1, ((List<?>) call(() -> reloadedService.messages(candidate, c, null)).get("items")).size());
     call(
         () -> {
           s.readThread(candidate, c, uuid(m.get("id")));
@@ -342,7 +345,7 @@ class InboxIntegrationTest {
   }
 
   @Test
-  void upgradeFromV27AndFreshReachV28() {
+  void upgradeFromV27AndFreshReachV30() {
     String schema = "inbox_upgrade_" + UUID.randomUUID().toString().replace("-", "");
     Flyway.configure()
         .configuration(Map.of("flyway.postgresql.transactional.lock", "false"))
@@ -359,8 +362,8 @@ class InboxIntegrationTest {
             .schemas(schema)
             .defaultSchema(schema)
             .load();
-    assertEquals(1, f.migrate().migrationsExecuted);
-    assertEquals("28", f.info().current().getVersion().toString());
+    assertEquals(3, f.migrate().migrationsExecuted);
+    assertEquals("30", f.info().current().getVersion().toString());
   }
 
   @Test

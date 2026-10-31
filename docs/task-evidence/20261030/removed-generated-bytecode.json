@@ -1,0 +1,1437 @@
+{
+  "reason": "Stale IDE build tree in supplied ZIP; remove with Clean-MidcvGenerated.ps1 -Apply",
+  "count": 286,
+  "class_count": 198,
+  "files": [
+    {
+      "path": "backend/bin/.classpath",
+      "size": 364,
+      "sha256": "5f3e0591faaba3c08fd4b93a443a15fc6a3458259aaf213a09cf185018aa77f5"
+    },
+    {
+      "path": "backend/bin/.factorypath",
+      "size": 12993,
+      "sha256": "f61b6195bd973ece13fdbe6434b3b70fdbf67702dc476ca23a3af9b0956fb8fb"
+    },
+    {
+      "path": "backend/bin/.project",
+      "size": 844,
+      "sha256": "68c8c684bee576c0269cb98677051dcd6cebaecfd21f6fe25fb45a899397edd5"
+    },
+    {
+      "path": "backend/bin/.settings/org.eclipse.jdt.apt.core.prefs",
+      "size": 214,
+      "sha256": "c5c3e3666f87a76adec29e80592bad23e321bee38c3fa3c9ad639d06c5c4dcf3"
+    },
+    {
+      "path": "backend/bin/.settings/org.eclipse.jdt.core.prefs",
+      "size": 538,
+      "sha256": "e878ef423156aee40ba52af8072257efca592573ec04a44ed996466bde778737"
+    },
+    {
+      "path": "backend/bin/.settings/org.eclipse.m2e.core.prefs",
+      "size": 86,
+      "sha256": "73e2bc42062725b3acdddce7ca0cdda43ec65574ed30391ea2d6fabdc269e0e4"
+    },
+    {
+      "path": "backend/bin/backend-tree.txt",
+      "size": 19262,
+      "sha256": "dcdb91cd841e2fa576fc5998839f459e46941d98d755587fcc61e4ab8de08c67"
+    },
+    {
+      "path": "backend/bin/pom.xml",
+      "size": 4170,
+      "sha256": "e2fc524ff8addecc84eccfbc15b36aba6e7d06f7263ba1f84548f67f8b3f2248"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/RecruitmentApplication.class",
+      "size": 1452,
+      "sha256": "0c8f6635ef47b238d05a98a3888395ea95387a592356043208e0733081ff2f79"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/ai/AiProcessingController.class",
+      "size": 3291,
+      "sha256": "e7d2af37860b222615c767d6da12ab6673c739396fe63c5d66369014b8b58d11"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/ai/AiWorkerClient.class",
+      "size": 8814,
+      "sha256": "4f11e697372fe995c64fefa70c34f8605607a6c42bf51960dc5d42e4319de3eb"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/ai/ProcessingLifecycleService.class",
+      "size": 7541,
+      "sha256": "1e26b510ae60ea12c2dd35acb3f4807e14037714d93fd856f747584722e3eea8"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/ai/ProcessingStatus.class",
+      "size": 1254,
+      "sha256": "51e7392aae8e8c9080259c89b763d0577c4a43a8f9a85c3c4c9d864ab4ce0270"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/Application$ApplicationBuilder.class",
+      "size": 8379,
+      "sha256": "07c2655011fc2bc177604ef2beaded60e0ba825f83d5fa153e997c5851e0212a"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/Application.class",
+      "size": 7709,
+      "sha256": "195ef9669ad4d48b526b435f7ddd64663764afdde13c3c57a1b276c316f05acc"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/ApplicationAnswer$ApplicationAnswerBuilder.class",
+      "size": 6681,
+      "sha256": "8df2dbd9db807107bf1ed0f1ceb7c1ced199a7666621c1cb4a871fa99e0e5a03"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/ApplicationAnswer.class",
+      "size": 6033,
+      "sha256": "313428f7d7ec6f45a3f8c0b1e83ce6e5a06b0b60954641fd28d92360db710668"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/ApplicationCVSnapshot$ApplicationCVSnapshotBuilder.class",
+      "size": 7991,
+      "sha256": "a4ed2f0662ce1c9e8a57dadd47d6309ba4702d27bbd2885fc79ceac066cf7da5"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/ApplicationCVSnapshot.class",
+      "size": 7460,
+      "sha256": "5ec9b8aa055d3ac3879a290866747883f43ab13ae494f10859e663cbc903fd2c"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/ApplicationCVSnapshotRepository.class",
+      "size": 1650,
+      "sha256": "6d6b61b1dce8c99ce19d98bf6a75ea4a468fef8dd542a19787f01d092279ace3"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/ApplicationController.class",
+      "size": 4588,
+      "sha256": "d1eed6bc060f9a5852508c365f97fc36d0b76319eb1b8eb8c3157493d000e540"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/ApplicationQuestion$ApplicationQuestionBuilder.class",
+      "size": 8259,
+      "sha256": "73eb5baa1a98ab8f0d335c3e508ce1aeb1f59f6d9fb28650c3567970476e5299"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/ApplicationQuestion.class",
+      "size": 6710,
+      "sha256": "3cca938965931c6b9ccdcfb12e932f6adedc37cf6a6dc040a0b59064a23d089b"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/ApplicationRepository.class",
+      "size": 2195,
+      "sha256": "ff53d19719b47c468506e99b475c5560c4eb311576d1b8470255a54b10ba1c1c"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/ApplicationResponse$ApplicationResponseBuilder.class",
+      "size": 8792,
+      "sha256": "64d6dfb1fe12760a1f7740f1000d2f2248f7d89cc6dad0d339a4272b8ac251b3"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/ApplicationResponse$SnapshotInfo$SnapshotInfoBuilder.class",
+      "size": 6504,
+      "sha256": "251725b658bb179f3e950bdf73f31054b6db40a59abf8b4f9312960d1850616e"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/ApplicationResponse$SnapshotInfo.class",
+      "size": 6727,
+      "sha256": "0c17bd3b7221158d633fd5d94d4cdb79c4b889933b640276056578b7c6e6b39d"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/ApplicationResponse.class",
+      "size": 8810,
+      "sha256": "4441de748646ecc960e73f97282aa507dee4867451b8565ab84355e638082056"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/ApplicationService.class",
+      "size": 8094,
+      "sha256": "52d32b7869adf0c6eba5fb9979a73943f95fe8fa0b5b07edfbc22a400e3146f4"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/ApplicationStatus.class",
+      "size": 1054,
+      "sha256": "985c49795e1c6625a90a4c092200f8fe56d836c3da3caed04be43f630678d20c"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/application/SubmitApplicationRequest.class",
+      "size": 4921,
+      "sha256": "d2789696b2d2bb1466009c5d895538eff6a867fe600f884c6111ea2b17aa0a01"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/AuthController.class",
+      "size": 5970,
+      "sha256": "d79b96b8ef2a70fa0448a42b73019272f5e100ecb1e033ee82dc03cf538bc5b7"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/AuthService.class",
+      "size": 8778,
+      "sha256": "9444ab75647efed4bd8d6cf4c60a44db8d8dfd8b08fffbdc93ddce82eb21b0ff"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/EmailCheckResponse$EmailCheckResponseBuilder.class",
+      "size": 7904,
+      "sha256": "ff825aa9aada6f0ffce98be8c3c6381d118e3bc9622de9a45aacacee119ebc33"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/EmailCheckResponse.class",
+      "size": 7083,
+      "sha256": "59cb20328e7d06517f0be98747c3af48d5b2b39de0ac639e60b2b0ff0e5414fe"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/EmailVerificationToken$EmailVerificationTokenBuilder.class",
+      "size": 7916,
+      "sha256": "9d7e36ad1ad3cff5a75d0933a000585781cfafbb886027f80f02cf322c619c87"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/EmailVerificationToken.class",
+      "size": 6783,
+      "sha256": "c387f086cbede60b6d238f837d8a53f896f7d4ddb7df0467cdbb72914bb7d9d8"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/EmailVerificationTokenRepository.class",
+      "size": 1921,
+      "sha256": "4bc804b0efd87e13320318234cfe9ea21748f5a312ee6cafe023857be95d6bc1"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/JwtResponse$JwtResponseBuilder.class",
+      "size": 8433,
+      "sha256": "78eda9708810c2082885053195e65e28677687bda77ecba7ac6fafb257b35df2"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/JwtResponse.class",
+      "size": 8174,
+      "sha256": "841acccda2653eaf5266a7e1625f017f272809e237af2d3066d1b3b45a5b8270"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/JwtTokenProvider.class",
+      "size": 5759,
+      "sha256": "98e6fa56a78599b0b5bcbe6245cc0ee928e929cea126904c7e94335f5957ee02"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/LoginRequest.class",
+      "size": 4817,
+      "sha256": "83c8fb8557131c0247d7a42157101f40f074c75da6791725f9b126e47050161e"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/RegisterCandidateRequest.class",
+      "size": 8219,
+      "sha256": "922377bd11f249e92e8327c556c289e826bd61dc42540511251b33b9010b6eb8"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/RegisterRecruiterRequest.class",
+      "size": 8823,
+      "sha256": "fa22bc22baff27bee8cfc3dff7f6ae60bb2a258a09c1038966f4050fe1c1027d"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/RegisterResponse$RegisterResponseBuilder.class",
+      "size": 7456,
+      "sha256": "e88146c2f2948da308c78e5b7aea6c23cacf3148ad52246f04402bbfcf62b37e"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/RegisterResponse.class",
+      "size": 7459,
+      "sha256": "7ff065d51b2fca21d3d47bace73f2bd4002a433042c128887ae03c1ece91124d"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/ResendVerificationRequest.class",
+      "size": 4374,
+      "sha256": "c61eedb85b6393eac9494ab3298fcbc9547baa6e2203f5414bf45cfb602af1c5"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/auth/VerifyEmailRequest.class",
+      "size": 4215,
+      "sha256": "20476d28ebd5b536de96110988c0b46011dfef26338c12996a10b88021cfc321"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/candidate/CandidateController.class",
+      "size": 3382,
+      "sha256": "73098fd53c134983ff6c0ddbc5e6ee5ccd8b7e72e97bde5472f6540f53b332cb"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/candidate/CandidateLanguage$CandidateLanguageBuilder.class",
+      "size": 7874,
+      "sha256": "bbf623a9256b59c60674c10b886fbd3cf814398b1d38ab2cab4ab8ba9c8d343b"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/candidate/CandidateLanguage.class",
+      "size": 6731,
+      "sha256": "0a3d491204143ee9d74b8385f08212b3dd565b8313d3e70741d381bbefa469ed"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/candidate/CandidateLanguageRepository.class",
+      "size": 1604,
+      "sha256": "b7082ca6d5f9f5e94bd99551ee394178b602cab9cad0df2f9cae15e2cfae6d95"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/candidate/CandidateProfile$CandidateProfileBuilder.class",
+      "size": 8146,
+      "sha256": "082556cface7ebc6226672850e6ab37c5b0ac88fee3824bbf88656fecbad523f"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/candidate/CandidateProfile.class",
+      "size": 7467,
+      "sha256": "949206fb53b213a7314ad70027e17bf9dbc42308d8d5b1a4dea5672138d3694b"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/candidate/CandidateProfileRepository.class",
+      "size": 1606,
+      "sha256": "824cb9634151ddb000f700fb6756f7835df509e0810ffa39bb11e794defe2fda"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/candidate/CandidateService.class",
+      "size": 4255,
+      "sha256": "ba72e46c6a7dae3109e607bd8772d78b4ef18c5a18df49d5c557b57174ca3324"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/candidate/CandidateTargetIndustry$CandidateTargetIndustryBuilder.class",
+      "size": 8117,
+      "sha256": "c4bac5f5fa532b23f765b357dccc0a1ade2b942f342f714008d8d2c66bc220b4"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/candidate/CandidateTargetIndustry.class",
+      "size": 6825,
+      "sha256": "d60e244a2b34febee8bc7cab9b016cba09bbd8b60b3e5def00e49c0cb4eeb5eb"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/candidate/CandidateTargetIndustryRepository.class",
+      "size": 1628,
+      "sha256": "8c14451d8c04ed90c89b4a3ce0e2f86698ba1a5b5f8d863fe4bb45b32335c7e6"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/candidate/CandidateTargetRole$CandidateTargetRoleBuilder.class",
+      "size": 5776,
+      "sha256": "129f59acb9bb64180519c3680f4375de8f9f31b719934bc565729b944dafb4c9"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/candidate/CandidateTargetRole.class",
+      "size": 5076,
+      "sha256": "c8464b957f9c2279135ebbcc9ec92c8717e60eb252ff00ad661a0c5902f06e0f"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/candidate/CandidateTargetRoleRepository.class",
+      "size": 1612,
+      "sha256": "d4a20f95b1222c7de60891d83ca0d5851ce70b18691a79f88682264a399109c0"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/common/ApiResponse$ApiResponseBuilder.class",
+      "size": 9173,
+      "sha256": "9ffba603d58f759987e84ab6306b44f72e92efdc9e494ad4f0baeedccd6e3858"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/common/ApiResponse$ErrorDetails.class",
+      "size": 6983,
+      "sha256": "c15b36d36d4c2fb0b19780f0c0760d72421cb3d337c46f78c1938302ad268734"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/common/ApiResponse.class",
+      "size": 9970,
+      "sha256": "ec54ffb0621a2d4098ca7edacd033706c1a80fa63d7dd30cc7a691506b6d95ca"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/common/BaseEntity.class",
+      "size": 4931,
+      "sha256": "41e12c679273e14db1c3fc5371547fb03c6dd5836f617a65bb6b811275cd633a"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/common/CompanyNotVerifiedException.class",
+      "size": 994,
+      "sha256": "d596820707967483f252045cb3924456cebfbfc2de327c75a5bde0157f71699e"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/common/CustomException.class",
+      "size": 2606,
+      "sha256": "6b2d53feada9efe99b1cbb2d5a1b7a2e26696c04674374cbce5adc7dc2aa4437"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/common/DuplicateApplicationException.class",
+      "size": 1002,
+      "sha256": "170a43972a29ffcdfe253b20a2ba53e0e990f4d51c8e6de5ac23d82db38bf880"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/common/ErrorCode.class",
+      "size": 1350,
+      "sha256": "31eb4038c53493c8c86c2574f9ba99a8bbbc25e617f011b513f73a5a28911373"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/common/GlobalExceptionHandler.class",
+      "size": 7904,
+      "sha256": "211f8762f9ac9bebd1467e4dc17916c25327e341423c0430e5e21ec50a5d7ae0"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/common/ResourceNotFoundException.class",
+      "size": 1333,
+      "sha256": "dc2029942e923dc6c58fec678d1bcf815fbbd586bac69113dc82f626093e06b3"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/common/UnauthorizedAccessException.class",
+      "size": 994,
+      "sha256": "e3dd70f3ea11fa932c71bd32cd64a34d2aeaa72f84cd57e207d9de19edf515bd"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/company/Company$CompanyBuilder.class",
+      "size": 7683,
+      "sha256": "71f7bf1a0531387136be9997abab76792cf890c77df98a2b31da85b0838cbd27"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/company/Company.class",
+      "size": 7468,
+      "sha256": "7fed0f6b6a50f21c62d0c4ac96700feffe99d0bc7898eeb7f8313b5f72ac6735"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/company/CompanyController.class",
+      "size": 4258,
+      "sha256": "c58cc527e471991be9add912aa44d38ace971d9f5c242435a80691067cd2434e"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/company/CompanyRepository.class",
+      "size": 427,
+      "sha256": "1fef66f3721a7668e0acb4063e0e1ada49e9517a183855ddf5fb180c9af95829"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/company/CompanyService.class",
+      "size": 4536,
+      "sha256": "291237da165991f9edff3c9129e0afe9f23a11e77842798de27e9962ccb955f0"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/company/CompanyVerification.class",
+      "size": 1043,
+      "sha256": "f179f038527e7a1108bc43775290d87a439d3c3cb2933919b30bb94023323782"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/company/RecruiterProfile$RecruiterProfileBuilder.class",
+      "size": 7959,
+      "sha256": "de91d0d1a7a43ae2f298b016762d023b9c513ad60732e393ab41dfdb5fe4209b"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/company/RecruiterProfile.class",
+      "size": 6821,
+      "sha256": "30617d6ea0829a96ae98b7b2ca99bf0effde464cb19bd6f0e8aa522bc278d7ea"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/company/RecruiterProfileRepository.class",
+      "size": 1596,
+      "sha256": "1437d562cfde2cc6e72f8533c06cb2fc8754a34515cc7e1d1be2c61819c6fb1c"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/config/JwtAuthenticationFilter.class",
+      "size": 4402,
+      "sha256": "acdfc4a91a563c34a35728b714928d6c774c5e54ecdee96ddda91d1de0983950"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/config/SecurityConfig.class",
+      "size": 4596,
+      "sha256": "4f0b821f0ab2361799a2b5811bef51969c77ed3dc7d7c1db9ca647fa722e2d40"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/cv/CV$CVBuilder.class",
+      "size": 8568,
+      "sha256": "1f0142329149cfdf453d15d82da7248bd8c1ef36822214677b506cdaf41e5694"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/cv/CV.class",
+      "size": 8717,
+      "sha256": "c88139e06903f6f89a0f76e82b3d3beceeaebea43fd7961bc4f99e4eabe869fb"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/cv/CVController.class",
+      "size": 6349,
+      "sha256": "07d0b2d6c557d7831a509ed160be5e96565c205dbe0ff7483da9510e34178a03"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/cv/CVCreationPath.class",
+      "size": 987,
+      "sha256": "c92f6df32d73e5a161c0ca0cc39872fecc0de9375c1a160f5a13b16aa8b23a8c"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/cv/CVRepository.class",
+      "size": 1838,
+      "sha256": "42e1ff99a3aff8b45ef1893bc0b4b927dc9e0cb64ff8ba6707b548f2efb1a754"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/cv/CVResponse$CVResponseBuilder.class",
+      "size": 9063,
+      "sha256": "3b84378f805ccba373e3cd7eabf3eda6fe5929b6286cdb8237a81fdfb656364d"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/cv/CVResponse.class",
+      "size": 9119,
+      "sha256": "6fd6a72ccb0f64b1590976eace17bb268b554b7513cd4597eabb849a438ff3d7"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/cv/CVSection$CVSectionBuilder.class",
+      "size": 6751,
+      "sha256": "0b1c7f8ca61bfd37a33f84d6b0363d0a249ffff0f8802e98b306e4908ac2df1e"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/cv/CVSection.class",
+      "size": 5917,
+      "sha256": "bee14867e2e37d5bc59be6f7b2c0197deeed6cdf025f7321ad82cb7c3c19c083"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/cv/CVSectionRepository.class",
+      "size": 1537,
+      "sha256": "568c2be1bd391f3b354e91493a2f69f6c3eefb4f7a2c5e01973220a8d29d4d6a"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/cv/CVService.class",
+      "size": 8596,
+      "sha256": "98640ef4e3170180302b0bef3f210c89b9f4dd481d2415ca1f09c92a08b7f898"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/cv/CVVersion$CVVersionBuilder.class",
+      "size": 7573,
+      "sha256": "5c015bb30080d64eb401683beb1f31afb538270b720d6b32326bd174aaa0e4d5"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/cv/CVVersion.class",
+      "size": 6962,
+      "sha256": "855eb202132fff952ac0d1a32b4da137ee9e99a75a4d8bb6167cba6815183c88"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/cv/CVVersionRepository.class",
+      "size": 1547,
+      "sha256": "96dc569cedfba2e1806791894d738f8aa64ad90ef5ed349453c2f50d402d336f"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/cv/CreateCVRequest.class",
+      "size": 7561,
+      "sha256": "98c5835f6aabaacc1b626800193095ec7a8d11099e6b350aea573a5042db16a4"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/email/EmailService.class",
+      "size": 1038,
+      "sha256": "7f1ecdf5cd64985ba811a23e0ef5d80f181749ac3b5fb68a4fd2f8442f0bf928"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/email/MockEmailService.class",
+      "size": 3392,
+      "sha256": "3cf4eb2679dc5e6b32e1d49d6c76d360dc6f775ec773f2a26242774b3b3ecb61"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/email/SmtpEmailService.class",
+      "size": 2670,
+      "sha256": "a28118c20d2bc6c0cb9998392a4cf34d41af634a93ad96553b95abebc3836004"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/embedding/Embedding$EmbeddingBuilder.class",
+      "size": 8350,
+      "sha256": "180d099c22372293d2562da94f41d496955a003fc182569749dc3434265e8a57"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/embedding/Embedding.class",
+      "size": 7651,
+      "sha256": "e65cfb5e0ba0e11402f2d65a6d9e87e8c05550423cd955fefaef94f29e037284"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/embedding/EmbeddingRepository.class",
+      "size": 1709,
+      "sha256": "9e2aef52d87a3a286dfcf1963901b0e4ab28c6758fe0e44bff33d63c26267e60"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/embedding/EmbeddingService.class",
+      "size": 3621,
+      "sha256": "05249b75b52d78364dc2df390c67c37f9f4d1ce32bc875bce8476e141d54cb1e"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/embedding/PgvectorCosineSimilarity.class",
+      "size": 5627,
+      "sha256": "1ab9611bed0514ec49fe086aae48436a4b4ccdc5e5c0ba57f3ad9d1cf0dbaab3"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/file/FileMetadata$FileMetadataBuilder.class",
+      "size": 7896,
+      "sha256": "1763bca7727445a783d506704d014d59d0d354b4c3d9920cbff221064d3b6f8c"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/file/FileMetadata.class",
+      "size": 7868,
+      "sha256": "17c81caa2cbcda7e0fc50467fc1b0ab8c206e3ba7f6037f9f550be0622b2adb6"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/file/FileStorageService.class",
+      "size": 4721,
+      "sha256": "fb752f955697889d5a69a5487a029491e296c5104bedb39bdcc47b179eb163f5"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/github/GitHubActivitySignal.class",
+      "size": 1072,
+      "sha256": "85ae23f51dd085269819edc84b5a52491297eb37bb3ed7b44c4b9ea6a55b733b"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/github/GitHubAssessment$GitHubAssessmentBuilder.class",
+      "size": 7842,
+      "sha256": "cc893927e28d730126e5a704921c573ad9c325913d58a47b1556a831fb180b4d"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/github/GitHubAssessment.class",
+      "size": 7379,
+      "sha256": "a8ead07ed58c4ab42e189c6b46b910e49b9561510f3b30d55db23d22a36597ec"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/github/GitHubAssessmentRepository.class",
+      "size": 1609,
+      "sha256": "807df00514e3e5bb0c1a065d8059c25c3ab661997e949e697cefc395b76b4c83"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/github/GitHubProfile$GitHubProfileBuilder.class",
+      "size": 9080,
+      "sha256": "5024967d4f161474e3ea863bf9a4d8b555016a42e27775570d50986f7397c5c5"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/github/GitHubProfile.class",
+      "size": 8977,
+      "sha256": "075297024e9e43fbe155124b0e8162b856b95910b4c5076648b1ea6dae36b3cd"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/github/GitHubProfileRepository.class",
+      "size": 1589,
+      "sha256": "299fbd55f6e31638a9d253925d48d111dc0eed61937490d2bb42a791b57fee7e"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/github/GitHubRepository$GitHubRepositoryBuilder.class",
+      "size": 8813,
+      "sha256": "140a18a5d7412bcc04b95f9a2930892c47048a007bd75c8d9eeddf14e7cfdb62"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/github/GitHubRepository.class",
+      "size": 8450,
+      "sha256": "5a8985cbad13e7305d77493758d38b4ec4f858103a97c6e17069ca2f6bf80655"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/github/GitHubRepositoryLanguage$GitHubRepositoryLanguageBuilder.class",
+      "size": 8470,
+      "sha256": "68bfea1002cb6b031c70db7836732e34740dbda93ed56f900e178bd5fd960d28"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/github/GitHubRepositoryLanguage.class",
+      "size": 7301,
+      "sha256": "758e3e627763cba07639060e297c8e0e1a456584a83c567e964ada327e45e78a"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/github/GitHubRepositoryLanguageRepository.class",
+      "size": 1619,
+      "sha256": "0ddda0fc6ff85358041d80791eac5e13d80fdd6d380542b5d1a9ce340b6c548d"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/github/GitHubRepositoryRepository.class",
+      "size": 1593,
+      "sha256": "e37a540b815279eb57b29e1caa7c2c0b9beac42a94a171222d7a52cce9e9fb2d"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/github/GitHubRepositoryTopic$GitHubRepositoryTopicBuilder.class",
+      "size": 5779,
+      "sha256": "6aac83966e77686cb965f8404fd877ffe6319e6315099fdbfea32682a7256e22"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/github/GitHubRepositoryTopic.class",
+      "size": 5069,
+      "sha256": "6dcececf6d084e034413bff195a1b49d2a8b07ac571be2dd2fca33b2e221e269"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/github/GitHubRepositoryTopicRepository.class",
+      "size": 1607,
+      "sha256": "576d6adc275deeba64723d0545bdbc159874a088cd368520a10996bece2933c8"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/job/CreateJobRequest$RequirementItem.class",
+      "size": 7643,
+      "sha256": "97a9bb33fa343fd928ce593952dba1382d12756ff5eb2e7b537ef9ea340e6679"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/job/CreateJobRequest.class",
+      "size": 9158,
+      "sha256": "ab8bf02d0e77f60fc57339c476e74288d5667bf7b3bba9d6ef889fdf5ce18431"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/job/Job$JobBuilder.class",
+      "size": 8818,
+      "sha256": "59327909ac2c2b93baebd68efaeba9f624ac1e12c185e8c0197aad19ba9ce039"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/job/Job.class",
+      "size": 9287,
+      "sha256": "d5e64359459666dbf874810659bc5ac4f1b17a480bf2632da3cd7340ee18c786"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/job/JobController.class",
+      "size": 5595,
+      "sha256": "1edb625b71301dc19d91182b1e4842709806f4b21ba65560ada54cb7058e0dc5"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/job/JobRepository.class",
+      "size": 2160,
+      "sha256": "4e336af3fe5ee0323cf779f119ca07476127f9bd82345893d8138fc33c69ba1b"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/job/JobRequirement$JobRequirementBuilder.class",
+      "size": 7853,
+      "sha256": "a29cb3043367d21628de4cb390b549e340a6e1c09b362a8448a89eace7c9ffde"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/job/JobRequirement.class",
+      "size": 6910,
+      "sha256": "a56fd6250a5801a3e5f6dad5fd0922c750f7172d15c2690ccb9807639e9f4a71"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/job/JobRequirementRepository.class",
+      "size": 1550,
+      "sha256": "53c4600e9022b970c2ed998d9ec41a55fa07d1069623bb514a351e3da63b8803"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/job/JobResponse$JobResponseBuilder.class",
+      "size": 9652,
+      "sha256": "35d68adf2c1d2e26a1a7b6adcf9e210cbb131919fab9307d3f6456e8ecd2f3d4"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/job/JobResponse$RequirementResponse$RequirementResponseBuilder.class",
+      "size": 7026,
+      "sha256": "632d149fbf52912e27836d61cdaeef9a2c2599a36bd5c06252e1124344337073"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/job/JobResponse$RequirementResponse.class",
+      "size": 7175,
+      "sha256": "141c0b416b0996d9b4d84a7173d7d48a9ce95d413e7f64dbd7750e75be127056"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/job/JobResponse.class",
+      "size": 10296,
+      "sha256": "c1bc694d528bb835c5a6afe4053228bca051636e664001a37298de5908670fd2"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/job/JobService.class",
+      "size": 7807,
+      "sha256": "700368dbb49245804ac33b245de9a7a5fc7a5d680993319079fe75a433d61714"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/job/JobStatus.class",
+      "size": 994,
+      "sha256": "373fbe8f1a604f0011c791f5cf7f7ba49cef563d5fafad5dcfd7be5662dd37cf"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/job/RequirementType.class",
+      "size": 998,
+      "sha256": "4912ba955a3675bed65159e40df9e82955216c9e94f36bd9a8d0dad5e3fb5b92"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/CandidateRankingService.class",
+      "size": 2870,
+      "sha256": "5497056e07d41f5a2bbc4914b2cdb9df141e7eb0886348fb79f555550a9902fb"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/EducationMatcher.class",
+      "size": 1943,
+      "sha256": "2d52e40dbb3f95551a50c2f6526d80445c6833b7c1f72e828fc80b1c9cce2d88"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/Evidence$EvidenceBuilder.class",
+      "size": 7885,
+      "sha256": "51f4907a5ba0ca46784945abc59107099c3d4db8a9d31f86f6ac49d60295a3b7"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/Evidence.class",
+      "size": 7632,
+      "sha256": "1e5972a6498602ba9914120b93c6c18360b9cc1c35bd3e48382238196a1165c8"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/EvidenceRepository.class",
+      "size": 1567,
+      "sha256": "bcd33c01411d05b7697015106dd41b2f392c94a59a8f67004b15854742239b63"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/ExperienceMatcher.class",
+      "size": 3610,
+      "sha256": "499a5a41a061f2c205c1e68a69ee3b84dc5b2eb8d5e1a77d5e319f2014f3f99d"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/GitHubScoringService.class",
+      "size": 9025,
+      "sha256": "15ec3ae0032f5e2042bcf782fad95f951adf6990039c078ba50cac655b7221be"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchFactor$MatchFactorBuilder.class",
+      "size": 8219,
+      "sha256": "14101467ff492a8607719a140ab1d57769127c54e51e045acbd231304ba7c151"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchFactor.class",
+      "size": 8033,
+      "sha256": "5411ac5f178a03c5f1c4816f19257770d2fa033168fe2b8554af742b42866e6c"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchFactorRepository.class",
+      "size": 1579,
+      "sha256": "c44548b2350916df1ce3c2fb9713220dd45b462bf8042553c45955cc8d5fd63c"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchInspectionResponse$FactorItem$FactorItemBuilder.class",
+      "size": 6648,
+      "sha256": "d8a8eee46f7231651ff890b04f5c07e7a883970e7c57464607acf50094966e14"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchInspectionResponse$FactorItem.class",
+      "size": 7183,
+      "sha256": "10b8dfdbfc85593301faa18088ba657602f324900506fad9de04bdf261ee0f20"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchInspectionResponse$GitHubAssessmentInfo$GitHubAssessmentInfoBuilder.class",
+      "size": 8375,
+      "sha256": "32476489dc301086a5975185834c0a28dc54599ba188c4bf3bfa3fd72953415a"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchInspectionResponse$GitHubAssessmentInfo.class",
+      "size": 9551,
+      "sha256": "db09061d5078d9c10abd3f80af3e7863a72f882dc951596ae3c7244fe046968a"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchInspectionResponse$MatchInspectionResponseBuilder.class",
+      "size": 10198,
+      "sha256": "5f726dee89ee25714c89b0a4d6036a19d1da3362b92d65823d849696819604f4"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchInspectionResponse$RepoItem$RepoItemBuilder.class",
+      "size": 6538,
+      "sha256": "bba9a063e344301fe4d1cbbeb742945ad2aa09fd75b7dfa6f5898a4db46f65c0"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchInspectionResponse$RepoItem.class",
+      "size": 7659,
+      "sha256": "e8a585e83d41786bf1793e42a1464826a6c34d8fff9ecb327cc2a23032ba66f0"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchInspectionResponse$SkillItem$SkillItemBuilder.class",
+      "size": 6553,
+      "sha256": "1c57e4366d3dd2cd1de8c5b7df460797aa6f9838ee9c1f5f9d460632762b675b"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchInspectionResponse$SkillItem.class",
+      "size": 6907,
+      "sha256": "74398227b55889aeef4530502a7b056d1aa7ef4f6a1ec5eca68f4f52d67e91f0"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchInspectionResponse.class",
+      "size": 11476,
+      "sha256": "bab2c6f8679cd49c647cd693953cc1ce9964881a1f3298ded50f6acb0f1b5ced"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchResult$MatchResultBuilder.class",
+      "size": 11384,
+      "sha256": "024db1acacb26cc317bb04fb34bdad332465c874fce156263b6b219b7d1ffb39"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchResult.class",
+      "size": 11290,
+      "sha256": "71f3db680271ffd39a8bf07097f7f6d81d979f8dc180816af6ba90e3ae2d6bc1"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchResultRepository.class",
+      "size": 2196,
+      "sha256": "cdcbbb60df95bdc7237c5666bb9704616c4a3e9c0856b5a6889c5a748029bbae"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchingController.class",
+      "size": 4298,
+      "sha256": "70e57e235a8332d8703918fa73e2dc08d6d79411c43067cd800c84eced826340"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/MatchingEngineService.class",
+      "size": 9298,
+      "sha256": "1824d7f8aca9143478182017824d92e819cf9d494fcfc09f725199708bd64562"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/PreferredSkillMatcher.class",
+      "size": 2662,
+      "sha256": "7733157ab791894f836d9b86df5f31aa2fde3044fb5321932a0b4a999ce968b2"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/ProjectRelevanceMatcher.class",
+      "size": 1971,
+      "sha256": "96b2365f3a4567b3cc4af88f2b1c2345bb0d2023ce787b3264f5ef155880c43c"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/RequiredSkillMatcher.class",
+      "size": 2759,
+      "sha256": "a59dd66dcd3755b711ae64be66c7d80304d4a941fea75ee35e7de3238b0c9e56"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/matching/SkillNormalizer.class",
+      "size": 7485,
+      "sha256": "b4d04b3924285987e69cb62e0c969f2f1b4c0d0cd9ad32a71e93673a566688f8"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/user/Role.class",
+      "size": 979,
+      "sha256": "cd97a6c2bd07dc0d44ccfccc0f869c50693fed51cb4a3bc9884379c6487af72d"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/user/User$UserBuilder.class",
+      "size": 7461,
+      "sha256": "b5834bcba356bb3855b81a8d624dec82f5c1c294bf1a724a507e5791ba8b00b0"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/user/User.class",
+      "size": 7013,
+      "sha256": "f2c4b6ef4f7307d7d52718741fd6cd99536a8c43eca25afd2e2eb673f8e6bece"
+    },
+    {
+      "path": "backend/bin/src/main/java/com/platform/recruitment/user/UserRepository.class",
+      "size": 1677,
+      "sha256": "f8e50dad393a2bc3bb93cf0a0a65e8f9c50f683a9141a17e927c4612a48d2972"
+    },
+    {
+      "path": "backend/bin/src/main/resources/application.yml",
+      "size": 1166,
+      "sha256": "3f7ddb405e51c956bd128c7bdd359b55aaa3463503b4b9aac13c4cd90a3cfbc2"
+    },
+    {
+      "path": "backend/bin/src/main/resources/db/migration/V1__initial_schema.sql",
+      "size": 16718,
+      "sha256": "4ef1faccb30124ce635434322eb12280275bdf554d87387304daae18a627c614"
+    },
+    {
+      "path": "backend/bin/src/main/resources/db/migration/V2__cv_versioning_and_embedding_unification.sql",
+      "size": 1206,
+      "sha256": "6a64bcca108b744339e7c8ad771a64ed4e18f7ab17e45e18d747fd68812c116f"
+    },
+    {
+      "path": "backend/bin/src/main/resources/db/migration/V3__unique_candidate_job_application.sql",
+      "size": 224,
+      "sha256": "e2cae482464e66f2f236a0ebc04c711bd91f145fa29423319966f99fa002adfe"
+    },
+    {
+      "path": "backend/bin/src/main/resources/db/migration/V4__add_email_verification.sql",
+      "size": 1134,
+      "sha256": "25cdf7cd96c9ff9be75afb4413a8a29d04c3b5b61c480a036b3a5be024bc4cc3"
+    },
+    {
+      "path": "backend/bin/src/main/resources/db/migration/V5__add_updated_at_to_email_verification_tokens.sql",
+      "size": 370,
+      "sha256": "68c3a51fbf1fc339bf5934a88fef470227f1b6a8ac77e4b494970284c6a4bf7e"
+    },
+    {
+      "path": "backend/bin/src/main/resources/db/migration/V6__update_github_profile_status_check.sql",
+      "size": 498,
+      "sha256": "7b20772fe0f7ac2ce24e00d8b2ca9d3184a5a7d525cea7eec39172cb7b336d50"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/AIHallucinationAndAdversarialTest.class",
+      "size": 2785,
+      "sha256": "897e336f30346c5f03e28f11ee213e20137ef85cb85cbd5e3556a587123b13cb"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/AiWorkerIntegrationTest.class",
+      "size": 8175,
+      "sha256": "c2a277502cfd265a4ced9f2094a909c61b2f0fe6fba6c23416f9312df695d91a"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/ApplicationDuplicateProtectionTest.class",
+      "size": 8041,
+      "sha256": "66d608b37018243dbcf4629a25ffefb5f754a3edca19545ada488c905de3a2aa"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/ApplicationSnapshotImmutableTest.class",
+      "size": 7907,
+      "sha256": "3fb8fb018149c838decf9d9589f4b7b3579cc9a8362b1f9ae57b60cb1cb891f2"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/ApplicationSnapshotVersionTest.class",
+      "size": 4629,
+      "sha256": "e8b2a989c112fd9b4329bbf4f9a42ae4f9709d136a15428882dbd14693f3eb7a"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/ApplicationUnpublishedJobRuleTest.class",
+      "size": 7107,
+      "sha256": "00cf46cc42022c1c19f223bd156c680a880446037c1def4318d303ec26b7b74c"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/AuthServiceTest.class",
+      "size": 9863,
+      "sha256": "974e564ddf558802bf7126e072df25d217a62590652abeb362dbf440cfaccf35"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/AuthoritativeEmbeddingStoreTest.class",
+      "size": 3327,
+      "sha256": "b91f6c88030675d9dd83bed7d03c7592e76a948b70e14306a742666baeca7655"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/CVMultiRecordTest.class",
+      "size": 4345,
+      "sha256": "d7be129568eb77484de527c6e37b1590b3fb166e1905a472bcf218b46223c50e"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/CVOwnershipTest.class",
+      "size": 5962,
+      "sha256": "a5c8310fab1c4785c77424a77b8520ef1e638a031d7f35fd88a8d4f97af26ec3"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/CVVersionSectionHierarchyTest.class",
+      "size": 5626,
+      "sha256": "b23a2a1966dec2f7fb07c13ff9f1e513a5c18808e466510561b2489f2d21abbf"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/CandidateMultiIndustryRoleTest.class",
+      "size": 5176,
+      "sha256": "fd9ef118c62e86e84b2e8b79fd22627a8c90b28053666440754af90f1f6f4e60"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/CandidateRankingDatasetTest.class",
+      "size": 4898,
+      "sha256": "e3ecf1fdc1feffdfee8d75a37b7cd95584eb629efdcdb3c77e6ca3376f8b16d1"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/CandidateRankingTest.class",
+      "size": 6468,
+      "sha256": "b67ba0de811200ab57f6913b2769fbd1e2846c66f825a0410a6a0beedd1bbc56"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/CompanyVerificationRuleTest.class",
+      "size": 8634,
+      "sha256": "9f5c9db5e09ba3e13586136c8139c4d7d52c73e2c471e83b6743a28276d4a3f8"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/DocumentExtractionIntegrationTest.class",
+      "size": 9303,
+      "sha256": "dc3aaa5ecf42af5874a02562359118b6ee56675d6ca76a4f24cf9be3f060508b"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/EmbeddingPersistenceTest.class",
+      "size": 2601,
+      "sha256": "47092b72663a7bd6ffd2ea70ae6af00f6c557cb2abd5d09113ae8ac4a48b0647"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/EmbeddingServiceTest.class",
+      "size": 3970,
+      "sha256": "fc4ba92cd4dbe0e515d074526d89dc2076a6051071df7d5f3951d1fc30ed9587"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/FailureInjectionAndSecurityTest.class",
+      "size": 3064,
+      "sha256": "e3d4493fb4f1949dc86896643f02f16d244c0dfa0d0dfb6b50843ff2befc80da"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/FullSystemIntegrationTest.class",
+      "size": 7753,
+      "sha256": "2d3b36692849429628c18cbc277c5c8c659e5c0d74b704098e115e791ab487f4"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/GitHubDeepVerificationTest.class",
+      "size": 8969,
+      "sha256": "ec2c134cbbd6e3f731e666c234a807b7bd1f2ebccdba7d3c1b990eaa553bb44b"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/GitHubEntityPersistenceTest.class",
+      "size": 6779,
+      "sha256": "4c92fd058d20ec312add647271725a13a5741a17a338efca8c81c72b68a0470c"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/GitHubPipelineIntegrationTest.class",
+      "size": 9188,
+      "sha256": "23cd6b9519176bb30c079ac932c716fb4920098bed90284463a95b721211a958"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/GoldenMatchingCasesTest.class",
+      "size": 9606,
+      "sha256": "03d70ad400e2ad5ef732a79009dc989b1b7f268d3d8b177d389b614f721ffed8"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/MatchingPersistenceTest.class",
+      "size": 6354,
+      "sha256": "f71bffd91b0c3b235e7d2e51d19bad7a796f754980925678debe4f849c420b2b"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/MultiIndustryEvaluationTest.class",
+      "size": 3914,
+      "sha256": "003bc25322b06dca1cf4fc00b58070eb996cd959abfc43aeb5a8bb74fe96048c"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/ProcessingIdempotencyTest.class",
+      "size": 8518,
+      "sha256": "3ee2036784291a3e9ba66f90f6bcc0ba44a78f5ae5b521052dc701b0c998d6dd"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/RealityMatchingManipulationTest.class",
+      "size": 9954,
+      "sha256": "5e81420575f1d3b3c464a10251e0209eb829c9a08a5006001d66692b75fdebec"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/RecruiterSecurityOwnershipTest.class",
+      "size": 7171,
+      "sha256": "b299a3ecefdb4dc87f621b3746a999155501e05c1196c18c2d3d6c4e120bb11d"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/ScoreReconstructionTest.class",
+      "size": 3558,
+      "sha256": "7dc3a56b85c02cd1dac1b196064790dad13e821aff3afd3b147c2eabf1539d39"
+    },
+    {
+      "path": "backend/bin/src/test/java/com/platform/recruitment/SystemPerformanceAndConcurrencyTest.class",
+      "size": 3093,
+      "sha256": "8fb06127eb1256402100d278bf751d76f221b8fabce69c724f714510b1d30d7b"
+    },
+    {
+      "path": "backend/bin/target/classes/application.yml",
+      "size": 1166,
+      "sha256": "3f7ddb405e51c956bd128c7bdd359b55aaa3463503b4b9aac13c4cd90a3cfbc2"
+    },
+    {
+      "path": "backend/bin/target/classes/db/migration/V1__initial_schema.sql",
+      "size": 16718,
+      "sha256": "4ef1faccb30124ce635434322eb12280275bdf554d87387304daae18a627c614"
+    },
+    {
+      "path": "backend/bin/target/classes/db/migration/V2__cv_versioning_and_embedding_unification.sql",
+      "size": 1206,
+      "sha256": "6a64bcca108b744339e7c8ad771a64ed4e18f7ab17e45e18d747fd68812c116f"
+    },
+    {
+      "path": "backend/bin/target/classes/db/migration/V3__unique_candidate_job_application.sql",
+      "size": 224,
+      "sha256": "e2cae482464e66f2f236a0ebc04c711bd91f145fa29423319966f99fa002adfe"
+    },
+    {
+      "path": "backend/bin/target/classes/db/migration/V4__add_email_verification.sql",
+      "size": 1134,
+      "sha256": "25cdf7cd96c9ff9be75afb4413a8a29d04c3b5b61c480a036b3a5be024bc4cc3"
+    },
+    {
+      "path": "backend/bin/target/classes/db/migration/V5__add_updated_at_to_email_verification_tokens.sql",
+      "size": 370,
+      "sha256": "68c3a51fbf1fc339bf5934a88fef470227f1b6a8ac77e4b494970284c6a4bf7e"
+    },
+    {
+      "path": "backend/bin/target/classes/db/migration/V6__update_github_profile_status_check.sql",
+      "size": 498,
+      "sha256": "7b20772fe0f7ac2ce24e00d8b2ca9d3184a5a7d525cea7eec39172cb7b336d50"
+    },
+    {
+      "path": "backend/bin/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst",
+      "size": 284,
+      "sha256": "99c7f52f3164939e608c0cd7935c506d90fc2f78c5450fab116d06bf9a54761b"
+    },
+    {
+      "path": "backend/bin/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst",
+      "size": 16492,
+      "sha256": "2e50a4baab886794981856c6aac850f922cf7504c9cc933842fcebc036231951"
+    },
+    {
+      "path": "backend/bin/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/createdFiles.lst",
+      "size": 217,
+      "sha256": "3539cd22e2e53ccfa14f12c312cff77491bbb921d3abc43f69a0f238abe4dbf5"
+    },
+    {
+      "path": "backend/bin/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst",
+      "size": 4393,
+      "sha256": "cea21b99c2fd9fa78204534100d9c6d7efd3a8ca6042be0ccba71d5ff479e7b9"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.AIHallucinationAndAdversarialTest.xml",
+      "size": 28790,
+      "sha256": "63e9e4883a0794b65dd3edabcb230fba963b285733ec6a31c0a94cd9feed74d4"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.AiWorkerIntegrationTest.xml",
+      "size": 29527,
+      "sha256": "ecfcc10dd263997e1ef187c1f8549eebe8cd23620726717e05951e58799174e7"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.ApplicationDuplicateProtectionTest.xml",
+      "size": 28894,
+      "sha256": "2c3b5d495e091ff3ed67f3befdcb7adbcaaab3407f02fade4cfcdb621fa356a5"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.ApplicationSnapshotImmutableTest.xml",
+      "size": 28619,
+      "sha256": "b5d44ad47829ab37dd90a56517082cfc9914880c153d46985c4685f300453c4f"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.ApplicationSnapshotVersionTest.xml",
+      "size": 28643,
+      "sha256": "0e8467afb677574ab5db964330c7800d0bb0e2e3e0b994dd6c6c1f3d10a6b1a6"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.ApplicationUnpublishedJobRuleTest.xml",
+      "size": 28624,
+      "sha256": "f4937ab3052049360ed391adde2d8a0bec593e9c4b7d644d361d5115242e119b"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.AuthServiceTest.xml",
+      "size": 30146,
+      "sha256": "3197a2b410e08637682646bc4798581118ae5ddd44881320ef8813bc328e837d"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.AuthoritativeEmbeddingStoreTest.xml",
+      "size": 28644,
+      "sha256": "8eac5e9692ef7f786d2aa42c1005250f0a2d493d7d8dcb2588e5562de49ce52b"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.CVMultiRecordTest.xml",
+      "size": 28595,
+      "sha256": "9b3f71c37f33989a2e369280a0abaa3f95060f9d18c6fe50b9d33c8b18a5195d"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.CVOwnershipTest.xml",
+      "size": 28610,
+      "sha256": "508cf2d0e6d6f0071fef178c7424c2e9bad90d0aaa7308ba35eb7422d478323d"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.CVVersionSectionHierarchyTest.xml",
+      "size": 28629,
+      "sha256": "0db043a681a690c82ebe5c168369c09e495dacbb3792a6ed5e140fd0dfeeb27a"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.CandidateMultiIndustryRoleTest.xml",
+      "size": 28609,
+      "sha256": "4c224799bee998062eca772f2aa377277282cfcfe007d95886bcbf7f87e34651"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.CandidateRankingDatasetTest.xml",
+      "size": 28740,
+      "sha256": "629090ed8d7969d7215baca990a61c192c8f57133eaf805e89e0db0cdd675517"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.CandidateRankingTest.xml",
+      "size": 28809,
+      "sha256": "dc9ccd81c07d172c87c94a81c8905554f344313d0e6b8873c2923bee4b255107"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.CompanyVerificationRuleTest.xml",
+      "size": 28743,
+      "sha256": "d3dd6be87ea497bf5c3f567361c7e8b458541d2725795ed65a22bde14263d429"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.DocumentExtractionIntegrationTest.xml",
+      "size": 29998,
+      "sha256": "f0420d6e73f02dad6a06a98a8eacca36acd387c4728b2a741930c78da0d9a3e6"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.EmbeddingPersistenceTest.xml",
+      "size": 28601,
+      "sha256": "ad4349482c3ac923469b1068e5419b1028dfb6e020886044207a6d1c47cd6400"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.EmbeddingServiceTest.xml",
+      "size": 28890,
+      "sha256": "ae3cf4e9760ebbfd52cd2f3534dc0c5b16585927263c246745cc65f4f832e3c2"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.FailureInjectionAndSecurityTest.xml",
+      "size": 28778,
+      "sha256": "a2b8cb0a02c344db79a7549816f73d3552f751d832d57ee52ca3e61d42fba9a4"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.FullSystemIntegrationTest.xml",
+      "size": 28604,
+      "sha256": "68d1e747845395f86a3b40a8ed21e66dcef9c4e1573799e7d55662a9facd4128"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.GitHubDeepVerificationTest.xml",
+      "size": 33145,
+      "sha256": "234b991425620325d4a7ae0c8e5ffb45564a46b3c6373bd7f966b10fb456e61e"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.GitHubEntityPersistenceTest.xml",
+      "size": 28608,
+      "sha256": "d41ae04982e54f9d5de2e9fe1d64811a39fbf5898e92d73b29a996da6f001114"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.GitHubPipelineIntegrationTest.xml",
+      "size": 30296,
+      "sha256": "27d51c020809dd15da31e2f62710e4cec0c976cd26ec73e11eea217e4a482ec3"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.GoldenMatchingCasesTest.xml",
+      "size": 33068,
+      "sha256": "ff33ac64bbade2fc7491313dcc0a202894d23491d3385b5f1a5d0f1751e2132c"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.MatchingPersistenceTest.xml",
+      "size": 28598,
+      "sha256": "6882801da99c72030219ed45a75afb0beec0dc27328020089f4933bf6c9a13b1"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.MultiIndustryEvaluationTest.xml",
+      "size": 29125,
+      "sha256": "4764533c34d9429b33f85f5c81487732545e2ea9f015ace9d46d3f4e27a8f475"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.ProcessingIdempotencyTest.xml",
+      "size": 29033,
+      "sha256": "f7681939c518b1535a79f1527e608d965f2c132d2b3686bc6b1641e248fa80ad"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.RealityMatchingManipulationTest.xml",
+      "size": 34703,
+      "sha256": "6493cee779108375517d1432d304b5efddd5ea6100da0b6d57422fd870ea3efd"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.RecruiterSecurityOwnershipTest.xml",
+      "size": 28607,
+      "sha256": "4bb8afcf6d954645eabde19f78cc6191ee74d19d9b9c53c1fb79fda26ccae969"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.ScoreReconstructionTest.xml",
+      "size": 28593,
+      "sha256": "2a44a88fd228a1de11450bb1438df3a85c264c3e172d79da2b1e71bd700bd4be"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/TEST-com.platform.recruitment.SystemPerformanceAndConcurrencyTest.xml",
+      "size": 28628,
+      "sha256": "6d32d1f25205f12ccfc099fcbc08e5452bc6245dab9a385843243437064e3a61"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.AIHallucinationAndAdversarialTest.txt",
+      "size": 366,
+      "sha256": "90e0e7b0ad1869edc8a38311de5f367f6404451208a19de7fb947f22236bf5d6"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.AiWorkerIntegrationTest.txt",
+      "size": 346,
+      "sha256": "82b8bcf629aaf30f4ae06cdf5c35d99c510312d90ae318b640f7735560063e5b"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.ApplicationDuplicateProtectionTest.txt",
+      "size": 368,
+      "sha256": "1fb349bde04cf180f1cd19a4659822ef5dae68fb6d1a6b1a17074eed5f90af37"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.ApplicationSnapshotImmutableTest.txt",
+      "size": 364,
+      "sha256": "ba7431d408c0ffa9983f89294aaf6af533cc618e27b46b2db5fdbd7bc0f7cea5"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.ApplicationSnapshotVersionTest.txt",
+      "size": 360,
+      "sha256": "313be0ed96f21a9c1b8b363380e62e3709bc3e4d4a7e3b2431b8c96775f72933"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.ApplicationUnpublishedJobRuleTest.txt",
+      "size": 366,
+      "sha256": "f70b85d7fb00bbc548c78aa448c343e19f94faa883319e1399a99d6a82df583d"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.AuthServiceTest.txt",
+      "size": 331,
+      "sha256": "08438730eae5dfb26edfdb4ebf6cd518911e2cf464a9c621737fecc6257cbf99"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.AuthoritativeEmbeddingStoreTest.txt",
+      "size": 362,
+      "sha256": "486b6d057980922cd51e62cb6017d7f8048cadbfa81841a6fe61c609fdceb949"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.CVMultiRecordTest.txt",
+      "size": 334,
+      "sha256": "2481bdc99fbebb920d94d58a5530e9b726489dac147716a3a381d751d0142322"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.CVOwnershipTest.txt",
+      "size": 330,
+      "sha256": "eab7a8a620d6507985ad8a206eeb533bfa01ad48e46a3bff74ab62a13ee33936"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.CVVersionSectionHierarchyTest.txt",
+      "size": 358,
+      "sha256": "315ff439013869798e3450bcbf6b987e06f50e54572d582eec77d78db5205198"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.CandidateMultiIndustryRoleTest.txt",
+      "size": 360,
+      "sha256": "3f211253c66c41719a5a01dac2be088d54f84578cbb63e87d3cd0d0b0e318a3f"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.CandidateRankingDatasetTest.txt",
+      "size": 354,
+      "sha256": "cacc8589264216effd21534303b4f01451a10ac56be086b6883fc69ba9defe00"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.CandidateRankingTest.txt",
+      "size": 340,
+      "sha256": "e2f4db292c38e5e1e892d627bc5283294e8c637c4bf28c2af048682e8a2fbe62"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.CompanyVerificationRuleTest.txt",
+      "size": 354,
+      "sha256": "c6c90dd101500d32d54a8df84bb3ee4088ca05d0626f1a8063459a68f3284db9"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.DocumentExtractionIntegrationTest.txt",
+      "size": 366,
+      "sha256": "d673a7d41aeb70b3119170c016ce3d08d0d53421cc006e9d1c8201dcd6750b3d"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.EmbeddingPersistenceTest.txt",
+      "size": 348,
+      "sha256": "912b8b00835a8c7c7b40864467f3c215a065ec2a2ca0fef07460eac73b323501"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.EmbeddingServiceTest.txt",
+      "size": 340,
+      "sha256": "9e2f02cb50e1a8bbf2570db8641095beef33d08ce4a26c73b454f344b675da4e"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.FailureInjectionAndSecurityTest.txt",
+      "size": 362,
+      "sha256": "f4fa16301a69bcf654a3812c17e62aac4f895f57feb1adaefc4f7630c840dbf0"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.FullSystemIntegrationTest.txt",
+      "size": 350,
+      "sha256": "c03c07b3a16dfd7260f44a4838effd519e1b46e70f94e9fbacb64fa58e5775fd"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.GitHubDeepVerificationTest.txt",
+      "size": 353,
+      "sha256": "fcc8d39818a69195234b63fbe6ce72a51cf07f373389c90c0b899b1ce5961057"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.GitHubEntityPersistenceTest.txt",
+      "size": 354,
+      "sha256": "05e4abf2edf468623d6d73a131ba5ef1c7b1206b968f073463216158d820aff2"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.GitHubPipelineIntegrationTest.txt",
+      "size": 358,
+      "sha256": "eaa569a16674621f2fabe1479c667c82bd47ba53a8e25d3765c0e5012e34d357"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.GoldenMatchingCasesTest.txt",
+      "size": 347,
+      "sha256": "9b8f93f678b8c8ef6b67bdbc093ab8285edba5c0be69b94da476022b198309cb"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.MatchingPersistenceTest.txt",
+      "size": 346,
+      "sha256": "ece8b2ceffb413f88850c87937a46720c4d7bb2415ba1c41e39d68150c570201"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.MultiIndustryEvaluationTest.txt",
+      "size": 354,
+      "sha256": "7407a85f963b2d0e5c20c9c96aa069ae4f2dd8bde292e50045839a65906323f5"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.ProcessingIdempotencyTest.txt",
+      "size": 350,
+      "sha256": "26871eb52ab3c71ece3a350adb6adcbc070b516032c0eb7ced0e4dd4940e63f4"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.RealityMatchingManipulationTest.txt",
+      "size": 363,
+      "sha256": "7686c0631680239a73a8e48e01be2ed7b65f6bbc21eb1f53c00747ea9f9a2bb0"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.RecruiterSecurityOwnershipTest.txt",
+      "size": 360,
+      "sha256": "35285909c488fa4d740ce0aa89bef0d6d2299a85082b258598e696bca134de06"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.ScoreReconstructionTest.txt",
+      "size": 346,
+      "sha256": "87652bed913626e0984375b707ccb9cc2b43ac3a6c8bf209f053802199937481"
+    },
+    {
+      "path": "backend/bin/target/surefire-reports/com.platform.recruitment.SystemPerformanceAndConcurrencyTest.txt",
+      "size": 370,
+      "sha256": "ea392543d5a5b78d8c0083d8ed1c6d2ef1f3cec266e2d3072928ae4bc1a8641a"
+    }
+  ]
+}

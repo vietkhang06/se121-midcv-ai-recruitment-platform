@@ -567,3 +567,18 @@ Provider identity is stored by `(provider, provider_subject)`, not email. New so
 ## Inbox & account workspace — 27/10/2026
 
 The authenticated `/api/v1/inbox` extension, ownership rules, transactional notifications, application-scoped chat, account preferences and SMTP outbox are specified in [INBOX_ACCOUNT_EXTENSION_20261027.md](INBOX_ACCOUNT_EXTENSION_20261027.md). Existing CV/matching/OAuth contracts above remain unchanged.
+
+## Business hardening addendum — 31/10/2026
+
+- `GET /api/v1/jobs` thêm literal `query` và `location`, lọc trước phân trang.
+- `DELETE /api/v1/jobs/{id}` chỉ HR sở hữu được xóa DRAFT; job đã đăng cần close.
+- Job request/response thêm `responsibilities: string[]`, giữ description và salary currency.
+- `GET /api/v1/admin/users` hợp nhất phân trang với `role`, `accountStatus`, `query`.
+- Quyết định đơn nhận thêm `expectedStatus` tùy chọn; stale trả 409.
+- Evidence read chia sẻ cho owner/HR có snapshot đúng công ty/Admin, writes chỉ candidate DRAFT.
+  Attachment bị thay/xóa nhưng còn trong application snapshot được giữ dưới dạng retired history.
+- `GET /api/v1/admin/ai-settings/runtime` trả backend scope, trace model gần nhất và worker loaded-config.
+  Backend settings không thay worker environment. Worker `GET /internal/ai/runtime-config` không trả key.
+- Chat retry cùng clientId nhưng khác body trả 409; same-body retry giữ message ID cũ.
+
+Ma trận quyền và nghiệm thu thật: [BUSINESS_TASKS_20261031.md](BUSINESS_TASKS_20261031.md).

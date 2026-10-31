@@ -38,6 +38,13 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(ApiResponse.error(ex.getErrorCode(), ex.getMessage(), ex.getDetails()), status);
     }
 
+    @ExceptionHandler({org.springframework.orm.ObjectOptimisticLockingFailureException.class,
+            org.springframework.dao.PessimisticLockingFailureException.class})
+    public ResponseEntity<ApiResponse<Object>> concurrentModification(Exception ex) {
+        return ResponseEntity.status(409).body(ApiResponse.error(ErrorCode.CONCURRENT_MODIFICATION,
+                "Dữ liệu đang được cập nhật bởi thao tác khác. Vui lòng tải lại.", null));
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         log.error("DataIntegrityViolationException caught: {}", ex.getMessage());
@@ -61,6 +68,26 @@ public class GlobalExceptionHandler {
                 ApiResponse.error(ErrorCode.VALIDATION_ERROR, "Validation failed for request arguments", errors),
                 HttpStatus.BAD_REQUEST
         );
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
+        var authentication=org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        boolean authenticated=authentication!=null && !(authentication instanceof org.springframework.security.authentication.AnonymousAuthenticationToken);
+        return ResponseEntity.status(authenticated?403:401).body(ApiResponse.error(ErrorCode.ACCESS_DENIED,"Yêu cầu xác thực hoặc quyền truy cập phù hợp.",null));
+    }
+
+    @ExceptionHandler({org.springframework.web.multipart.support.MissingServletRequestPartException.class,
+            org.springframework.web.bind.MissingServletRequestParameterException.class,
+            org.springframework.http.converter.HttpMessageNotReadableException.class,
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<ApiResponse<Object>> handleMalformedRequest(Exception ex) {
+        return ResponseEntity.badRequest().body(ApiResponse.error(ErrorCode.VALIDATION_ERROR,"Yêu cầu thiếu trường bắt buộc hoặc sai định dạng.",null));
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMultipartTooLarge(Exception ex) {
+        return ResponseEntity.status(413).body(ApiResponse.error(ErrorCode.FILE_SIZE_EXCEEDED,"Tệp hoặc yêu cầu vượt quá giới hạn cho phép.",null));
     }
 
     @ExceptionHandler(Exception.class)

@@ -87,6 +87,7 @@ public class CVProcessingSseTest {
                 .thenReturn(List.of(jobRow));
 
         Map<String, Object> eventRow1 = new HashMap<>();
+        eventRow1.put("id", 101L);
         eventRow1.put("step", "UPLOAD");
         eventRow1.put("code", "FILE_STORED");
         eventRow1.put("level", "INFO");
@@ -95,6 +96,7 @@ public class CVProcessingSseTest {
         eventRow1.put("created_at", new java.sql.Timestamp(System.currentTimeMillis()));
 
         Map<String, Object> eventRow2 = new HashMap<>();
+        eventRow2.put("id", 102L);
         eventRow2.put("step", "READ_DOCUMENT");
         eventRow2.put("code", "STEP_STARTED");
         eventRow2.put("level", "INFO");
@@ -102,11 +104,12 @@ public class CVProcessingSseTest {
         eventRow2.put("duration_ms", 200L);
         eventRow2.put("created_at", new java.sql.Timestamp(System.currentTimeMillis()));
 
-        when(jdbcTemplate.queryForList(startsWith("SELECT step, code"), eq(jobId)))
+        when(jdbcTemplate.queryForList(startsWith("SELECT id,step,code"), eq(jobId), eq(0L)))
                 .thenReturn(List.of(eventRow1, eventRow2));
 
         SseEmitter emitter = sseService.subscribe(jobId, candidateUser);
         assertNotNull(emitter);
+        verify(jdbcTemplate).queryForList(startsWith("SELECT id,step,code"),eq(jobId),eq(0L));
 
         // Verify broadcast event does not throw
         assertDoesNotThrow(() ->

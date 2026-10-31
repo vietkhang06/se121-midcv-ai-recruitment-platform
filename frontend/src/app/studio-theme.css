@@ -128,3 +128,68 @@ html .job-highlight-badge.badge-salary { max-width:100%; min-width:0; height:aut
  html header :is([class~="gap-2"],[class~="gap-1.5"]) { column-gap:4px; }
  html header .inbox-tools { gap:4px; }
 }
+
+/* Admin navbar uses the same semantic colors as candidate. */
+html [data-retro-shell="admin"] {
+  background-color: var(--surface) !important;
+  color: var(--heading) !important;
+  border-bottom-color: var(--border-soft) !important;
+}
+
+/* Brand wordmark */
+html [data-retro-shell="admin"] [data-retro-brand] span {
+  color: var(--heading) !important;
+}
+
+html [data-retro-shell="admin"] [data-retro-brand]
+:is(span, sup)[class~="text-[var(--primary)]"] {
+  color: var(--primary) !important;
+}
+
+/* Navigation links and icons */
+html [data-retro-shell="admin"] nav a {
+  color: var(--text-secondary) !important;
+  background-color: transparent !important;
+  border-color: var(--border-soft) !important;
+}
+
+html [data-retro-shell="admin"] nav a:hover {
+  color: var(--primary) !important;
+  background-color: var(--primary-light) !important;
+}
+
+html [data-retro-shell="admin"] nav a[class~="bg-indigo-600"] {
+  color: var(--primary) !important;
+  background-color: var(--primary-light) !important;
+  border-color: var(--primary) !important;
+}
+
+html [data-retro-shell="admin"] nav a svg {
+  color: inherit !important;
+}
+
+/* Admin Portal badge */
+html [data-retro-shell="admin"] [class~="bg-indigo-500/20"] {
+  color: var(--primary) !important;
+  background-color: var(--primary-light) !important;
+  border-color: var(--border-soft) !important;
+}
+
+/* Language and mobile-menu buttons */
+html [data-retro-shell="admin"] button:has(.lucide-globe),
+html [data-retro-shell="admin"] #admin-mobile-menu-btn {
+  color: var(--heading) !important;
+  background-color: var(--surface-secondary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html [data-retro-shell="admin"] button:has(.lucide-globe) svg {
+  color: var(--primary) !important;
+}
+
+/* Notification and account buttons */
+html [data-retro-shell="admin"] .inbox-icon {
+  color: var(--heading) !important;
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
+}

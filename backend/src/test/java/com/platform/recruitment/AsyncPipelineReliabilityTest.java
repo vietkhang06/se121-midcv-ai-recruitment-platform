@@ -119,7 +119,7 @@ public class AsyncPipelineReliabilityTest {
         failedRow.put("entity_id", entityId);
         failedRow.put("state", "FAILED");
 
-        when(jdbcTemplate.queryForList(contains("SELECT p.* FROM processing_jobs p WHERE p.id=?"), eq(jobId), eq(ownerId), eq(ownerId)))
+        when(jdbcTemplate.queryForList(contains("SELECT p.* FROM processing_jobs p WHERE p.id=?"), eq(jobId), eq(ownerId), eq("CANDIDATE"), eq("CANDIDATE"), eq(ownerId), eq(ownerId)))
                 .thenReturn(List.of(failedRow));
 
         UUID nextJobId = UUID.randomUUID();

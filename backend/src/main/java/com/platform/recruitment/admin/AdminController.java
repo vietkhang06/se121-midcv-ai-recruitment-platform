@@ -16,6 +16,24 @@ import org.springframework.web.bind.annotation.*;
 public class AdminController {
   private final AiClient aiClient;
   private final Events events;
+  @org.springframework.beans.factory.annotation.Autowired
+  private com.platform.recruitment.ai.AiWorkerClient worker;
+  @org.springframework.beans.factory.annotation.Autowired
+  private com.platform.recruitment.admin.service.AdminAuditLogService audit;
+
+  @GetMapping("/runtime")
+  public Map<String, Object> runtime() {
+    requireAdmin();
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("backend", getSettings());
+    result.put("lastBackendCall", aiClient.lastModelTrace());
+    try {
+      result.put("worker", worker.runtimeConfiguration());
+    } catch (RuntimeException unavailable) {
+      result.put("worker", Map.of("status", "UNAVAILABLE", "configurationSource", "WORKER_ENVIRONMENT"));
+    }
+    return result;
+  }
 
   public AdminController(
       AiClient aiClient,
@@ -45,6 +63,8 @@ public class AdminController {
       masked = key.length() > 8 ? key.substring(0, 3) + "..." + key.substring(key.length() - 4) : "***";
     }
     Map<String, Object> res = new LinkedHashMap<>();
+    res.put("configurationScope", "BACKEND_SCREENING");
+    res.put("workerConfigurationSource", "WORKER_ENVIRONMENT");
     res.put("provider", s.provider());
     res.put("ollamaUrl", s.ollamaUrl());
     res.put("ollamaModel", s.ollamaModel());
@@ -57,6 +77,7 @@ public class AdminController {
   }
 
   @PutMapping
+  @org.springframework.transaction.annotation.Transactional
   public Map<String, Object> updateSettings(@RequestBody Map<String, Object> body) {
     User actor = requireAdmin();
     String provider = Objects.toString(body.get("provider"), "LOCAL_OLLAMA").trim().toUpperCase(Locale.ROOT);
@@ -81,7 +102,12 @@ public class AdminController {
       }
     }
 
+    AiClient.SystemAiSettings previous = aiClient.getSettings();
     aiClient.updateSettings(provider, ollamaUrl, ollamaModel, cloudBaseUrl, newKey, cloudModel);
+    audit.log(actor, "AI_SETTINGS_UPDATED", "AI_SETTINGS", null,
+        previous.provider() + ":" + ("LOCAL_OLLAMA".equals(previous.provider()) ? previous.ollamaModel() : previous.cloudModel()),
+        provider + ":" + ("LOCAL_OLLAMA".equals(provider) ? ollamaModel : cloudModel),
+        "Cập nhật cấu hình AI backend", null, Events.requestId());
 
     events.emit(
         null,

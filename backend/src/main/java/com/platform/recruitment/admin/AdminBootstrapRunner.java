@@ -26,10 +26,10 @@ public class AdminBootstrapRunner implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${app.admin.bootstrap.email:${ADMIN_INITIAL_EMAIL:admin@midcv.io}}")
+    @Value("${app.admin.bootstrap.email:${ADMIN_INITIAL_EMAIL:}}")
     private String initialAdminEmail;
 
-    @Value("${app.admin.bootstrap.password:${ADMIN_INITIAL_PASSWORD:MidCV#SysOps_2026@SecureCore!}}")
+    @Value("${app.admin.bootstrap.password:${ADMIN_INITIAL_PASSWORD:}}")
     private String initialAdminPassword;
 
     public AdminBootstrapRunner(UserRepository userRepository, PasswordEncoder passwordEncoder) {

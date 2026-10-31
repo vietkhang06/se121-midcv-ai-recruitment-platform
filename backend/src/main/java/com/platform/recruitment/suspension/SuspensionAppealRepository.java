@@ -12,6 +12,10 @@ import java.util.UUID;
 @Repository
 public interface SuspensionAppealRepository extends JpaRepository<SuspensionAppeal, UUID> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("SELECT a FROM SuspensionAppeal a WHERE a.id=:id")
+    Optional<SuspensionAppeal> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") UUID id);
+
     List<SuspensionAppeal> findByAppellantUserIdOrderByCreatedAtDesc(UUID appellantUserId);
 
     Page<SuspensionAppeal> findByAppellantUserId(UUID appellantUserId, Pageable pageable);

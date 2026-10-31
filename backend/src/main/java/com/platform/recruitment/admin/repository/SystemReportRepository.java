@@ -12,6 +12,9 @@ import java.util.UUID;
 
 @Repository
 public interface SystemReportRepository extends JpaRepository<SystemReport, UUID> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("SELECT r FROM SystemReport r WHERE r.id=:id")
+    java.util.Optional<SystemReport> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") UUID id);
     long countByStatus(ReportStatus status);
     Page<SystemReport> findByStatus(ReportStatus status, Pageable pageable);
     Page<SystemReport> findByTargetType(ReportTargetType targetType, Pageable pageable);

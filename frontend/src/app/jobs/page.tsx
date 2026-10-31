@@ -3,7 +3,7 @@
 import React, { Suspense, useCallback, useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Job } from '@/types';
-import { fetchJobs, fetchCandidateProfile } from '@/lib/api';
+import { fetchJobCatalog, fetchCandidateProfile } from '@/lib/api';
 import { JobCard } from '@/components/jobs/JobCard';
 import { QuickApplyModal } from '@/components/application/QuickApplyModal';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -49,13 +49,19 @@ function JobsPageContent() {
   const [onlyTargetIndustries, setOnlyTargetIndustries] = useState<boolean>(false);
   const [candidateIndustries, setCandidateIndustries] = useState<string[]>([]);
 
+  const [serverSearch, setServerSearch] = useState({ query: searchKeyword, location: locationKeyword });
+  useEffect(() => {
+    const timer = window.setTimeout(() => setServerSearch({ query: searchKeyword, location: locationKeyword }), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchKeyword, locationKeyword]);
+
   const [sortBy, setSortBy] = useState<string>('newest');
   const [applyJob, setApplyJob] = useState<Job | null>(null);
 
   const requestJobs = useCallback(() => Promise.allSettled([
-      fetchJobs(),
+      fetchJobCatalog(serverSearch.query, serverSearch.location),
       isAuthenticated && user?.role === 'CANDIDATE' ? fetchCandidateProfile() : Promise.resolve(null),
-  ]), [isAuthenticated, user]);
+  ]), [isAuthenticated, user, serverSearch]);
 
   const applyJobResults = useCallback((requests: Awaited<ReturnType<typeof requestJobs>>) => {
     const [jobsResult, profileResult] = requests;

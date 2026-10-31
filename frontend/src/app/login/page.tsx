@@ -34,7 +34,6 @@ function LoginFormContent() {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [rememberMe, setRememberMe] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [oauthLoading, setOauthLoading] = useState<'google' | 'github' | null>(null);
@@ -229,7 +228,7 @@ function LoginFormContent() {
               <input
                 id="login-email-input"
                 type="text"
-                placeholder={locale === 'vi' ? 'you@example.com hoặc 0901234567' : 'you@example.com or phone number'}
+                placeholder={locale === 'vi' ? 'you@example.com' : 'you@example.com'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -265,26 +264,10 @@ function LoginFormContent() {
 
             {/* Options Row: Remember Me & Forgot Password */}
             <div className="flex items-center justify-between pt-0.5 text-xs">
-              <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 dark:text-slate-400">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 text-[var(--primary)] focus:ring-[var(--border)]/30 cursor-pointer"
-                />
-                <span>{locale === 'vi' ? 'Ghi nhớ đăng nhập' : 'Remember me'}</span>
-              </label>
+              <span>{locale === 'vi' ? 'Quản lý phiên trong mục Bảo mật' : 'Manage sessions in Security'}</span>
 
               <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setError(
-                    locale === 'vi'
-                      ? 'Tính năng cấp lại mật khẩu đang được nâng cấp.'
-                      : 'Password reset feature is currently being updated.'
-                  );
-                }}
+                href="/forgot-password"
                 className="font-medium text-[var(--primary)] hover:text-[var(--primary)] dark:text-[var(--retro-sky)] hover:underline"
               >
                 {locale === 'vi' ? 'Quên mật khẩu?' : 'Forgot password?'}

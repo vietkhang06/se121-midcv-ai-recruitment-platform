@@ -99,10 +99,10 @@ public class ApplicationService {
             suspensionGuard.checkCandidateOperationAllowed(candidateUser);
         }
 
-        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+        CandidateProfile candidate = candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
 
-        Job job = jobRepository.findById(request.getJobId())
+        Job job = jobRepository.findByIdForApply(request.getJobId())
                 .orElseThrow(() -> new ResourceNotFoundException("Job", "id", request.getJobId()));
 
         if (suspensionGuard != null && job.getCompany() != null) {
@@ -117,7 +117,7 @@ public class ApplicationService {
                             job.getTitle(), job.getStatus()));
         }
 
-        CV cv = cvRepository.findById(request.getCvId())
+        CV cv = cvRepository.findByIdForUpdate(request.getCvId())
                 .orElseThrow(() -> new ResourceNotFoundException("CV", "id", request.getCvId()));
 
         // Ownership check: Candidate must own the selected CV
@@ -270,7 +270,7 @@ public class ApplicationService {
         RecruiterProfile recruiter = recruiterProfileRepository.findByUserId(recruiterUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", recruiterUser.getId()));
 
-        Application application = applicationRepository.findById(applicationId)
+        Application application = applicationRepository.findByIdForUpdate(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Application", "id", applicationId));
 
         // Ownership Check: Recruiter can only modify applications for jobs belonging to
@@ -281,6 +281,14 @@ public class ApplicationService {
         }
 
         ApplicationStatus previousStatus = application.getStatus();
+        if (request.getExpectedStatus() != null && request.getExpectedStatus() != previousStatus) {
+            throw new CustomException(ErrorCode.CONCURRENT_MODIFICATION,
+                    "Trạng thái đơn đã thay đổi; hãy tải lại trước khi ra quyết định.");
+        }
+        if (previousStatus == request.getStatus()) {
+            return mapToResponse(application,
+                    snapshotRepository.findByApplicationId(applicationId).orElse(null));
+        }
         application.setStatus(request.getStatus());
         Application savedApplication = applicationRepository.save(application);
 

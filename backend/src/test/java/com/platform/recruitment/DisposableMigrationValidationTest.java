@@ -24,7 +24,7 @@ class DisposableMigrationValidationTest {
 
     @Test
     @EnabledIfEnvironmentVariable(named = "MIDCV_MIGRATION_TEST_MODE", matches = "FRESH|UPGRADE")
-    void migrationsReachV27AndHibernateValidatesTheMappedSchema() {
+    void migrationsReachV30AndHibernateValidatesTheMappedSchema() {
         String mode = requiredEnvironment("MIDCV_MIGRATION_TEST_MODE");
         DataSource dataSource = createDataSource();
 
@@ -39,7 +39,7 @@ class DisposableMigrationValidationTest {
         }
 
         try (ConfigurableApplicationContext context = new SpringApplicationBuilder(RecruitmentApplication.class)
-                .web(WebApplicationType.NONE)
+                .web(WebApplicationType.SERVLET)
                 .properties(
                         "spring.datasource.url=" + requiredEnvironment("DATABASE_URL"),
                         "spring.datasource.username=" + requiredEnvironment("DATABASE_USERNAME"),
@@ -48,12 +48,14 @@ class DisposableMigrationValidationTest {
                         "spring.flyway.validate-on-migrate=true",
                         "spring.jpa.hibernate.ddl-auto=validate",
                         "app.worker-enabled=false",
-                        "spring.main.banner-mode=off")
+                        "spring.main.banner-mode=off",
+                        "server.port=0",
+                        "app.admin.bootstrap.email=")
                 .run()) {
             assertNotNull(context.getBean(EntityManagerFactory.class));
         }
 
-        assertCurrentVersion(dataSource, "27");
+        assertCurrentVersion(dataSource, "30");
     }
 
     private static DataSource createDataSource() {

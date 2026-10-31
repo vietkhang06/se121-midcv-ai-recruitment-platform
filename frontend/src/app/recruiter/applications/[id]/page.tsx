@@ -85,7 +85,7 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
     if (!application) return;
     setIsSubmittingDecision(true);
     try {
-      const updated = await updateApplicationStatus(application.id, status, decisionNote);
+      const updated = await updateApplicationStatus(application.id, status, decisionNote, application.status);
       setApplication(updated);
       setSelectedDecision(null);
       setDecisionNote('');
@@ -202,7 +202,10 @@ export default function CandidateMatchInspectionPage({ params }: { params: Promi
 
           <div className="flex items-center gap-3 flex-shrink-0">
             <button
-              onClick={() => alert(locale === 'vi' ? 'Đã sao chép liên kết báo cáo đối sánh' : 'Match report link copied')}
+              onClick={async () => {
+                try { await navigator.clipboard.writeText(window.location.href); alert(locale === 'vi' ? 'Đã sao chép liên kết. Người nhận cần có quyền xem hồ sơ.' : 'Link copied. The recipient needs permission to view this application.'); }
+                catch { alert(locale === 'vi' ? 'Không thể sao chép. Hãy sao chép URL trên thanh địa chỉ.' : 'Could not copy. Copy the URL from the address bar.'); }
+              }}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[var(--surface)] text-slate-700 dark:text-slate-300 hover:bg-slate-50 font-semibold text-xs transition shadow-xs cursor-pointer"
             >
               <Share2 className="w-3.5 h-3.5" />

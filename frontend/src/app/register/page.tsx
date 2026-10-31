@@ -340,22 +340,7 @@ function RegisterFormContent() {
                 />
                 <span>
                   {isVi ? 'Tôi đồng ý với ' : 'I agree to the '}
-                  <a
-                    href="#"
-                    onClick={(e) => e.preventDefault()}
-                    className="text-[var(--primary)] dark:text-[var(--retro-sky)] hover:underline font-semibold"
-                  >
-                    {isVi ? 'Điều khoản dịch vụ' : 'Terms of Service'}
-                  </a>
-                  {isVi ? ' & ' : ' & '}
-                  <a
-                    href="#"
-                    onClick={(e) => e.preventDefault()}
-                    className="text-[var(--primary)] dark:text-[var(--retro-sky)] hover:underline font-semibold"
-                  >
-                    {isVi ? 'Chính sách bảo mật' : 'Privacy Policy'}
-                  </a>
-                  {isVi ? ' của midCV.' : ' of midCV.'}
+                  {isVi ? 'việc xử lý thông tin đã cung cấp để tạo tài khoản và sử dụng chức năng tuyển dụng của MidCV.' : 'processing the information provided to create an account and use MidCV recruitment features.'}
                 </span>
               </label>
             </div>

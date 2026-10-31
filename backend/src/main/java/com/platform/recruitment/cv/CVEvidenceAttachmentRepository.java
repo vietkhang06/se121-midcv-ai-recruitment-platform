@@ -14,7 +14,11 @@ public interface CVEvidenceAttachmentRepository extends JpaRepository<CVEvidence
 
     Optional<CVEvidenceAttachment> findByCvIdAndId(UUID cvId, UUID id);
 
-    Optional<CVEvidenceAttachment> findByCvIdAndItemTypeAndItemId(UUID cvId, String itemType, String itemId);
+    @org.springframework.data.jpa.repository.Query("SELECT a FROM CVEvidenceAttachment a WHERE a.cv.id=:cvId AND a.itemType=:itemType AND a.itemId=:itemId AND a.retired=false")
+    Optional<CVEvidenceAttachment> findByCvIdAndItemTypeAndItemId(
+            @org.springframework.data.repository.query.Param("cvId") UUID cvId,
+            @org.springframework.data.repository.query.Param("itemType") String itemType,
+            @org.springframework.data.repository.query.Param("itemId") String itemId);
 
     void deleteByCvIdAndId(UUID cvId, UUID id);
 

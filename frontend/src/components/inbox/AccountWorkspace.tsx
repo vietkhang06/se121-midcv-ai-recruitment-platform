@@ -1,4 +1,5 @@
 "use client";
+import { SessionList } from '@/components/auth/SessionList';
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -469,6 +470,7 @@ function AccountSection({
       )}
       {loaded && tab === "security" && (
         <>
+          <SessionList />
           <strong>{account?.full_name}</strong>
           <p>{account?.email}</p>
           <p>

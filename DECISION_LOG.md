@@ -60,3 +60,12 @@ Project Owner approved implementation of the audit plan in this conversation. So
 Implementation choices within recommended option A: enforce actor ownership in legacy processing; require explicit CONFIRMED CVVersion in candidate matching; bind application scores/snapshots to appliedCvVersion; candidate self-match is a side-effect-free preview; synchronous application scoring propagates failures atomically. Keep candidate MatchingEngineService and existing HR Scoring as separately versioned purposes rather than invent a new formula. HR screening retains its existing recruiter-owned document workflow (no candidate application or candidate confirmation is fabricated). Its CV data must be adapted to scoring schema and embedded before matching, while candidate extraction remains review-ready only. Preserve immutable extraction JSON; generate scoring input separately. Unsupported extracted skills/GPA are removed/null with warnings; user-added review data is not passed through extraction grounding. New screenings bind JD by current content. Old snapshots lacking source data are not backfilled from current CVs. Runtime VERIFIED claims require new live evidence.
 
 These choices implement the approved corrective plan; no new product feature, dependency upgrade, destructive data migration or production data change is authorized/performed here.
+
+## 2026-10-30 — Các task F01/A01-A03/D01-D03/R01 từ source ZIP hiện tại
+
+Thực hiện theo yêu cầu người dùng sửa task, lỗi còn tồn tại và chức năng có UI chưa hoạt động.
+Giữ luồng sản phẩm, scoring và quy tắc không bịa dữ liệu. Thêm V29 để quản lý session/reset,
+không đổi V1-V28; OSIV=false và bổ sung transaction cho authorization/mapping hiện có.
+SSE đọc event đã commit theo cursor thay vì broadcast payload có thể chưa commit.
+Tách trạng thái sửa source, regression và nghiệm thu live; không tự nâng phase thành VERIFIED.
+Xóa các module không có production import và hai bản dump; giữ dữ liệu/fixture/evidence.

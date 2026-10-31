@@ -68,6 +68,7 @@ public class JobService {
                 .employmentType(request.getEmploymentType())
                 .employmentTypeOther(trimToNull(request.getEmploymentTypeOther()))
                 .description(request.getDescription())
+                .responsibilities(request.getResponsibilities() == null ? List.of() : List.copyOf(request.getResponsibilities()))
                 .build();
 
         if (request.getRequirements() != null) {
@@ -110,10 +111,23 @@ public class JobService {
                             company.getName(), company.getVerificationStatus(), company.getOperationalStatus()));
         }
 
+        if (recruiterUser.getRole() != com.platform.recruitment.user.Role.ADMIN) {
+            RecruiterProfile owner = recruiterProfileRepository.findByUserId(recruiterUser.getId())
+                    .orElseThrow(() -> new UnauthorizedAccessException("Không có hồ sơ nhà tuyển dụng"));
+            if (owner.getCompany() == null || job.getCompany() == null
+                    || !owner.getCompany().getId().equals(job.getCompany().getId())) {
+                throw new UnauthorizedAccessException("Tin tuyển dụng thuộc doanh nghiệp khác");
+            }
+        }
         if (suspensionGuard != null) {
             suspensionGuard.assertCanManageJob(recruiterUser, job);
         }
 
+        if (job.getStatus() == JobStatus.SUSPENDED) {
+            throw new com.platform.recruitment.common.CustomException(
+                    com.platform.recruitment.common.ErrorCode.INVALID_STATE_TRANSITION,
+                    "Tin đang bị đình chỉ; chỉ quản trị viên có thể khôi phục sau kiểm duyệt.");
+        }
         boolean newlyPublished=job.getStatus()!=JobStatus.PUBLISHED;
         job.setStatus(JobStatus.PUBLISHED);
         Job publishedJob = jobRepository.save(job);
@@ -130,10 +144,23 @@ public class JobService {
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
 
+        if (recruiterUser.getRole() != com.platform.recruitment.user.Role.ADMIN) {
+            RecruiterProfile owner = recruiterProfileRepository.findByUserId(recruiterUser.getId())
+                    .orElseThrow(() -> new UnauthorizedAccessException("Không có hồ sơ nhà tuyển dụng"));
+            if (owner.getCompany() == null || job.getCompany() == null
+                    || !owner.getCompany().getId().equals(job.getCompany().getId())) {
+                throw new UnauthorizedAccessException("Tin tuyển dụng thuộc doanh nghiệp khác");
+            }
+        }
         if (suspensionGuard != null) {
             suspensionGuard.assertCanManageJob(recruiterUser, job);
         }
 
+        if (job.getStatus() != JobStatus.PUBLISHED && job.getStatus() != JobStatus.CLOSED) {
+            throw new com.platform.recruitment.common.CustomException(
+                    com.platform.recruitment.common.ErrorCode.INVALID_STATE_TRANSITION,
+                    "Chỉ đóng tin đã đăng; không thể thay đổi trạng thái kiểm duyệt.");
+        }
         job.setStatus(JobStatus.CLOSED);
         Job closedJob = jobRepository.save(job);
         return mapToResponse(closedJob);
@@ -148,6 +175,14 @@ public class JobService {
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
 
+        if (recruiterUser.getRole() != com.platform.recruitment.user.Role.ADMIN) {
+            RecruiterProfile owner = recruiterProfileRepository.findByUserId(recruiterUser.getId())
+                    .orElseThrow(() -> new UnauthorizedAccessException("Không có hồ sơ nhà tuyển dụng"));
+            if (owner.getCompany() == null || job.getCompany() == null
+                    || !owner.getCompany().getId().equals(job.getCompany().getId())) {
+                throw new UnauthorizedAccessException("Tin tuyển dụng thuộc doanh nghiệp khác");
+            }
+        }
         if (suspensionGuard != null) {
             suspensionGuard.assertCanManageJob(recruiterUser, job);
         }
@@ -165,6 +200,7 @@ public class JobService {
         job.setEmploymentType(request.getEmploymentType());
         job.setEmploymentTypeOther(trimToNull(request.getEmploymentTypeOther()));
         job.setDescription(request.getDescription());
+        job.setResponsibilities(request.getResponsibilities() == null ? List.of() : List.copyOf(request.getResponsibilities()));
 
         if (request.getRequirements() != null) {
             job.getRequirements().clear();
@@ -274,6 +310,59 @@ public class JobService {
         return com.platform.recruitment.common.PageResponse.of(jobs, content, sortField, sortDir);
     }
 
+    @Transactional
+    public void deleteDraftJob(User recruiterUser, UUID jobId) {
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
+        // Always enforce tenant ownership even when instantiated without a suspension guard.
+        getRecruiterJob(recruiterUser, jobId);
+        if (suspensionGuard != null) suspensionGuard.assertCanManageJob(recruiterUser, job);
+        if (job.getStatus() != JobStatus.DRAFT) {
+            throw new com.platform.recruitment.common.CustomException(
+                    com.platform.recruitment.common.ErrorCode.INVALID_STATE_TRANSITION,
+                    "Chỉ xóa tin nháp; hãy đóng tin đã đăng để giữ lịch sử ứng tuyển.");
+        }
+        jobRepository.delete(job);
+    }
+
+    @Transactional(readOnly = true)
+    public com.platform.recruitment.common.PageResponse<JobResponse> searchPublishedJobs(
+            String industry, String query, String location, int page, int size, String sort, String direction) {
+        if ((query != null && query.length() > 200) || (location != null && location.length() > 120)) {
+            throw new com.platform.recruitment.common.CustomException(
+                    com.platform.recruitment.common.ErrorCode.VALIDATION_ERROR, "Từ khóa tìm kiếm quá dài.");
+        }
+        var pageable = com.platform.recruitment.common.PaginationUtils.createPageable(
+                page, size, sort, direction, ALLOWED_JOB_SORT_FIELDS, "createdAt");
+        org.springframework.data.jpa.domain.Specification<Job> spec = (job, cq, cb) -> {
+            var clauses = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
+            clauses.add(cb.equal(job.get("status"), JobStatus.PUBLISHED));
+            clauses.add(cb.equal(job.get("company").get("operationalStatus"),
+                    com.platform.recruitment.company.CompanyOperationalStatus.ACTIVE));
+            if (industry != null && !industry.isBlank())
+                clauses.add(cb.equal(cb.lower(job.get("industry")), industry.strip().toLowerCase(java.util.Locale.ROOT)));
+            if (query != null && !query.isBlank()) {
+                String q = literalLike(query);
+                clauses.add(cb.or(cb.like(cb.lower(job.get("title")), q, '!'),
+                        cb.like(cb.lower(job.get("description")), q, '!'),
+                        cb.like(cb.lower(job.get("company").get("name")), q, '!')));
+            }
+            if (location != null && !location.isBlank())
+                clauses.add(cb.like(cb.lower(job.get("location")), literalLike(location), '!'));
+            return cb.and(clauses.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+        var result = jobRepository.findAll(spec, pageable);
+        return com.platform.recruitment.common.PageResponse.of(result,
+                result.getContent().stream().map(this::mapToResponse).toList(),
+                sort == null || sort.isBlank() ? "createdAt" : sort,
+                direction == null || direction.isBlank() ? "desc" : direction.toLowerCase(java.util.Locale.ROOT));
+    }
+
+    private static String literalLike(String input) {
+        return "%" + input.strip().toLowerCase(java.util.Locale.ROOT)
+                .replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
+    }
+
     public JobResponse mapToResponse(Job job) {
         List<JobResponse.RequirementResponse> reqResponses = job.getRequirements().stream()
                 .map(req -> JobResponse.RequirementResponse.builder()
@@ -303,6 +392,7 @@ public class JobService {
                 .employmentType(job.getEmploymentType())
                 .employmentTypeOther(job.getEmploymentTypeOther())
                 .description(job.getDescription())
+                .responsibilities(job.getResponsibilities())
                 .requirements(reqResponses)
                 .createdAt(job.getCreatedAt())
                 .build();

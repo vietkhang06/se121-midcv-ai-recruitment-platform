@@ -117,9 +117,9 @@ class ApplicationSnapshotImmutableTest {
         request.setJobId(publishedJob.getId());
         request.setCvId(originalCV.getId());
 
-        when(candidateProfileRepository.findByUserId(candidateUser.getId())).thenReturn(Optional.of(candidateProfile));
-        when(jobRepository.findById(publishedJob.getId())).thenReturn(Optional.of(publishedJob));
-        when(cvRepository.findById(originalCV.getId())).thenReturn(Optional.of(originalCV));
+        when(candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())).thenReturn(Optional.of(candidateProfile));
+        when(jobRepository.findByIdForApply(publishedJob.getId())).thenReturn(Optional.of(publishedJob));
+        when(cvRepository.findByIdForUpdate(originalCV.getId())).thenReturn(Optional.of(originalCV));
         when(applicationRepository.existsByJobIdAndCandidateId(publishedJob.getId(), candidateProfile.getId())).thenReturn(false);
 
         when(applicationRepository.save(any())).thenAnswer(invocation -> {

@@ -426,7 +426,12 @@ WHERE (c.candidate_user_id=? OR c.recruiter_user_id=?) AND (CAST(? AS UUID) IS N
             c,
             u.getId(),
             nonce);
-    if (!previous.isEmpty()) return previous.getFirst();
+    if (!previous.isEmpty()) {
+      if (!safe.equals(previous.getFirst().get("body")))
+        throw new CustomException(ErrorCode.CONCURRENT_MODIFICATION,
+            "Mã gửi lại đã được dùng cho nội dung khác.");
+      return previous.getFirst();
+    }
     if (room.get("blocked_by") != null)
       throw new CustomException(ErrorCode.ACCESS_DENIED, "Cuộc trò chuyện đã bị chặn.");
     UUID peer =
@@ -687,5 +692,6 @@ WHERE (c.candidate_user_id=? OR c.recruiter_user_id=?) AND (CAST(? AS UUID) IS N
             + " WHERE id=?",
         passwords.encode(next),
         u.getId());
+    db.update("UPDATE auth_sessions SET revoked_at=now() WHERE user_id=? AND revoked_at IS NULL",u.getId());
   }
 }

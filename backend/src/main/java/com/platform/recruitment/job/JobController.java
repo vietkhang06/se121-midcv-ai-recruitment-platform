@@ -23,12 +23,16 @@ public class JobController {
     @GetMapping("/jobs")
     public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<JobResponse>>> getPublishedJobs(
             @RequestParam(required = false) String industry,
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String location,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdAt") String sort,
             @RequestParam(defaultValue = "desc") String direction) {
         com.platform.recruitment.common.PageResponse<JobResponse> response =
-                jobService.getPublishedJobs(industry, page, size, sort, direction);
+                (query == null && location == null)
+                        ? jobService.getPublishedJobs(industry, page, size, sort, direction)
+                        : jobService.searchPublishedJobs(industry, query, location, page, size, sort, direction);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -64,6 +68,14 @@ public class JobController {
             @Valid @RequestBody CreateJobRequest request) {
         JobResponse response = jobService.createDraftJob(currentUser, request);
         return new ResponseEntity<>(ApiResponse.success("Draft job created successfully", response), HttpStatus.CREATED);
+    }
+
+    @DeleteMapping("/jobs/{id}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('HR')")
+    public ResponseEntity<ApiResponse<Void>> deleteDraftJob(
+            @AuthenticationPrincipal User currentUser, @PathVariable UUID id) {
+        jobService.deleteDraftJob(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success("Đã xóa tin nháp", null));
     }
 
     @PostMapping("/jobs/{id}/publish")

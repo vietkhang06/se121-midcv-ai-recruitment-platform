@@ -283,7 +283,9 @@ public class CandidateCvConfirmationIntegrationTest {
         SubmitApplicationRequest appReq = new SubmitApplicationRequest();
         appReq.setJobId(publishedJob.getId());
         appReq.setCvId(testCv.getId());
-        when(jobRepository.findById(publishedJob.getId())).thenReturn(Optional.of(publishedJob));
+        when(jobRepository.findByIdForApply(publishedJob.getId())).thenReturn(Optional.of(publishedJob));
+        when(candidateProfileRepository.findByUserIdForUpdate(candidateUserA.getId())).thenReturn(Optional.of(profileA));
+        when(cvRepository.findByIdForUpdate(testCv.getId())).thenReturn(Optional.of(testCv));
 
         CustomException appEx = assertThrows(CustomException.class, () ->
                 applicationService.submitApplication(candidateUserA, appReq)

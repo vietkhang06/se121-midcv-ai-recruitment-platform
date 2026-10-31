@@ -1,0 +1,2 @@
+PASS: original V1-V28 bytes unchanged; version names unique; new auth migration is V29.
+This is source comparison, not PostgreSQL execution.

@@ -38,7 +38,7 @@ export default function AdminAiSettingsPage() {
                             <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                                 {t(
                                     'admin.title',
-                                    'Cấu hình AI & Engine Đối sánh'
+                                    'Cấu hình AI backend'
                                 )}
                             </h1>
                         </div>
@@ -46,7 +46,7 @@ export default function AdminAiSettingsPage() {
                         <p className="text-sm text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
                             {t(
                                 'admin.subtitle',
-                                'Quản lý mô hình bóc tách tài liệu (LLM) và vector embedding (BGE-M3 1024d) cho quy trình tuyển dụng thông minh.'
+                                'Quản lý AI sàng lọc của backend và xem cấu hình model worker đang tải.'
                             )}
                         </p>
                     </div>

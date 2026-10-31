@@ -18,6 +18,10 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CVEvidenceAttachment extends BaseEntity {
 
+    @Builder.Default
+    @Column(name = "retired", nullable = false)
+    private boolean retired = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "candidate_id", nullable = false)
     private CandidateProfile candidate;

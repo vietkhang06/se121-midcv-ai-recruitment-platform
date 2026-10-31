@@ -23,3 +23,18 @@ Source changes, unit tests, compilation and a frontend build do not prove live a
 Additional source work in this delivery: Google/GitHub login and registration callbacks, manual CV draft editor, explicit VND/month salary semantics and negotiable/undisclosed distinction. These do not change the acceptance status: see `IMPLEMENTATION_REPORT_20261021.md` and `MANUAL_ACCEPTANCE_20261021.md` for actual evidence and remaining checks.
 
 See `REMEDIATION_VALIDATION.md` for the actual commands/results of this delivery. Tests labelled Integration in the old tracker may use mocks; they are not reclassified as live tests by their filename. No historical metric is overwritten with an invented replacement.
+
+## Task remediation — 30/10/2026
+
+Bản sửa auth/session/reset, SMTP dispatch, OAuth browser binding, OSIV boundaries,
+SSE durable replay/reconnect và các nút chưa hoạt động được mô tả tại
+[TASKS_20261030.md](TASKS_20261030.md). Trạng thái và log mới nằm trong
+`task-evidence/20261030/`; các bảng audit lịch sử không thay thế kết quả đó.
+Chưa có live PostgreSQL/OAuth/SMTP/restart acceptance trong môi trường bản giao này.
+
+## Business task remediation — 31/10/2026
+
+C02/J01/P01–P02/G01/Q01–Q03/N01–N02: xem [BUSINESS_TASKS_20261031.md](BUSINESS_TASKS_20261031.md).
+Bản này thêm V30, giữ toàn bộ migration trước đó. Kết quả hồi quy được ghi riêng tại
+`task-evidence/20261031-business/`; không nâng trạng thái live acceptance của các phase
+chỉ từ kết quả Mockito/H2/HTTP loopback hoặc build frontend.

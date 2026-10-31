@@ -9,7 +9,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, UUID> {
+public interface UserRepository extends JpaRepository<User, UUID>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<User> {
+    long countByAccountStatus(AccountStatus status);
+    org.springframework.data.domain.Page<User> findByRoleAndEmailContainingIgnoreCaseAndIsActive(
+            Role role, String email, Boolean active, org.springframework.data.domain.Pageable pageable);
+
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
     boolean existsByRole(Role role);
