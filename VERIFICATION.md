@@ -1,3 +1,5 @@
+> Lưu ý 30/10/2026: nội dung dưới là báo cáo lịch sử. Kết quả của bản sửa hiện tại nằm ở `docs/task-evidence/20261030/verification.json`; xem `docs/TASKS_20261030.md` cho phạm vi đã chạy và các nghiệm thu live còn thiếu.
+
 # Báo Cáo Kiểm Chứng & Bằng Chứng Tự Động (Verification Report)
 
 Dự án: **MidCV — Nền tảng tuyển dụng thông minh hỗ trợ đối sánh JD–CV**  

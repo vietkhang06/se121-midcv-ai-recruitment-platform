@@ -43,6 +43,7 @@ public class OAuthService {
     private final AuthService authService;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     private final ObjectMapper mapper;
+    private final OAuthStateConsumer stateConsumer;
 
     @Value("${app.oauth.google.client-id:}") private String googleClientId;
     @Value("${app.oauth.google.client-secret:}") private String googleClientSecret;
@@ -85,11 +86,14 @@ public class OAuthService {
     @Transactional
     public CallbackResult callback(String providerValue, String stateValue, String code, String providerError) {
         String provider = providerName(providerValue);
-        if (!blank(providerError)) throw failure("cancelled", "Đăng nhập đã bị hủy hoặc nhà cung cấp từ chối yêu cầu.");
-        if (blank(stateValue) || blank(code)) throw failure("invalid_callback", "Phản hồi đăng nhập không hợp lệ. Vui lòng thử lại.");
+
+        if (blank(stateValue)) throw failure("invalid_callback", "Phản hồi đăng nhập không hợp lệ. Vui lòng thử lại.");
         String hash = sha256(stateValue); Instant now = Instant.now();
         OAuthLoginState row = states.findById(hash).orElseThrow(() -> failure("invalid_state", "Phiên đăng nhập không hợp lệ hoặc đã hết hạn."));
-        if (states.consume(hash, provider, now) != 1) throw failure("invalid_state", "Phiên đăng nhập đã hết hạn hoặc đã được sử dụng.");
+        if (!stateConsumer.consume(hash, provider, now)) throw failure("invalid_state", "Phiên đăng nhập đã hết hạn hoặc đã được sử dụng.");
+        if (!blank(providerError)) throw failure("cancelled", "Đăng nhập đã bị hủy hoặc nhà cung cấp từ chối yêu cầu.");
+        if (blank(code)) throw failure("invalid_callback", "Phản hồi đăng nhập thiếu mã xác thực.");
+        if (row.getLinkUser() != null && (row.getLinkUser().isDeactivated() || row.getLinkUser().isSuspended())) throw failure("account_disabled", "Tài khoản MidCV hiện không thể liên kết.");
         Identity identity = provider.equals("google") ? googleIdentity(code, row) : githubIdentity(code, row);
         Optional<OAuthAccount> linked = accounts.findByProviderAndProviderSubject(provider, identity.subject());
         if (row.getLinkUser() != null) {
@@ -140,7 +144,9 @@ public class OAuthService {
         String hash = sha256(rawTicket); Instant now = Instant.now();
         OAuthLoginTicket ticket = tickets.findWithUser(hash).orElseThrow(() -> failure("invalid_ticket", "Vé đăng nhập không hợp lệ hoặc đã hết hạn."));
         if (tickets.redeem(hash, now) != 1) throw failure("invalid_ticket", "Vé đăng nhập đã hết hạn hoặc đã được sử dụng.");
-        return authService.buildJwtResponse(ticket.getUser());
+        User user = ticket.getUser();
+        if (user.isDeactivated() || user.isSuspended() || !Boolean.TRUE.equals(user.getEmailVerified())) throw failure("account_disabled", "Tài khoản hiện không thể đăng nhập.");
+        return authService.buildJwtResponse(user);
     }
 
     private Identity googleIdentity(String code, OAuthLoginState state) {

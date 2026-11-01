@@ -19,7 +19,7 @@ import {
   Clock
 } from 'lucide-react';
 import { AiSettings } from '@/types';
-import { fetchAiSettings, updateAiSettings, testAiSettings, ApiError } from '@/lib/api';
+import { fetchAiSettings, fetchAiRuntime, WorkerRuntimeConfiguration, updateAiSettings, testAiSettings, ApiError } from '@/lib/api';
 
 const presets = [
   {
@@ -57,6 +57,16 @@ export function AiSettingsPanel() {
     cloudModel: 'gpt-4o-mini',
     embeddingModel: 'bge-m3',
   });
+  const [workerRuntime, setWorkerRuntime] = useState<WorkerRuntimeConfiguration | null>(null);
+  const [runtimeError, setRuntimeError] = useState(false);
+  const [lastModelTrace, setLastModelTrace] = useState<Record<string, string> | null>(null);
+  useEffect(() => {
+    let active = true;
+    void fetchAiRuntime().then(({ worker, lastBackendCall }) => {
+      if (active) { setWorkerRuntime(worker); setLastModelTrace(lastBackendCall); }
+    }).catch(() => { if (active) setRuntimeError(true); });
+    return () => { active = false; };
+  }, []);
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -173,6 +183,29 @@ export function AiSettingsPanel() {
         </div>
       )}
 
+      <section className="p-4 rounded-xl border border-slate-300 dark:border-slate-700 space-y-2 text-sm">
+        <h2 className="font-bold">Phạm vi cấu hình</h2>
+        <button type="button" className="underline" onClick={() => {
+          setRuntimeError(false);
+          void fetchAiRuntime().then(({ worker, lastBackendCall }) => { setWorkerRuntime(worker); setLastModelTrace(lastBackendCall); })
+            .catch(() => setRuntimeError(true));
+        }}>Đọc lại cấu hình và trace</button>
+        <p>Backend LLM gần nhất: {lastModelTrace?.status === 'CALL_OBSERVED'
+          ? `${lastModelTrace.requestedModel} → ${lastModelTrace.resolvedModel} (${lastModelTrace.observedAt})`
+          : 'Chưa quan sát được lời gọi sau lần khởi động này.'}</p>
+        <p>Các thay đổi bên dưới áp dụng cho AI sàng lọc của backend và được lưu vào cơ sở dữ liệu.</p>
+        <p>Worker trích xuất CV dùng cấu hình môi trường riêng. Sau khi đổi cấu hình worker, cần khởi động lại worker.</p>
+        {runtimeError || workerRuntime?.status === 'UNAVAILABLE' ? (
+          <p role="status">Chưa đọc được cấu hình worker; không thể xác nhận model worker đang dùng.</p>
+        ) : workerRuntime ? (
+          <dl className="grid grid-cols-2 gap-2">
+            <dt>Worker primary</dt><dd>{workerRuntime.primary?.model ?? '—'}</dd>
+            <dt>Worker fallback</dt><dd>{workerRuntime.fallback?.model ?? '—'}</dd>
+            <dt>Worker embedding</dt><dd>{workerRuntime.embedding?.model ?? '—'}</dd>
+            <dt>Chế độ dữ liệu mô phỏng</dt><dd>{workerRuntime.mockMode ? 'Đang bật' : 'Đã tắt'}</dd>
+          </dl>
+        ) : <p role="status">Đang đọc cấu hình worker…</p>}
+      </section>
       {/* Provider Selector Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Local Ollama Card */}

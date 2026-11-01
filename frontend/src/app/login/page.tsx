@@ -27,14 +27,17 @@ function LoginFormContent() {
   const { locale, toggleLocale } = useLanguage();
 
   const roleParam = searchParams.get('role');
-  const initialRole: AuthRole = roleParam === 'hr' || roleParam === 'recruiter' ? 'RECRUITER' : 'CANDIDATE';
+  const initialRole: AuthRole =
+    roleParam === 'hr' || roleParam === 'recruiter'
+      ? 'RECRUITER'
+      : 'CANDIDATE';
+
   const [selectedRole, setSelectedRole] = useState<AuthRole | null>(null);
   const role = selectedRole ?? initialRole;
 
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [rememberMe, setRememberMe] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [oauthLoading, setOauthLoading] = useState<'google' | 'github' | null>(null);
@@ -42,14 +45,36 @@ function LoginFormContent() {
 
   const oauthNotice = useMemo(() => {
     const messages: Record<string, string> = {
-      cancelled: locale === 'vi' ? 'Bạn đã hủy đăng nhập.' : 'Sign in was cancelled.',
-      provider_not_configured: locale === 'vi' ? 'Đăng nhập mạng xã hội chưa được cấu hình.' : 'Social sign-in is not configured.',
-      invalid_state: locale === 'vi' ? 'Phiên đăng nhập hết hạn hoặc không hợp lệ. Vui lòng thử lại.' : 'Sign-in session expired or is invalid. Please try again.',
-      account_conflict: locale === 'vi' ? 'Email đã thuộc tài khoản khác. Hãy đăng nhập bằng phương thức cũ rồi liên kết tài khoản trong hồ sơ.' : 'This email belongs to another account. Sign in with your existing method and link the provider from your profile.',
-      email_required: locale === 'vi' ? 'GitHub không cung cấp email đã xác minh. Hãy xác minh email trong GitHub hoặc dùng phương thức đăng nhập khác.' : 'GitHub did not provide a verified email. Verify an email in GitHub or use another sign-in method.',
+      cancelled:
+        locale === 'vi'
+          ? 'Bạn đã hủy đăng nhập.'
+          : 'Sign in was cancelled.',
+      provider_not_configured:
+        locale === 'vi'
+          ? 'Đăng nhập mạng xã hội chưa được cấu hình.'
+          : 'Social sign-in is not configured.',
+      invalid_state:
+        locale === 'vi'
+          ? 'Phiên đăng nhập hết hạn hoặc không hợp lệ. Vui lòng thử lại.'
+          : 'Sign-in session expired or is invalid. Please try again.',
+      account_conflict:
+        locale === 'vi'
+          ? 'Email đã thuộc tài khoản khác. Hãy đăng nhập bằng phương thức cũ rồi liên kết tài khoản trong hồ sơ.'
+          : 'This email belongs to another account. Sign in with your existing method and link the provider from your profile.',
+      email_required:
+        locale === 'vi'
+          ? 'GitHub không cung cấp email đã xác minh. Hãy xác minh email trong GitHub hoặc dùng phương thức đăng nhập khác.'
+          : 'GitHub did not provide a verified email. Verify an email in GitHub or use another sign-in method.',
     };
+
     const reason = searchParams.get('oauth_error');
-    return reason ? (messages[reason] || (locale === 'vi' ? 'Không thể hoàn tất đăng nhập. Vui lòng thử lại.' : 'Sign-in could not be completed. Please try again.')) : null;
+
+    return reason
+      ? messages[reason] ||
+          (locale === 'vi'
+            ? 'Không thể hoàn tất đăng nhập. Vui lòng thử lại.'
+            : 'Sign-in could not be completed. Please try again.')
+      : null;
   }, [locale, searchParams]);
 
   useEffect(() => {
@@ -65,19 +90,30 @@ function LoginFormContent() {
   const handleRoleChange = (newRole: AuthRole) => {
     setSelectedRole(newRole);
     setError(null);
+
     // Smooth URL update without page reload
-    const newQuery = newRole === 'RECRUITER' ? '?role=hr' : '?role=candidate';
+    const newQuery =
+      newRole === 'RECRUITER' ? '?role=hr' : '?role=candidate';
+
     window.history.replaceState(null, '', `/login${newQuery}`);
   };
 
   const handleOAuth = (provider: 'google' | 'github') => {
     if (role === 'RECRUITER') {
-      setError(locale === 'vi' ? 'Đăng ký Nhà tuyển dụng cần thông tin doanh nghiệp; hãy dùng biểu mẫu email để hoàn tất hồ sơ.' : 'Recruiter registration requires company details. Use the email form to complete the profile.');
+      setError(
+        locale === 'vi'
+          ? 'Đăng ký Nhà tuyển dụng cần thông tin doanh nghiệp; hãy dùng biểu mẫu email để hoàn tất hồ sơ.'
+          : 'Recruiter registration requires company details. Use the email form to complete the profile.'
+      );
       return;
     }
+
     setOauthLoading(provider);
     setError(null);
-    window.location.replace(`${BASE_URL}/api/v1/auth/oauth/${provider}/start?next=%2Fcandidate`);
+
+    window.location.replace(
+      `${BASE_URL}/api/v1/auth/oauth/${provider}/start?next=%2Fcandidate`
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,8 +126,12 @@ function LoginFormContent() {
       await login(email.trim(), password);
       // AuthContext handles role-based redirection
     } catch (err: unknown) {
-      const eObj = err as { code?: string; message?: string } | undefined;
+      const eObj = err as
+        | { code?: string; message?: string }
+        | undefined;
+
       const msg = eObj?.message || '';
+
       if (
         eObj?.code === 'EMAIL_NOT_VERIFIED' ||
         msg.includes('EMAIL_NOT_VERIFIED') ||
@@ -125,7 +165,7 @@ function LoginFormContent() {
         <AuthHeroBanner role={role} />
       </div>
 
-      {/* Right Column: Form Container (max-width 480px, responsive centered) */}
+      {/* Right Column: Form Container */}
       <div className="w-full md:w-1/2 lg:w-1/2 min-h-screen flex flex-col justify-center items-center px-6 py-10 sm:px-10 lg:px-16 overflow-y-auto">
         <Reveal direction="up" delay={50} className="w-full max-w-[480px] my-auto">
           {/* Top Bar with Language and Theme Switch */}
@@ -133,13 +173,18 @@ function LoginFormContent() {
             <span className="text-xs font-medium text-slate-400 dark:text-slate-500">
               {locale === 'vi' ? 'Đăng nhập tài khoản' : 'Account Sign In'}
             </span>
+
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 id="login-lang-switch-btn"
                 onClick={toggleLocale}
                 className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-sans font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-[var(--surface)] text-slate-700 dark:text-slate-200 hover:border-[var(--border)] hover:text-[var(--primary)] transition cursor-pointer shadow-xs"
-                title={locale === 'vi' ? 'Switch to English' : 'Chuyển sang Tiếng Việt'}
+                title={
+                  locale === 'vi'
+                    ? 'Switch to English'
+                    : 'Chuyển sang Tiếng Việt'
+                }
               >
                 <Globe className="w-3.5 h-3.5 text-[var(--primary)]" />
                 <span>{locale.toUpperCase()}</span>
@@ -151,7 +196,9 @@ function LoginFormContent() {
           {/* Header Section */}
           <div className="mb-6">
             <h2 className="text-2xl sm:text-[30px] font-extrabold text-[var(--heading)] dark:text-white tracking-tight leading-tight mb-2">
-              {locale === 'vi' ? 'Chào mừng quay trở lại!' : 'Welcome back!'}
+              {locale === 'vi'
+                ? 'Chào mừng quay trở lại!'
+                : 'Welcome back!'}
             </h2>
             <p className="text-xs sm:text-[13px] text-slate-500 dark:text-slate-400 leading-relaxed">
               {locale === 'vi'
@@ -160,7 +207,7 @@ function LoginFormContent() {
             </p>
           </div>
 
-          {/* Role Switcher Tabs (Figma Pixel-Perfect Pill Style) */}
+          {/* Role Switcher Tabs */}
           <div className="grid grid-cols-2 gap-3 mb-6 p-1 bg-slate-100/80 dark:bg-[var(--surface)] rounded-xl border border-slate-200/60 dark:border-slate-800">
             <button
               type="button"
@@ -172,7 +219,13 @@ function LoginFormContent() {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent'
               }`}
             >
-              <User className={`w-4 h-4 ${isCandidate ? 'text-[var(--primary)] dark:text-[var(--retro-sky)]' : 'text-slate-500'}`} />
+              <User
+                className={`w-4 h-4 ${
+                  isCandidate
+                    ? 'text-[var(--primary)] dark:text-[var(--retro-sky)]'
+                    : 'text-slate-500'
+                }`}
+              />
               <span>{locale === 'vi' ? 'Ứng viên' : 'Candidate'}</span>
             </button>
 
@@ -186,8 +239,16 @@ function LoginFormContent() {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent'
               }`}
             >
-              <Briefcase className={`w-4 h-4 ${!isCandidate ? 'text-[var(--primary)] dark:text-[var(--retro-sky)]' : 'text-slate-500'}`} />
-              <span>{locale === 'vi' ? 'Nhà tuyển dụng' : 'Recruiter'}</span>
+              <Briefcase
+                className={`w-4 h-4 ${
+                  !isCandidate
+                    ? 'text-[var(--primary)] dark:text-[var(--retro-sky)]'
+                    : 'text-slate-500'
+                }`}
+              />
+              <span>
+                {locale === 'vi' ? 'Nhà tuyển dụng' : 'Recruiter'}
+              </span>
             </button>
           </div>
 
@@ -203,7 +264,9 @@ function LoginFormContent() {
                       href="/verify-email"
                       className="text-[var(--primary)] dark:text-[var(--retro-sky)] underline font-semibold hover:text-[var(--primary)]"
                     >
-                      {locale === 'vi' ? 'Đến trang xác thực email' : 'Go to email verification'}
+                      {locale === 'vi'
+                        ? 'Đến trang xác thực email'
+                        : 'Go to email verification'}
                     </Link>
                   </div>
                 )}
@@ -211,7 +274,7 @@ function LoginFormContent() {
             </div>
           )}
 
-          {/* OAuth Simulation Notice */}
+          {/* OAuth Notice */}
           {oauthNotice && (
             <div className="mb-5 p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 text-blue-800 dark:text-blue-300 text-xs flex items-center gap-2.5">
               <RefreshCw className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 animate-spin" />
@@ -224,12 +287,15 @@ function LoginFormContent() {
             {/* Email / Username field */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                {locale === 'vi' ? 'Email / Số điện thoại' : 'Email or Phone number'} <span className="text-red-500">*</span>
+                {locale === 'vi'
+                  ? 'Email / Số điện thoại'
+                  : 'Email or Phone number'}{' '}
+                <span className="text-red-500">*</span>
               </label>
               <input
                 id="login-email-input"
                 type="text"
-                placeholder={locale === 'vi' ? 'you@example.com hoặc 0901234567' : 'you@example.com or phone number'}
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -240,13 +306,18 @@ function LoginFormContent() {
             {/* Password field with Visibility Toggle */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                {locale === 'vi' ? 'Mật khẩu' : 'Password'} <span className="text-red-500">*</span>
+                {locale === 'vi' ? 'Mật khẩu' : 'Password'}{' '}
+                <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
                   id="login-password-input"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder={locale === 'vi' ? 'Nhập mật khẩu...' : 'Enter your password...'}
+                  placeholder={
+                    locale === 'vi'
+                      ? 'Nhập mật khẩu...'
+                      : 'Enter your password...'
+                  }
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -255,40 +326,42 @@ function LoginFormContent() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? (locale === 'vi' ? 'Ẩn mật khẩu' : 'Hide password') : (locale === 'vi' ? 'Hiển thị mật khẩu' : 'Show password')}
+                  aria-label={
+                    showPassword
+                      ? locale === 'vi'
+                        ? 'Ẩn mật khẩu'
+                        : 'Hide password'
+                      : locale === 'vi'
+                        ? 'Hiển thị mật khẩu'
+                        : 'Show password'
+                  }
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer transition focus:outline-none"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </button>
               </div>
             </div>
 
-            {/* Options Row: Remember Me & Forgot Password */}
+            {/* Session management and password reset */}
             <div className="flex items-center justify-between pt-0.5 text-xs">
-              <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 dark:text-slate-400">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 text-[var(--primary)] focus:ring-[var(--border)]/30 cursor-pointer"
-                />
-                <span>{locale === 'vi' ? 'Ghi nhớ đăng nhập' : 'Remember me'}</span>
-              </label>
+              <span>
+                {locale === 'vi'
+                  ? 'Quản lý phiên trong mục Bảo mật'
+                  : 'Manage sessions in Security'}
+              </span>
 
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setError(
-                    locale === 'vi'
-                      ? 'Tính năng cấp lại mật khẩu đang được nâng cấp.'
-                      : 'Password reset feature is currently being updated.'
-                  );
-                }}
+              <Link
+                href="/forgot-password"
                 className="font-medium text-[var(--primary)] hover:text-[var(--primary)] dark:text-[var(--retro-sky)] hover:underline"
               >
-                {locale === 'vi' ? 'Quên mật khẩu?' : 'Forgot password?'}
-              </a>
+                {locale === 'vi'
+                  ? 'Quên mật khẩu?'
+                  : 'Forgot password?'}
+              </Link>
             </div>
 
             {/* Submit CTA Button */}
@@ -301,13 +374,21 @@ function LoginFormContent() {
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>{locale === 'vi' ? 'Đang đăng nhập...' : 'Signing in...'}</span>
+                  <span>
+                    {locale === 'vi'
+                      ? 'Đang đăng nhập...'
+                      : 'Signing in...'}
+                  </span>
                 </span>
               ) : (
                 <span>
                   {isCandidate
-                    ? (locale === 'vi' ? 'Đăng nhập với tư cách Ứng viên' : 'Sign In as Candidate')
-                    : (locale === 'vi' ? 'Đăng nhập với tư cách Nhà tuyển dụng' : 'Sign In as Recruiter')}
+                    ? locale === 'vi'
+                      ? 'Đăng nhập với tư cách Ứng viên'
+                      : 'Sign In as Candidate'
+                    : locale === 'vi'
+                      ? 'Đăng nhập với tư cách Nhà tuyển dụng'
+                      : 'Sign In as Recruiter'}
                 </span>
               )}
             </button>
@@ -319,7 +400,9 @@ function LoginFormContent() {
               <div className="w-full border-t border-slate-200 dark:border-slate-800" />
             </div>
             <span className="relative px-3 bg-white dark:bg-[var(--surface)] text-xs text-slate-400 font-medium">
-              {locale === 'vi' ? '- Hoặc tiếp tục với -' : '- Or continue with -'}
+              {locale === 'vi'
+                ? '- Hoặc tiếp tục với -'
+                : '- Or continue with -'}
             </span>
           </div>
 
@@ -354,12 +437,13 @@ function LoginFormContent() {
               )}
               <span className="truncate">GitHub</span>
             </button>
-
           </div>
 
           {/* Bottom Switch Link */}
           <div className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400">
-            {locale === 'vi' ? 'Chưa có tài khoản?' : "Don't have an account?"}{' '}
+            {locale === 'vi'
+              ? 'Chưa có tài khoản?'
+              : "Don't have an account?"}{' '}
             <Link
               href={`/register?role=${isCandidate ? 'candidate' : 'hr'}`}
               className="font-semibold text-[var(--primary)] hover:text-[var(--primary)] dark:text-[var(--retro-sky)] hover:underline"

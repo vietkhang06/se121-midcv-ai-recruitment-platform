@@ -1,0 +1,81 @@
+{
+  "recorded_at": "2026-10-30T14:42:29.264046+07:00",
+  "scope": "8 task rows fully visible in supplied image; source and local regression; not live acceptance",
+  "runtime": {
+    "java": "Azul OpenJDK 21.0.6",
+    "maven": "3.9.9",
+    "node": "24.22.1",
+    "next": "16.3.3"
+  },
+  "backend": {
+    "command": "mvn -Dtest=AuthTokenLifecycleTest,SmtpEmailServiceTest,AuthServiceTest,OAuthServiceStateTest,OAuthBrowserBindingTest,JwtAuthenticationFilterTest,CVProcessingSseTest,FileStorageRobustnessTest,AuditRemediationRegressionTest,AuditCvLifecycleRegressionTest,UnifiedCandidateCvIngestionTest,CandidateRankingFetchContractTest,OAuthEntityMappingTest,JobPublicAccessTest,AsyncPipelineReliabilityTest,DisposableMigrationValidationTest,TaskHttpAcceptanceTest,AdminBootstrapRunnerTest clean package",
+    "exit_code": 0,
+    "local_runtime_adjustment": "Byte Buddy agent supplied through -DargLine because this sandbox cannot self-attach Mockito; no project build configuration weakened.",
+    "surefire": {
+      "tests": 100,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 8,
+      "passed": 92
+    },
+    "full_original_suite_executed": false,
+    "jar_built": true,
+    "live_database_available": false
+  },
+  "frontend": {
+    "commands": [
+      {
+        "command": "npm ci --no-audit --no-fund",
+        "exit_code": 0
+      },
+      {
+        "command": "npm run test:contracts",
+        "exit_code": 0,
+        "tests": 29,
+        "passed": 29,
+        "failed": 0
+      },
+      {
+        "command": "npx tsc --noEmit",
+        "exit_code": 0
+      },
+      {
+        "command": "npm run build",
+        "exit_code": 0
+      }
+    ],
+    "browser_e2e_executed": false
+  },
+  "migrations": {
+    "original_versions_unchanged": "V1-V28",
+    "new_version": "V29",
+    "duplicate_versions": false,
+    "fresh_postgres_executed": false,
+    "upgrade_postgres_executed": false
+  },
+  "live_pending": [
+    "actual user Git HEAD/branch/status",
+    "PostgreSQL/pgvector fresh/upgrade with Hibernate validate",
+    "real HTTP suite against isolated PostgreSQL",
+    "original upload500 reproduction with original failing request/file",
+    "SMTP mailbox delivery",
+    "Google/GitHub consent callback and account linking",
+    "real browser interactions across all visible features",
+    "SSE backend restart and lease lifecycle"
+  ],
+  "powershell_scripts_executed": false,
+  "removed_confirmed_files": [
+    "AUDIT_10_FILES_CONTENT.txt",
+    "frontend/frontend-tree.txt",
+    "frontend/src/components/cv/CVCard.tsx",
+    "frontend/src/components/jobs/JobFilter.tsx",
+    "frontend/src/config/imageConfig.ts"
+  ],
+  "evidence_log_format": "Terminal carriage returns and trailing whitespace normalized; Surefire XML-derived summary is authoritative for backend test counts.",
+  "patch_validation": {
+    "original_zip_apply_check": true,
+    "applied_changed_files_byte_comparison": true
+  },
+  "removed_generated_bin_files": 286,
+  "removed_generated_class_files": 198
+}

@@ -69,6 +69,12 @@ from app.services.provider_health import get_llm_providers_health
 
 import httpx
 
+@router.get("/runtime-config")
+def runtime_configuration():
+    from app.services.runtime_configuration import runtime_configuration as describe
+    return describe(settings)
+
+
 @router.get("/health")
 def health_check():
     ocr_health = tesseract_runtime.get_health()

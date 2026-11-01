@@ -66,7 +66,6 @@ export const AuthModal: React.FC = () => {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   const [isEmailUnverified, setIsEmailUnverified] = useState(false);
@@ -338,11 +337,8 @@ export const AuthModal: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <label className="flex cursor-pointer items-center gap-2 text-[var(--primary)]">
-                    <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} className="h-4 w-4 cursor-pointer rounded border-[var(--border-soft)] accent-[var(--primary)]" />
-                    <span>{locale === 'vi' ? 'Ghi nhớ đăng nhập' : 'Remember me'}</span>
-                  </label>
-                  <button type="button" onClick={() => setLoginError(locale === 'vi' ? 'Tính năng cấp lại mật khẩu đang được nâng cấp.' : 'Password reset is currently being updated.')}
+                  <span>{locale === 'vi' ? 'Quản lý phiên trong mục Bảo mật' : 'Manage sessions in Security'}</span>
+                  <button type="button" onClick={() => { closeAuthModal(); window.location.assign('/forgot-password'); }}
                     className="font-semibold text-[var(--primary)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border)]/30">
                     {locale === 'vi' ? 'Quên mật khẩu?' : 'Forgot password?'}
                   </button>
@@ -455,7 +451,7 @@ export const AuthModal: React.FC = () => {
                   <div>
                     <label htmlFor="auth-register-password" className={labelClass}>{locale === 'vi' ? 'Mật khẩu' : 'Password'} <span className="text-rose-500">*</span></label>
                     <div className="relative">
-                      <input id="auth-register-password" type={showRegisterPassword ? 'text' : 'password'} autoComplete="new-password" value={regPassword} onChange={(event) => setRegPassword(event.target.value)} placeholder={locale === 'vi' ? 'Tối thiểu 6 ký tự' : 'At least 6 characters'} className={`${inputClass} pr-11`} required />
+                      <input id="auth-register-password" type={showRegisterPassword ? 'text' : 'password'} autoComplete="new-password" value={regPassword} onChange={(event) => setRegPassword(event.target.value)} placeholder={locale === 'vi' ? 'Tối thiểu 8 ký tự' : 'At least 8 characters'} className={`${inputClass} pr-11`} required />
                       <button type="button" onClick={() => setShowRegisterPassword((current) => !current)} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-1 text-[var(--primary)]" aria-label={showRegisterPassword ? 'Hide password' : 'Show password'}>{showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                     </div>
                   </div>

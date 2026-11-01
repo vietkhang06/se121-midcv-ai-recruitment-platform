@@ -376,7 +376,7 @@ export const vi = {
     preferredSkills: "Kỹ Năng Ưu Tiên (Preferred Skills)"
   },
   admin: {
-    title: "Cấu hình AI & Engine Đối sánh",
+    title: "Cấu hình AI backend",
     subtitle: "Quản lý mô hình bóc tách tài liệu (LLM) và vector embedding cho quy trình tuyển dụng thông minh.",
     backToDashboard: "Quay lại Bảng điều khiển HR",
     adminMode: "Chế độ Quản trị & HR"

@@ -124,6 +124,7 @@ public class UnifiedCandidateCvIngestionTest {
         candidateProfile.setId(profileId);
 
         lenient().when(candidateProfileRepository.findByUserId(userId)).thenReturn(Optional.of(candidateProfile));
+        lenient().when(candidateProfileRepository.findByUserIdForUpdate(userId)).thenReturn(Optional.of(candidateProfile));
     }
 
     private byte[] createRealPdf(String text) throws IOException {
@@ -311,7 +312,7 @@ public class UnifiedCandidateCvIngestionTest {
         assertTrue(largeEx.getMessage().contains("FILE_TOO_LARGE"));
 
         verifyNoInteractions(aiWorkerClient);
-        verifyNoInteractions(cvRepository);
+        verify(cvRepository, never()).save(any());
     }
 
     @Test

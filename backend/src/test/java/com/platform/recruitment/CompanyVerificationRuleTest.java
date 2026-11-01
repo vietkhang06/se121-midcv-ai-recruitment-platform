@@ -89,7 +89,7 @@ class CompanyVerificationRuleTest {
             jobService.publishJob(recruiterUser, draftJob.getId());
         });
 
-        assertTrue(ex.getMessage().contains("Only VERIFIED companies can publish jobs"));
+        assertTrue(ex.getMessage().contains("Only VERIFIED and ACTIVE companies can publish jobs"));
         verify(jobRepository, never()).save(any());
     }
 

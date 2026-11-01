@@ -39,6 +39,30 @@ public class AiClient {
   @Autowired(required = false)
   public final TaxonomyService taxonomy;
 
+  private static final org.slf4j.Logger modelLog = org.slf4j.LoggerFactory.getLogger(AiClient.class);
+  private volatile Map<String, Object> lastModelTrace = Map.of("status", "NO_CALL_OBSERVED");
+
+  public Map<String, Object> lastModelTrace() { return lastModelTrace; }
+
+  private void traceModel(String provider, String requested, JsonNode response) {
+    String resolved = response.path("model").isTextual() ? response.path("model").asText() : "";
+    var trace = new LinkedHashMap<String, Object>();
+    trace.put("status", "CALL_OBSERVED");
+    trace.put("provider", provider);
+    trace.put("requestedModel", safeModelName(requested));
+    trace.put("resolvedModel", resolved.isBlank() ? "NOT_REPORTED" : safeModelName(resolved));
+    trace.put("requestId", com.platform.recruitment.event.Events.requestId());
+    trace.put("observedAt", Instant.now().toString());
+    lastModelTrace = Collections.unmodifiableMap(trace);
+    modelLog.info("AI_MODEL_TRACE scope=BACKEND_SCREENING request_id={} provider={} requested_model={} resolved_model={}",
+        trace.get("requestId"), provider, trace.get("requestedModel"), trace.get("resolvedModel"));
+  }
+
+  private static String safeModelName(String model) {
+    String safe = model == null ? "NOT_REPORTED" : model.replaceAll("[\\r\\n\\t]", " ");
+    return safe.substring(0, Math.min(safe.length(), 200));
+  }
+
   private volatile SystemAiSettings cachedSettings = null;
   private volatile long lastSettingsFetch = 0;
 
@@ -142,7 +166,8 @@ public class AiClient {
 
   public SystemAiSettings getSettings() {
     long now = System.currentTimeMillis();
-    if (cachedSettings != null && (now - lastSettingsFetch < 10000)) {
+    boolean transactional = org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive();
+    if (!transactional && cachedSettings != null && (now - lastSettingsFetch < 10000)) {
       return cachedSettings;
     }
     try {
@@ -161,6 +186,7 @@ public class AiClient {
                         rs.getString("embedding_provider"),
                         rs.getString("embedding_model")));
         if (!list.isEmpty()) {
+          if (transactional) return list.get(0);
           cachedSettings = list.get(0);
           lastSettingsFetch = now;
           return cachedSettings;
@@ -186,17 +212,27 @@ public class AiClient {
       String cloudBaseUrl,
       String newKey,
       String cloudModel) {
-    if (jdbc == null) return;
+    if (jdbc == null) throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE,
+        "Không thể lưu cấu hình AI khi cơ sở dữ liệu chưa sẵn sàng.");
+    int changed;
     if (newKey != null && !newKey.isEmpty()) {
-      jdbc.update(
+      changed = jdbc.update(
           "UPDATE system_ai_settings SET provider=?, ollama_url=?, ollama_model=?, cloud_base_url=?, cloud_api_key=?, cloud_model=?, updated_at=now() WHERE id='current'",
           provider, ollamaUrl, ollamaModel, cloudBaseUrl, newKey, cloudModel);
     } else {
-      jdbc.update(
+      changed = jdbc.update(
           "UPDATE system_ai_settings SET provider=?, ollama_url=?, ollama_model=?, cloud_base_url=?, cloud_model=?, updated_at=now() WHERE id='current'",
           provider, ollamaUrl, ollamaModel, cloudBaseUrl, cloudModel);
     }
+    if (changed != 1) throw new CustomException(ErrorCode.CONCURRENT_MODIFICATION,
+        "Không tìm thấy cấu hình AI hiện tại để cập nhật.");
     invalidateSettingsCache();
+    if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+      org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+          new org.springframework.transaction.support.TransactionSynchronization() {
+            @Override public void afterCompletion(int status) { invalidateSettingsCache(); }
+          });
+    }
   }
 
   private String json(Object v) {
@@ -395,6 +431,7 @@ public class AiClient {
                 List.of(
                     Map.of("role", "system", "content", system),
                     Map.of("role", "user", "content", userPrompt))));
+    traceModel("LOCAL_OLLAMA", cfg.ollamaModel(), r);
     return r.path("message").path("content").asText("");
   }
 
@@ -455,9 +492,10 @@ public class AiClient {
       if (r.statusCode() != 200) {
         throw new CustomException(
             ErrorCode.INTERNAL_SERVER_ERROR,
-            "Dịch vụ Cloud AI trả lỗi HTTP " + r.statusCode() + ": " + r.body());
+            "Dịch vụ Cloud AI trả lỗi HTTP " + r.statusCode());
       }
       JsonNode jsonNode = parse(r.body());
+      traceModel("CLOUD_OPENAI_COMPATIBLE", model, jsonNode);
       return jsonNode.path("choices").path(0).path("message").path("content").asText("");
     } catch (CustomException e) {
       throw e;

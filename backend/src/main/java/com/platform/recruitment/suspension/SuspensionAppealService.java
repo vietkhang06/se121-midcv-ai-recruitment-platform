@@ -131,7 +131,7 @@ public class SuspensionAppealService {
 
     @Transactional
     public AppealResponse cancelAppeal(User currentUser, UUID appealId) {
-        SuspensionAppeal appeal = appealRepository.findById(appealId)
+        SuspensionAppeal appeal = appealRepository.findByIdForUpdate(appealId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPEAL_NOT_FOUND, "Không tìm thấy hồ sơ khiếu nại."));
 
         if (!appeal.getAppellantUser().getId().equals(currentUser.getId())) {
@@ -145,6 +145,9 @@ public class SuspensionAppealService {
             );
         }
 
+        adminAuditLogService.log(currentUser, "CANCEL_APPEAL", "APPEAL", appealId,
+                appeal.getStatus().name(), AppealStatus.CANCELLED.name(),
+                "Người gửi chủ động hủy khiếu nại", null, null);
         appeal.setStatus(AppealStatus.CANCELLED);
         appeal.setResolutionNote("Người gửi chủ động hủy khiếu nại.");
         return AppealResponse.fromEntity(appealRepository.save(appeal));
@@ -160,7 +163,7 @@ public class SuspensionAppealService {
 
     @Transactional
     public AppealResponse startReviewAdmin(User admin, UUID appealId) {
-        SuspensionAppeal appeal = appealRepository.findById(appealId)
+        SuspensionAppeal appeal = appealRepository.findByIdForUpdate(appealId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPEAL_NOT_FOUND, "Không tìm thấy hồ sơ khiếu nại."));
 
         if (appeal.getStatus() != AppealStatus.SUBMITTED) {
@@ -172,12 +175,15 @@ public class SuspensionAppealService {
 
         appeal.setStatus(AppealStatus.UNDER_REVIEW);
         appeal.setReviewedBy(admin);
+        adminAuditLogService.log(admin, "REVIEW_APPEAL", "APPEAL", appealId,
+                AppealStatus.SUBMITTED.name(), AppealStatus.UNDER_REVIEW.name(),
+                "Tiếp nhận xử lý khiếu nại", null, null);
         return AppealResponse.fromEntity(appealRepository.save(appeal));
     }
 
     @Transactional
     public AppealResponse approveAppealAdmin(User admin, UUID appealId, ReviewAppealRequest request, String ipAddress) {
-        SuspensionAppeal appeal = appealRepository.findById(appealId)
+        SuspensionAppeal appeal = appealRepository.findByIdForUpdate(appealId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPEAL_NOT_FOUND, "Không tìm thấy hồ sơ khiếu nại."));
 
         if (appeal.getStatus() == AppealStatus.APPROVED || appeal.getStatus() == AppealStatus.REJECTED || appeal.getStatus() == AppealStatus.CANCELLED) {
@@ -263,7 +269,7 @@ public class SuspensionAppealService {
                 appeal.getTargetType().name(),
                 appeal.getTargetId(),
                 "SUSPENDED",
-                "ACTIVE",
+                remainingActive == 0 ? "ACTIVE" : "SUSPENDED",
                 note,
                 ipAddress,
                 null
@@ -274,7 +280,7 @@ public class SuspensionAppealService {
 
     @Transactional
     public AppealResponse rejectAppealAdmin(User admin, UUID appealId, ReviewAppealRequest request, String ipAddress) {
-        SuspensionAppeal appeal = appealRepository.findById(appealId)
+        SuspensionAppeal appeal = appealRepository.findByIdForUpdate(appealId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPEAL_NOT_FOUND, "Không tìm thấy hồ sơ khiếu nại."));
 
         if (appeal.getStatus() == AppealStatus.APPROVED || appeal.getStatus() == AppealStatus.REJECTED || appeal.getStatus() == AppealStatus.CANCELLED) {

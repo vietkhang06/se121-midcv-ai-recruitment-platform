@@ -64,3 +64,10 @@ ai-worker/test-output/
 # IDE Agent config files
 .agents/
 skills-lock.json
+# Legacy IDE compilation output and local task evidence
+backend/bin/
+backend/out/
+frontend/tsconfig.tsbuildinfo
+
+# Reviewed task verification logs
+!docs/task-evidence/20261030/*.log

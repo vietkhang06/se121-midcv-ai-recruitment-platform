@@ -17,6 +17,7 @@ html:root {
   --studio-auth-paper: #FFFEFA;
   --studio-auth-ink: #274256;
 }
+
 html.dark {
   --studio-paper: #223F4E;
   --studio-line: #91AEB8;
@@ -31,6 +32,7 @@ html.dark {
   --studio-auth-paper: #355464;
   --studio-auth-ink: #D0E0DF;
 }
+
 html body { font-family: var(--font-sans); background-image: none; line-height: 1.65; }
 html :is(h1,h2,h3,h4,h5,h6,.font-editorial) { font-family: var(--font-sans); letter-spacing: -.025em; }
 html :is(code,pre,kbd,samp) { font-family: var(--font-mono); }
@@ -43,10 +45,12 @@ html :is([role="switch"]) { border-radius: 999px !important; }
 html :is(button[role="switch"]) :is(span[class*="shadow-"]) { border-radius: 999px !important; }
 html :is(input[type="checkbox"],input[type="radio"]) { border: 1px solid var(--input-border); border-radius: 5px !important; }
 html input[type="radio"] { border-radius: 50% !important; }
+
 html input[type="checkbox"]:checked {
   background-color: var(--primary); border-color: var(--primary); box-shadow: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='m4 10 4 4 8-8' fill='none' stroke='%23fffefa' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
+
 html input[type="radio"]:checked { background: var(--primary); box-shadow: inset 0 0 0 3px var(--input-bg); }
 html input[type="range"]::-webkit-slider-thumb { border-radius: 999px; }
 html input[type="range"]::-moz-range-thumb { border-radius: 999px; }
@@ -63,18 +67,21 @@ html .card-hover-lift:hover,html .motion-hover-lift:hover { box-shadow: var(--st
 html .kanban-card:hover { box-shadow: var(--studio-shadow-md); }
 html svg.lucide { stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 html ::-webkit-scrollbar-thumb { border-radius: 999px; }
+
 /* Both public and role portals share the stationery surface language. */
 html header { border-bottom-color: var(--border-soft); }
 html footer { background-color: var(--surface); border-top-color: var(--border-soft); }
 html [data-retro-shell="admin"] { background-color: var(--retro-deep); }
 html [data-retro-brand] { letter-spacing: -.035em; }
 html [data-retro-brand] > div { filter: none; }
+
 /* Access screens use product line art, without changing the role-switch animation. */
 html [data-testid="auth-hero-banner"] { background: var(--studio-auth-bg); border-right: 1px solid var(--border-soft); }
 html [data-testid="auth-hero-banner"] :is(h1,h2,h3,p,span) { color: var(--studio-auth-ink); text-shadow: none; filter: none; }
 html [data-testid="auth-hero-banner"] > [class*="bg-gradient-"] { background: transparent !important; }
 html [data-testid="auth-hero-banner"] svg { shape-rendering: geometricPrecision; }
 html [data-testid="auth-hero-banner"] .drop-shadow-md,html [data-testid="auth-hero-banner"] .drop-shadow-sm { filter: none; }
+
 /* Inbox controls are not Tailwind utility cards, so give them the same tokens. */
 html .inbox-icon { border-width: 1px; box-shadow: var(--studio-shadow-sm); }
 html :is(.inbox-box,.inbox-popover) { border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--studio-shadow-md); }
@@ -93,11 +100,13 @@ html.dark .inbox-message.own { background: var(--primary-light); }
 html.dark :is([class*="bg-emerald-50"],[class*="bg-green-50"]):not([class*="dark:bg-"]) { background-color: var(--success-bg); color: var(--success); }
 html.dark :is([class*="bg-amber-50"],[class*="bg-yellow-50"]):not([class*="dark:bg-"]) { background-color: var(--warning-bg); color: var(--warning); }
 html.dark :is([class*="bg-rose-50"],[class*="bg-red-50"]):not([class*="dark:bg-"]) { background-color: var(--danger-bg); color: var(--danger); }
+
 /* CV paper is still an ink-on-paper artifact in either app theme. */
 html #printable-cv { background: #FFFEFA !important; color: #274256 !important; }
+
 @media(max-width:640px) {
- html body { font-size:14px; }
- html :is(.inbox-box,.inbox-popover) { box-shadow:var(--studio-shadow-sm); }
+  html body { font-size:14px; }
+  html :is(.inbox-box,.inbox-popover) { box-shadow:var(--studio-shadow-sm); }
 }
 
 /* Compact workflow labels retain a comfortable readable minimum. */
@@ -119,12 +128,81 @@ html [data-studio-verification] [class*="justify-between"] { flex-wrap: wrap; }
 html td > span[class*="rounded-"][class*="bg-"] { white-space: nowrap; overflow-wrap: normal; }
 html [data-retro-shell="admin"] > div > nav svg.lucide { color: inherit; }
 html [data-retro-shell="admin"] button:has(.lucide-globe) svg { color: var(--retro-mint); }
-@media(max-width:640px) { html [data-studio-verification] { flex-wrap: wrap; } }
+
+@media(max-width:640px) {
+  html [data-studio-verification] { flex-wrap: wrap; }
+}
 
 /* Long salary ranges wrap inside their own badge; compact nav rows retain every action. */
 html .job-highlight-badge.badge-salary { max-width:100%; min-width:0; height:auto; min-height:30px; padding-block:4px; white-space:normal; line-height:1.5; }
+
 @media(max-width:360px) {
- html header [class~="max-w-[1440px]"] { padding-inline:10px; column-gap:6px; }
- html header :is([class~="gap-2"],[class~="gap-1.5"]) { column-gap:4px; }
- html header .inbox-tools { gap:4px; }
+  html header [class~="max-w-[1440px]"] { padding-inline:10px; column-gap:6px; }
+  html header :is([class~="gap-2"],[class~="gap-1.5"]) { column-gap:4px; }
+  html header .inbox-tools { gap:4px; }
+}
+
+/* Admin navbar uses the same semantic colors as candidate. */
+html [data-retro-shell="admin"] {
+  background-color: var(--surface) !important;
+  color: var(--heading) !important;
+  border-bottom-color: var(--border-soft) !important;
+}
+
+/* Brand wordmark */
+html [data-retro-shell="admin"] [data-retro-brand] span {
+  color: var(--heading) !important;
+}
+
+html [data-retro-shell="admin"] [data-retro-brand]
+:is(span, sup)[class~="text-[var(--primary)]"] {
+  color: var(--primary) !important;
+}
+
+/* Navigation links and icons */
+html [data-retro-shell="admin"] nav a {
+  color: var(--text-secondary) !important;
+  background-color: transparent !important;
+  border-color: var(--border-soft) !important;
+}
+
+html [data-retro-shell="admin"] nav a:hover {
+  color: var(--primary) !important;
+  background-color: var(--primary-light) !important;
+}
+
+html [data-retro-shell="admin"] nav a[class~="bg-indigo-600"] {
+  color: var(--primary) !important;
+  background-color: var(--primary-light) !important;
+  border-color: var(--primary) !important;
+}
+
+html [data-retro-shell="admin"] nav a svg {
+  color: inherit !important;
+}
+
+/* Admin Portal badge */
+html [data-retro-shell="admin"] [class~="bg-indigo-500/20"] {
+  color: var(--primary) !important;
+  background-color: var(--primary-light) !important;
+  border-color: var(--border-soft) !important;
+}
+
+/* Language and mobile-menu buttons */
+html [data-retro-shell="admin"] button:has(.lucide-globe),
+html [data-retro-shell="admin"] #admin-mobile-menu-btn {
+  color: var(--heading) !important;
+  background-color: var(--surface-secondary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html [data-retro-shell="admin"] button:has(.lucide-globe) svg {
+  color: var(--primary) !important;
+}
+
+/* Notification and account buttons */
+html [data-retro-shell="admin"] .inbox-icon {
+  color: var(--heading) !important;
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
 }

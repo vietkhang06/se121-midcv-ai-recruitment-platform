@@ -97,7 +97,7 @@ public class AdminService {
         long candidatesCount = userRepository.countByRole(Role.CANDIDATE);
         long recruitersCount = userRepository.countByRole(Role.HR);
         long activeUsersCount = userRepository.countByIsActive(true);
-        long suspendedUsersCount = userRepository.countByIsActive(false);
+        long suspendedUsersCount = userRepository.countByAccountStatus(com.platform.recruitment.user.AccountStatus.SUSPENDED);
 
         long pendingCompanies = companyRepository.countByVerificationStatus(CompanyVerification.PENDING);
         long underReviewCompanies = companyRepository.countByVerificationStatus(CompanyVerification.UNDER_REVIEW);
@@ -147,6 +147,38 @@ public class AdminService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public Page<UserAdminDto> listUsers(String query, Role role,
+            com.platform.recruitment.user.AccountStatus status, Pageable pageable) {
+        org.springframework.data.jpa.domain.Specification<User> specification = (u, cq, cb) -> {
+            var conditions = new ArrayList<jakarta.persistence.criteria.Predicate>();
+            if (role != null) conditions.add(cb.equal(u.get("role"), role));
+            if (status != null) conditions.add(cb.equal(u.get("accountStatus"), status));
+            if (query != null && !query.isBlank()) {
+                String q = "%" + query.strip().toLowerCase(Locale.ROOT)
+                        .replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
+                conditions.add(cb.like(cb.lower(u.get("email")), q, '!'));
+            }
+            return cb.and(conditions.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+        return userRepository.findAll(specification, pageable).map(u -> {
+            CandidateProfile c = u.getRole() == Role.CANDIDATE
+                    ? candidateProfileRepository.findByUserId(u.getId()).orElse(null) : null;
+            RecruiterProfile hr = u.getRole() == Role.HR
+                    ? recruiterProfileRepository.findByUserId(u.getId()).orElse(null) : null;
+            Company co = hr == null ? null : hr.getCompany();
+            return UserAdminDto.builder().id(u.getId()).email(u.getEmail()).role(u.getRole())
+                    .isActive(u.getIsActive()).accountStatus(u.getAccountStatus())
+                    .emailVerified(u.getEmailVerified()).accountPlan(u.getAccountPlan()).createdAt(u.getCreatedAt())
+                    .fullName(c != null ? c.getFullName() : hr != null ? hr.getFullName() : null)
+                    .phone(c != null ? c.getPhone() : hr != null ? hr.getPhone() : null)
+                    .companyId(co == null ? null : co.getId()).companyName(co == null ? null : co.getName())
+                    .companyVerificationStatus(co == null ? null : co.getVerificationStatus().name())
+                    .cvCount(c == null ? 0 : (int) cvRepository.countByCandidateId(c.getId()))
+                    .applicationCount(c == null ? 0 : (int) applicationRepository.countByCandidateId(c.getId())).build();
+        });
+    }
+
     // ==========================================
     // 2. COMPANY VERIFICATION MANAGEMENT
     // ==========================================
@@ -178,7 +210,9 @@ public class AdminService {
     @Transactional(readOnly = true)
     public Page<UserAdminDto> listCandidates(String query, Boolean isActive, Pageable pageable) {
         Page<User> users;
-        if (query != null && !query.isBlank()) {
+        if (query != null && !query.isBlank() && isActive != null) {
+            users = userRepository.findByRoleAndEmailContainingIgnoreCaseAndIsActive(Role.CANDIDATE, query.trim(), isActive, pageable);
+        } else if (query != null && !query.isBlank()) {
             users = userRepository.findByEmailContainingIgnoreCaseAndRole(query.trim(), Role.CANDIDATE, pageable);
         } else if (isActive != null) {
             users = userRepository.findByRoleAndIsActive(Role.CANDIDATE, isActive, pageable);
@@ -188,7 +222,7 @@ public class AdminService {
 
         return users.map(user -> {
             Optional<CandidateProfile> profileOpt = candidateProfileRepository.findByUserId(user.getId());
-            int cvCount = (int) cvRepository.countByCandidateId(user.getId());
+            int cvCount = profileOpt.map(p -> (int) cvRepository.countByCandidateId(p.getId())).orElse(0);
             int appCount = profileOpt.map(p -> (int) applicationRepository.countByCandidateId(p.getId())).orElse(0);
 
             return UserAdminDto.builder()
@@ -214,7 +248,9 @@ public class AdminService {
     @Transactional(readOnly = true)
     public Page<UserAdminDto> listRecruiters(String query, Boolean isActive, Pageable pageable) {
         Page<User> users;
-        if (query != null && !query.isBlank()) {
+        if (query != null && !query.isBlank() && isActive != null) {
+            users = userRepository.findByRoleAndEmailContainingIgnoreCaseAndIsActive(Role.HR, query.trim(), isActive, pageable);
+        } else if (query != null && !query.isBlank()) {
             users = userRepository.findByEmailContainingIgnoreCaseAndRole(query.trim(), Role.HR, pageable);
         } else if (isActive != null) {
             users = userRepository.findByRoleAndIsActive(Role.HR, isActive, pageable);
@@ -261,6 +297,8 @@ public class AdminService {
             throw new CustomException(ErrorCode.ACCESS_DENIED, "Không thể đình chỉ tài khoản mang quyền Quản trị viên.");
         }
 
+        String previousStatus = user.getAccountStatus().name();
+        if (user.isSuspended()) return;
         user.suspend();
         userRepository.save(user);
 
@@ -283,7 +321,7 @@ public class AdminService {
                 "SUSPEND_USER",
                 "USER",
                 user.getId(),
-                "ACTIVE",
+                previousStatus,
                 "SUSPENDED",
                 reason.trim(),
                 ipAddress,
@@ -296,6 +334,7 @@ public class AdminService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
+        String previousStatus = user.getAccountStatus().name();
         user.reactivate();
         userRepository.save(user);
 
@@ -318,7 +357,7 @@ public class AdminService {
                 "REACTIVATE_USER",
                 "USER",
                 user.getId(),
-                "SUSPENDED",
+                previousStatus,
                 "ACTIVE",
                 reason != null ? reason.trim() : "Quản trị viên kích hoạt lại tài khoản",
                 ipAddress,
@@ -379,8 +418,15 @@ public class AdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
 
         String previousStatus = job.getStatus().name();
+        if (job.getStatus() != JobStatus.SUSPENDED || job.getCompany() == null
+                || job.getCompany().getVerificationStatus() != CompanyVerification.VERIFIED
+                || job.getCompany().isSuspended()) {
+            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION,
+                    "Chỉ khôi phục tin bị đình chỉ của doanh nghiệp đã xác minh và đang hoạt động.");
+        }
         job.setStatus(JobStatus.PUBLISHED);
         job.setModerationReason(null);
+        job.setSuspendedAt(null);
         jobRepository.save(job);
 
         adminAuditLogService.log(
@@ -417,9 +463,13 @@ public class AdminService {
 
     @Transactional
     public void resolveReport(User admin, UUID reportId, String notes, String ipAddress) {
-        SystemReport report = systemReportRepository.findById(reportId)
+        SystemReport report = systemReportRepository.findByIdForUpdate(reportId)
                 .orElseThrow(() -> new ResourceNotFoundException("SystemReport", "id", reportId));
 
+        ReportStatus previousStatus = report.getStatus();
+        if (previousStatus != ReportStatus.PENDING) {
+            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION, "Báo cáo đã được xử lý.");
+        }
         report.setStatus(ReportStatus.RESOLVED);
         report.setResolvedBy(admin);
         report.setResolvedAt(ZonedDateTime.now());
@@ -431,7 +481,7 @@ public class AdminService {
                 "RESOLVE_REPORT",
                 "REPORT",
                 report.getId(),
-                ReportStatus.PENDING.name(),
+                previousStatus.name(),
                 ReportStatus.RESOLVED.name(),
                 notes,
                 ipAddress,
@@ -441,9 +491,13 @@ public class AdminService {
 
     @Transactional
     public void dismissReport(User admin, UUID reportId, String notes, String ipAddress) {
-        SystemReport report = systemReportRepository.findById(reportId)
+        SystemReport report = systemReportRepository.findByIdForUpdate(reportId)
                 .orElseThrow(() -> new ResourceNotFoundException("SystemReport", "id", reportId));
 
+        ReportStatus previousStatus = report.getStatus();
+        if (previousStatus != ReportStatus.PENDING) {
+            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION, "Báo cáo đã được xử lý.");
+        }
         report.setStatus(ReportStatus.DISMISSED);
         report.setResolvedBy(admin);
         report.setResolvedAt(ZonedDateTime.now());
@@ -455,7 +509,7 @@ public class AdminService {
                 "DISMISS_REPORT",
                 "REPORT",
                 report.getId(),
-                ReportStatus.PENDING.name(),
+                previousStatus.name(),
                 ReportStatus.DISMISSED.name(),
                 notes,
                 ipAddress,

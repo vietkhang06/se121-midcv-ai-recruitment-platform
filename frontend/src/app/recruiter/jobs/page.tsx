@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { Job } from '@/types';
 import {
   closeJob,
-  fetchJobApplications,
+  deleteDraftJob,
+  fetchJobApplicationCount,
   fetchRecruiterJobs,
   publishJob,
 } from '@/lib/api';
@@ -41,6 +42,23 @@ export default function RecruiterJobsListPage() {
   const [actionInProgressId, setActionInProgressId] = useState<string | null>(null);
 
   const [policyModalJob, setPolicyModalJob] = useState<Job | null>(null);
+  const [confirmDeleteJobId, setConfirmDeleteJobId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const handleDelete = async () => {
+    if (!confirmDeleteJobId) return;
+    setActionInProgressId(confirmDeleteJobId);
+    setDeleteError(null);
+    try {
+      await deleteDraftJob(confirmDeleteJobId);
+      setConfirmDeleteJobId(null);
+      await loadJobs();
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Không thể xóa tin nháp.');
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
+
   const [confirmCloseJobId, setConfirmCloseJobId] = useState<string | null>(null);
   const [confirmPublishJobId, setConfirmPublishJobId] = useState<string | null>(null);
 
@@ -58,10 +76,9 @@ export default function RecruiterJobsListPage() {
       await Promise.all(
         data.map(async (job) => {
           try {
-            const applications = await fetchJobApplications(job.id);
-            counts[job.id] = applications.length;
+            counts[job.id] = await fetchJobApplicationCount(job.id);
           } catch {
-            counts[job.id] = 0;
+            // Keep the count unknown when the server cannot confirm it.
           }
         }),
       );
@@ -87,10 +104,10 @@ export default function RecruiterJobsListPage() {
         if (!active) return;
         setJobs(data);
         const counts = await Promise.all(data.map(async (job) => {
-          try { return [job.id, (await fetchJobApplications(job.id)).length] as const; }
-          catch { return [job.id, 0] as const; }
+          try { return [job.id, await fetchJobApplicationCount(job.id)] as const; }
+          catch { return null; }
         }));
-        if (active) setApplicationCounts(Object.fromEntries(counts));
+        if (active) setApplicationCounts(Object.fromEntries(counts.filter((entry) => entry !== null)));
       } catch (error: unknown) {
         if (active) setFetchError(error instanceof Error ? error.message : 'Unable to load jobs list. / Không thể tải danh sách bài tuyển dụng.');
       } finally {
@@ -286,7 +303,7 @@ export default function RecruiterJobsListPage() {
           <div className="space-y-4">
             {filteredJobs.map((job, index) => {
               const isBusy = actionInProgressId === job.id;
-              const applicationCount = applicationCounts[job.id] ?? 0;
+              const applicationCount = applicationCounts[job.id] ?? '—';
 
               return (
                 <Reveal key={job.id} delay={staggerDelay(index)}>
@@ -369,6 +386,10 @@ export default function RecruiterJobsListPage() {
                           <Sliders className="w-3.5 h-3.5" />
                           {locale === 'vi' ? 'Đối sánh' : 'Matching'}
                         </button>
+                        <Link href={`/recruiter/jobs/${job.id}/edit`}
+                          className="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold">
+                          {locale === 'vi' ? 'Chỉnh sửa' : 'Edit'}
+                        </Link>
                         {job.status === 'DRAFT' && (
                           <button
                             type="button"
@@ -377,6 +398,13 @@ export default function RecruiterJobsListPage() {
                             className="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold bg-[var(--surface-secondary)] dark:bg-emerald-950/40 text-[var(--heading)] dark:text-emerald-400 hover:bg-[var(--surface-secondary)] border border-[var(--border)]/30 transition disabled:opacity-50"
                           >
                             {isBusy ? '...' : locale === 'vi' ? 'Xuất bản' : 'Publish'}
+                          </button>
+                        )}
+                        {job.status === 'DRAFT' && (
+                          <button type="button" disabled={actionInProgressId !== null}
+                            onClick={() => { setDeleteError(null); setConfirmDeleteJobId(job.id); }}
+                            className="px-3 py-2 rounded-xl border border-rose-300 text-rose-700 text-xs font-semibold disabled:opacity-50">
+                            {locale === 'vi' ? 'Xóa bản nháp' : 'Delete draft'}
                           </button>
                         )}
                         {job.status === 'PUBLISHED' && (
@@ -423,6 +451,14 @@ export default function RecruiterJobsListPage() {
         )}
       </main>
 
+      <ConfirmActionDialog
+        isOpen={confirmDeleteJobId !== null}
+        title={locale === 'vi' ? 'Xóa tin tuyển dụng nháp?' : 'Delete this draft job?'}
+        description={locale === 'vi' ? 'Bản nháp sẽ được xóa khỏi danh sách.' : 'The draft will be removed from the list.'}
+        confirmLabel={locale === 'vi' ? 'Xóa bản nháp' : 'Delete draft'}
+        variant="danger" isLoading={actionInProgressId !== null} errorMessage={deleteError}
+        onConfirm={handleDelete} onCancel={() => setConfirmDeleteJobId(null)}
+      />
       {policyModalJob && (
         <JobMatchingPolicyModal
           jobId={policyModalJob.id}

@@ -1192,11 +1192,18 @@ public class CVService {
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
 
-        CV cv = cvRepository.findById(cvId)
+        CV cv = cvRepository.findByIdForUpdate(cvId)
                 .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
 
         if (!cv.getCandidate().getId().equals(candidate.getId())) {
             throw new UnauthorizedAccessException("Candidate does not own this CV");
+        }
+
+        Long applied = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM applications WHERE applied_cv_id=?", Long.class, cvId);
+        if (applied != null && applied > 0) {
+            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION,
+                    "CV đã được dùng ứng tuyển; cần giữ hồ sơ và minh chứng để nhà tuyển dụng đối chiếu.");
         }
 
         List<String> evidenceStorageKeys = cvEvidenceAttachmentRepository == null
@@ -1362,8 +1369,10 @@ public class CVService {
                 ? (Map<String, Object>) m : extractLinksWithLineage(structured, personalInfo);
 
         // Refresh attachment info in certifications and languages
-        refreshAttachmentLinks(certifications, cvId, "CERTIFICATION");
-        refreshAttachmentLinks(languages, cvId, "LANGUAGE");
+        if (!"CONFIRMED".equalsIgnoreCase(version.getStatus())) {
+            refreshAttachmentLinks(certifications, cvId, "CERTIFICATION");
+            refreshAttachmentLinks(languages, cvId, "LANGUAGE");
+        }
 
         return CVDraftResponse.builder()
                 .cvId(cv.getId())
@@ -2438,9 +2447,9 @@ public class CVService {
 
     private void validateAttachmentMagic(byte[] b, String ext) {
         boolean valid = switch (ext) {
-            case "pdf" -> b.length >= 4 && b[0] == '%' && b[1] == 'P' && b[2] == 'D' && b[3] == 'F';
-            case "png" -> b.length >= 8 && (b[0] & 0xFF) == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47;
-            case "jpg", "jpeg" -> b.length >= 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8;
+            case "pdf" -> b.length >= 5 && b[0] == '%' && b[1] == 'P' && b[2] == 'D' && b[3] == 'F' && b[4] == '-';
+            case "png" -> b.length >= 8 && (b[0] & 0xFF) == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47 && b[4] == 13 && b[5] == 10 && b[6] == 26 && b[7] == 10;
+            case "jpg", "jpeg" -> b.length >= 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8 && (b[2] & 0xFF) == 0xFF;
             default -> false;
         };
         if (!valid) {
@@ -2457,14 +2466,23 @@ public class CVService {
             String itemId) {
 
         String correlationId = UUID.randomUUID().toString();
+        if (candidateUser == null || candidateUser.isSuspended() || candidateUser.isDeactivated()) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED, "Tài khoản không được phép thay đổi minh chứng.");
+        }
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
 
-        CV cv = cvRepository.findById(cvId)
+        CV cv = cvRepository.findByIdForUpdate(cvId)
                 .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
 
         if (!cv.getCandidate().getId().equals(candidate.getId())) {
             throw new UnauthorizedAccessException("Candidate does not own this CV");
+        }
+
+        List<CVVersion> lockedVersions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+        if (lockedVersions.isEmpty() || !"DRAFT".equalsIgnoreCase(lockedVersions.getFirst().getStatus())) {
+            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION,
+                    "Hãy mở chỉnh sửa hồ sơ để tạo bản nháp trước khi thay đổi minh chứng.");
         }
 
         String type = itemType != null ? itemType.toUpperCase(Locale.ROOT).trim() : "";
@@ -2549,8 +2567,10 @@ public class CVService {
                 ? Optional.empty()
                 : cvEvidenceAttachmentRepository.findByCvIdAndItemTypeAndItemId(cvId, type, itemId);
 
+        boolean retainPrevious = previousAttachment.isPresent()
+                && evidenceReferenced(cvId, previousAttachment.get().getId(), null);
         try {
-            Files.write(targetPath, bytes, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            Files.write(targetPath, bytes, StandardOpenOption.CREATE_NEW);
         } catch (IOException e) {
             try {
                 Files.deleteIfExists(targetPath);
@@ -2571,7 +2591,7 @@ public class CVService {
                         @Override
                         public void afterCompletion(int status) {
                             if (status == STATUS_COMMITTED) {
-                                previousAttachment.ifPresent(old -> deleteAttachmentFile(old.getStorageKey(), correlationId));
+                                if (!retainPrevious) previousAttachment.ifPresent(old -> deleteAttachmentFile(old.getStorageKey(), correlationId));
                             } else {
                                 deleteAttachmentFile(storageKey, correlationId);
                             }
@@ -2603,6 +2623,13 @@ public class CVService {
 
         try {
             if (cvEvidenceAttachmentRepository != null) {
+                // Keep rows/files referenced by an immutable application snapshot.
+                if (previousAttachment.isPresent()) {
+                    CVEvidenceAttachment old = previousAttachment.get();
+                    old.setRetired(true);
+                    cvEvidenceAttachmentRepository.save(old);
+                    cvEvidenceAttachmentRepository.flush();
+                }
                 attachment = cvEvidenceAttachmentRepository.save(attachment);
             }
 
@@ -2635,8 +2662,7 @@ public class CVService {
             }
             targetVersion.setStructuredJsonContent(objectMapper.writeValueAsString(struct));
             cvVersionRepository.save(targetVersion);
-
-            if (cvEvidenceAttachmentRepository != null) {
+            if (!retainPrevious && cvEvidenceAttachmentRepository != null) {
                 previousAttachment.ifPresent(cvEvidenceAttachmentRepository::delete);
             }
         } catch (Exception persistenceError) {
@@ -2650,7 +2676,7 @@ public class CVService {
         }
 
         if (!transactionSynchronizationActive) {
-            previousAttachment.ifPresent(old -> deleteAttachmentFile(old.getStorageKey(), correlationId));
+            if (!retainPrevious) previousAttachment.ifPresent(old -> deleteAttachmentFile(old.getStorageKey(), correlationId));
         }
 
         log.info("ATTACHMENT_UPLOAD_COMPLETED correlation_id={} cv_id={} attachment_id={}",
@@ -2688,9 +2714,10 @@ public class CVService {
 
         boolean isOwner = candidate != null && cv.getCandidate().getId().equals(candidate.getId());
         if (!isOwner) {
-            boolean isAuthorizedStaff = currentUser.getRole() != null &&
-                    (currentUser.getRole() == com.platform.recruitment.user.Role.HR
-                            || currentUser.getRole() == com.platform.recruitment.user.Role.ADMIN);
+            boolean activeStaff = !currentUser.isSuspended() && !currentUser.isDeactivated();
+            boolean isAuthorizedStaff = activeStaff && (currentUser.getRole() == com.platform.recruitment.user.Role.ADMIN
+                    || (currentUser.getRole() == com.platform.recruitment.user.Role.HR
+                    && evidenceReferenced(cvId, attachmentId, currentUser.getId())));
             if (!isAuthorizedStaff) {
                 throw new UnauthorizedAccessException("Bạn không có quyền truy cập minh chứng này.");
             }
@@ -2724,14 +2751,23 @@ public class CVService {
 
     @Transactional
     public void deleteEvidenceAttachment(User candidateUser, UUID cvId, UUID attachmentId) {
+        if (candidateUser == null || candidateUser.isSuspended() || candidateUser.isDeactivated()) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED, "Tài khoản không được phép thay đổi minh chứng.");
+        }
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
 
-        CV cv = cvRepository.findById(cvId)
+        CV cv = cvRepository.findByIdForUpdate(cvId)
                 .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
 
         if (!cv.getCandidate().getId().equals(candidate.getId())) {
             throw new UnauthorizedAccessException("Candidate does not own this CV");
+        }
+
+        List<CVVersion> lockedVersions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+        if (lockedVersions.isEmpty() || !"DRAFT".equalsIgnoreCase(lockedVersions.getFirst().getStatus())) {
+            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION,
+                    "Hãy mở chỉnh sửa hồ sơ để tạo bản nháp trước khi thay đổi minh chứng.");
         }
 
         if (cvEvidenceAttachmentRepository == null) {
@@ -2741,17 +2777,26 @@ public class CVService {
         CVEvidenceAttachment att = cvEvidenceAttachmentRepository.findByCvIdAndId(cvId, attachmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("EvidenceAttachment", "id", attachmentId));
 
+        if (att.isRetired()) {
+            throw new ResourceNotFoundException("EvidenceAttachment", "id", attachmentId);
+        }
+        boolean retained = evidenceReferenced(cvId, attachmentId, null);
         String storageKey = att.getStorageKey();
-        cvEvidenceAttachmentRepository.delete(att);
+        if (retained) {
+            att.setRetired(true);
+            cvEvidenceAttachmentRepository.save(att);
+        } else {
+            cvEvidenceAttachmentRepository.delete(att);
+        }
         if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
             org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
                     new org.springframework.transaction.support.TransactionSynchronization() {
                         @Override
                         public void afterCompletion(int status) {
-                            if (status == STATUS_COMMITTED) deleteAttachmentFile(storageKey, UUID.randomUUID().toString());
+                            if (status == STATUS_COMMITTED && !retained) deleteAttachmentFile(storageKey, UUID.randomUUID().toString());
                         }
                     });
-        } else {
+        } else if (!retained) {
             deleteAttachmentFile(storageKey, UUID.randomUUID().toString());
         }
 
@@ -2772,8 +2817,33 @@ public class CVService {
                     targetVersion.setStructuredJsonContent(objectMapper.writeValueAsString(struct));
                     cvVersionRepository.save(targetVersion);
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception failure) {
+                throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR,
+                        "Không thể cập nhật thông tin minh chứng trong hồ sơ.");
+            }
         }
+    }
+
+    private boolean evidenceReferenced(UUID cvId, UUID attachmentId, UUID recruiter) {
+        String sql = "SELECT s.structured_json_snapshot FROM application_cv_snapshots s "
+                + "JOIN applications a ON a.id=s.application_id WHERE a.applied_cv_id=?";
+        List<String> snapshots = recruiter == null
+                ? jdbcTemplate.queryForList(sql, String.class, cvId)
+                : jdbcTemplate.queryForList(sql + " AND EXISTS(SELECT 1 FROM jobs j "
+                        + "JOIN companies co ON co.id=j.company_id AND co.operational_status='ACTIVE' "
+                        + "JOIN recruiter_profiles rp ON rp.company_id=j.company_id "
+                        + "WHERE j.id=a.job_id AND rp.user_id=?)", String.class, cvId, recruiter);
+        for (String snapshot : snapshots) {
+            try {
+                for (var attachment : objectMapper.readTree(snapshot).findValues("attachment")) {
+                    if (attachmentId.toString().equals(attachment.path("id").asText())) return true;
+                }
+            } catch (Exception invalidSnapshot) {
+                // Corrupt history must never turn into permission or evidence deletion.
+                throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể đối chiếu minh chứng đã nộp.");
+            }
+        }
+        return false;
     }
 
     private static String sha256Hex(byte[] bytes) {

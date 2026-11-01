@@ -86,7 +86,7 @@ export interface Job {
   requirements: JobRequirement[];
   benefits?: string[];
   applicationQuestions?: string[];
-  status: 'DRAFT' | 'PUBLISHED' | 'CLOSED';
+  status: 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'SUSPENDED';
 }
 
 export interface CVSection {
@@ -570,7 +570,7 @@ export interface UserAdminDto {
   email: string;
   role: UserRole;
   isActive: boolean;
-  accountStatus?: 'ACTIVE' | 'SUSPENDED';
+  accountStatus?: 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
   emailVerified: boolean;
   fullName?: string;
   phone?: string;

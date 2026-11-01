@@ -57,6 +57,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/jobs", "/api/v1/jobs/*").permitAll()
@@ -69,14 +70,19 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/swagger-ui/index.html"
                         ).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/candidate/cvs/*/attachments/*")
+                            .hasAnyRole("CANDIDATE", "HR", "ADMIN")
                         // Candidate-only endpoints
                         .requestMatchers("/api/v1/candidate/**").hasRole("CANDIDATE")
                         .requestMatchers(HttpMethod.POST, "/api/v1/processing/candidate/**").hasRole("CANDIDATE")
                         .requestMatchers(HttpMethod.POST, "/api/v1/processing/cvs/**").hasRole("CANDIDATE")
                         // HR-only & HR/Admin endpoints
                         .requestMatchers("/api/v1/recruiter/**").hasRole("HR")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/jobs/draft").hasAnyRole("HR", "ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/jobs/*/publish").hasAnyRole("HR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/jobs/draft").hasRole("HR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/jobs/*/publish").hasRole("HR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/jobs/*/close").hasRole("HR")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/jobs/*").hasRole("HR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/jobs/*").hasRole("HR")
                         .requestMatchers(HttpMethod.POST, "/api/v1/processing/jobs/**").hasAnyRole("HR", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/matching/jobs/*/candidates/*").hasAnyRole("HR", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/matching/jobs/*/rankings").hasAnyRole("HR", "ADMIN")
@@ -105,10 +111,10 @@ public class SecurityConfig {
                 "Origin",
                 "X-Requested-With",
                 "Access-Control-Request-Method",
-                "Access-Control-Request-Headers"
+                "Access-Control-Request-Headers", "Last-Event-ID", "X-Request-ID"
         ));
-        configuration.setExposedHeaders(List.of("Authorization"));
-        configuration.setAllowCredentials(false);
+        configuration.setExposedHeaders(List.of("Authorization", "X-Request-ID"));
+        configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -119,7 +125,7 @@ public class SecurityConfig {
     @Bean
     public AuthenticationEntryPoint authenticationEntryPoint() {
         return (request, response, authException) -> {
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setCharacterEncoding("UTF-8");
             ApiResponse<Void> errorResponse = ApiResponse.error(

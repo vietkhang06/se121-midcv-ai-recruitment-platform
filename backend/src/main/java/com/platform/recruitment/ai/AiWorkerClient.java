@@ -187,6 +187,14 @@ public class AiWorkerClient {
         }
     }
 
+    public Map<String, Object> runtimeConfiguration() {
+        try {
+            return restClient.get().uri("/runtime-config").retrieve().body(Map.class);
+        } catch (Exception ex) {
+            throw workerFailure("/runtime-config", UUID.randomUUID().toString(), ex);
+        }
+    }
+
     public Map<String, Object> checkHealth() {
         String correlationId = UUID.randomUUID().toString();
         try {

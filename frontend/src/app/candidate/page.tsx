@@ -41,6 +41,7 @@ import { Application, CandidateProfile, CV, CVQuota, Industry, Job } from '@/typ
 import { translateIndustry, translateWorkMode, formatSalary } from '@/lib/i18n';
 import { Reveal } from '@/components/motion';
 import { CVUploadModal } from '@/components/cv/CVUploadModal';
+import { SaveJobButton } from '@/components/inbox/SaveJobButton';
 import { QuickApplyModal } from '@/components/application/QuickApplyModal';
 
 const INDUSTRIES: Industry[] = ['Technology', 'Marketing', 'Design', 'Finance', 'HR', 'Sales'];
@@ -118,10 +119,9 @@ interface JobTileProps {
   job: Job;
   locale: 'vi' | 'en';
   onApply: (job: Job) => void;
-  onSave: () => void;
 }
 
-function JobTile({ job, locale, onApply, onSave }: JobTileProps) {
+function JobTile({ job, locale, onApply }: JobTileProps) {
   const companyInitial = job.companyName?.trim()?.[0]?.toUpperCase() || 'C';
   const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryRange, locale, job.salaryNegotiable, job.salaryCurrency);
   const requirements = (job.requirements ?? []).slice(0, 3);
@@ -171,9 +171,7 @@ function JobTile({ job, locale, onApply, onSave }: JobTileProps) {
       <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-3 dark:border-[var(--border)]">
         <span className="truncate text-[10px] text-slate-400">{locale === 'vi' ? 'Đăng' : 'Posted'} {formatDate(job.publishedDate, locale)}</span>
         <div className="flex shrink-0 items-center gap-1.5">
-          <button type="button" onClick={onSave} className="rounded-xl border border-slate-200 p-2 text-slate-500 transition hover:border-blue-200 hover:text-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border)] dark:border-[var(--border)] dark:text-slate-400" aria-label={locale === 'vi' ? 'Lưu việc làm' : 'Save job'} title={locale === 'vi' ? 'Lưu việc làm' : 'Save job'}>
-            <Bookmark className="h-3.5 w-3.5" />
-          </button>
+          <SaveJobButton jobId={job.id} />
           <button type="button" onClick={() => onApply(job)} className="rounded-xl bg-[var(--primary)] px-3 py-2 text-[11px] font-bold text-white transition hover:bg-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border)] focus-visible:ring-offset-2 active:scale-[0.98] dark:focus-visible:ring-offset-[var(--heading)]">
             {locale === 'vi' ? 'Ứng tuyển' : 'Apply'}
           </button>
@@ -269,6 +267,7 @@ export default function CandidateDashboardPage() {
   ) : null;
 
   const displayName = profile?.fullName || user?.fullName || user?.email?.split('@')[0] || (isVi ? 'Ứng viên' : 'Candidate');
+
   const completeness = useMemo(() => {
     if (!profile) return 0;
     let score = 0;
@@ -315,7 +314,9 @@ export default function CandidateDashboardPage() {
     .sort((a, b) => (Date.parse(b.updatedAt || '') || 0) - (Date.parse(a.updatedAt || '') || 0))
     .slice(0, 3), [cvs]);
 
-  const quotaPercent = quota && quota.maxLimit > 0 ? Math.min(100, Math.round((quota.currentCount / quota.maxLimit) * 100)) : 0;
+  const quotaPercent = quota && quota.maxLimit > 0
+    ? Math.min(100, Math.round((quota.currentCount / quota.maxLimit) * 100))
+    : 0;
 
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -332,17 +333,17 @@ export default function CandidateDashboardPage() {
     router.push(`/jobs?${params.toString()}`);
   };
 
-  const announceUnavailable = () => {
-    setNotice(isVi ? 'Tính năng lưu việc làm chưa được triển khai. Hiện tại bạn vẫn có thể mở chi tiết hoặc ứng tuyển.' : 'Saved jobs are not implemented yet. You can still view details or apply.');
-  };
-
   if (loading) {
     return (
       <div className="min-h-[70vh] bg-[var(--surface)] px-4 py-8 dark:bg-[var(--surface)] sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl space-y-7">
           <div className="h-[330px] animate-pulse rounded-xl bg-blue-100/70 dark:bg-[var(--surface)]" />
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[0, 1, 2, 3].map((item) => <div key={item} className="h-28 animate-pulse rounded-xl bg-slate-200 dark:bg-[var(--surface)]" />)}</div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">{[0, 1, 2].map((item) => <div key={item} className="h-56 animate-pulse rounded-xl bg-slate-200 dark:bg-[var(--surface)]" />)}</div>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((item) => <div key={item} className="h-28 animate-pulse rounded-xl bg-slate-200 dark:bg-[var(--surface)]" />)}
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {[0, 1, 2].map((item) => <div key={item} className="h-56 animate-pulse rounded-xl bg-slate-200 dark:bg-[var(--surface)]" />)}
+          </div>
         </div>
       </div>
     );
@@ -561,7 +562,7 @@ export default function CandidateDashboardPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {publishedJobs.slice(0, 6).map((job) => <JobTile key={job.id} job={job} locale={locale} onApply={setApplyJob} onSave={announceUnavailable} />)}
+                {publishedJobs.slice(0, 6).map((job) => <JobTile key={job.id} job={job} locale={locale} onApply={setApplyJob} />)}
               </div>
             )}
             {publishedJobs.length > 6 ? <div className="mt-5 text-center"><Link href="/jobs" className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 text-sm font-bold text-[var(--primary)] transition hover:bg-blue-50 dark:border-[var(--border)] dark:bg-[var(--surface)] dark:text-[var(--retro-sky)] dark:hover:bg-[var(--surface)]">{isVi ? `Xem thêm việc làm (${publishedJobs.length - 6}+)` : `View more jobs (${publishedJobs.length - 6}+)`}<ArrowRight className="h-4 w-4" /></Link></div> : null}

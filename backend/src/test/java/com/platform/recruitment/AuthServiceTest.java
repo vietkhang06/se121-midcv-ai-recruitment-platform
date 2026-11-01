@@ -58,6 +58,9 @@ class AuthServiceTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private com.platform.recruitment.auth.AuthSessionService sessions;
+
     @InjectMocks
     private AuthService authService;
 
@@ -119,7 +122,7 @@ class AuthServiceTest {
         assertNotNull(response);
         assertEquals("newcandidate@example.com", response.getEmail());
         assertFalse(response.isEmailVerified());
-        assertNotNull(response.getDevVerificationToken());
+        assertNull(response.getDevVerificationToken(), "Non-development email providers must not expose verification tokens in HTTP responses");
 
         verify(userRepository, times(1)).save(any());
         verify(candidateProfileRepository, times(1)).save(any());
@@ -220,8 +223,7 @@ class AuthServiceTest {
 
         when(userRepository.findByEmail("candidate@example.com")).thenReturn(Optional.of(candidateUser));
         when(passwordEncoder.matches("Password123!", "hashed_password")).thenReturn(true);
-        when(tokenProvider.generateAccessToken(any(), any(), any())).thenReturn("fake_access_token");
-        when(tokenProvider.generateRefreshToken(any())).thenReturn("fake_refresh_token");
+        when(sessions.create(candidateUser)).thenReturn(JwtResponse.builder().email(candidateUser.getEmail()).accessToken("fake_access_token").build());
 
         JwtResponse response = authService.login(request);
 

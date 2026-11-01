@@ -121,7 +121,7 @@ public class AdminModerationApiIntegrationTest {
         when(userRepository.countByRole(Role.CANDIDATE)).thenReturn(100L);
         when(userRepository.countByRole(Role.HR)).thenReturn(48L);
         when(userRepository.countByIsActive(true)).thenReturn(145L);
-        when(userRepository.countByIsActive(false)).thenReturn(5L);
+        when(userRepository.countByAccountStatus(com.platform.recruitment.user.AccountStatus.SUSPENDED)).thenReturn(5L);
 
         when(companyRepository.countByVerificationStatus(CompanyVerification.PENDING)).thenReturn(12L);
         when(companyRepository.countByVerificationStatus(CompanyVerification.UNDER_REVIEW)).thenReturn(3L);
@@ -263,6 +263,7 @@ public class AdminModerationApiIntegrationTest {
     @Test
     @DisplayName("Job Moderation: Suspending and restoring job updates status and writes audit logs")
     void testJobModeration_SuspendAndRestore() {
+        testJob.getCompany().setVerificationStatus(CompanyVerification.VERIFIED);
         when(jobRepository.findById(testJob.getId())).thenReturn(Optional.of(testJob));
         when(jobRepository.save(any(Job.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -281,7 +282,7 @@ public class AdminModerationApiIntegrationTest {
     @Test
     @DisplayName("Report Moderation: Resolving report marks RESOLVED with resolution notes")
     void testReportModeration_ResolveReport() {
-        when(systemReportRepository.findById(testReport.getId())).thenReturn(Optional.of(testReport));
+        when(systemReportRepository.findByIdForUpdate(testReport.getId())).thenReturn(Optional.of(testReport));
         when(systemReportRepository.save(any(SystemReport.class))).thenAnswer(i -> i.getArgument(0));
 
         adminService.resolveReport(adminUser, testReport.getId(), "Job has been moderated", "127.0.0.1");
