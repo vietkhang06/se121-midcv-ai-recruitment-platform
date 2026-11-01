@@ -267,6 +267,7 @@ export default function CandidateDashboardPage() {
   ) : null;
 
   const displayName = profile?.fullName || user?.fullName || user?.email?.split('@')[0] || (isVi ? 'Ứng viên' : 'Candidate');
+
   const completeness = useMemo(() => {
     if (!profile) return 0;
     let score = 0;
@@ -313,7 +314,9 @@ export default function CandidateDashboardPage() {
     .sort((a, b) => (Date.parse(b.updatedAt || '') || 0) - (Date.parse(a.updatedAt || '') || 0))
     .slice(0, 3), [cvs]);
 
-  const quotaPercent = quota && quota.maxLimit > 0 ? Math.min(100, Math.round((quota.currentCount / quota.maxLimit) * 100)) : 0;
+  const quotaPercent = quota && quota.maxLimit > 0
+    ? Math.min(100, Math.round((quota.currentCount / quota.maxLimit) * 100))
+    : 0;
 
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -330,14 +333,17 @@ export default function CandidateDashboardPage() {
     router.push(`/jobs?${params.toString()}`);
   };
 
-
   if (loading) {
     return (
       <div className="min-h-[70vh] bg-[var(--surface)] px-4 py-8 dark:bg-[var(--surface)] sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl space-y-7">
           <div className="h-[330px] animate-pulse rounded-xl bg-blue-100/70 dark:bg-[var(--surface)]" />
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[0, 1, 2, 3].map((item) => <div key={item} className="h-28 animate-pulse rounded-xl bg-slate-200 dark:bg-[var(--surface)]" />)}</div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">{[0, 1, 2].map((item) => <div key={item} className="h-56 animate-pulse rounded-xl bg-slate-200 dark:bg-[var(--surface)]" />)}</div>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((item) => <div key={item} className="h-28 animate-pulse rounded-xl bg-slate-200 dark:bg-[var(--surface)]" />)}
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {[0, 1, 2].map((item) => <div key={item} className="h-56 animate-pulse rounded-xl bg-slate-200 dark:bg-[var(--surface)]" />)}
+          </div>
         </div>
       </div>
     );

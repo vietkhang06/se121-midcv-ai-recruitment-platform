@@ -1,7 +1,9 @@
 package com.platform.recruitment.auth;
 
 import com.platform.recruitment.user.Role;
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,14 +31,23 @@ public class JwtTokenProvider {
         this.refreshTokenExpirationMs = refreshTokenExpirationMs;
     }
 
-    public long getAccessTokenExpirationSeconds() { return accessTokenExpirationMs / 1000; }
-    public long getRefreshTokenExpirationMs() { return refreshTokenExpirationMs; }
+    public long getAccessTokenExpirationSeconds() {
+        return accessTokenExpirationMs / 1000;
+    }
+
+    public long getRefreshTokenExpirationMs() {
+        return refreshTokenExpirationMs;
+    }
 
     public String generateAccessToken(UUID userId, String email, Role role) {
         return generateAccessToken(userId, email, role, null);
     }
 
-    public String generateAccessToken(UUID userId, String email, Role role, UUID sessionId) {
+    public String generateAccessToken(
+            UUID userId,
+            String email,
+            Role role,
+            UUID sessionId) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + accessTokenExpirationMs);
 
@@ -47,7 +58,7 @@ public class JwtTokenProvider {
                 .id(UUID.randomUUID().toString())
                 .claim("email", email)
                 .claim("role", role.name())
-                .claim("iat_ms",now.getTime())
+                .claim("iat_ms", now.getTime())
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(key)
@@ -67,7 +78,7 @@ public class JwtTokenProvider {
                 .claim("token_type", "REFRESH")
                 .claim("sid", sessionId == null ? null : sessionId.toString())
                 .id(UUID.randomUUID().toString())
-                .claim("iat_ms",now.getTime())
+                .claim("iat_ms", now.getTime())
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(key)
@@ -80,6 +91,7 @@ public class JwtTokenProvider {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+
         return UUID.fromString(claims.getSubject());
     }
 
@@ -89,32 +101,72 @@ public class JwtTokenProvider {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+
         return claims.get("role", String.class);
     }
 
     public long getIssuedAtMillis(String token) {
-        Claims c=Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
-        Number n=c.get("iat_ms",Number.class);return n!=null?n.longValue():c.getIssuedAt()==null?0:c.getIssuedAt().getTime();
+        Claims claims = Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        Number issuedAtMillis = claims.get("iat_ms", Number.class);
+        if (issuedAtMillis != null) {
+            return issuedAtMillis.longValue();
+        }
+
+        Date issuedAt = claims.getIssuedAt();
+        return issuedAt == null ? 0 : issuedAt.getTime();
     }
+
     public UUID getSessionId(String token) {
-        String value = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload().get("sid", String.class);
+        String value = Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("sid", String.class);
+
         return value == null ? null : UUID.fromString(value);
     }
 
-    public boolean isAccessToken(String token) { return hasType(token, "ACCESS"); }
-    public boolean isRefreshToken(String token) { return hasType(token, "REFRESH"); }
+    public boolean isAccessToken(String token) {
+        return hasType(token, "ACCESS");
+    }
+
+    public boolean isRefreshToken(String token) {
+        return hasType(token, "REFRESH");
+    }
+
     private boolean hasType(String token, String type) {
-        try { return type.equals(Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload().get("token_type", String.class)); }
-        catch (JwtException | IllegalArgumentException e) { return false; }
+        try {
+            String tokenType = Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .get("token_type", String.class);
+
+            return type.equals(tokenType);
+        } catch (JwtException | IllegalArgumentException ex) {
+            return false;
+        }
     }
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
+            Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token);
+
             return true;
         } catch (JwtException | IllegalArgumentException ex) {
             log.error("Invalid JWT token: {}", ex.getMessage());
         }
+
         return false;
     }
 }

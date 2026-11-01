@@ -5,6 +5,7 @@
 > Corrective implementation addendum (19/10/2026): `REMEDIATION_API_CONTRACT.md` defines the actual corrected preview/version/recalculation contract. Other sections below include roadmap examples and have not all been live-verified. A sample JSON is not an observed HTTP result.
 
 Tài liệu này quy định hợp đồng giao tiếp API (API Contract) chính thức giữa các dịch vụ trong hệ thống **AI Recruitment Platform / MidCV**:
+
 1. **Internal AI Worker APIs** (`http://ai-worker:8000/internal/ai/...`) - Giao tiếp nội bộ giữa Spring Boot Backend và FastAPI AI Worker.
 2. **Public Candidate & Recruiter APIs** (`https://api.midcv.vn/api/v1/...`) - Giao tiếp giữa Next.js Frontend và Spring Boot Backend.
 
@@ -15,11 +16,13 @@ Tài liệu này quy định hợp đồng giao tiếp API (API Contract) chính
 Các endpoint này chỉ phục vụ giao tiếp nội bộ giữa Backend và AI Worker, yêu cầu header bảo mật nội bộ `X-Internal-Token: <SECRET_TOKEN>`.
 
 ### 1.1. Extract Raw Text (Phase 1)
+
 - **Endpoint**: `POST /internal/ai/cv/extract-text`
 - **Content-Type**: `multipart/form-data`
 - **Request Body**:
   - `file`: File binary (PDF, DOCX, PNG, JPG).
 - **Response**: `200 OK`
+
   ```json
   {
     "raw_text": "NGUYEN VAN A\nSoftware Engineer\n...",
@@ -35,16 +38,20 @@ Các endpoint này chỉ phục vụ giao tiếp nội bộ giữa Backend và A
   ```
 
 ### 1.2. Parse & Structure CV (Phase 2)
+
 - **Endpoint**: `POST /internal/ai/cv/parse-cv`
 - **Content-Type**: `application/json`
 - **Request Body**:
+
   ```json
   {
     "raw_text": "NGUYEN VAN A\nSoftware Engineer\n...",
     "source_file_name": "resume_nguyenvana.pdf"
   }
   ```
+
 - **Response**: `200 OK`
+
   ```json
   {
     "structured_by": "PRIMARY | OLLAMA_FALLBACK",
@@ -90,15 +97,19 @@ Các endpoint này chỉ phục vụ giao tiếp nội bộ giữa Backend và A
   ```
 
 ### 1.3. Taxonomy Normalization (Phase 4)
+
 - **Endpoint**: `POST /internal/ai/taxonomy/normalize-skills`
 - **Content-Type**: `application/json`
 - **Request Body**:
+
   ```json
   {
     "skills": ["Spring Boot", "reactjs", "lập trình java", "k8s"]
   }
   ```
+
 - **Response**: `200 OK`
+
   ```json
   {
     "normalized_skills": [
@@ -135,9 +146,11 @@ Các endpoint này chỉ phục vụ giao tiếp nội bộ giữa Backend và A
   ```
 
 ### 1.4. Semantic Embedding Comparison (Phase 5)
+
 - **Endpoint**: `POST /internal/ai/matching/semantic-compare`
 - **Content-Type**: `application/json`
 - **Request Body**:
+
   ```json
   {
     "candidate_text_chunks": {
@@ -152,7 +165,9 @@ Các endpoint này chỉ phục vụ giao tiếp nội bộ giữa Backend và A
     }
   }
   ```
+
 - **Response**: `200 OK`
+
   ```json
   {
     "similarity_scores": {
@@ -164,9 +179,11 @@ Các endpoint này chỉ phục vụ giao tiếp nội bộ giữa Backend và A
   ```
 
 ### 1.5. LLM Score Explanation (Phase 6)
+
 - **Endpoint**: `POST /internal/ai/matching/explain-score`
 - **Content-Type**: `application/json`
 - **Request Body**:
+
   ```json
   {
     "overall_score": 82.5,
@@ -185,7 +202,9 @@ Các endpoint này chỉ phục vụ giao tiếp nội bộ giữa Backend và A
     "target_job_title": "Senior Java Developer"
   }
   ```
+
 - **Response**: `200 OK`
+
   ```json
   {
     "explanation_markdown": "Ứng viên đạt **82.5/100** điểm phù hợp cho vị trí **Senior Java Developer**.\n\n- **Điểm mạnh**: Kinh nghiệm làm việc thực tế với Java và Spring Boot hoàn toàn đáp ứng yêu cầu kỹ năng cốt lõi (85/100).\n- **Điểm cần cải thiện**: Hồ sơ chưa thể hiện kỹ năng Kafka - một trong các kỹ năng ưu tiên của dự án."
@@ -207,10 +226,12 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
 ### 2.1. Candidate Profile Management
 
 #### `POST /api/v1/candidate/cv/upload`
+
 - **Role**: `CANDIDATE`
 - **Description**: Upload file CV gốc, kích hoạt extraction & LLM structuring, tạo hồ sơ trạng thái `DRAFT`. File CV gốc là artifact đầu vào bất biến phục vụ truy vết và kiểm toán. Việc người dùng chỉnh structured profile không được ghi đè file gốc.
 - **Request**: Multipart file (`file`).
 - **Response**: `201 Created`
+
   ```json
   {
     "cv_id": "cv_987654",
@@ -222,19 +243,24 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
   ```
 
 #### `PATCH /api/v1/candidate/cvs/{id}/metadata`
+
 - **Role**: `CANDIDATE`
 - **Description**: Cập nhật metadata hiển thị của card CV trong thư viện. Endpoint này chỉ đổi tiêu đề card; không sửa nội dung draft, file gốc, trạng thái xác nhận hoặc bất kỳ CV version nào.
 - **Request Body**:
+
   ```json
   { "title": "Backend Engineer CV" }
   ```
+
 - **Validation**: `title` bắt buộc, sau khi trim không được rỗng và tối đa 255 ký tự.
 - **Response**: `200 OK` với `CVResponse` đã cập nhật. Candidate chỉ được sửa CV thuộc sở hữu của mình.
 
 #### `GET /api/v1/candidate/cvs/{id}/draft`
+
 - **Role**: `CANDIDATE`
 - **Description**: Lấy dữ liệu bản nháp CV (DRAFT) để ứng viên review và chỉnh sửa. Khởi tạo từ extraction snapshot (AI structured JSON) và bảo toàn tính bất biến của file gốc và raw text.
 - **Response**: `200 OK`
+
   ```json
   {
     "cv_id": "cv_987654",
@@ -338,15 +364,18 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
   ```
 
 #### `PUT /api/v1/candidate/cvs/{id}/draft`
+
 - **Role**: `CANDIDATE`
 - **Description**: Lưu bản nháp đã chỉnh sửa của CV. Cho phép thêm, sửa, xóa các card lặp, chip kỹ năng, định dạng rich text, thông tin GPA. Không làm thay đổi file CV gốc hay raw text snapshot. Origin được backend phân giải tự động (`CV_EXTRACTED` cho trường chưa sửa, `USER_EDITED` cho trường sửa, `USER_ADDED` cho phần tử tạo mới).
 - **Request Body**: Tương đương cấu trúc của `CVDraftResponse`.
 - **Response**: `200 OK` (trả về `CVDraftResponse` đã cập nhật).
 
 #### `POST /api/v1/candidate/cvs/{cvId}/confirm`
+
 - **Role**: `CANDIDATE`
 - **Description**: Ứng viên cam kết và xác nhận toàn bộ thông tin hồ sơ cho CV cụ thể (`cvId`). Chuyển trạng thái hồ sơ sang `CONFIRMED`. Dữ liệu xác nhận này trở thành Confirmed Profile chính thức phục vụ đối sánh JD–CV.
 - **Response**: `200 OK`
+
   ```json
   {
     "cv_id": "cv_987654",
@@ -357,10 +386,12 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
   ```
 
 #### `GET /api/v1/taxonomy/skills/search`
+
 - **Role**: `CANDIDATE | RECRUITER | PUBLIC`
 - **Description**: Tìm kiếm kỹ năng chuẩn từ từ điển Taxonomy thật trong database phục vụ autocomplete (debounce 250-350ms).
 - **Query Params**: `query` (chuỗi tìm kiếm), `limit` (mặc định 10, tối đa 30).
 - **Response**: `200 OK`
+
   ```json
   {
     "query": "jav",
@@ -387,6 +418,7 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
   ```
 
 #### `POST /api/v1/candidate/cvs/{cvId}/attachments`
+
 - **Role**: `CANDIDATE`
 - **Description**: Tải lên tài liệu minh chứng (PDF, PNG, JPG/JPEG <= 10MB) đính kèm cho từng chứng chỉ hoặc ngoại ngữ. Trạng thái minh chứng mặc định là `UPLOADED / UNVERIFIED`. Item ID phải là UUID hợp lệ đã tồn tại trong bản nháp.
 - **Content-Type**: `multipart/form-data`
@@ -402,6 +434,7 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
   - `413 Payload Too Large`: Dung lượng file vượt quá giới hạn cho phép.
   - `415 Unsupported Media Type`: Định dạng file không được hỗ trợ.
 - **Response**: `201 Created`
+
   ```json
   {
     "attachment_id": "att_111",
@@ -417,11 +450,13 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
   ```
 
 #### `GET /api/v1/candidate/cvs/{cvId}/attachments/{attachmentId}`
+
 - **Role**: `CANDIDATE | RECRUITER`
 - **Description**: Xem nhanh (preview ảnh / inline PDF) hoặc tải xuống file minh chứng đính kèm. Yêu cầu kiểm tra quyền sở hữu candidate ownership.
 - **Response**: `200 OK` (Binary stream kèm `Content-Type`, `Content-Disposition: inline`).
 
 #### `DELETE /api/v1/candidate/cvs/{cvId}/attachments/{attachmentId}`
+
 - **Role**: `CANDIDATE`
 - **Description**: Xóa file minh chứng đính kèm khi hồ sơ còn ở trạng thái DRAFT.
 - **Response**: `200 OK`
@@ -431,9 +466,11 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
 ### 2.2. Matching & Gap Analysis
 
 #### `POST /api/v1/candidate/match/{jobId}`
+
 - **Role**: `CANDIDATE`
 - **Description**: Kích hoạt đối sánh ngữ nghĩa và tính điểm toán học giữa hồ sơ đã `CONFIRMED` của ứng viên và JD đích. (Báo lỗi `400 Bad Request` nếu hồ sơ đang ở trạng thái `DRAFT`).
 - **Response**: `200 OK`
+
   ```json
   {
     "match_id": "match_112233",
@@ -460,9 +497,11 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
   ```
 
 #### `GET /api/v1/candidate/match/{jobId}/gap-analysis`
+
 - **Role**: `CANDIDATE`
 - **Description**: Trả về ma trận khoảng cách kỹ năng (5 nhóm) và lộ trình gợi ý phát triển kỹ năng cho JD này.
 - **Response**: `200 OK`
+
   ```json
   {
     "job_id": "job_456",
@@ -496,9 +535,11 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
 ### 2.3. Recruiter Review & Decision
 
 #### `GET /api/v1/recruiter/jobs/{jobId}/applications`
+
 - **Role**: `RECRUITER`
 - **Description**: Lấy danh sách ứng viên đã nộp/được đối sánh cho JD, xếp hạng theo `match_score` tất định giảm dần.
 - **Response**: `200 OK`
+
   ```json
   {
     "job_id": "job_456",
@@ -518,14 +559,17 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
   ```
 
 #### `GET /api/v1/recruiter/applications/{id}/audit`
+
 - **Role**: `RECRUITER`
 - **Description**: Xem toàn bộ bằng chứng kiểm toán (Audit Trail) của một đơn ứng tuyển: CV gốc, dữ liệu trích xuất, chỉnh sửa của người dùng, bằng chứng GitHub, bảng điểm và lý do.
 - **Response**: `200 OK`
 
 #### `POST /api/v1/recruiter/applications/{id}/decision`
+
 - **Role**: `RECRUITER`
 - **Description**: Nhà tuyển dụng đưa ra quyết định cuối cùng (Human Decision).
 - **Request Body**:
+
   ```json
   {
     "decision": "SHORTLIST | INTERVIEW_SCHEDULE | REJECT",
@@ -533,7 +577,9 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
     "interview_date": "2026-10-05T09:00:00Z"
   }
   ```
+
 - **Response**: `200 OK`
+
   ```json
   {
     "application_id": "app_001",
@@ -562,7 +608,6 @@ Provider identity is stored by `(provider, provider_subject)`, not email. New so
 ### Job salary representation
 
 `minSalary` and `maxSalary` remain JSON decimal numbers backed by PostgreSQL `DECIMAL(12,2)`. Requests accept `salaryCurrency` from `VND`, `USD`, `EUR`, `GBP`, `JPY`, `CNY`, `KRW`, `SGD`, `AUD`, `CAD`; responses include that ISO code and `salaryPeriod: "MONTH"`. Currency and period are independent. Existing records remain numerically unchanged and are migrated as VND/month. Missing values are `null`; zero is numeric zero. `salaryNegotiable: true` requires both amounts to be null; otherwise an empty range means undisclosed. Negative and inverted ranges are rejected. No exchange-rate conversion or cross-currency numeric filtering/comparison occurs.
-
 
 ## Inbox & account workspace — 27/10/2026
 
