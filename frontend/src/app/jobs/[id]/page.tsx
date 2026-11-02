@@ -2,6 +2,7 @@
 
 import React, { use, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { TargetJobGap } from '@/components/cv/TargetJobGap';
 import { SaveJobButton } from '@/components/inbox/SaveJobButton';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, BriefcaseBusiness, MapPin, Share2 } from 'lucide-react';
@@ -157,6 +158,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           </div>
           <aside className="h-fit rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 lg:sticky lg:top-24"><h2 className="text-base font-semibold">{isVi ? 'Thông tin nhà tuyển dụng' : 'Employer'}</h2><p className="mt-3 break-words text-sm font-medium">{job.companyName || (isVi ? 'Chưa có thông tin' : 'Not provided')}</p><p className="mt-5 text-sm text-slate-600 dark:text-slate-300">{job.location || (isVi ? 'Chưa cung cấp địa điểm' : 'Location not provided')}</p>{job.industry && <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{translateIndustry(job.industry, locale)}</p>}</aside>
         </div>
+
+        {user?.role === 'CANDIDATE' && job.status === 'PUBLISHED' && <div className="mt-6"><TargetJobGap key={job.id} jobId={job.id}/></div>}
 
         <button type="button" onClick={returnToJobs} className="mt-7 inline-flex items-center gap-2 text-sm font-medium text-blue-800 hover:underline dark:text-blue-300"><ArrowLeft size={16} aria-hidden="true"/>{isVi ? 'Quay lại kết quả việc làm' : 'Back to job results'}</button>
       </div>

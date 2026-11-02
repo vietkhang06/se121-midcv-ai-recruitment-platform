@@ -199,6 +199,9 @@ public class AiWorkerClient {
         return postReview("/cv/ocr-review" + (apply ? "/apply" : ""), body);
     }
 
+    public Map<String, Object> skillGap(Map<String, Object> body) {
+        return postReview("/matching/skill-gap-and-roadmap", body);
+    }
 
     private Map<String, Object> postReview(String endpoint, Map<String, Object> body) {
         try {
