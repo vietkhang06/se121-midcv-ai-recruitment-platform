@@ -61,7 +61,7 @@ public class ScreeningController {
     var j =
         queryOne(
             "SELECT j.* FROM jobs j LEFT JOIN recruiter_profiles rp ON rp.company_id = j.company_id"
-                + " WHERE j.id=? AND (rp.user_id=? OR EXISTS(SELECT 1 FROM users u WHERE u.id=? AND u.role='ADMIN')) FOR SHARE",
+                + " WHERE j.id=? AND (rp.user_id=? OR EXISTS(SELECT 1 FROM users u WHERE u.id=? AND u.role='ADMIN')) FOR SHARE OF j",
             id,
             a.getId(),
             a.getId());
@@ -76,7 +76,7 @@ public class ScreeningController {
     if (jobDesc.isBlank()) jobDesc = jobTitle;
     var existingJd = queryOptional(
         "SELECT sr.jd_version_id FROM screening_runs sr JOIN document_versions v ON v.id=sr.jd_version_id "
-            + "WHERE sr.job_id=? AND v.raw_text=? ORDER BY sr.created_at DESC LIMIT 1", id, jobDesc);
+            + "WHERE sr.job_id=? AND v.raw_text=? AND v.state <> 'FAILED' ORDER BY sr.created_at DESC LIMIT 1", id, jobDesc);
     if (existingJd.isPresent()) {
       jdVersionId = parseUuid(existingJd.get().get("jd_version_id"));
     } else {

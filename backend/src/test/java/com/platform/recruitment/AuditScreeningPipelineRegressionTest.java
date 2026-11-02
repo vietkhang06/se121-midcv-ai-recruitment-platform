@@ -42,6 +42,11 @@ class AuditScreeningPipelineRegressionTest {
         assertTrue(writes.get(0).getArgument(0).toString().contains("embedding_model=?"));
         assertEquals(screening ? vector : null,writes.get(0).getArgument(2));
         assertFalse(writes.get(0).getArgument(1).toString().contains("canonical"));
+        var sqlCalls = mockingDetails(jdbc).getInvocations().stream()
+                .filter(call -> call.getArguments().length > 0 && call.getArgument(0) instanceof String)
+                .map(call -> call.getArgument(0).toString().toLowerCase(Locale.ROOT)).toList();
+        assertTrue(sqlCalls.stream().noneMatch(sql -> sql.matches("(?s).*insert\\s+into\\s+(applications|candidate_profiles)\\b.*")),
+                "Screening extraction must never fabricate candidate profiles or applications");
     }
     @Test void newScreeningHasVectorBeforeReady() throws Exception {extract(true);}
     @Test void candidateDraftIsReviewReadyWithoutPrematureEmbedding() throws Exception {extract(false);}
