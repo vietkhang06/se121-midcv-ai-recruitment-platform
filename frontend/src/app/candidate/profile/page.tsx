@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { fetchCandidateProfile, saveCandidateProfile, confirmCandidateCV, fetchCandidateCVs, triggerGithubAnalysis, beginOAuthLink, fetchGithubConnection } from '@/lib/api';
+import { fetchCandidateProfile, saveCandidateProfile, confirmCandidateCV, fetchCandidateCVs, fetchCVDraft, triggerGithubAnalysis, beginOAuthLink, fetchGithubConnection } from '@/lib/api';
 import { Industry, CandidateProfile } from '@/types';
 import { AnimatedStatus } from '@/components/motion';
 import {
@@ -184,7 +184,11 @@ export default function CandidateProfilePage() {
     if (!activeCvId) return;
     setIsConfirming(true);
     try {
-      const res = await confirmCandidateCV(activeCvId);
+      const draft = await fetchCVDraft(activeCvId);
+      if (!draft.version_id || !draft.revision) throw new Error(locale === 'vi'
+        ? 'Không lấy được phiên bản CV hiện tại. Hãy tải lại trang.'
+        : 'Could not resolve the current CV revision. Reload this page.');
+      const res = await confirmCandidateCV(activeCvId, { version_id: draft.version_id, expected_revision: draft.revision });
       if (res && res.status === 'CONFIRMED') {
         setCvStatus('CONFIRMED');
         setConfirmedSuccess(true);

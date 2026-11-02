@@ -811,7 +811,10 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
           return;
         }
       }
-      await confirmCandidateCV(cvId, { version_id: currentDraftRef.current?.version_id, expected_revision: currentDraftRef.current?.revision });
+      const versionId = currentDraftRef.current?.version_id;
+      const revision = currentDraftRef.current?.revision;
+      if (!versionId || !revision) throw new Error('CV revision is unavailable. Reload before confirming.');
+      await confirmCandidateCV(cvId, { version_id: versionId, expected_revision: revision });
       setShowConfirmModal(false);
       setConfirmError(null);
       setIsEditing(false);

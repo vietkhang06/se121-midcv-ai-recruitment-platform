@@ -588,7 +588,7 @@ export interface ApiClient {
   retryCVExtraction(cvId: string, signal?: AbortSignal): Promise<CVReviewData>;
   fetchCVDraft(cvId: string): Promise<CVDraftData>;
   updateCVDraft(cvId: string, draftData: Record<string, unknown>): Promise<CVDraftData>;
-  confirmCandidateCV(cvId: string, revision?: { version_id?: string; expected_revision?: string }): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }>;
+  confirmCandidateCV(cvId: string, revision: { version_id: string; expected_revision: string }): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }>;
   fetchCVVersions(cvId: string): Promise<CVVersion[]>;
   searchTaxonomySkills(query: string, limit?: number, category?: string): Promise<TaxonomySkillItem[]>;
   fetchFavoriteSkills(): Promise<TaxonomySkillItem[]>;
@@ -987,13 +987,13 @@ export class RealApiClient implements ApiClient {
     return json.data;
   }
 
-  async confirmCandidateCV(cvId: string, revision?: { version_id?: string; expected_revision?: string }): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }> {
+  async confirmCandidateCV(cvId: string, revision: { version_id: string; expected_revision: string }): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }> {
     const token = getAuthToken();
     if (!token) {
       throw new ApiError('POST', `/api/v1/candidate/cvs/${cvId}/confirm`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
     const json = await apiRequest<ApiEnvelope<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }>>(`/api/v1/candidate/cvs/${cvId}/confirm`, {
-      body: revision ? JSON.stringify(revision) : undefined,
+      body: JSON.stringify(revision),
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -1855,7 +1855,7 @@ export const downloadCVFile = (cvId: string, format: string, defaultFilename: st
 export const retryCVExtraction = (cvId: string, signal?: AbortSignal) => currentApiClient.retryCVExtraction(cvId, signal);
 export const fetchCVDraft = (cvId: string) => currentApiClient.fetchCVDraft(cvId);
 export const updateCVDraft = (cvId: string, draftData: Record<string, unknown>) => currentApiClient.updateCVDraft(cvId, draftData);
-export const confirmCandidateCV = (cvId: string, revision?: { version_id?: string; expected_revision?: string }) => currentApiClient.confirmCandidateCV(cvId, revision);
+export const confirmCandidateCV = (cvId: string, revision: { version_id: string; expected_revision: string }) => currentApiClient.confirmCandidateCV(cvId, revision);
 export const fetchCVVersions = (cvId: string) => currentApiClient.fetchCVVersions(cvId);
 export const searchTaxonomySkills = (query: string, limit?: number, category?: string) => currentApiClient.searchTaxonomySkills(query, limit, category);
 export const fetchFavoriteSkills = () => currentApiClient.fetchFavoriteSkills();
