@@ -267,14 +267,8 @@ class TaxonomyNormalizer:
                 category=entry["category"]
             )
 
-        # Layer 4: Bounded Semantic & LLM Disambiguation
-        top_candidates = self._find_top_k_candidates(skill_lower, k=5)
-        if top_candidates and self.llm_client and getattr(self.llm_client, "is_configured", True):
-            disambiguated = self._disambiguate_with_llm(raw_skill, top_candidates, context)
-            if disambiguated:
-                return disambiguated
-
-        # A lexical ratio is not a semantic vector. Only actual embeddings may produce SEMANTIC.
+        # Layer 4: actual vector Top-K. The LLM may only disambiguate this bounded
+        # semantic candidate set; lexical similarity must never masquerade as vectors.
         try:
             entries = list(self.skills_by_id.values())
             vectors = self.embedding_service.embed_batch([raw_skill] + [e["canonical_name"] for e in entries])
@@ -287,6 +281,12 @@ class TaxonomyNormalizer:
                 entry, score = scores[0]
                 return NormalizedSkillItem(raw_name=raw_skill, canonical_id=entry["canonical_id"],
                     canonical_name=entry["canonical_name"], match_type="SEMANTIC", confidence=round(score, 2), category=entry["category"])
+            semantic_top_k = scores[:5]
+            if (semantic_top_k and semantic_top_k[0][1] >= 0.50 and self.llm_client
+                    and getattr(self.llm_client, "is_configured", True)):
+                disambiguated = self._disambiguate_with_llm(raw_skill, semantic_top_k, context)
+                if disambiguated:
+                    return disambiguated
         except Exception:
             logger.debug("Semantic taxonomy unavailable; preserving unknown skill")
         return self._unknown(raw_skill)

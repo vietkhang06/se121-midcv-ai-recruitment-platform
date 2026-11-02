@@ -122,8 +122,15 @@ class TestPhase4TaxonomyNormalizationAcceptance:
             total_tokens=55,
             latency_ms=100
         )
-
-        normalizer_with_llm = TaxonomyNormalizer(llm_client=mock_llm)
+        embedding = MagicMock()
+        normalizer_with_llm = TaxonomyNormalizer(llm_client=mock_llm, embedding_service=embedding)
+        entries = list(normalizer_with_llm.skills_by_id.values())
+        vectors = [[1.0, 0.0]] + [[0.0, 1.0] for _ in entries]
+        kubernetes = next(i for i, row in enumerate(entries) if row["canonical_id"] == "SKILL_DEVOPS_KUBERNETES")
+        docker = next(i for i, row in enumerate(entries) if row["canonical_id"] == "SKILL_DEVOPS_DOCKER")
+        vectors[kubernetes + 1] = [0.80, 0.60]
+        vectors[docker + 1] = [0.78, 0.63]
+        embedding.embed_batch.return_value = vectors
 
         # Ambiguous skill that doesn't exact-match or fuzzy-match cleanly
         req = SkillNormalizeRequest(
