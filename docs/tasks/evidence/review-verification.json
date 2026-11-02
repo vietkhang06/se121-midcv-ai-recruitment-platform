@@ -1,0 +1,212 @@
+{
+  "timestamp_utc": "2026-11-02T06:03:18.575182+00:00",
+  "base_commit": "acc5d7a9035b69c18aea609b886b35c7dbaeff36",
+  "provider_mode": "LOCAL_SYNTHETIC_MOCK",
+  "java_contracts_passed": 87,
+  "migration_runs_passed": [
+    "FRESH_TO_32",
+    "V20_UPGRADE_TO_32"
+  ],
+  "python_passed": 107,
+  "frontend_contracts_passed": 40,
+  "browser_http_mock_passed": 4,
+  "doc_runtime_passed": 6,
+  "ocr_samples_passed": 5,
+  "full_product_acceptance": false,
+  "integration": {
+    "core": {
+      "status": "PASSED",
+      "checks": [
+        {
+          "name": "M05 preview creates no application; submissions bind confirmed versions",
+          "status": "PASSED",
+          "candidates": 5
+        },
+        {
+          "name": "M02 backend score repeats 100/100; stored factors reconstruct core",
+          "status": "PASSED",
+          "score": 87.98,
+          "repeats": 100
+        },
+        {
+          "name": "M03 real backend ranking evaluated against independent synthetic relevance labels",
+          "status": "PASSED",
+          "metrics": [
+            {
+              "k": 3,
+              "ndcg": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "label_count": 5,
+              "prediction_count": 5,
+              "missing_ids": []
+            },
+            {
+              "k": 5,
+              "ndcg": 1.0,
+              "precision": 0.6,
+              "recall": 1.0,
+              "label_count": 5,
+              "prediction_count": 5,
+              "missing_ids": []
+            }
+          ]
+        },
+        {
+          "name": "M02 saved policy and actual recalculate endpoint",
+          "status": "PASSED",
+          "recalculated": 5
+        },
+        {
+          "name": "M06 current draft cannot rewrite applied snapshot or its evidence",
+          "status": "PASSED",
+          "source_version": "15dfd883-fb1c-4bfa-80fd-cd010ad2fb6d"
+        },
+        {
+          "name": "C01 PostgreSQL simultaneous stale saves: one winner, one conflict",
+          "status": "PASSED",
+          "statuses": [
+            200,
+            409
+          ]
+        },
+        {
+          "name": "M04 real worker/backend gap roadmap preserves confirmed CV",
+          "status": "PASSED",
+          "roadmap_source": "LLM"
+        },
+        {
+          "name": "M01 vectors cached by confirmed version/model/source hash",
+          "status": "PASSED",
+          "vector_rows": 6,
+          "embedding_model": "test-mock-1024",
+          "provider_mode": "mock"
+        }
+      ]
+    },
+    "vectors": {
+      "status": "PASSED",
+      "checks": [
+        {
+          "name": "M01 JD title changes invalidate the persisted source hash",
+          "status": "PASSED"
+        },
+        {
+          "name": "M01 model changes invalidate both persisted vector spaces",
+          "status": "PASSED"
+        },
+        {
+          "name": "M01 SQL cache failure rolls back independently; outer score persists with explicit fallback",
+          "status": "PASSED"
+        }
+      ]
+    },
+    "documents": {
+      "status": "PASSED",
+      "checks": [
+        {
+          "name": "R02 real backend queue/worker finishes a mock-provider job longer than 60 seconds",
+          "status": "PASSED",
+          "processing_seconds": 67.87
+        },
+        {
+          "name": "O02 backend stores revision-bound proposal, applies only approved typography and preserves extraction",
+          "status": "PASSED"
+        },
+        {
+          "name": "C01 save/reload/confirm preserves original bytes and raw text",
+          "status": "PASSED",
+          "sha256": "51b374c280f4c43cf533018443356acdc7fdcaa2019332e2c9eed28af6d6bea5",
+          "processing_seconds": 67.87
+        }
+      ]
+    },
+    "screening": {
+      "status": "PASSED",
+      "checks": [
+        {
+          "name": "M05 HR screening produces a separately versioned score without application/candidate creation",
+          "status": "PASSED",
+          "result": {
+            "id": "3a54358a-1107-4ea2-8b4c-92b33f17a660",
+            "application_id": null,
+            "screening_id": "4c1c8428-c2d2-4f6b-b794-b4a9dcabcec2",
+            "processing_job_id": "0fb268d7-670f-4977-946a-6ac8b137703a",
+            "base_score": 97.8,
+            "github_bonus": 0.0,
+            "score": 97.8,
+            "coverage": 100.0,
+            "semantic_score": 94.5,
+            "details": {
+              "formula": "weighted mean of assessable criteria + up to 5 supporting GitHub points; capped at 100",
+              "coverage": 100.0,
+              "criteria": [
+                {
+                  "id": "required_skills",
+                  "score": 100.0,
+                  "status": "MET",
+                  "weight": 30,
+                  "evidence": [
+                    {
+                      "name": "Java",
+                      "status": "MET",
+                      "priority": "REQUIRED",
+                      "cv_evidence": "Java",
+                      "jd_evidence": "Java"
+                    },
+                    {
+                      "name": "Docker",
+                      "status": "MET",
+                      "priority": "REQUIRED",
+                      "cv_evidence": "Docker",
+                      "jd_evidence": "Docker"
+                    },
+                    {
+                      "name": "PostgreSQL",
+                      "status": "MET",
+                      "priority": "REQUIRED",
+                      "cv_evidence": "PostgreSQL",
+                      "jd_evidence": "PostgreSQL"
+                    }
+                  ]
+                },
+                {
+                  "id": "semantic",
+                  "score": 94.5,
+                  "status": "SIMILARITY",
+                  "weight": 20,
+                  "evidence": {
+                    "note": "Độ tương đồng nội dung nghề nghiệp, không phải xác suất tuyển dụng thành công.",
+                    "method": "pgvector cosine similarity"
+                  }
+                }
+              ],
+              "decision": "HR_REVIEW_REQUIRED",
+              "algorithm": "midcv-score-v1",
+              "github_policy": "No penalty when absent, unavailable or not applicable. Stars/forks are displayed only.",
+              "github_evidence": []
+            },
+            "github": {
+              "status": "NOT_APPLICABLE"
+            },
+            "algorithm_version": "midcv-score-v1",
+            "cv_version_id": "d6d36f15-def9-4ecc-9961-d27d878d44b8",
+            "jd_version_id": "31ab426a-4800-430d-95cd-2ffaad925d5b",
+            "created_at": "2026-11-02T05:45:27.380108Z"
+          }
+        }
+      ]
+    }
+  },
+  "log_sha256": {
+    "review-java-clean-final.log": "f9ef3129f8319239c9d5cb57ff74b4245ac861272a5fd34c544faf4a1f1f47fa",
+    "review-migration-upgrade.log": "0ac9d3a57f8723d4e8f4d2850b031fc50753b91bbf74dd5a06bf2bdbd82fb45f",
+    "review-python-final.log": "f2953a578c3b8535c43b7522c7c8e8939660c9cb117a0ac9ee467d3e47d25631",
+    "publication-frontend-contract.log": "5d2be14344394a96b9964b167bb3ce8679738ac51c20fcf521b5a765865e3bb8",
+    "publication-typescript.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publication-build.log": "f4187696eb787a573f4bad8fe06069ea27f6df6ccc8791c2cedf3019b1b3a91e",
+    "publication-browser.log": "1f4c71bdadccd9d51cc136431c3d3f3e6931bd9266a7720e6cc87097b859f515",
+    "review-doc-runtime.log": "1ffe6cafc0f3dbe57a03a37ef4e459f4d4d4a21c8ee4e5b531cdf495690a8b7a",
+    "review-ocr-runtime.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

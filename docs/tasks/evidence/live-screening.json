@@ -1,0 +1,263 @@
+{
+  "timestamp_utc": "2026-11-02T05:45:18.660207+00:00",
+  "phase": "screening",
+  "source": "REAL_BACKEND_POSTGRESQL_PGVECTOR",
+  "provider_mode": "mock",
+  "semantic_model_quality_measured": false,
+  "synthetic_data": true,
+  "checks": [
+    {
+      "name": "M05 HR screening produces a separately versioned score without application/candidate creation",
+      "status": "PASSED",
+      "result": {
+        "id": "3a54358a-1107-4ea2-8b4c-92b33f17a660",
+        "application_id": null,
+        "screening_id": "4c1c8428-c2d2-4f6b-b794-b4a9dcabcec2",
+        "processing_job_id": "0fb268d7-670f-4977-946a-6ac8b137703a",
+        "base_score": 97.8,
+        "github_bonus": 0.0,
+        "score": 97.8,
+        "coverage": 100.0,
+        "semantic_score": 94.5,
+        "details": {
+          "formula": "weighted mean of assessable criteria + up to 5 supporting GitHub points; capped at 100",
+          "coverage": 100.0,
+          "criteria": [
+            {
+              "id": "required_skills",
+              "score": 100.0,
+              "status": "MET",
+              "weight": 30,
+              "evidence": [
+                {
+                  "name": "Java",
+                  "status": "MET",
+                  "priority": "REQUIRED",
+                  "cv_evidence": "Java",
+                  "jd_evidence": "Java"
+                },
+                {
+                  "name": "Docker",
+                  "status": "MET",
+                  "priority": "REQUIRED",
+                  "cv_evidence": "Docker",
+                  "jd_evidence": "Docker"
+                },
+                {
+                  "name": "PostgreSQL",
+                  "status": "MET",
+                  "priority": "REQUIRED",
+                  "cv_evidence": "PostgreSQL",
+                  "jd_evidence": "PostgreSQL"
+                }
+              ]
+            },
+            {
+              "id": "semantic",
+              "score": 94.5,
+              "status": "SIMILARITY",
+              "weight": 20,
+              "evidence": {
+                "note": "Độ tương đồng nội dung nghề nghiệp, không phải xác suất tuyển dụng thành công.",
+                "method": "pgvector cosine similarity"
+              }
+            }
+          ],
+          "decision": "HR_REVIEW_REQUIRED",
+          "algorithm": "midcv-score-v1",
+          "github_policy": "No penalty when absent, unavailable or not applicable. Stars/forks are displayed only.",
+          "github_evidence": []
+        },
+        "github": {
+          "status": "NOT_APPLICABLE"
+        },
+        "algorithm_version": "midcv-score-v1",
+        "cv_version_id": "d6d36f15-def9-4ecc-9961-d27d878d44b8",
+        "jd_version_id": "31ab426a-4800-430d-95cd-2ffaad925d5b",
+        "created_at": "2026-11-02T05:45:27.380108Z"
+      }
+    }
+  ],
+  "http": [
+    {
+      "method": "POST",
+      "path": "/api/v1/hr/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/screenings",
+      "status": 200,
+      "duration_ms": 944
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/hr/screenings/4c1c8428-c2d2-4f6b-b794-b4a9dcabcec2",
+      "status": 200,
+      "duration_ms": 445
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/hr/screenings/4c1c8428-c2d2-4f6b-b794-b4a9dcabcec2",
+      "status": 200,
+      "duration_ms": 398
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/hr/screenings/4c1c8428-c2d2-4f6b-b794-b4a9dcabcec2",
+      "status": 200,
+      "duration_ms": 469
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/hr/screenings/4c1c8428-c2d2-4f6b-b794-b4a9dcabcec2",
+      "status": 200,
+      "duration_ms": 936
+    }
+  ],
+  "screening_detail": {
+    "screening": {
+      "id": "4c1c8428-c2d2-4f6b-b794-b4a9dcabcec2",
+      "owner_id": "e8a1f62e-37e1-4ceb-aec5-71da7a4a080b",
+      "job_id": "d045fdd4-8bb4-4a73-a253-dcdee5d82ac8",
+      "cv_version_id": "d6d36f15-def9-4ecc-9961-d27d878d44b8",
+      "jd_version_id": "31ab426a-4800-430d-95cd-2ffaad925d5b",
+      "industry_snapshot": "Technology",
+      "github_enabled_snapshot": false,
+      "created_at": "2026-11-02T05:45:19.515021Z"
+    },
+    "cv": {
+      "raw_text": "NGUYEN TUAN ANH                                                              \n       Senior Java Backend Developer                                                \n                                                                                    \n       Email: tuananh.nguyen@example.com | Phone: +84901234567 | Da Nang, Vietnam   \n                                                                                    \n       SUMMARY                                                                      \n       Over 5 years of software engineering experience specializing in Spring Boot, PostgreSQL, Kafka.\n                                                                                    \n       SKILLS                                                                       \n       Java, Spring Boot, PostgreSQL, Docker, Redis, Kubernetes                     \n                                                                                    \n       EXPERIENCE                                                                   \n       Senior Software Engineer - FinTech Solutions Vietnam (2021 - 2024)           \n       Architected payment gateway serving 500k daily transactions with 99.99% uptime.\n                                                                                    \n       EDUCATION                                                                    \n       Bachelor of Software Engineering - Da Nang University of Technology (2020)",
+      "error_message": null,
+      "pipeline_version": "cv-structure-v1",
+      "version_no": 1,
+      "llm_model": null,
+      "size_bytes": 1308,
+      "normalized": {
+        "type": "jsonb",
+        "value": "{\"links\": [], \"skills\": [{\"name\": \"Java\", \"level\": null}, {\"name\": \"Spring Boot\", \"level\": null}, {\"name\": \"Docker\", \"level\": null}, {\"name\": \"PostgreSQL\", \"level\": null}], \"summary\": null, \"evidence\": {\"raw_char_count\": 1454, \"grounding_policy\": \"unsupported_skills_gpa_removed_v1\", \"extracted_skills_count\": 4}, \"headline\": null, \"projects\": [], \"warnings\": [], \"education\": [], \"languages\": [], \"experience\": [], \"personalInfo\": {\"email\": \"tuananh.nguyen@example.com\", \"phone\": null, \"address\": null, \"fullName\": \"NGUYEN TUAN ANH\", \"headline\": null, \"githubUrl\": null, \"linkedinUrl\": null}, \"certifications\": []}",
+        "null": false
+      },
+      "owner_id": "e8a1f62e-37e1-4ceb-aec5-71da7a4a080b",
+      "kind": "CV",
+      "embedding_model": "test-mock-1024",
+      "created_at": "2026-11-02T05:45:19.515+00:00",
+      "extraction_method": "TEXT_LAYER",
+      "document_id": "8f9f1336-ec05-49ea-886f-fe279fd0d4c0",
+      "title": "synthetic-screen.pdf",
+      "filename": "synthetic-screen.pdf",
+      "media_type": "application/pdf",
+      "error_code": null,
+      "id": "d6d36f15-def9-4ecc-9961-d27d878d44b8",
+      "state": "READY"
+    },
+    "jd": {
+      "raw_text": "Java Docker PostgreSQL backend. Required: Java and Docker. 3+ years experience and Bachelor degree. Build API projects.",
+      "error_message": null,
+      "pipeline_version": "midcv-extract-v2-en",
+      "version_no": 1,
+      "llm_model": "dna5rm/granite4.2:3b-8k",
+      "size_bytes": null,
+      "normalized": {
+        "type": "jsonb",
+        "value": "{\"title\": null, \"skills\": [{\"name\": \"Java\", \"category\": \"BACKEND\", \"evidence\": \"Java\", \"priority\": \"REQUIRED\", \"canonical\": \"Java\", \"taxonomyMatch\": \"EXACT_CANONICAL\", \"taxonomyVersion\": \"v1.0\"}, {\"name\": \"Docker\", \"category\": \"DEVOPS\", \"evidence\": \"Docker\", \"priority\": \"REQUIRED\", \"canonical\": \"Docker\", \"taxonomyMatch\": \"EXACT_CANONICAL\", \"taxonomyVersion\": \"v1.0\"}, {\"name\": \"PostgreSQL\", \"category\": \"DATABASE\", \"evidence\": \"PostgreSQL\", \"priority\": \"REQUIRED\", \"canonical\": \"PostgreSQL\", \"taxonomyMatch\": \"EXACT_CANONICAL\", \"taxonomyVersion\": \"v1.0\"}], \"profile\": {\"email\": null, \"phone\": null, \"fullName\": null, \"location\": null}, \"summary\": null, \"projects\": [], \"education\": [], \"experience\": {\"years\": null, \"entries\": [], \"evidence\": null}, \"githubUsername\": null, \"otherRequirements\": []}",
+        "null": false
+      },
+      "owner_id": "e8a1f62e-37e1-4ceb-aec5-71da7a4a080b",
+      "kind": "JD",
+      "embedding_model": "test-mock-1024",
+      "created_at": "2026-11-02T05:45:19.515+00:00",
+      "extraction_method": "builder",
+      "document_id": "6a4fb12f-1c09-4630-8554-a49b845439c8",
+      "title": "JD - Java Backend Engineer - revised",
+      "filename": "JD-v1.txt",
+      "media_type": null,
+      "error_code": null,
+      "id": "31ab426a-4800-430d-95cd-2ffaad925d5b",
+      "state": "READY"
+    },
+    "result": {
+      "id": "3a54358a-1107-4ea2-8b4c-92b33f17a660",
+      "application_id": null,
+      "screening_id": "4c1c8428-c2d2-4f6b-b794-b4a9dcabcec2",
+      "processing_job_id": "0fb268d7-670f-4977-946a-6ac8b137703a",
+      "base_score": 97.8,
+      "github_bonus": 0.0,
+      "score": 97.8,
+      "coverage": 100.0,
+      "semantic_score": 94.5,
+      "details": {
+        "formula": "weighted mean of assessable criteria + up to 5 supporting GitHub points; capped at 100",
+        "coverage": 100.0,
+        "criteria": [
+          {
+            "id": "required_skills",
+            "score": 100.0,
+            "status": "MET",
+            "weight": 30,
+            "evidence": [
+              {
+                "name": "Java",
+                "status": "MET",
+                "priority": "REQUIRED",
+                "cv_evidence": "Java",
+                "jd_evidence": "Java"
+              },
+              {
+                "name": "Docker",
+                "status": "MET",
+                "priority": "REQUIRED",
+                "cv_evidence": "Docker",
+                "jd_evidence": "Docker"
+              },
+              {
+                "name": "PostgreSQL",
+                "status": "MET",
+                "priority": "REQUIRED",
+                "cv_evidence": "PostgreSQL",
+                "jd_evidence": "PostgreSQL"
+              }
+            ]
+          },
+          {
+            "id": "semantic",
+            "score": 94.5,
+            "status": "SIMILARITY",
+            "weight": 20,
+            "evidence": {
+              "note": "Độ tương đồng nội dung nghề nghiệp, không phải xác suất tuyển dụng thành công.",
+              "method": "pgvector cosine similarity"
+            }
+          }
+        ],
+        "decision": "HR_REVIEW_REQUIRED",
+        "algorithm": "midcv-score-v1",
+        "github_policy": "No penalty when absent, unavailable or not applicable. Stars/forks are displayed only.",
+        "github_evidence": []
+      },
+      "github": {
+        "status": "NOT_APPLICABLE"
+      },
+      "algorithm_version": "midcv-score-v1",
+      "cv_version_id": "d6d36f15-def9-4ecc-9961-d27d878d44b8",
+      "jd_version_id": "31ab426a-4800-430d-95cd-2ffaad925d5b",
+      "created_at": "2026-11-02T05:45:27.380108Z"
+    },
+    "jobs": [
+      {
+        "id": "0fb268d7-670f-4977-946a-6ac8b137703a",
+        "owner_id": "e8a1f62e-37e1-4ceb-aec5-71da7a4a080b",
+        "kind": "SCREEN_MATCH",
+        "entity_id": "4c1c8428-c2d2-4f6b-b794-b4a9dcabcec2",
+        "state": "SUCCEEDED",
+        "step": "SUCCEEDED",
+        "progress": 100,
+        "attempts": 2,
+        "error_code": null,
+        "error_message": null,
+        "request_id": "5ea7cd44-06b4-4430-8b89-24fd675f235e",
+        "locked_by": null,
+        "lease_until": null,
+        "available_at": "2026-11-02T05:45:27.226460Z",
+        "created_at": "2026-11-02T05:45:19.515021Z",
+        "updated_at": "2026-11-02T05:45:27.380108Z"
+      }
+    ]
+  },
+  "status": "PASSED"
+}

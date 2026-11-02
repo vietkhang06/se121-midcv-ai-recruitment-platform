@@ -1,0 +1,88 @@
+{
+  "timestamp_utc": "2026-11-01T12:42:57.580699+00:00",
+  "manifest_sha256": "b3d9a2d7849e277af79f3d1c5e46bedbeb61e40705954a8a90f3dea14a2bc8cf",
+  "python": "3.13.15",
+  "provenance": "Synthetic fixtures authored for Gia Khang O03 on 2026-11-01; no real CV or expert-labelled accuracy claim.",
+  "metric_normalization": "Unicode NFC + collapsed whitespace; accents/case/punctuation preserved",
+  "samples": [
+    {
+      "id": "en-image",
+      "sha256": "89986358515a509f0aebd0e0870e8eec9a4298f20d5c4b85b550635a6855ff32",
+      "status": "FAILED",
+      "error_code": "TESSERACT_NOT_FOUND",
+      "method": [],
+      "ocr_used": true,
+      "duration_ms": 51,
+      "ground_truth": "SYNTHETIC CV - ALEX SAMPLE\nSoftware developer and test engineer\nEmail: alex.sample@example.com\nSkills: Python, Docker, PostgreSQL\nExperience: Example Lab, 2021-2024\nBuilt an API with automated tests.\nEducation: Example Institute, Bachelor 2021",
+      "raw_text": null,
+      "before": null,
+      "after": null,
+      "after_status": "NO_APPROVED_REVIEW"
+    },
+    {
+      "id": "vi-image",
+      "sha256": "7e94eeed1993f48692515151bb9dfaa90e9619c694a578b844b17ce28111ba44",
+      "status": "FAILED",
+      "error_code": "TESSERACT_NOT_FOUND",
+      "method": [],
+      "ocr_used": true,
+      "duration_ms": 29,
+      "ground_truth": "HỒ SƠ GIẢ LẬP - NGUYỄN AN\nKỹ sư phần mềm và kiểm thử\nEmail: nguyen.an@example.com\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiệm: Công ty Ví Dụ, 2021-2024\nXây dựng hệ thống quản lý có kiểm thử.\nHọc vấn: Trường Giả Lập, Cử nhân 2021",
+      "raw_text": null,
+      "before": null,
+      "after": null,
+      "after_status": "NO_APPROVED_REVIEW"
+    },
+    {
+      "id": "bilingual-scan",
+      "sha256": "2b27a5df016bd1717fe8c1de2878b14439bfb3aa91930e372fc3560f6641fdb4",
+      "status": "FAILED",
+      "error_code": "OCR_DEPENDENCY_MISSING",
+      "method": [
+        "pdf-native"
+      ],
+      "ocr_used": true,
+      "duration_ms": 431,
+      "ground_truth": "SYNTHETIC CV - ALEX SAMPLE\nSoftware developer and test engineer\nEmail: alex.sample@example.com\nSkills: Python, Docker, PostgreSQL\nExperience: Example Lab, 2021-2024\nBuilt an API with automated tests.\nEducation: Example Institute, Bachelor 2021\nHỒ SƠ GIẢ LẬP - NGUYỄN AN\nKỹ sư phần mềm và kiểm thử\nEmail: nguyen.an@example.com\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiệm: Công ty Ví Dụ, 2021-2024\nXây dựng hệ thống quản lý có kiểm thử.\nHọc vấn: Trường Giả Lập, Cử nhân 2021",
+      "raw_text": null,
+      "before": null,
+      "after": null,
+      "after_status": "NO_APPROVED_REVIEW"
+    },
+    {
+      "id": "vi-blurred",
+      "sha256": "f4ce536326e160330d1a079a67faba2f23561cf0e652d3419f3e998fa7ffedf5",
+      "status": "FAILED",
+      "error_code": "TESSERACT_NOT_FOUND",
+      "method": [],
+      "ocr_used": true,
+      "duration_ms": 35,
+      "ground_truth": "HỒ SƠ GIẢ LẬP - NGUYỄN AN\nKỹ sư phần mềm và kiểm thử\nEmail: nguyen.an@example.com\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiệm: Công ty Ví Dụ, 2021-2024\nXây dựng hệ thống quản lý có kiểm thử.\nHọc vấn: Trường Giả Lập, Cử nhân 2021",
+      "raw_text": null,
+      "before": null,
+      "after": null,
+      "after_status": "NO_APPROVED_REVIEW"
+    },
+    {
+      "id": "en-native",
+      "sha256": "ce53179695e31fc13e8d2f30306745a454927b28be2aa30c4f6717bc79d66042",
+      "status": "EXTRACTED",
+      "error_code": null,
+      "method": [
+        "pdf-native"
+      ],
+      "ocr_used": false,
+      "duration_ms": 27,
+      "ground_truth": "SYNTHETIC CV - ALEX SAMPLE\nSoftware developer and test engineer\nEmail: alex.sample@example.com\nSkills: Python, Docker, PostgreSQL\nExperience: Example Lab, 2021-2024\nBuilt an API with automated tests.\nEducation: Example Institute, Bachelor 2021",
+      "raw_text": "SYNTHETIC CV - ALEX SAMPLE\n\nSoftware developer and test engineer\nEmail: alex.sample@example.com\nSkills: Python, Docker, PostgreSQL\n\nExperience: Example Lab, 2021-2024\nBuilt an API with automated tests.\n\nEducation: Example Institute, Bachelor 2021",
+      "before": {
+        "cer": 0.0,
+        "wer": 0.0
+      },
+      "after": null,
+      "after_status": "NO_APPROVED_REVIEW"
+    }
+  ],
+  "successful_samples": 1,
+  "sample_count": 5
+}

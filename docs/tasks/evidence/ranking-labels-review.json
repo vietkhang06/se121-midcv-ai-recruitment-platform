@@ -1,0 +1,11 @@
+{
+  "job_id": "d045fdd4-8bb4-4a73-a253-dcdee5d82ac8",
+  "provenance": "Synthetic task-authored rubric: strong=3, declared required skills or partial relevant evidence=2, unrelated/confusable=0; labels declared before backend calls, not HR expert annotations.",
+  "relevance": {
+    "5419b585-1d32-4feb-9ec2-5d62a891dfde": 3,
+    "1382ba94-7a27-4dc6-8274-22ed4d429501": 2,
+    "06d3e53e-1bdd-459d-8e4f-dddcd757d305": 2,
+    "f5bfc13e-5d9f-4840-b4c5-1e9eae97ba4c": 0,
+    "44997de2-6958-4a97-b2bb-99e393f92865": 0
+  }
+}

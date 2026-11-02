@@ -1,0 +1,106 @@
+{
+  "timestamp_utc": "2026-11-02T05:48:50.038723+00:00",
+  "manifest_sha256": "b3d9a2d7849e277af79f3d1c5e46bedbeb61e40705954a8a90f3dea14a2bc8cf",
+  "python": "3.11.18",
+  "provenance": "Synthetic fixtures authored for Gia Khang O03 on 2026-11-01; no real CV or expert-labelled accuracy claim.",
+  "metric_normalization": "Unicode NFC + collapsed whitespace; accents/case/punctuation preserved",
+  "samples": [
+    {
+      "id": "en-image",
+      "sha256": "89986358515a509f0aebd0e0870e8eec9a4298f20d5c4b85b550635a6855ff32",
+      "status": "EXTRACTED",
+      "error_code": null,
+      "method": [
+        "image-ocr"
+      ],
+      "ocr_used": true,
+      "duration_ms": 1953,
+      "ground_truth": "SYNTHETIC CV - ALEX SAMPLE\nSoftware developer and test engineer\nEmail: alex.sample@example.com\nSkills: Python, Docker, PostgreSQL\nExperience: Example Lab, 2021-2024\nBuilt an API with automated tests.\nEducation: Example Institute, Bachelor 2021",
+      "raw_text": "SYNTHETIC CV - ALEX SAMPLE\n\nSoftware developer and test engineer\nEmail: alex.sample@example.com\n\nSkills: Python, Docker, PostgreSQL\nExperience: Example Lab, 2021-2024\n\nBuilt an API with automated tests.\nEducation: Example Institute, Bachelor 2021",
+      "before": {
+        "cer": 0.0,
+        "wer": 0.0
+      },
+      "after": null,
+      "after_status": "NO_APPROVED_REVIEW"
+    },
+    {
+      "id": "vi-image",
+      "sha256": "7e94eeed1993f48692515151bb9dfaa90e9619c694a578b844b17ce28111ba44",
+      "status": "EXTRACTED",
+      "error_code": null,
+      "method": [
+        "image-ocr"
+      ],
+      "ocr_used": true,
+      "duration_ms": 2010,
+      "ground_truth": "HỒ SƠ GIẢ LẬP - NGUYỄN AN\nKỹ sư phần mềm và kiểm thử\nEmail: nguyen.an@example.com\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiệm: Công ty Ví Dụ, 2021-2024\nXây dựng hệ thống quản lý có kiểm thử.\nHọc vấn: Trường Giả Lập, Cử nhân 2021",
+      "raw_text": "HO SƠ GIA LẬP - NGUYEN AN\n\nKỹ sư phần mềm và kiểm thử\n\nEmail: nguyen.an@example.com\n\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiệm: Công ty Vi Du, 2021-2024\nXây dựng hệ thống quản lý có kiểm thử.\nHọc vấn: Trường Giả Lập, Cử nhân 2021",
+      "before": {
+        "cer": 0.02127659574468085,
+        "wer": 0.10869565217391304
+      },
+      "after": null,
+      "after_status": "NO_APPROVED_REVIEW"
+    },
+    {
+      "id": "bilingual-scan",
+      "sha256": "2b27a5df016bd1717fe8c1de2878b14439bfb3aa91930e372fc3560f6641fdb4",
+      "status": "EXTRACTED",
+      "error_code": null,
+      "method": [
+        "pdf-ocr"
+      ],
+      "ocr_used": true,
+      "duration_ms": 3409,
+      "ground_truth": "SYNTHETIC CV - ALEX SAMPLE\nSoftware developer and test engineer\nEmail: alex.sample@example.com\nSkills: Python, Docker, PostgreSQL\nExperience: Example Lab, 2021-2024\nBuilt an API with automated tests.\nEducation: Example Institute, Bachelor 2021\nHỒ SƠ GIẢ LẬP - NGUYỄN AN\nKỹ sư phần mềm và kiểm thử\nEmail: nguyen.an@example.com\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiệm: Công ty Ví Dụ, 2021-2024\nXây dựng hệ thống quản lý có kiểm thử.\nHọc vấn: Trường Giả Lập, Cử nhân 2021",
+      "raw_text": "SYNTHETIC CV - ALEX SAMPLE\nSoftware developer and test engineer\nEmail: alex.sample@example.com\nSkills: Python, Docker, PostgreSQL\nExperience: Example Lab, 2021-2024\nBuilt an API with automated tests.\nEducation: Example Institute, Bachelor 2021\nHO SƠ GIA LAP - NGUYEN AN\n\nKỹ su phần mềm va kiểm thử\n\nEmail: nguyen.an@example.com\n\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiém: Céng ty Vi Du, 2021-2024\nXây dựng hệ thống quan ly có kiểm thử.\nHọc van: Trường Giả Lập, Cử nhân 2021",
+      "before": {
+        "cer": 0.027139874739039668,
+        "wer": 0.16883116883116883
+      },
+      "after": null,
+      "after_status": "NO_APPROVED_REVIEW"
+    },
+    {
+      "id": "vi-blurred",
+      "sha256": "f4ce536326e160330d1a079a67faba2f23561cf0e652d3419f3e998fa7ffedf5",
+      "status": "EXTRACTED",
+      "error_code": null,
+      "method": [
+        "image-ocr"
+      ],
+      "ocr_used": true,
+      "duration_ms": 1037,
+      "ground_truth": "HỒ SƠ GIẢ LẬP - NGUYỄN AN\nKỹ sư phần mềm và kiểm thử\nEmail: nguyen.an@example.com\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiệm: Công ty Ví Dụ, 2021-2024\nXây dựng hệ thống quản lý có kiểm thử.\nHọc vấn: Trường Giả Lập, Cử nhân 2021",
+      "raw_text": "HÒ SƠ GIÁ LẬP - NGUYÊN AN\n\nKỹ sư phần mềm và kiểm thử\n\nEmail: nguyen.an@example.com\n\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiệm: Công ty Ví Dụ, 2021-2024\nXây dựng hệ thống quản lý có kiểm thử.\nHọc vấn: Trường Giả Lập, Cử nhân 2021",
+      "before": {
+        "cer": 0.01276595744680851,
+        "wer": 0.06521739130434782
+      },
+      "after": null,
+      "after_status": "NO_APPROVED_REVIEW"
+    },
+    {
+      "id": "en-native",
+      "sha256": "ce53179695e31fc13e8d2f30306745a454927b28be2aa30c4f6717bc79d66042",
+      "status": "EXTRACTED",
+      "error_code": null,
+      "method": [
+        "pdf-native"
+      ],
+      "ocr_used": false,
+      "duration_ms": 16,
+      "ground_truth": "SYNTHETIC CV - ALEX SAMPLE\nSoftware developer and test engineer\nEmail: alex.sample@example.com\nSkills: Python, Docker, PostgreSQL\nExperience: Example Lab, 2021-2024\nBuilt an API with automated tests.\nEducation: Example Institute, Bachelor 2021",
+      "raw_text": "SYNTHETIC CV - ALEX SAMPLE\n\nSoftware developer and test engineer\nEmail: alex.sample@example.com\nSkills: Python, Docker, PostgreSQL\n\nExperience: Example Lab, 2021-2024\nBuilt an API with automated tests.\n\nEducation: Example Institute, Bachelor 2021",
+      "before": {
+        "cer": 0.0,
+        "wer": 0.0
+      },
+      "after": null,
+      "after_status": "NO_APPROVED_REVIEW"
+    }
+  ],
+  "successful_samples": 5,
+  "sample_count": 5
+}
