@@ -166,6 +166,23 @@ public class CVController {
         return ResponseEntity.ok(ApiResponse.success("CV draft updated successfully", response));
     }
 
+    @PostMapping("/{id}/ocr-review")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> proposeOcrReview(
+            @AuthenticationPrincipal User user, @PathVariable UUID id, @RequestBody UpdateCVDraftRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(cvService.proposeOcrReview(user, id, request)));
+    }
+
+    public record OcrReviewAcceptance(UUID version_id, String expected_revision, List<Integer> accepted_indices, boolean confirmed) {}
+
+    @PostMapping("/{id}/ocr-review/apply")
+    public ResponseEntity<ApiResponse<CVDraftResponse>> applyOcrReview(
+            @AuthenticationPrincipal User user, @PathVariable UUID id, @RequestBody OcrReviewAcceptance request) {
+        UpdateCVDraftRequest revision = UpdateCVDraftRequest.builder().versionId(request.version_id())
+                .expectedRevision(request.expected_revision()).build();
+        return ResponseEntity.ok(ApiResponse.success(cvService.applyOcrReview(user, id, revision,
+                request.accepted_indices(), request.confirmed())));
+    }
+
     @PostMapping("/{id}/confirm")
     public ResponseEntity<ApiResponse<CVConfirmResponse>> confirmCV(
             @AuthenticationPrincipal User currentUser,
