@@ -1379,6 +1379,8 @@ public class CVService {
                 .profileId(candidate.getId())
                 .versionId(version.getId())
                 .versionNumber(version.getVersionNumber())
+                .revision(DraftRevision.of(version))
+                .presentation(structured.get("presentation") instanceof Map<?, ?> p ? (Map<String, Object>) p : Map.of("template", "simple"))
                 .title(version.getTitle() != null ? version.getTitle() : cv.getTitle())
                 .status(version.getStatus() != null ? version.getStatus() : "DRAFT")
                 .confirmedAt(version.getConfirmedAt())
@@ -1455,6 +1457,10 @@ public class CVService {
         }
 
         List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId);
+        DraftRevision.requireCurrent(versions.isEmpty() ? null : versions.get(0), request.getVersionId(), request.getExpectedRevision());
+        if ("PROCESSING".equalsIgnoreCase(cv.getStatus()) || "FAILED".equalsIgnoreCase(cv.getStatus())) {
+            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION, "CV extraction has not succeeded");
+        }
         CVVersion targetVersion;
 
         // If latest version was already CONFIRMED, fork a new DRAFT version to maintain audit immutability (AC-P0-03, AC-P3-03)
@@ -1508,7 +1514,9 @@ public class CVService {
         if (request.getPersonalInfo() != null) {
             Map<String, Object> oldPersonal = (existingDraft.get("personal_info") instanceof Map<?, ?> m)
                     ? (Map<String, Object>) m : Collections.emptyMap();
-            updatedStructured.put("personal_info", computePersonalInfoProvenance(request.getPersonalInfo(), oldPersonal));
+            Map<String, Object> mergedPersonal = new LinkedHashMap<>(oldPersonal);
+            mergedPersonal.putAll(request.getPersonalInfo());
+            updatedStructured.put("personal_info", computePersonalInfoProvenance(mergedPersonal, oldPersonal));
         }
         if (request.getSummary() != null) {
             Map<String, Object> oldSummary = (existingDraft.get("summary") instanceof Map<?, ?> m)
@@ -1548,14 +1556,21 @@ public class CVService {
         if (request.getLinks() != null) {
             updatedStructured.put("links", markLineageOnMap(request.getLinks()));
         }
-        if (request.getStructuredJson() != null) {
-            updatedStructured.putAll(request.getStructuredJson());
+        if (request.getStructuredJson() != null && !request.getStructuredJson().isEmpty()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Use the canonical draft fields; unrestricted structured_json overrides are not accepted");
+        }
+        if (request.getPresentation() != null) {
+            Object template = request.getPresentation().get("template");
+            if (!(template instanceof String) || !Set.of("simple", "editorial").contains(template)) {
+                throw new CustomException(ErrorCode.VALIDATION_ERROR, "Unsupported CV template");
+            }
+            updatedStructured.put("presentation", Map.of("template", template));
         }
 
         try {
             targetVersion.setStructuredJsonContent(objectMapper.writeValueAsString(updatedStructured));
         } catch (Exception e) {
-            log.error("Failed to serialize updated structured json for version {}", targetVersion.getId(), e);
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Cannot serialize CV draft; no changes saved");
         }
 
         cvVersionRepository.save(targetVersion);
@@ -1567,6 +1582,11 @@ public class CVService {
 
     @Transactional
     public CVConfirmResponse confirmCV(User candidateUser, UUID cvId) {
+        return confirmCV(candidateUser, cvId, null, null);
+    }
+
+    @Transactional
+    public CVConfirmResponse confirmCV(User candidateUser, UUID cvId, UUID expectedVersion, String expectedRevision) {
         String correlationId = UUID.randomUUID().toString();
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
@@ -1583,6 +1603,7 @@ public class CVService {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "CV has no review version to confirm");
         }
         CVVersion targetVersion = versions.get(0);
+        DraftRevision.requireCurrent(targetVersion, expectedVersion, expectedRevision);
         if (!"DRAFT".equalsIgnoreCase(targetVersion.getStatus())
                 && !"CONFIRMED".equalsIgnoreCase(targetVersion.getStatus())) {
             throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION, "Only a review draft can be confirmed");

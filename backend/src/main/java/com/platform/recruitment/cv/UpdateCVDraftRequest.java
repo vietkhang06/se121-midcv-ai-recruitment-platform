@@ -13,6 +13,14 @@ import java.util.Map;
 @AllArgsConstructor
 public class UpdateCVDraftRequest {
 
+    @JsonProperty("version_id")
+    private java.util.UUID versionId;
+
+    @JsonProperty("expected_revision")
+    private String expectedRevision;
+
+    private Map<String, Object> presentation;
+
     private String title;
 
     @JsonProperty("personal_info")

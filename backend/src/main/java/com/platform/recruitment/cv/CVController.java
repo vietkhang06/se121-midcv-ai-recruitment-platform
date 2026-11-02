@@ -10,6 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -168,9 +169,15 @@ public class CVController {
     @PostMapping("/{id}/confirm")
     public ResponseEntity<ApiResponse<CVConfirmResponse>> confirmCV(
             @AuthenticationPrincipal User currentUser,
-            @PathVariable UUID id) {
-        CVConfirmResponse response = cvService.confirmCV(currentUser, id);
+            @PathVariable UUID id,
+            @RequestBody(required = false) UpdateCVDraftRequest request) {
+        CVConfirmResponse response = request == null ? cvService.confirmCV(currentUser, id)
+                : cvService.confirmCV(currentUser, id, request.getVersionId(), request.getExpectedRevision());
         return ResponseEntity.ok(ApiResponse.success("CV profile confirmed successfully", response));
+    }
+
+    public ResponseEntity<ApiResponse<CVConfirmResponse>> confirmCV(User currentUser, UUID id) {
+        return confirmCV(currentUser, id, null);
     }
 
     @GetMapping("/{id}/versions")
@@ -218,4 +225,3 @@ public class CVController {
         return ResponseEntity.ok(ApiResponse.success("Evidence attachment deleted successfully", null));
     }
 }
-

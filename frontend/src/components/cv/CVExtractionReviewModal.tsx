@@ -10,6 +10,7 @@ import {
   updateCVDraft,
   confirmCandidateCV
 } from '@/lib/api';
+import { abortableDelay } from '@/lib/processingWait';
 import { RichTextEditor } from '@/components/common/RichTextEditor';
 import { SkillAutocomplete } from '@/components/cv/SkillAutocomplete';
 import { EvidenceAttachmentControl } from '@/components/cv/EvidenceAttachmentControl';
@@ -59,20 +60,22 @@ type TabType = 'overview' | 'raw_text' | 'evidence' | 'json' | 'warnings';
 
 const waitForReviewCompletion = async (
   cvId: string,
-  initialReview: CVReviewData
+  initialReview: CVReviewData,
+  signal: AbortSignal
 ): Promise<CVReviewData> => {
   let review = normalizeReviewResponse(initialReview);
   if (isCompletedStatus(review.status) || review.status === 'FAILED') return review;
 
-  const pollingDeadline = Date.now() + 270_000;
   let lastPollingError: unknown = null;
-  while (Date.now() < pollingDeadline) {
-    await new Promise<void>((resolve) => window.setTimeout(resolve, 2_000));
+  while (!signal.aborted) {
+    await abortableDelay(2000, signal);
     try {
-      review = normalizeReviewResponse(await fetchCVReview(cvId));
+      review = normalizeReviewResponse(await fetchCVReview(cvId, signal));
       lastPollingError = null;
       if (isCompletedStatus(review.status) || review.status === 'FAILED') return review;
     } catch (error: unknown) {
+      signal.throwIfAborted();
+      if ([401, 403, 404].includes((error as { status?: number }).status || 0)) throw error;
       lastPollingError = error;
       console.warn('[CV_REVIEW_POLL_FAILED]', { cvId, error });
     }
@@ -487,10 +490,15 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
   const saveInFlight = useRef(false);
   const loadReviewAndDraftRef = React.useRef<() => Promise<void>>(async () => undefined);
 
+  const reviewAbort = useRef<AbortController | null>(null);
   const loadReviewAndDraft = async () => {
+    reviewAbort.current?.abort();
+    const controller = new AbortController(); reviewAbort.current = controller;
+    const signal = controller.signal;
     try {
-      const initialResponse = await fetchCVReview(cvId);
-      const review = await waitForReviewCompletion(cvId, initialResponse);
+      const initialResponse = await fetchCVReview(cvId, signal);
+      const review = await waitForReviewCompletion(cvId, initialResponse, signal);
+      signal.throwIfAborted();
 
       setData(review);
 
@@ -508,6 +516,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
 
       try {
         const rawDraftResponse = await fetchCVDraft(cvId);
+        signal.throwIfAborted();
         const normalizedDraftResponse = unwrapProvenanceDeep(rawDraftResponse);
 
         if (normalizedDraftResponse) {
@@ -528,15 +537,11 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
           savedDraftRef.current = structuredClone(fallbackDraft);
         }
       } catch (draftError) {
-        console.warn('[CV_DRAFT_LOAD_FAILED]', { cvId, error: draftError });
-
-        const fallbackDraft = normalizeDraftEvidenceItemIds(initializeDraftFromReview(review));
-        setDraft(fallbackDraft);
-        currentDraftRef.current = fallbackDraft;
-        setInitialDraftSnapshot(structuredClone(fallbackDraft));
-        savedDraftRef.current = structuredClone(fallbackDraft);
+        signal.throwIfAborted();
+        throw draftError; // Never replace an unavailable saved draft with extraction data.
       }
     } catch (error: unknown) {
+      if (signal.aborted) return;
       const message =
         error instanceof Error
           ? error.message
@@ -544,7 +549,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
 
       setErrorMessage(message);
     } finally {
-      setIsLoading(false);
+      if (!signal.aborted) setIsLoading(false);
     }
   };
 
@@ -561,6 +566,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
       cv_id: cvId,
       profile_id: readText(draftRes.profile_id) || undefined,
       version_id: readText(draftRes.version_id) || undefined,
+      revision: readText(draftRes.revision) || undefined,
       version_number: typeof draftRes.version_number === 'number' ? draftRes.version_number : undefined,
       title: readText(draftRes.title) || review?.title || 'Hồ sơ CV',
       status: readText(draftRes.status) || review?.status || 'DRAFT',
@@ -626,7 +632,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
   useEffect(() => {
     if (!isOpen || !cvId) return;
     const timer = window.setTimeout(() => { void loadReviewAndDraftRef.current(); }, 0);
-    return () => window.clearTimeout(timer);
+    return () => { window.clearTimeout(timer); reviewAbort.current?.abort(); };
   }, [isOpen, cvId]);
 
   useEffect(() => {
@@ -710,7 +716,17 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
     setSaveStatus('saving');
     setSaveError(null);
     try {
-      await updateCVDraft(cvId, submittedSnapshot);
+      const saved = await updateCVDraft(cvId, { ...submittedSnapshot, expected_revision: submittedSnapshot.revision });
+      const hasNewerInput = JSON.stringify(currentDraftRef.current) !== JSON.stringify(submittedSnapshot);
+      submittedSnapshot.revision = saved.revision;
+      submittedSnapshot.version_id = saved.version_id;
+      if (hasNewerInput && currentDraftRef.current) {
+        currentDraftRef.current = { ...currentDraftRef.current, revision: saved.revision, version_id: saved.version_id };
+        setDraft(currentDraftRef.current);
+      } else {
+        currentDraftRef.current = submittedSnapshot;
+        setDraft(submittedSnapshot);
+      }
       setInitialDraftSnapshot(submittedSnapshot);
       savedDraftRef.current = submittedSnapshot;
       const hasNewerEdits = JSON.stringify(currentDraftRef.current) !== JSON.stringify(submittedSnapshot);
@@ -762,6 +778,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
       const confirmClose = window.confirm('Bạn có thay đổi bản nháp chưa lưu. Bạn có chắc chắn muốn đóng mà không lưu không?');
       if (!confirmClose) return;
     }
+    reviewAbort.current?.abort();
     onClose();
   };
 
@@ -793,7 +810,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
           return;
         }
       }
-      await confirmCandidateCV(cvId);
+      await confirmCandidateCV(cvId, { version_id: currentDraftRef.current?.version_id, expected_revision: currentDraftRef.current?.revision });
       setShowConfirmModal(false);
       setConfirmError(null);
       setIsEditing(false);
@@ -2438,6 +2455,8 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                       )}
                     </button>
                   </div>
+
+
 
                   {pages.length > 0 ? (
                     <div className="space-y-4">

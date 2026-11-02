@@ -8,7 +8,7 @@ test('uploaded CV review has one persistent save action and preserves edits made
       id: 'candidate-review-test', email: 'candidate@example.com', fullName: 'Candidate Review',
       role: 'CANDIDATE', emailVerified: true,
     }));
-    window.localStorage.setItem('auth_token', 'jwt-review-test');
+    window.localStorage.setItem('auth_token', 'jwt-test-token-review');
   });
 
   let persistedName = 'Nguyễn Văn A';
@@ -113,7 +113,7 @@ test('uploaded CV review has one persistent save action and preserves edits made
   await expect(modal.getByText('Lưu thất bại')).toBeVisible();
   await expect(nameInput).toHaveValue('Nguyễn Văn C');
   await modal.getByRole('button', { name: 'Thử lại' }).click();
-  await expect(modal.getByText('Đã lưu')).toBeVisible();
+  await expect(modal.getByText('Đã lưu', { exact: true })).toBeVisible();
   await expect(nameInput).toHaveValue('Nguyễn Văn C');
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(modal.getByRole('button', { name: 'Lưu bản nháp' })).toHaveCount(1);
