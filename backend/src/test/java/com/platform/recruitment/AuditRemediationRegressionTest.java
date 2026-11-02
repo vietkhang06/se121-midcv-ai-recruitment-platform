@@ -140,4 +140,22 @@ class AuditRemediationRegressionTest {
         dto.setIsGithubActive(false);dto.setCoreWeight(new BigDecimal("0.80"));
         assertThrows(CustomException.class,()->svc.validateWeights(dto));
     }
+    @Test void candidateEngineRepeats100TimesAndFactorsReconstructSavedScore() {
+        var captured = org.mockito.ArgumentCaptor.forClass(MatchFactor.class);
+        MatchResult expected = engine.calculateAndPersistMatchResult(job.getId(), candidate.getId());
+        verify(factors, org.mockito.Mockito.atLeastOnce()).save(captured.capture());
+        BigDecimal reconstructed = captured.getAllValues().stream()
+                .filter(f -> !"GITHUB_SUPPORTING".equals(f.getFactorType()))
+                .map(MatchFactor::getWeightedContribution).reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
+        assertEquals(expected.getCoreScore(), reconstructed);
+        for (int i = 1; i < 100; i++) {
+            MatchResult next = engine.calculateAndPersistMatchResult(job.getId(), candidate.getId());
+            assertEquals(expected.getCoreScore(), next.getCoreScore());
+            assertEquals(expected.getOverallScore(), next.getOverallScore());
+            assertEquals(expected.getPolicySnapshot(), next.getPolicySnapshot());
+        }
+    }
+
+
+
 }

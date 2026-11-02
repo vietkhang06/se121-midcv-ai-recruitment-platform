@@ -169,9 +169,9 @@ public class MatchingEngineService {
         double skillScoreVal = Math.max(0.0, Math.min(100.0, (0.80 * reqSkillScore.doubleValue()) + (0.20 * prefSkillScore.doubleValue())));
         BigDecimal skillScore = BigDecimal.valueOf(skillScoreVal).setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal expScore = experienceMatcher.evaluateExperience(job.getDescription(), cvRawText);
-        BigDecimal eduScore = educationMatcher.evaluateEducation(job.getDescription(), cvRawText);
-        BigDecimal projScore = projectRelevanceMatcher.evaluateProjectRelevance(job.getDescription(), cvRawText);
+        BigDecimal expScore = experienceMatcher.evaluateExperience(job.getDescription(), inputVersion);
+        BigDecimal eduScore = educationMatcher.evaluateEducation(job.getDescription(), com.platform.recruitment.cv.ConfirmedCvInput.section(inputVersion, "education", "educations"));
+        BigDecimal projScore = projectRelevanceMatcher.evaluateProjectRelevance(job.getDescription(), com.platform.recruitment.cv.ConfirmedCvInput.section(inputVersion, "projects"));
 
         // Native PostgreSQL pgvector evaluation with grounded semantic similarity fallback
         UUID cvDocVersionId = inputVersion.getId();
