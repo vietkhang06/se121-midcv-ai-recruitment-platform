@@ -42,3 +42,21 @@ test('polling completes when SSE setup or cleanup throws', async () => {
     assert.equal(result.status, 'SUCCEEDED');
   }
 });
+
+test('permanent polling failures stop after the configured bound while a success resets it', async () => {
+  const error = Object.assign(new Error('Service unavailable'), { status: 503 });
+  let failures = 0;
+  await assert.rejects(waitForProcessing({ signal: new AbortController().signal, intervalMs: 0,
+    maxConsecutivePollErrors: 3, poll: async () => { failures++; throw error; },
+    subscribe: () => () => {}, onProgress() {} }), error);
+  assert.equal(failures, 3);
+
+  let polls = 0;
+  const result = await waitForProcessing({ signal: new AbortController().signal, intervalMs: 0,
+    maxConsecutivePollErrors: 2, poll: async () => {
+      polls++;
+      if ([1, 3].includes(polls)) throw error;
+      return polls === 4 ? { status: 'SUCCEEDED' } : { status: 'RUNNING' };
+    }, subscribe: () => () => {}, onProgress() {} });
+  assert.equal(result.status, 'SUCCEEDED');
+});

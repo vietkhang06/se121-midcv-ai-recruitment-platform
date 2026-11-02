@@ -19,6 +19,7 @@ export async function waitForProcessing<T extends ProcessingUpdate>(options: {
   subscribe: (onEvent: (event: ProcessingUpdate) => void) => () => void;
   onProgress: (event: ProcessingUpdate) => void;
   intervalMs?: number;
+  maxConsecutivePollErrors?: number;
 }): Promise<ProcessingUpdate> {
   const { signal, onProgress } = options;
   let terminal: ProcessingUpdate | undefined;
@@ -36,16 +37,23 @@ export async function waitForProcessing<T extends ProcessingUpdate>(options: {
     try { close?.(); } catch { /* Stream cleanup must not mask the job result. */ }
   };
   signal.addEventListener('abort', unsubscribe, { once: true });
+  let consecutivePollErrors = 0;
   try {
     // Only the server decides that processing failed. A job can legitimately exceed 60 seconds.
     while (!terminal) {
       signal.throwIfAborted();
-      try { receive(await options.poll(signal)); }
+      try {
+        receive(await options.poll(signal));
+        consecutivePollErrors = 0;
+      }
       catch (error) {
         signal.throwIfAborted();
         const status = (error as { status?: number }).status;
         if (status && [400, 401, 403, 404].includes(status)) throw error;
-        // Transport errors are recoverable; status polling also handles a closed SSE stream.
+        consecutivePollErrors++;
+        // Transient transport failures are recoverable, but a permanently unavailable
+        // status endpoint must not leave the UI waiting forever.
+        if (consecutivePollErrors >= (options.maxConsecutivePollErrors ?? 5)) throw error;
       }
       if (!terminal) await abortableDelay(options.intervalMs ?? 2000, signal);
     }
