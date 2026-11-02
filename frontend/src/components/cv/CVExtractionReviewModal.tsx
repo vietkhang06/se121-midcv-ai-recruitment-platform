@@ -11,6 +11,7 @@ import {
   confirmCandidateCV
 } from '@/lib/api';
 import { abortableDelay } from '@/lib/processingWait';
+import { OcrReviewControl } from '@/components/cv/OcrReviewControl';
 import { RichTextEditor } from '@/components/common/RichTextEditor';
 import { SkillAutocomplete } from '@/components/cv/SkillAutocomplete';
 import { EvidenceAttachmentControl } from '@/components/cv/EvidenceAttachmentControl';
@@ -2456,7 +2457,16 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                     </button>
                   </div>
 
-
+                  {draft && <OcrReviewControl key={`${cvId}-${draft.version_id}`} cvId={cvId} draft={draft}
+                    disabled={hasUnsavedChanges || isSavingDraft || isConfirming || draft.status !== 'DRAFT'}
+                    onRevision={(revision) => {
+                      if (!currentDraftRef.current) return;
+                      const updated = { ...currentDraftRef.current, revision };
+                      currentDraftRef.current = updated; savedDraftRef.current = updated;
+                      setDraft(updated); setInitialDraftSnapshot(updated);
+                    }}
+                    onApplied={loadReviewAndDraft}
+                  />}
 
                   {pages.length > 0 ? (
                     <div className="space-y-4">

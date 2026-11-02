@@ -1399,6 +1399,110 @@ public class CVService {
                 .build();
     }
 
+    @Transactional
+    public Map<String, Object> proposeOcrReview(User user, UUID cvId, UpdateCVDraftRequest request) {
+        CV cv = cvRepository.findByIdForUpdate(cvId)
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
+        CVDraftResponse draft = getCVDraft(user, cvId); // ownership and lineage remain enforced
+        CVVersion version = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId).get(0);
+        requireOcrDraft(version, request);
+        if ("PROCESSING".equalsIgnoreCase(cv.getStatus()) || "FAILED".equalsIgnoreCase(cv.getStatus())) {
+            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION, "CV extraction has not succeeded");
+        }
+        CVReviewResponse original = getCVReview(user, cvId);
+        if (original.getRawText() == null || original.getRawText().isBlank()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "No source text available for OCR review");
+        }
+        Map<String, Object> proposal = aiWorkerClient.reviewOcr(Map.of("raw_text", original.getRawText()), false);
+        try {
+            Map<String, Object> structured = objectMapper.readValue(version.getStructuredJsonContent(), new TypeReference<>() {});
+            structured.put("ocr_review_proposal", proposal);
+            version.setStructuredJsonContent(objectMapper.writeValueAsString(structured));
+            cvVersionRepository.save(version);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Cannot save OCR proposal");
+        }
+        return Map.of("proposal", proposal, "revision", DraftRevision.of(version), "version_id", version.getId());
+    }
+
+    @Transactional
+    public CVDraftResponse applyOcrReview(User user, UUID cvId, UpdateCVDraftRequest request,
+                                         List<Integer> acceptedIndices, boolean confirmed) {
+        CV cv = cvRepository.findByIdForUpdate(cvId)
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", cvId));
+        getCVDraft(user, cvId);
+        CVVersion version = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId).get(0);
+        requireOcrDraft(version, request);
+        if ("PROCESSING".equalsIgnoreCase(cv.getStatus()) || "FAILED".equalsIgnoreCase(cv.getStatus())) {
+            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION, "CV extraction has not succeeded");
+        }
+        if (!confirmed || acceptedIndices == null || acceptedIndices.isEmpty()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Select and explicitly confirm OCR changes");
+        }
+        try {
+            Map<String, Object> structured = objectMapper.readValue(version.getStructuredJsonContent(), new TypeReference<>() {});
+            Object proposal = structured.get("ocr_review_proposal");
+            if (proposal == null) throw new CustomException(ErrorCode.VALIDATION_ERROR, "No pending OCR proposal");
+            Map<String, Object> reviewed = aiWorkerClient.reviewOcr(Map.of(
+                    "raw_text", getCVReview(user, cvId).getRawText(), "proposal", proposal,
+                    "accepted_indices", acceptedIndices, "confirmed", true), true);
+            Map<String, Object> proposalMap = (Map<String, Object>) proposal;
+            List<Map<String, Object>> edits = (List<Map<String, Object>>) proposalMap.get("edits");
+            List<Map<String, Object>> selected = acceptedIndices.stream().map(edits::get).toList();
+            structured.remove("ocr_review_proposal");
+            structured.remove("ocr_review");
+            Map<String, Object> replacement = (Map<String, Object>) applyOcrTypography(structured, selected, false);
+            reviewed.put("proposal", proposal);
+            reviewed.put("confirmed_by", user.getId().toString());
+            reviewed.put("previous_revision", request.getExpectedRevision());
+            replacement.put("ocr_review", reviewed);
+            // Only approved typography in descriptive draft fields changes. Cards, IDs, user edits,
+            // contacts, taxonomy identifiers, attachments and extraction/storage are preserved.
+            version.setStructuredJsonContent(objectMapper.writeValueAsString(replacement));
+            cvVersionRepository.save(version);
+            return getCVDraft(user, cvId);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Invalid OCR review state");
+        }
+    }
+
+    private Object applyOcrTypography(Object value, List<Map<String, Object>> edits, boolean descriptive) {
+        if (value instanceof String text) {
+            if (!descriptive) return text;
+            for (Map<String, Object> edit : edits) {
+                String regex = "(?<![\\p{L}\\p{N}_@:/])" + java.util.regex.Pattern.quote((String) edit.get("before")) + "(?![\\p{L}\\p{N}_@:/])";
+                text = java.util.regex.Pattern.compile(regex).matcher(text).replaceAll(java.util.regex.Matcher.quoteReplacement((String) edit.get("after")));
+            }
+            return text;
+        }
+        if (value instanceof List<?> list) return list.stream().map(item -> applyOcrTypography(item, edits, descriptive)).toList();
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            boolean changed = false;
+            for (var entry : map.entrySet()) {
+                String key = entry.getKey().toString();
+                boolean allowed = descriptive || Set.of("summary", "content", "text", "description", "role", "position", "headline").contains(key);
+                if (Set.of("id", "origin", "source", "canonical_id", "email", "phone", "evidence", "attachment", "links").contains(key) || key.endsWith("_url")) allowed = false;
+                Object updated = applyOcrTypography(entry.getValue(), edits, allowed);
+                changed |= !Objects.equals(updated, entry.getValue());
+                result.put(key, updated);
+            }
+            if (changed && result.containsKey("origin")) result.put("origin", "USER_EDITED");
+            return result;
+        }
+        return value;
+    }
+
+    private void requireOcrDraft(CVVersion version, UpdateCVDraftRequest request) {
+        if (request == null || request.getExpectedRevision() == null || request.getVersionId() == null) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "OCR review requires version and revision");
+        }
+        DraftRevision.requireCurrent(version, request.getVersionId(), request.getExpectedRevision());
+        if (!"DRAFT".equalsIgnoreCase(version.getStatus())) {
+            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION, "OCR review requires a draft");
+        }
+    }
+
     private void validateCVDraftRequest(UpdateCVDraftRequest request) {
         if (request == null) {
             return;
