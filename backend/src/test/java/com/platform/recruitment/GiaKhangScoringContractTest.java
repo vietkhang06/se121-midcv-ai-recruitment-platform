@@ -20,6 +20,10 @@ class GiaKhangScoringContractTest {
     @Test void experienceIsNotGuessedFromSeniorityOrMissingDates() {
         ExperienceMatcher matcher = new ExperienceMatcher();
         assertEquals(0, BigDecimal.ZERO.compareTo(matcher.evaluateExperience("3+ years Java", "Senior Java developer")));
+        assertEquals(new BigDecimal("50.00"), matcher.evaluateExperience("2+ years Java backend",
+                "5 years experience in Marketing and 1 year Java experience."));
+        assertEquals(new BigDecimal("0.00"), matcher.evaluateExperience("2+ years Java backend",
+                "5 years experience in Marketing."));
         CVVersion unknown = version("{\"work_experience\":[{\"position\":\"Senior developer\",\"start_date\":\"2020\"}]}");
         assertEquals(0, BigDecimal.ZERO.compareTo(matcher.evaluateExperience("3+ years Java", unknown)));
     }
@@ -27,6 +31,14 @@ class GiaKhangScoringContractTest {
     @Test void experienceMergesOverlapsAndUsesStableCompletedDates() {
         CVVersion cv = version("{\"work_experience\":[{\"start_date\":\"2020-01\",\"end_date\":\"2022-01\"},{\"start_date\":\"2021-01\",\"end_date\":\"2023-01\"}]}");
         assertEquals(new BigDecimal("75.00"), new ExperienceMatcher().evaluateExperience("4+ years experience", cv));
+    }
+
+    @Test void unrelatedDatedExperienceCannotSatisfyTargetRole() {
+        CVVersion cv = version("{\"work_experience\":["
+                + "{\"position\":\"Marketing Manager\",\"description\":\"Brand campaigns\",\"start_date\":\"2018-01\",\"end_date\":\"2024-01\"},"
+                + "{\"position\":\"Java Backend Engineer\",\"description\":\"Spring APIs\",\"start_date\":\"2023-01\",\"end_date\":\"2024-01\"}]}");
+        assertEquals(new BigDecimal("50.00"), new ExperienceMatcher().evaluateExperience("2+ years Java backend", cv));
+        assertEquals(new BigDecimal("100.00"), new ExperienceMatcher().evaluateExperience("2+ years marketing", cv));
     }
 
     @Test void screeningGoldenScoreUsesItsOwnVersionAndIsRepeatable100Times() throws Exception {
