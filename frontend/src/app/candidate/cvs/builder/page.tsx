@@ -7,6 +7,7 @@ import { ArrowLeft, Plus, Save, Trash2, Download } from 'lucide-react';
 import { CV, CVQuota, CreateCVRequest } from '@/types';
 import { confirmCandidateCV, fetchCVDraft, fetchCandidateCVs, fetchCandidateProfile, fetchCVQuota, saveCandidateCV, updateCVDraft } from '@/lib/api';
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
+import { builderItems, mergeBuilderItems } from '@/lib/builderData';
 import { useLanguage } from '@/context/LanguageContext';
 
 type Item = Record<string, string>;
@@ -36,14 +37,6 @@ function readText(record: DataRecord, ...keys: string[]): string {
   return '';
 }
 
-function mapItems(value: unknown): Item[] {
-  if (!Array.isArray(value)) return [];
-  return value.map((entry) => {
-    if (typeof entry === 'string') return { name: entry };
-    return Object.fromEntries(Object.entries(asRecord(entry)).map(([key, itemValue]) => [key, asText(itemValue)]));
-  });
-}
-
 function mapDraft(rawValue: unknown): Draft {
   const raw = asRecord(rawValue);
   const personal = asRecord(raw.personal_info);
@@ -63,11 +56,11 @@ function mapDraft(rawValue: unknown): Draft {
     linkedin: readText(links, 'linkedin_url', 'linkedinUrl') || readText(personal, 'linkedin_url', 'linkedinUrl'),
     portfolio: readText(links, 'portfolio_url', 'portfolioUrl') || readText(personal, 'portfolio_url', 'portfolioUrl'),
     skills,
-    experience: mapItems(raw.work_experience),
-    projects: mapItems(raw.projects),
-    education: mapItems(raw.education),
-    certifications: mapItems(raw.certifications),
-    languages: mapItems(raw.languages)
+    experience: builderItems(raw.work_experience, 'experience'),
+    projects: builderItems(raw.projects, 'projects'),
+    education: builderItems(raw.education, 'education'),
+    certifications: builderItems(raw.certifications, 'certifications'),
+    languages: builderItems(raw.languages, 'languages')
   };
 }
 
@@ -84,6 +77,7 @@ export default function CVBuilderPage() {
   const [cv, setCv] = useState<CV | null>(null);
   const [quota, setQuota] = useState<CVQuota | null>(null);
   const [quotaLoaded, setQuotaLoaded] = useState(false);
+  const originalDraft = useRef<DataRecord>({});
   const [template, setTemplate] = useState<'simple' | 'editorial'>('simple');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -125,6 +119,8 @@ export default function CVBuilderPage() {
           if (!selected) throw new Error('CV not found or access is denied. / Không tìm thấy hồ sơ hoặc bạn không có quyền truy cập.');
           const data = await fetchCVDraft(editId);
           if (!active) return;
+          originalDraft.current = data as unknown as DataRecord;
+          setTemplate(data.presentation?.template === 'editorial' ? 'editorial' : 'simple');
           setCv(selected); setTitle(data.title || selected.title); setDraft(mapDraft(data));
         } else {
           const profile = await fetchCandidateProfile().catch(() => null);
@@ -144,6 +140,7 @@ export default function CVBuilderPage() {
   }, [dirty]);
 
   const saveDraft = async () => {
+    if (saving || confirming) return;
     const savedRevision = editRevision.current;
     setSaving(true); setError(''); setNotice('');
     try {
@@ -161,9 +158,21 @@ export default function CVBuilderPage() {
         target = await saveCandidateCV(createRequest);
         setCv(target);
       }
-      const payload = { title, personal_info: { full_name: draft.fullName, headline: draft.headline, email: draft.email, phone: draft.phone, location: draft.location }, summary: { text: draft.summary }, skills: draft.skills.map((name) => ({ name })), work_experience: draft.experience, projects: draft.projects, education: draft.education, certifications: draft.certifications, languages: draft.languages, links: { github_url: draft.github, linkedin_url: draft.linkedin, portfolio_url: draft.portfolio } };
-      await updateCVDraft(target.id, payload);
+      const base = originalDraft.current;
+      const payload = { title, version_id: base.version_id, expected_revision: base.revision,
+        presentation: { template },
+        personal_info: { ...asRecord(base.personal_info), full_name: draft.fullName, headline: draft.headline, email: draft.email, phone: draft.phone, location: draft.location },
+        summary: { content: draft.summary }, skills: draft.skills.map((name) => ({ name })),
+        work_experience: mergeBuilderItems(draft.experience, base.work_experience, 'experience'),
+        projects: mergeBuilderItems(draft.projects, base.projects, 'projects'),
+        education: mergeBuilderItems(draft.education, base.education, 'education'),
+        certifications: mergeBuilderItems(draft.certifications, base.certifications, 'certifications'),
+        languages: mergeBuilderItems(draft.languages, base.languages, 'languages'),
+        links: { ...asRecord(base.links), github_url: draft.github, linkedin_url: draft.linkedin, portfolio_url: draft.portfolio } };
+      const saved = await updateCVDraft(target.id, payload);
+      originalDraft.current = saved as unknown as DataRecord;
       if (editRevision.current === savedRevision) {
+        if (!editId) window.history.replaceState(null, '', `/candidate/cvs/builder?edit=${target.id}`);
         setDirty(false);
         setNotice(vi ? 'Bản nháp đã được lưu.' : 'Draft saved.');
       } else {
@@ -174,22 +183,22 @@ export default function CVBuilderPage() {
   };
 
   const confirmDraft = async () => {
-    if (!cv || dirty || !draft.fullName.trim()) { setError(vi ? 'Hãy lưu bản nháp và nhập họ tên trước khi xác nhận.' : 'Save the draft and enter a name before confirming.'); return; }
+    if (!cv || dirty || saving || confirming || !draft.fullName.trim()) { setError(vi ? 'Hãy lưu bản nháp và nhập họ tên trước khi xác nhận.' : 'Save the draft and enter a name before confirming.'); return; }
     setConfirming(true); setError('');
-    try { await confirmCandidateCV(cv.id); router.push(returnTo); }
+    try { await confirmCandidateCV(cv.id, { version_id: originalDraft.current.version_id as string, expected_revision: originalDraft.current.revision as string }); router.push(returnTo); }
     catch (error: unknown) { setError(error instanceof Error ? error.message : (vi ? 'Không thể xác nhận hồ sơ.' : 'Could not confirm the CV.')); setConfirming(false); }
   };
 
   const changeItem = (section: 'experience' | 'projects' | 'education' | 'certifications' | 'languages', index: number, key: string, value: string) => {
     const items = [...draft[section]]; items[index] = { ...items[index], [key]: value }; patchDraft(section, items);
   };
-  const addItem = (section: 'experience' | 'projects' | 'education' | 'certifications' | 'languages') => patchDraft(section, [...draft[section], {}]);
+  const addItem = (section: 'experience' | 'projects' | 'education' | 'certifications' | 'languages') => patchDraft(section, [...draft[section], { id: crypto.randomUUID() }]);
   const removeItem = (section: 'experience' | 'projects' | 'education' | 'certifications' | 'languages', index: number) => patchDraft(section, draft[section].filter((_, i) => i !== index));
   const sectionLabels = { experience: vi ? 'Kinh nghiệm' : 'Experience', projects: vi ? 'Dự án' : 'Projects', education: vi ? 'Học vấn' : 'Education', certifications: vi ? 'Chứng chỉ' : 'Certifications', languages: vi ? 'Ngôn ngữ' : 'Languages' };
   const fields: Record<keyof typeof sectionLabels, [string, string][]> = {
-    experience: [['company', vi ? 'Công ty' : 'Company'], ['title', vi ? 'Chức danh' : 'Job title'], ['dates', vi ? 'Thời gian' : 'Dates'], ['description', vi ? 'Mô tả và kết quả' : 'Description and outcomes']],
-    projects: [['name', vi ? 'Tên dự án' : 'Project name'], ['role', vi ? 'Vai trò' : 'Role'], ['dates', vi ? 'Thời gian' : 'Dates'], ['description', vi ? 'Mô tả' : 'Description'], ['technologies', vi ? 'Công nghệ' : 'Technologies']],
-    education: [['school', vi ? 'Trường' : 'School'], ['degree', vi ? 'Bằng cấp' : 'Degree'], ['field', vi ? 'Chuyên ngành' : 'Field of study'], ['dates', vi ? 'Thời gian' : 'Dates']],
+    experience: [['company', vi ? 'Công ty' : 'Company'], ['title', vi ? 'Chức danh' : 'Job title'], ['start_date', vi ? 'Từ tháng (YYYY-MM)' : 'From (YYYY-MM)'], ['end_date', vi ? 'Đến tháng (YYYY-MM)' : 'To (YYYY-MM)'], ['description', vi ? 'Mô tả và kết quả' : 'Description and outcomes']],
+    projects: [['name', vi ? 'Tên dự án' : 'Project name'], ['role', vi ? 'Vai trò' : 'Role'], ['start_date', vi ? 'Từ tháng (YYYY-MM)' : 'From (YYYY-MM)'], ['end_date', vi ? 'Đến tháng (YYYY-MM)' : 'To (YYYY-MM)'], ['description', vi ? 'Mô tả' : 'Description'], ['technologies', vi ? 'Công nghệ' : 'Technologies']],
+    education: [['school', vi ? 'Trường' : 'School'], ['degree', vi ? 'Bằng cấp' : 'Degree'], ['field', vi ? 'Chuyên ngành' : 'Field of study'], ['start_year', vi ? 'Năm bắt đầu' : 'Start year'], ['end_year', vi ? 'Năm kết thúc' : 'End year']],
     certifications: [['name', vi ? 'Tên chứng chỉ' : 'Certification'], ['issuer', vi ? 'Đơn vị cấp' : 'Issuer'], ['date', vi ? 'Ngày cấp' : 'Date']],
     languages: [['language', vi ? 'Ngôn ngữ' : 'Language'], ['proficiency', vi ? 'Trình độ' : 'Proficiency']],
   };
@@ -198,7 +207,7 @@ export default function CVBuilderPage() {
   if (!editId && quotaLoaded && quota?.canUpload !== true) return <main className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center gap-4 px-6 text-center"><div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-950 shadow-sm dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100"><h1 className="text-lg font-semibold">{quota ? (vi ? 'Đã đạt hạn mức tạo CV' : 'CV creation limit reached') : (vi ? 'Không kiểm tra được hạn mức CV' : 'Could not check CV quota')}</h1><p className="mt-2 text-sm">{quota ? (vi ? 'Bạn có thể tiếp tục khi còn hạn mức, hoặc xóa một CV hiện có để giải phóng lượt tạo.' : 'You can create a CV when you have an available slot, or delete an existing CV to free one.') : (vi ? 'Vui lòng quay lại thư viện CV và thử lại sau.' : 'Return to your CV library and try again later.')}</p></div><Link href="/candidate/cvs" className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">{vi ? 'Về thư viện CV' : 'Back to CV library'}</Link></main>;
 
   return <main className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-    <header data-retro-editor-toolbar="true" className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><Link aria-label={vi ? 'Quay lại danh sách hồ sơ' : 'Back to CV list'} onClick={(event) => { if (dirty && !window.confirm(vi ? 'Bạn có thay đổi chưa lưu. Rời trang?' : 'You have unsaved edits. Leave this page?')) event.preventDefault(); }} href="/candidate/cvs" className="rounded-xl p-2 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-blue-600"><ArrowLeft size={18}/></Link><label className="flex items-center gap-2 text-sm"><span className="hidden sm:inline">{vi ? 'Tiêu đề hồ sơ' : 'CV title'}</span><input aria-label={vi ? 'Tiêu đề hồ sơ' : 'CV title'} className={`${inputClass} w-44 sm:w-64`} value={title} onChange={(e) => { editRevision.current += 1; setTitle(e.target.value); setDirty(true); }} /></label></div><div className="flex min-w-0 flex-wrap items-center gap-2"><label className="sr-only" htmlFor="cv-template">{vi ? 'Mẫu CV' : 'CV template'}</label><select id="cv-template" value={template} onChange={(e) => setTemplate(e.target.value as 'simple' | 'editorial')} className={`${inputClass} w-auto`}><option value="simple">{vi ? 'Một cột rõ ràng' : 'Simple single column'}</option><option value="editorial">{vi ? 'Tiêu đề nhấn mạnh' : 'Editorial heading'}</option></select><button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600"><Download size={16}/><span className="hidden sm:inline">PDF</span></button>{cv && <button type="button" onClick={confirmDraft} disabled={confirming || dirty || !draft.fullName.trim()} className="rounded-xl border border-emerald-700 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-50 dark:text-emerald-300">{confirming ? (vi ? 'Đang xác nhận…' : 'Confirming…') : (vi ? 'Xác nhận hồ sơ' : 'Confirm CV')}</button>}<button type="button" onClick={saveDraft} disabled={saving || loading || !title.trim() || (!editId && quotaLoaded && quota?.canUpload === false)} className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50"><Save size={15}/>{saving ? (vi ? 'Đang lưu…' : 'Saving…') : (vi ? 'Lưu' : 'Save')}</button></div></div></header>
+    <header data-retro-editor-toolbar="true" className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><Link aria-label={vi ? 'Quay lại danh sách hồ sơ' : 'Back to CV list'} onClick={(event) => { if (dirty && !window.confirm(vi ? 'Bạn có thay đổi chưa lưu. Rời trang?' : 'You have unsaved edits. Leave this page?')) event.preventDefault(); }} href="/candidate/cvs" className="rounded-xl p-2 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-blue-600"><ArrowLeft size={18}/></Link><label className="flex items-center gap-2 text-sm"><span className="hidden sm:inline">{vi ? 'Tiêu đề hồ sơ' : 'CV title'}</span><input aria-label={vi ? 'Tiêu đề hồ sơ' : 'CV title'} className={`${inputClass} w-44 sm:w-64`} value={title} onChange={(e) => { editRevision.current += 1; setTitle(e.target.value); setDirty(true); }} /></label></div><div className="flex min-w-0 flex-wrap items-center gap-2"><label className="sr-only" htmlFor="cv-template">{vi ? 'Mẫu CV' : 'CV template'}</label><select id="cv-template" value={template} onChange={(e) => { editRevision.current += 1; setTemplate(e.target.value as 'simple' | 'editorial'); setDirty(true); }} className={`${inputClass} w-auto`}><option value="simple">{vi ? 'Một cột rõ ràng' : 'Simple single column'}</option><option value="editorial">{vi ? 'Tiêu đề nhấn mạnh' : 'Editorial heading'}</option></select><button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600"><Download size={16}/><span className="hidden sm:inline">PDF</span></button>{cv && <button type="button" onClick={confirmDraft} disabled={saving || confirming || dirty || !draft.fullName.trim()} className="rounded-xl border border-emerald-700 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-50 dark:text-emerald-300">{confirming ? (vi ? 'Đang xác nhận…' : 'Confirming…') : (vi ? 'Xác nhận hồ sơ' : 'Confirm CV')}</button>}<button type="button" onClick={saveDraft} disabled={saving || confirming || loading || !title.trim() || (!editId && quotaLoaded && quota?.canUpload === false)} className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50"><Save size={15}/>{saving ? (vi ? 'Đang lưu…' : 'Saving…') : (vi ? 'Lưu' : 'Save')}</button></div></div></header>
     <div className="mx-auto max-w-[1600px] px-4 py-4">
       <label className="mb-3 hidden items-center gap-3 text-xs text-slate-600 dark:text-slate-300 lg:flex">{vi ? 'Độ rộng khung chỉnh sửa' : 'Editor width'}<input aria-label={vi ? 'Độ rộng khung chỉnh sửa' : 'Editor width'} type="range" min="35" max="65" value={editorWidth} onChange={(e) => setEditorWidth(Number(e.target.value))} className="w-48"/><span>{editorWidth}%</span></label>
       <div ref={editorLayoutRef} id="cv-editor-layout" className="grid min-w-0 grid-cols-1 gap-6 lg:gap-3" style={{ gridTemplateColumns: `minmax(0, ${editorWidth}fr) 10px minmax(0, ${100 - editorWidth}fr)` }}>
@@ -209,9 +218,18 @@ export default function CVBuilderPage() {
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"><h2 className="mb-3 text-lg font-semibold">{vi ? 'Kỹ năng' : 'Skills'}</h2><SkillAutocomplete skills={draft.skills} onSkillsChange={(value) => patchDraft('skills', value)} placeholder={vi ? 'Tìm và thêm kỹ năng…' : 'Find and add skills…'} /></section>
         {(Object.keys(sectionLabels) as Array<keyof typeof sectionLabels>).map((section) => <section key={section} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"><div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-semibold">{sectionLabels[section]}</h2><button type="button" onClick={() => addItem(section)} className="inline-flex items-center gap-1 rounded-xl border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600"><Plus size={16}/>{vi ? 'Thêm mục' : 'Add item'}</button></div>{draft[section].length === 0 && <p className="text-sm text-slate-500">{vi ? 'Chưa có mục nào. Bạn có thể để trống hoặc thêm mục.' : 'No entries yet. You can leave this section empty or add an item.'}</p>}<div className="space-y-4">{draft[section].map((item, index) => <div key={index} className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"><div className="mb-3 flex justify-end"><button type="button" aria-label={`${vi ? 'Xóa' : 'Remove'} ${sectionLabels[section]} ${index + 1}`} onClick={() => removeItem(section, index)} className="rounded-xl p-2 text-rose-700 hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-rose-600"><Trash2 size={16}/></button></div><div className="grid gap-3 sm:grid-cols-2">{fields[section].map(([key, label]) => <label className={`block ${key === 'description' || key === 'technologies' ? 'sm:col-span-2' : ''}`} key={key}><span className={labelClass}>{label}</span>{key === 'description' ? <textarea className={inputClass} rows={3} value={item[key] || ''} onChange={(e) => changeItem(section, index, key, e.target.value)} /> : <input className={inputClass} value={item[key] || ''} onChange={(e) => changeItem(section, index, key, e.target.value)} />}</label>)}</div></div>)}</div></section>)}
       </section>
-      <div role="separator" aria-orientation="vertical" aria-label={vi ? 'Kéo để đổi độ rộng khung chỉnh sửa và xem trước' : 'Drag to resize the editor and preview panes'} aria-valuemin={35} aria-valuemax={65} aria-valuenow={Math.round(editorWidth)} tabIndex={0} className="hidden touch-none cursor-col-resize select-none items-center justify-center rounded-xl outline-none hover:bg-blue-200 focus-visible:bg-blue-200 focus-visible:ring-2 focus-visible:ring-blue-600 lg:flex" onPointerDown={(event) => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); setEditorWidthFromPointer(event.clientX); }} onPointerMove={(event) => { if (event.buttons === 1) setEditorWidthFromPointer(event.clientX); }} onKeyDown={(event) => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); setEditorWidth((width) => Math.max(35, Math.min(65, width + (event.key === 'ArrowRight' ? 2 : -2)))); } if (event.key === 'Home') { event.preventDefault(); setEditorWidth(35); } if (event.key === 'End') { event.preventDefault(); setEditorWidth(65); } }}><span aria-hidden="true" className="h-10 w-1 rounded-xl bg-slate-300" /></div>      <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start"><p className="mb-2 text-sm text-slate-600 dark:text-slate-400">{vi ? 'Bản xem trước' : 'Preview'}</p><article id="printable-cv" className={`min-h-[700px] rounded-xl border border-slate-200 bg-white p-8 shadow-lg dark:border-slate-800 dark:bg-white dark:text-slate-900 ${template === 'editorial' ? 'font-sans' : ''}`}><header className={`border-b border-slate-200 pb-5 ${template === 'editorial' ? 'text-center' : ''}`}><h2 className="break-words text-3xl font-bold">{draft.fullName || (vi ? 'Họ và tên' : 'Full name')}</h2>{draft.headline && <p className="mt-1 text-lg text-slate-700">{draft.headline}</p>}<p className="mt-2 break-words text-sm text-slate-600">{[draft.email, draft.phone, draft.location].filter(Boolean).join(' · ')}</p><p className="mt-1 break-all text-xs text-blue-800">{[draft.github, draft.linkedin, draft.portfolio].filter(Boolean).join(' · ')}</p></header>{draft.summary && <section className="mt-5"><h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">{vi ? 'Tóm tắt' : 'Summary'}</h3><p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{draft.summary}</p></section>}{draft.skills.length > 0 && <section className="mt-5"><h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">{vi ? 'Kỹ năng' : 'Skills'}</h3><p className="break-words text-sm">{draft.skills.join(' · ')}</p></section>}{(Object.keys(sectionLabels) as Array<keyof typeof sectionLabels>).map((section) => draft[section].length > 0 && <section key={section} className="mt-5"><h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">{sectionLabels[section]}</h3><div className="space-y-3">{draft[section].map((item, i) => <div key={i} className="break-words"><p className="font-semibold">{item.company || item.name || item.school || item.language || item.title || item.degree || item.certification}</p><p className="text-sm text-slate-700">{[item.title, item.role, item.degree, item.field, item.issuer, item.proficiency, item.dates, item.date, item.technologies].filter(Boolean).join(' · ')}</p>{item.description && <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{item.description}</p>}</div>)}</div></section>)}</article></aside>
+      <div role="separator" aria-orientation="vertical" aria-label={vi ? 'Kéo để đổi độ rộng khung chỉnh sửa và xem trước' : 'Drag to resize the editor and preview panes'} aria-valuemin={35} aria-valuemax={65} aria-valuenow={Math.round(editorWidth)} tabIndex={0} className="hidden touch-none cursor-col-resize select-none items-center justify-center rounded-xl outline-none hover:bg-blue-200 focus-visible:bg-blue-200 focus-visible:ring-2 focus-visible:ring-blue-600 lg:flex" onPointerDown={(event) => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); setEditorWidthFromPointer(event.clientX); }} onPointerMove={(event) => { if (event.buttons === 1) setEditorWidthFromPointer(event.clientX); }} onKeyDown={(event) => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); setEditorWidth((width) => Math.max(35, Math.min(65, width + (event.key === 'ArrowRight' ? 2 : -2)))); } if (event.key === 'Home') { event.preventDefault(); setEditorWidth(35); } if (event.key === 'End') { event.preventDefault(); setEditorWidth(65); } }}><span aria-hidden="true" className="h-10 w-1 rounded-xl bg-slate-300" /></div>      <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start"><p className="mb-2 text-sm text-slate-600 dark:text-slate-400">{vi ? 'Bản xem trước' : 'Preview'}</p><article id="printable-cv" className={`min-h-[700px] rounded-xl border border-slate-200 bg-white p-8 shadow-lg dark:border-slate-800 dark:bg-white dark:text-slate-900 ${template === 'editorial' ? 'font-sans' : ''}`}><header className={`border-b border-slate-200 pb-5 ${template === 'editorial' ? 'text-center' : ''}`}><h2 className="break-words text-3xl font-bold">{draft.fullName || (vi ? 'Họ và tên' : 'Full name')}</h2>{draft.headline && <p className="mt-1 text-lg text-slate-700">{draft.headline}</p>}<p className="mt-2 break-words text-sm text-slate-600">{[draft.email, draft.phone, draft.location].filter(Boolean).join(' · ')}</p><p className="mt-1 break-all text-xs text-blue-800">{[draft.github, draft.linkedin, draft.portfolio].filter(Boolean).join(' · ')}</p></header>{draft.summary && <section className="mt-5"><h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">{vi ? 'Tóm tắt' : 'Summary'}</h3><p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{draft.summary}</p></section>}{draft.skills.length > 0 && <section className="mt-5"><h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">{vi ? 'Kỹ năng' : 'Skills'}</h3><p className="break-words text-sm">{draft.skills.join(' · ')}</p></section>}{(Object.keys(sectionLabels) as Array<keyof typeof sectionLabels>).map((section) => draft[section].length > 0 && <section key={section} className="mt-5"><h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">{sectionLabels[section]}</h3><div className="space-y-3">{draft[section].map((item, i) => <div key={i} className="break-words"><p className="font-semibold">{item.company || item.name || item.school || item.language || item.title || item.degree || item.certification}</p><p className="text-sm text-slate-700">{[item.title, item.role, item.degree, item.field, item.issuer, item.proficiency, [item.start_date || item.start_year, item.end_date || item.end_year].filter(Boolean).join(' – '), item.dates, item.date, item.technologies, item.gpa_display || (item.gpa && item.gpa_scale ? `GPA: ${item.gpa}/${item.gpa_scale}` : '')].filter(Boolean).join(' · ')}</p>{item.description && <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{item.description}</p>}</div>)}</div></section>)}</article></aside>
       </div>
     </div>
-    <style jsx global>{`@media (max-width: 1023px) { #cv-editor-layout { grid-template-columns: minmax(0, 1fr) !important; } } @media print { body * { visibility: hidden; } #printable-cv, #printable-cv * { visibility: visible; } #printable-cv { position: absolute; inset: 0; width: 100%; border: 0; box-shadow: none; } @page { size: A4; margin: 16mm; } }`}</style>
+    <style jsx global>{`@media (max-width: 1023px) { #cv-editor-layout { grid-template-columns: minmax(0, 1fr) !important; } } @media print {
+      body { margin: 0 !important; padding: 0 !important; background: white !important; }
+      body * { visibility: hidden; }
+      body *:has(#printable-cv) { display: contents !important; }
+      body *:not(:has(#printable-cv)):not(#printable-cv):not(#printable-cv *) { display: none !important; }
+      #printable-cv, #printable-cv * { visibility: visible; }
+      #printable-cv { display: block !important; position: static; width: auto; min-height: 0 !important; margin: 0; padding: 0; border: 0; box-shadow: none; color: #111; }
+      #printable-cv section { break-inside: avoid; }
+      @page { size: A4; margin: 16mm; }
+    }`}</style>
   </main>;
 }
