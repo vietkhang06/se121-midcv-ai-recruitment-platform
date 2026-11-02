@@ -75,6 +75,9 @@ public class MatchingEngineService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.platform.recruitment.embedding.ConfirmedVectorService confirmedVectors;
+
     @Transactional
     public MatchResult calculateAndPersistMatchResult(UUID jobId, UUID candidateId) {
         Application application = applicationRepository.findByJobIdAndCandidateId(jobId, candidateId)
@@ -178,7 +181,16 @@ public class MatchingEngineService {
         UUID jdDocVersionId = findJdDocumentVersionId(job.getId());
         BigDecimal semanticScore = null;
         String semanticMethod = "PGVECTOR_COSINE_SIMILARITY";
-        if (jdbcTemplate != null && confirmedEmbeddingMatches(inputVersion) && jdDocVersionId != null) {
+        String semanticModel = null;
+        if (confirmedVectors != null) {
+            try {
+                var comparison = confirmedVectors.compare(inputVersion, job, allReqs, persist);
+                semanticScore = comparison.score(); semanticModel = comparison.model();
+            } catch (Exception ex) {
+                log.warn("Confirmed embedding unavailable; concept fallback is recorded [exception_type={}]", ex.getClass().getSimpleName());
+            }
+        }
+        if (semanticScore == null && jdbcTemplate != null && confirmedEmbeddingMatches(inputVersion) && jdDocVersionId != null) {
             semanticScore = pgvectorCosineSimilarity.evaluatePgvectorSemanticSimilarity(cvDocVersionId, jdDocVersionId);
         }
         if (semanticScore == null) {
@@ -392,7 +404,8 @@ public class MatchingEngineService {
         result.setStatus("COMPLETED");
         result.setMatchingAlgorithmVersion("v2.0");
         result.setPolicyVersion(policy.getPolicyVersion());
-        result.setPolicySnapshot(policySnapshot);
+        result.setPolicySnapshot(MatchingInputTrace.withSemanticTrace(
+                MatchingInputTrace.snapshot(policySnapshot, inputVersion, cvRawText, job, allReqs), semanticMethod, semanticModel));
 
         // Preview deliberately returns before every persistence/factor/evidence operation.
         if (!persist) return result;

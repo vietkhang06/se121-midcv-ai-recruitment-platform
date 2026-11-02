@@ -25,7 +25,7 @@ CONCEPT_PATTERNS = [
     (r"develop.*|build.*|built|creat.*|architect.*|design.*|implement.*", "sem_construct"),
     (r"backend|back-end|server.*|service.*|api.*|microservice.*|rest.*", "sem_backend"),
     (r"frontend|front-end|client.*|web|ui|ux|interface|react.*|vue|angular", "sem_frontend"),
-    (r"java.*|spring.*|springboot|jvm|hibernate", "sem_java"),
+    (r"java(?:[0-9]+)?$|spring.*|springboot|jvm|hibernate", "sem_java"),
     (r"python.*|django|fastapi|flask|numpy|pandas", "sem_python"),
     (r"postgres.*|pgvector|sql|mysql|oracle|database|db|nosql|mongodb|quer.*|optimiz.*|tuning|tuned", "sem_database"),
     (r"docker|k8s|kubernetes|aws|cloud|container.*|devops|ci\/cd|pipeline", "sem_cloud_infra"),
@@ -67,7 +67,7 @@ class SemanticMatchingService:
         self.primary_embedding_model = primary_embedding_model or settings.EMBEDDING_MODEL
         self.ollama_base_url = (ollama_base_url or settings.OLLAMA_BASE_URL).rstrip("/")
         self.ollama_model = ollama_model or settings.EMBEDDING_MODEL
-        self.timeout = httpx.Timeout(1.0, connect=0.2)
+        self.timeout = httpx.Timeout(timeout, connect=min(3.0, timeout))
 
     def compare_semantic(self, request: SemanticCompareRequest) -> SemanticCompareResponse:
         """
@@ -119,16 +119,22 @@ class SemanticMatchingService:
         if not text_a or not text_b or not text_a.strip() or not text_b.strip():
             return 0.0
 
-        # Try live vector embeddings first
-        vec_a = self._get_embedding_safe(text_a)
-        vec_b = self._get_embedding_safe(text_b)
-
-        if vec_a and vec_b and len(vec_a) == len(vec_b):
-            sim = self._cosine_similarity(vec_a, vec_b)
-            # Clip strictly to [0.0, 1.0] and round to 2 decimal places
-            return round(max(0.0, min(1.0, sim)), 2)
-
-        # Fallback to local concept vector cosine calculation
+        # Retry the entire pair with one provider; equal dimensions alone do not imply equal vector spaces.
+        providers = []
+        if settings.LLM_PRIMARY_ENABLED and self.primary_api_key:
+            providers.append(self._embed_openai_compatible)
+        if settings.LLM_FALLBACK_ENABLED:
+            providers.append(self._embed_ollama)
+        for embed in providers:
+            try:
+                vec_a, vec_b = embed(text_a), embed(text_b)
+                if len(vec_a) != len(vec_b) or not vec_a:
+                    raise ValueError("Embedding dimension mismatch")
+                if any(not math.isfinite(x) for x in vec_a + vec_b) or not any(vec_a) or not any(vec_b):
+                    raise ValueError("Invalid embedding values")
+                return round(max(0.0, min(1.0, self._cosine_similarity(vec_a, vec_b))), 2)
+            except Exception:
+                logger.debug("Embedding pair unavailable; trying the next configured vector space")
         return self._compute_concept_cosine(text_a, text_b)
 
     def _get_embedding_safe(self, text: str) -> Optional[List[float]]:

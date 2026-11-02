@@ -910,9 +910,7 @@ public class AiClient {
 
     String returnedModel = r.path("model").asText("");
     if (!returnedModel.isBlank()
-        && !returnedModel.equalsIgnoreCase(model)
-        && !returnedModel.startsWith(model)
-        && !model.startsWith(returnedModel)) {
+        && !returnedModel.replaceFirst(":latest$", "").equalsIgnoreCase(model.replaceFirst(":latest$", ""))) {
       throw new CustomException(
           ErrorCode.INTERNAL_SERVER_ERROR,
           "Dịch vụ embedding trả về model không khớp: yêu cầu "
