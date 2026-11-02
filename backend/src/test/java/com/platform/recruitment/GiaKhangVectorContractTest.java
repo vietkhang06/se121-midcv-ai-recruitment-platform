@@ -42,6 +42,8 @@ class GiaKhangVectorContractTest {
         assertEquals(80.0, service.compare(version, job, List.of(), false).score().doubleValue());
         verify(jdbc, never()).update(anyString(), any(Object[].class));
         service.compare(version, job, List.of(), true);
+        verify(jdbc, times(2)).queryForObject(startsWith("SELECT pg_advisory_xact_lock"),
+                eq(Boolean.class), anyString());
         verify(jdbc).update(startsWith("UPDATE embeddings"), eq("CV_VERSION"), eq(version.getId()));
         ArgumentCaptor<Object[]> bindings = ArgumentCaptor.forClass(Object[].class);
         verify(jdbc, times(2)).update(startsWith("INSERT INTO embeddings"), bindings.capture());
