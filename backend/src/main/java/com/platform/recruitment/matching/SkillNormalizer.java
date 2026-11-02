@@ -85,29 +85,19 @@ public class SkillNormalizer {
         String cleanTarget = targetSkill.toLowerCase().trim();
         String cleanText = text.toLowerCase();
 
-        // Special protection: Java != JavaScript
-        if (cleanTarget.equals("java")) {
-            if (cleanText.contains("java") && !cleanText.contains("javascript only")) {
-                String stripped = cleanText.replace("javascript", "");
-                return stripped.contains("java");
-            }
-            return false;
-        }
-
-        // Direct containment
-        if (cleanText.contains(cleanTarget)) {
-            return true;
-        }
-
-        // Check canonical synonym containment
+        // Related products and short technical identifiers need token boundaries, not substrings.
         String canonical = getCanonicalName(cleanTarget);
-        Set<String> synonyms = SYNONYMS_MAP.getOrDefault(canonical, Set.of(cleanTarget));
-        for (String syn : synonyms) {
-            if (cleanText.contains(syn)) {
-                return true;
-            }
+        if (canonical.equals("react") || canonical.equals("react.js")) {
+            cleanText = cleanText.replaceAll("(?iu)react\\s+native", " ");
         }
-
+        Set<String> synonyms = new LinkedHashSet<>(SYNONYMS_MAP.getOrDefault(canonical, Set.of(cleanTarget)));
+        synonyms.add(canonical);
+        for (String synonym : synonyms) {
+            if (synonym.isBlank()) continue;
+            String regex = "(?iu)(?<![\\p{L}\\p{N}_+#.])" + java.util.regex.Pattern.quote(synonym)
+                    + "(?![\\p{L}\\p{N}_+#])";
+            if (java.util.regex.Pattern.compile(regex).matcher(cleanText).find()) return true;
+        }
         return false;
     }
 }
