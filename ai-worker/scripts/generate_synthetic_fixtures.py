@@ -120,12 +120,12 @@ def generate_fixtures(out_dir: str):
 
     doc.save(os.path.join(out_dir, "05_structured_table_cv.docx"))
 
-    # 5. Legacy Word DOC file dummy with DOC magic bytes
-    # Starts with OLE Compound File header "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"
+    # A magic header with text is not a Word document. Keep it only as a corrupt-input fixture.
     ole_header = b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1" + b"\x00" * 504
-    legacy_text = b"HOANG VAN NAM - Project Manager\nEmail: nam.hoang@example.com\nSkills: Agile, Scrum, Jira"
-    with open(os.path.join(out_dir, "06_legacy_cv.doc"), "wb") as f:
-        f.write(ole_header + legacy_text)
+    with open(os.path.join(out_dir, "09_corrupted_legacy.doc"), "wb") as f:
+        f.write(ole_header + b"Not a valid OLE Compound Word document")
+    # 06_legacy_cv.doc is a genuine synthetic Word 97-2003 document, generated with Word SaveAs2(format=0).
+    # Do not overwrite it with a fabricated binary container when regenerating the other fixtures.
 
     print(f"Generated 6 synthetic fixtures in {out_dir}")
 

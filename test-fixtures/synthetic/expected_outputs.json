@@ -8,7 +8,14 @@
       "email": "tuananh.nguyen@example.com",
       "phone": "+84901234567",
       "address": "Da Nang, Vietnam",
-      "skills": ["Java", "Spring Boot", "PostgreSQL", "Docker", "Redis", "Kubernetes"],
+      "skills": [
+        "Java",
+        "Spring Boot",
+        "PostgreSQL",
+        "Docker",
+        "Redis",
+        "Kubernetes"
+      ],
       "experience_company": "FinTech Solutions Vietnam",
       "education_institution": "Da Nang University of Technology"
     },
@@ -27,7 +34,12 @@
       "headline": "SENIOR AI & BACKEND DEVELOPER",
       "email": "quan.le@example.com",
       "phone": "+84988776655",
-      "skills": ["Python", "FastAPI", "Docker", "PyTorch"],
+      "skills": [
+        "Python",
+        "FastAPI",
+        "Docker",
+        "PyTorch"
+      ],
       "experience_company": "NextGen Tech Hanoi"
     },
     "key_verbatim_quotes": [
@@ -45,7 +57,12 @@
       "headline": "Marketing Specialist & Brand Strategist",
       "email": "mai.tran@example.com",
       "phone": "0912345678",
-      "skills": ["Content Marketing", "SEO", "Google Analytics", "English Fluent"]
+      "skills": [
+        "Content Marketing",
+        "SEO",
+        "Google Analytics",
+        "English Fluent"
+      ]
     },
     "note": "Requires Tesseract 5 OCR installed. If Tesseract binary is absent, pipeline gracefully returns warning or falls back without crash."
   },
@@ -54,7 +71,11 @@
     "expected_method": "TESSERACT_OCR",
     "expected_facts": {
       "full_name": "TRAN THI MAI",
-      "skills": ["Content Marketing", "SEO", "Google Analytics"]
+      "skills": [
+        "Content Marketing",
+        "SEO",
+        "Google Analytics"
+      ]
     }
   },
   "05_structured_table_cv.docx": {
@@ -68,7 +89,15 @@
       "address": "Ho Chi Minh City",
       "linkedin_url": "https://linkedin.com/in/thangpham-dev",
       "github_url": "https://github.com/thangpham-dev",
-      "skills": ["React", "TypeScript", "Next.js", "Node.js", "PostgreSQL", "Docker", "TailwindCSS"],
+      "skills": [
+        "React",
+        "TypeScript",
+        "Next.js",
+        "Node.js",
+        "PostgreSQL",
+        "Docker",
+        "TailwindCSS"
+      ],
       "experiences": [
         {
           "company": "Saigon Tech Labs",
@@ -93,6 +122,17 @@
     "format": "DOC (Legacy Binary Word)",
     "expected_method": "LIBREOFFICE_PDF_CONVERSION",
     "fallback_error": "DOC_CONVERTER_UNAVAILABLE",
-    "note": "If LibreOffice headless is not installed on the host machine, pipeline returns clean status FAILED or WARNING with error_code DOC_CONVERTER_UNAVAILABLE without crashing or misidentifying as DOCX."
+    "note": "Genuine synthetic Word 97-2003 binary, generated with Microsoft Word SaveAs2(format=0), 2026-11-01. Without LibreOffice: FAILED/DOC_CONVERTER_UNAVAILABLE. With converter: EXTRACTED/SUCCESS and verbatim facts.",
+    "key_verbatim_quotes": [
+      "HOANG VAN NAM",
+      "nam.hoang@example.com",
+      "Agile",
+      "Scrum",
+      "Jira"
+    ]
+  },
+  "09_corrupted_legacy.doc": {
+    "format": "Invalid OLE-header dummy (negative fixture)",
+    "error_code": "DOC_INVALID_CONTAINER"
   }
 }

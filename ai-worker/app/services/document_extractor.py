@@ -877,6 +877,11 @@ class DocumentExtractor:
         Enforces timeout (60s), temporary user profile, and no macro execution.
         Returns DOC_CONVERTER_UNAVAILABLE if LibreOffice is not installed.
         """
+        sector_shift = int.from_bytes(file_bytes[30:32], "little")
+        if len(file_bytes) < 512 or sector_shift not in (9, 12) or len(file_bytes) % 512:
+            return DocumentExtractResponse(status="FAILED", source_type="DOC", used_ocr=False,
+                text=None, error_code="DOC_INVALID_CONTAINER",
+                error_message="Invalid legacy Word container. Supply a valid DOC, DOCX or PDF file.")
         soffice_bin = self._find_libreoffice()
         if not soffice_bin:
             return DocumentExtractResponse(

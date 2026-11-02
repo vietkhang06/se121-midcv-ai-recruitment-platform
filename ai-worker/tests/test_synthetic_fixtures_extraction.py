@@ -80,7 +80,30 @@ def test_extract_doc_graceful_handling(extractor):
     )
     res = extractor.extract_document(req)
     # If LibreOffice is installed, it extracts text; if not, it returns clean DOC_CONVERTER_UNAVAILABLE without crashing
-    if res.status == "SUCCESS":
+    if res.status in ("SUCCESS", "EXTRACTED"):
+        assert res.source_type == "DOC"
+        assert res.error_code is None
+        assert res.pages
         assert "HOANG VAN NAM" in res.text
     else:
-        assert res.error_code == "DOC_CONVERTER_UNAVAILABLE" or "DOC_CONVERTER_UNAVAILABLE" in res.warnings
+        assert res.status == "FAILED"
+        assert not res.text
+        assert res.error_code == "DOC_CONVERTER_UNAVAILABLE"
+
+
+def test_doc_fixture_is_a_real_compound_word_document():
+    from pathlib import Path
+    content = (Path(FIXTURE_DIR) / "06_legacy_cv.doc").read_bytes()
+    assert content[:8] == bytes.fromhex("d0cf11e0a1b11ae1")
+    assert len(content) >= 4096 and len(content) % 512 == 0
+    assert "WordDocument".encode("utf-16le") in content
+    assert b"HOANG VAN NAM" in content or "HOANG VAN NAM".encode("utf-16le") in content
+
+
+def test_fake_ole_header_is_not_successful_doc_extraction(extractor):
+    from pathlib import Path
+    content = (Path(FIXTURE_DIR) / "09_corrupted_legacy.doc").read_bytes()
+    response = extractor.extract_document(DocumentExtractRequest(file_base64=base64.b64encode(content).decode(), file_name="corrupt.doc", file_type="DOC"))
+    assert response.status == "FAILED"
+    assert response.error_code == "DOC_INVALID_CONTAINER"
+    assert not response.text
