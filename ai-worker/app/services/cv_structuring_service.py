@@ -12,6 +12,7 @@ from app.services.llm.types import (
     LLMClientProtocol,
     LLMInvalidResponseError,
     LLMServerError,
+    LLMAuthenticationError, LLMAuthorizationError, LLMModelNotFoundError, LLMBadRequestError,
 )
 from app.services.llm.openai_compatible_client import OpenAICompatibleClient
 from app.services.llm.ollama_client import OllamaClient
@@ -145,6 +146,20 @@ class CVStructuringService:
 Target JSON schema structure:
 {SCHEMA_TEMPLATE}"""
 
+    async def _repair_output(self, messages, execution, correlation_id):
+        if execution.fallback_used:
+            response = await self.orchestrator.fallback_client.chat(messages, correlation_id=correlation_id)
+            return FallbackExecutionResult(response=response, provider_used="fallback", fallback_used=True,
+                fallback_reason=execution.fallback_reason, correlation_id=correlation_id)
+        return await self.orchestrator.execute(messages, correlation_id=correlation_id)
+
+    def _repair_output_sync(self, messages, execution, correlation_id):
+        if execution.fallback_used:
+            response = self.orchestrator.fallback_client.chat_sync(messages, correlation_id=correlation_id)
+            return FallbackExecutionResult(response=response, provider_used="fallback", fallback_used=True,
+                fallback_reason=execution.fallback_reason, correlation_id=correlation_id)
+        return self.orchestrator.execute_sync(messages, correlation_id=correlation_id)
+
     async def structure_raw_text(
         self,
         raw_text: str,
@@ -205,20 +220,25 @@ Target JSON schema structure:
                 {"role": "user", "content": f"Schema:\n{SCHEMA_TEMPLATE}\n\nValidation Errors:\n{sanitized_err}\n\nMalformed Output to Fix:\n{llm_resp.content}"}
             ]
             try:
-                repair_res = await self.orchestrator.execute(repair_messages, correlation_id=f"{cid}-repair")
+                repair_res = await self._repair_output(repair_messages, exec_res, f"{cid}-repair")
+                exec_res = repair_res
+                llm_resp = repair_res.response
                 r_json_valid, r_schema_valid, r_data, r_err = self.validator.validate(repair_res.response.content, raw_text=cleaned_text)
                 if r_json_valid and r_schema_valid and r_data:
                     json_valid = True
                     schema_valid = True
                     parsed_data = r_data
                     llm_resp = repair_res.response
+                    exec_res = repair_res
                     err_msg = None
                     logger.info(f"[{cid}] JSON repair succeeded.")
                 else:
                     err_msg = r_err or err_msg
                     logger.error(f"[{cid}] JSON repair failed: {self._sanitize_validation_error(r_err)}")
+            except (LLMAuthenticationError, LLMAuthorizationError, LLMModelNotFoundError, LLMBadRequestError):
+                raise
             except Exception as repair_exc:
-                logger.error(f"[{cid}] JSON repair request encountered error: {repair_exc}")
+                logger.error(f"[{cid}] JSON repair request encountered error: {self._sanitize_validation_error(str(repair_exc))}")
 
             # If repair failed on PRIMARY, trigger fallback to Ollama per fallback rules
             if not (json_valid and schema_valid) and not exec_res.fallback_used and self.orchestrator.fallback_enabled and self.orchestrator.fallback_client:
@@ -240,7 +260,7 @@ Target JSON schema structure:
                         err_msg = fb_err or err_msg
                         logger.error(f"[{cid}] Fallback Ollama output also invalid: {self._sanitize_validation_error(fb_err)}")
                 except Exception as fb_exc:
-                    logger.error(f"[{cid}] Fallback Ollama structuring error: {fb_exc}")
+                    logger.error(f"[{cid}] Fallback Ollama structuring error: {self._sanitize_validation_error(str(fb_exc))}")
 
         usage_dict = {
             "promptTokens": llm_resp.prompt_tokens,
@@ -324,7 +344,7 @@ Target JSON schema structure:
         exec_res: FallbackExecutionResult = self.orchestrator.execute_sync(messages, correlation_id=cid)
         llm_resp = exec_res.response
 
-        json_valid, schema_valid, parsed_data, err_msg = self.validator.validate(llm_resp.content)
+        json_valid, schema_valid, parsed_data, err_msg = self.validator.validate(llm_resp.content, raw_text=cleaned_text)
 
         if not (json_valid and schema_valid):
             sanitized_err = self._sanitize_validation_error(err_msg)
@@ -334,20 +354,33 @@ Target JSON schema structure:
                 {"role": "user", "content": f"Schema:\n{SCHEMA_TEMPLATE}\n\nValidation Errors:\n{sanitized_err}\n\nMalformed Output to Fix:\n{llm_resp.content}"}
             ]
             try:
-                repair_res = self.orchestrator.execute_sync(repair_messages, correlation_id=f"{cid}-repair")
-                r_json_valid, r_schema_valid, r_data, r_err = self.validator.validate(repair_res.response.content)
+                repair_res = self._repair_output_sync(repair_messages, exec_res, f"{cid}-repair")
+                exec_res = repair_res
+                llm_resp = repair_res.response
+                r_json_valid, r_schema_valid, r_data, r_err = self.validator.validate(repair_res.response.content, raw_text=cleaned_text)
                 if r_json_valid and r_schema_valid and r_data:
                     json_valid = True
                     schema_valid = True
                     parsed_data = r_data
                     llm_resp = repair_res.response
+                    exec_res = repair_res
                     err_msg = None
                     logger.info(f"[{cid}] JSON repair succeeded.")
                 else:
                     err_msg = r_err or err_msg
                     logger.error(f"[{cid}] JSON repair failed: {self._sanitize_validation_error(r_err)}")
+            except (LLMAuthenticationError, LLMAuthorizationError, LLMModelNotFoundError, LLMBadRequestError):
+                raise
             except Exception as repair_exc:
-                logger.error(f"[{cid}] JSON repair request encountered error: {repair_exc}")
+                logger.error(f"[{cid}] JSON repair request encountered error: {self._sanitize_validation_error(str(repair_exc))}")
+
+        if not (json_valid and schema_valid) and not exec_res.fallback_used and self.orchestrator.fallback_enabled and self.orchestrator.fallback_client:
+            fb_resp = self.orchestrator.fallback_client.chat_sync(messages, correlation_id=f"{cid}-json-fallback")
+            json_valid, schema_valid, parsed_data, err_msg = self.validator.validate(fb_resp.content, raw_text=cleaned_text)
+            llm_resp = fb_resp
+            exec_res.fallback_used = True
+            exec_res.provider_used = "fallback"
+            exec_res.fallback_reason = "Primary output invalid after repair attempt"
 
         usage_dict = {
             "promptTokens": llm_resp.prompt_tokens,
@@ -384,4 +417,3 @@ Target JSON schema structure:
             error=err_code,
             error_message=formatted_err
         )
-
