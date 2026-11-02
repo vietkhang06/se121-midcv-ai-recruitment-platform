@@ -4,7 +4,7 @@ Phạm vi: STT 65–79, loại 71. Tích hợp trên `origin/master` tại `acc5
 
 ## Kết luận
 
-Đủ bằng chứng để đưa source lên PR review theo từng task. Provider trong mọi kiểm thử mới là mock cục bộ; không dùng API trả phí. Backend, PostgreSQL/pgvector và queue chạy thật trên DB test riêng. Browser dùng HTTP mock, vì vậy không gọi các ca browser này là full-stack E2E. Không đánh dấu toàn bộ phase sản phẩm VERIFIED.
+Đủ bằng chứng để đưa source lên PR review theo từng task. Lượt review ban đầu dùng provider mock. Bổ sung O03 ngày 02/11 đã gọi gateway API thật 7 lần, giới hạn 1024 output tokens/lần, không retry/fallback; xem báo cáo live-primary. Các bằng chứng mock khác vẫn được ghi rõ là mock. Backend, PostgreSQL/pgvector và queue chạy thật trên DB test riêng. Browser dùng HTTP mock, vì vậy không gọi các ca browser này là full-stack E2E. Không đánh dấu toàn bộ phase sản phẩm VERIFIED.
 
 ## Vấn đề đã tìm thấy và sửa trong lượt review
 
@@ -26,7 +26,7 @@ Phạm vi: STT 65–79, loại 71. Tích hợp trên `origin/master` tại `acc5
 - Frontend contract: **40 passed**; TypeScript pass.
 - Next production build: pass với `--webpack` (worktree dùng node_modules junction; Turbopack không chấp nhận junction ra ngoài root). Browser Chrome: **4 passed** trên server riêng của worktree, HTTP mock.
 - Runtime DOC/LibreOffice: **6 passed** trong container không có network.
-- OCR local: **5/5** mẫu thành công; xem `evidence/ocr-benchmark-review.json`. Chưa có benchmark provider thật sau sửa được người dùng duyệt; không công bố cải thiện OCR từ mock.
+- OCR local: **5/5** mẫu thành công; xem `evidence/ocr-benchmark-review.json`. Đã bổ sung 5/5 số đo before/after từ đề xuất API thật tại `evidence/ocr-benchmark-live-primary.json` và bản Markdown. After là preview được validator kiểm tra, chưa phải người dùng xác nhận áp dụng CV. Mẫu song ngữ CER 0.027140→0.016701, WER 0.168831→0.103896; 4 mẫu khác không đổi. Không suy rộng độ chính xác sản phẩm từ 5 mẫu synthetic.
 - Backend/DB/queue với provider mock: **15 nhóm kiểm tra** trong `live-core.json`, `live-vectors.json`, `live-documents.json`, `live-screening.json`.
 - Runner `evaluate_backend_ranking.py` đã gọi endpoint backend thật: raw predictions và metrics nằm trong `evidence/backend-ranking-review.json`; labels khai báo độc lập trước khi gọi backend, là rubric synthetic, không phải nhãn chuyên gia.
 
@@ -63,8 +63,8 @@ Browser mặc định dùng localhost:3000; tránh tái dùng server từ bản 
 |65|R02|Queue/worker thực hoàn tất job mock-provider >60 giây; polling/abort/SSE contract pass.|Chưa nghiệm thu browser qua mất mạng thật.|
 |66|O01|DOC converter thật pass; DOCX upload qua DB thành công sau V31.|Các converter/runtime triển khai khác vẫn cần kiểm tra.|
 |67|O02|Proposal lưu DB có revision; trước apply không đổi summary; apply có xác nhận; raw extraction không đổi. Browser cancel/reject pass.|Chưa đo chất lượng đề xuất từ model thật.|
-|68|O03|5 mẫu có nhãn, CER/WER và before/after runner có kiểm soát.|Chưa có số đo after từ provider thật với duyệt người dùng.|
-|69|L01|Provider/repair/fallback/schema/grounding tests; HTTP mock primary và 503 fallback.|Chưa xác thực API key/model thật.|
+|68|O03|5 mẫu có nhãn độc lập; OCR thật + API thật; raw/proposed text, edits, trace/model/usage, CER/WER before/after từng mẫu.|After là proposal preview; chưa có human approval và bộ dữ liệu CV thật do chuyên gia gán nhãn.|
+|69|L01|Provider/repair/fallback/schema/grounding tests; HTTP mock primary và 503 fallback.|Đã xác thực primary model thật qua O03; các nhánh lỗi/fallback được kiểm tra mock, chưa có nghiệm thu fallback provider thực.|
 |70|C01|DB race hai save: 200/409; draft mới không thay applied version; upload→save→reload→confirm giữ checksum/raw.|Chưa thử mọi tổ hợp đồng thời save/confirm/rollback.|
 |72|C03|Browser lưu lỗi/retry/template/reload/mobile và PDF thực pass.|Cần kiểm tra thêm CV dài/multi-page trên backend thật.|
 |73|T01|Adversarial exact/alias/fuzzy/vector/unknown tests pass.|Mock vector không đo độ chính xác semantic.|
