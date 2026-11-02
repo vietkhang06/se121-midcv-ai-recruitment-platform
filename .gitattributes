@@ -1,0 +1,8 @@
+# Preserve binary fixtures/export bytes and PDF xref offsets on Windows checkout.
+*.pdf binary
+*.doc binary
+*.docx binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
