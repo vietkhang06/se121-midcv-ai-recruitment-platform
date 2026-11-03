@@ -24,8 +24,8 @@ class RoadmapMilestone(BaseModel):
 
 class SkillGapAnalysisRequest(BaseModel):
     candidate_skills: List[str] = Field(..., description="Skills declared in candidate CV")
-    candidate_verified_skills: List[str] = Field(
-        default_factory=list,
+    candidate_verified_skills: Optional[List[str]] = Field(
+        default=None,
         description="Skills verified via GitHub or certification"
     )
     jd_required_skills: List[str] = Field(..., description="Mandatory skills from JD")
@@ -41,6 +41,9 @@ class SkillGapAnalysisRequest(BaseModel):
 
 
 class SkillGapAnalysisResponse(BaseModel):
+    roadmap_source: str = "DETERMINISTIC_TEMPLATE"
+    roadmap_provider: Optional[str] = None
+    roadmap_model: Optional[str] = None
     gap_breakdown: List[SkillGapItem]
     met_count: int
     missing_mandatory_count: int
