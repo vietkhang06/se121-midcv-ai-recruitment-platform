@@ -11,6 +11,10 @@ import com.platform.recruitment.job.*;
 import com.platform.recruitment.application.*;
 import com.platform.recruitment.matching.*;
 import com.platform.recruitment.user.*;
+import com.platform.recruitment.admin.model.ReportStatus;
+import com.platform.recruitment.admin.model.ReportTargetType;
+import com.platform.recruitment.admin.model.SystemReport;
+import com.platform.recruitment.admin.repository.SystemReportRepository;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +51,7 @@ class TaskHttpAcceptanceTest {
     @Autowired EmailService email; @Autowired CompanyRepository companies; @Autowired RecruiterProfileRepository recruiters;
     @Autowired JobRepository jobs; @Autowired CVRepository cvs; @Autowired CVVersionRepository versions;
     @Autowired ApplicationRepository applications; @Autowired MatchResultRepository results;
+    @Autowired SystemReportRepository reports;
     User user; CandidateProfile candidate;
     final String password="Task-Fixture#2026";
     @BeforeEach void fixture() {
@@ -214,6 +219,7 @@ class TaskHttpAcceptanceTest {
         assertEquals(200,call(HttpMethod.POST,path+"/action",Map.of("action","block"),candidateToken).getStatusCode().value());
         assertEquals(403,call(HttpMethod.POST,path+"/messages",Map.of("clientId",UUID.randomUUID(),"body","Blocked send"),hr).getStatusCode().value());
         assertEquals(404,call(HttpMethod.GET,path+"/messages",null,login(actor(Role.HR)).path("accessToken").asText()).getStatusCode().value());
+        assertEquals(404,call(HttpMethod.GET,path+"/messages",null,login(actor(Role.ADMIN)).path("accessToken").asText()).getStatusCode().value());
     }
     @Test void businessDraftJobCrudOtherSalaryAndServerSearch() throws Exception {
         Hiring h=hiring("CONFIRMED");String hr=login(h.hr()).path("accessToken").asText();String title="TaskSearch"+UUID.randomUUID();
@@ -259,6 +265,165 @@ class TaskHttpAcceptanceTest {
         assertEquals(401,call(HttpMethod.GET,"/api/v1/admin/users",null,null).getStatusCode().value());
         assertEquals(403,call(HttpMethod.POST,"/api/v1/jobs/draft",Map.of(),token).getStatusCode().value());
     }
+    @Test void businessHttpSecurityMatrixCoversRolesTokensAndTenantOwnership() throws Exception {
+        Hiring h = hiring("CONFIRMED");
+        String candidateToken = access();
+        var submitted = call(HttpMethod.POST, "/api/v1/candidate/applications",
+                Map.of("jobId", h.job().getId(), "cvId", h.cv().getId()), candidateToken);
+        assertEquals(201, submitted.getStatusCode().value());
+        UUID applicationId = UUID.fromString(data(submitted).path("id").asText());
+
+        User hrB = actor(Role.HR);
+        Company companyB = companies.saveAndFlush(Company.builder()
+                .name("Tenant B " + UUID.randomUUID())
+                .verificationStatus(CompanyVerification.VERIFIED)
+                .operationalStatus(CompanyOperationalStatus.ACTIVE)
+                .build());
+        recruiters.saveAndFlush(RecruiterProfile.builder()
+                .user(hrB).company(companyB).fullName("Tenant B recruiter").build());
+
+        String hrAToken = login(h.hr()).path("accessToken").asText();
+        String hrBToken = login(hrB).path("accessToken").asText();
+        String adminToken = login(actor(Role.ADMIN)).path("accessToken").asText();
+        String refreshToken = login(h.hr()).path("refreshToken").asText();
+
+        // Role boundaries at the HTTP filter chain.
+        assertEquals(401, call(HttpMethod.GET, "/api/v1/admin/users", null, null).getStatusCode().value());
+        assertEquals(403, call(HttpMethod.GET, "/api/v1/admin/users", null, candidateToken).getStatusCode().value());
+        assertEquals(403, call(HttpMethod.GET, "/api/v1/admin/users", null, hrAToken).getStatusCode().value());
+        assertEquals(200, call(HttpMethod.GET, "/api/v1/admin/users?size=1", null, adminToken).getStatusCode().value());
+        assertEquals(403, call(HttpMethod.GET, "/api/v1/recruiter/jobs", null, candidateToken).getStatusCode().value());
+        assertEquals(403, call(HttpMethod.GET, "/api/v1/candidate/applications", null, hrAToken).getStatusCode().value());
+        assertEquals(403, call(HttpMethod.POST, "/api/v1/jobs/draft", Map.of(), adminToken).getStatusCode().value());
+
+        // A refresh token or a query-string token must never authenticate an API request.
+        assertEquals(401, call(HttpMethod.GET, "/api/v1/admin/users", null, refreshToken).getStatusCode().value());
+        var queryToken = http.getForEntity("/api/v1/admin/users?access_token=" + adminToken, String.class);
+        assertEquals(401, queryToken.getStatusCode().value());
+
+        // Public job detail is intentionally public; recruiter-only resources are tenant-scoped.
+        assertEquals(200, call(HttpMethod.GET, "/api/v1/jobs/" + h.job().getId(), null, null).getStatusCode().value());
+        assertEquals(200, call(HttpMethod.GET, "/api/v1/recruiter/jobs/" + h.job().getId(), null, hrAToken).getStatusCode().value());
+        assertEquals(403, call(HttpMethod.GET, "/api/v1/recruiter/jobs/" + h.job().getId(), null, hrBToken).getStatusCode().value());
+        assertEquals(200, call(HttpMethod.GET, "/api/v1/recruiter/applications/" + applicationId, null, hrAToken).getStatusCode().value());
+        assertEquals(403, call(HttpMethod.GET, "/api/v1/recruiter/applications/" + applicationId, null, hrBToken).getStatusCode().value());
+        assertEquals(403, call(HttpMethod.GET, "/api/v1/recruiter/applications/" + applicationId, null, candidateToken).getStatusCode().value());
+    }
+
+    @Test void businessAdminDataCountsReconcileAcrossUsersJobsReportsTaxonomyAndAudit() throws Exception {
+        Hiring h = hiring("CONFIRMED");
+        User admin = actor(Role.ADMIN);
+        User otherHr = actor(Role.HR);
+        String adminToken = login(admin).path("accessToken").asText();
+        String candidateToken = access();
+        String hrToken = login(otherHr).path("accessToken").asText();
+
+        reports.saveAndFlush(SystemReport.builder()
+                .reporter(user)
+                .targetType(ReportTargetType.JOB)
+                .targetId(h.job().getId())
+                .reason("SPAM")
+                .details("Disposable HTTP reconciliation fixture")
+                .status(ReportStatus.PENDING)
+                .build());
+
+        // Generate at least one new audit event in this disposable database.
+        assertEquals(200, call(HttpMethod.POST, "/api/v1/admin/jobs/" + h.job().getId() + "/suspend",
+                Map.of("reason", "Reconciliation test moderation"), adminToken).getStatusCode().value());
+
+        Map<String, Long> sqlCounts = new LinkedHashMap<>();
+        sqlCounts.put("users", db.queryForObject("SELECT COUNT(*) FROM users", Long.class));
+        sqlCounts.put("jobs", db.queryForObject("SELECT COUNT(*) FROM jobs", Long.class));
+        sqlCounts.put("reports", db.queryForObject("SELECT COUNT(*) FROM system_reports", Long.class));
+        sqlCounts.put("taxonomy", db.queryForObject("SELECT COUNT(*) FROM taxonomy_skills", Long.class));
+        sqlCounts.put("audit", db.queryForObject("SELECT COUNT(*) FROM admin_audit_logs", Long.class));
+
+        Map<String, String> endpoints = Map.of(
+                "users", "/api/v1/admin/users?size=200",
+                "jobs", "/api/v1/admin/jobs?size=200",
+                "reports", "/api/v1/admin/reports?size=200",
+                "taxonomy", "/api/v1/admin/taxonomy/skills?size=200",
+                "audit", "/api/v1/admin/audit-logs?size=200");
+        for (var entry : endpoints.entrySet()) {
+            var response = call(HttpMethod.GET, entry.getValue(), null, adminToken);
+            assertEquals(200, response.getStatusCode().value(), "Admin endpoint " + entry.getKey());
+            assertEquals(sqlCounts.get(entry.getKey()).longValue(),
+                    data(response).path("totalElements").asLong(),
+                    "API totalElements must reconcile with SQL for " + entry.getKey());
+            assertEquals(403, call(HttpMethod.GET, entry.getValue(), null, hrToken).getStatusCode().value(),
+                    "HR must not access Admin " + entry.getKey());
+            assertEquals(403, call(HttpMethod.GET, entry.getValue(), null, candidateToken).getStatusCode().value(),
+                    "Candidate must not access Admin " + entry.getKey());
+        }
+    }
+
+    @Test void businessCompanyOnboardingVerificationChangesAndAudit() throws Exception {
+        User hrUser = actor(Role.HR);
+        Company company = companies.saveAndFlush(Company.builder()
+                .name("Onboarding " + UUID.randomUUID())
+                .taxCode("TAX-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12))
+                .verificationStatus(CompanyVerification.PENDING)
+                .operationalStatus(CompanyOperationalStatus.ACTIVE)
+                .build());
+        recruiters.saveAndFlush(RecruiterProfile.builder()
+                .user(hrUser).company(company).fullName("Onboarding HR").build());
+        User adminUser = actor(Role.ADMIN);
+        String hrToken = login(hrUser).path("accessToken").asText();
+        String adminToken = login(adminUser).path("accessToken").asText();
+        String adminCompanyPath = "/api/v1/admin/companies/" + company.getId();
+
+        var initial = call(HttpMethod.GET, "/api/v1/recruiter/company", null, hrToken);
+        assertEquals(200, initial.getStatusCode().value());
+        assertEquals("PENDING", data(initial).path("verificationStatus").asText());
+
+        var submitted = call(HttpMethod.POST, "/api/v1/recruiter/company/submit-verification", null, hrToken);
+        assertEquals(200, submitted.getStatusCode().value());
+        assertEquals("PENDING", data(submitted).path("verificationStatus").asText());
+
+        assertEquals(200, call(HttpMethod.POST,
+                adminCompanyPath + "/verification/start-review",
+                Map.of("reason", "Reviewer started company onboarding verification"), adminToken).getStatusCode().value());
+        assertEquals("UNDER_REVIEW", db.queryForObject(
+                "SELECT verification_status FROM companies WHERE id=?", String.class, company.getId()));
+
+        assertEquals(200, call(HttpMethod.POST,
+                adminCompanyPath + "/verification/request-changes",
+                Map.of("reason", "Please add a complete business website and company profile"), adminToken).getStatusCode().value());
+        assertEquals("CHANGES_REQUESTED", db.queryForObject(
+                "SELECT verification_status FROM companies WHERE id=?", String.class, company.getId()));
+
+        assertEquals(200, call(HttpMethod.PUT, "/api/v1/recruiter/company",
+                Map.of("website", "https://onboarding-fixture.invalid", "description", "Updated verification evidence"), hrToken).getStatusCode().value());
+        var resubmitted = call(HttpMethod.POST, "/api/v1/recruiter/company/submit-verification", null, hrToken);
+        assertEquals(200, resubmitted.getStatusCode().value());
+        assertEquals("PENDING", data(resubmitted).path("verificationStatus").asText());
+
+        var approved = call(HttpMethod.POST, adminCompanyPath + "/verification/approve",
+                Map.of("reason", "Verification evidence accepted"), adminToken);
+        assertEquals(200, approved.getStatusCode().value());
+        assertEquals("VERIFIED", data(approved).path("verificationStatus").asText());
+        assertEquals(adminUser.getEmail(), data(approved).path("reviewedByEmail").asText(),
+                "Approval response must map the lazy reviewer association inside the transaction");
+
+        // Re-read through the real HTTP endpoint with Open Session in View disabled.
+        var adminDetail = call(HttpMethod.GET, adminCompanyPath, null, adminToken);
+        assertEquals(200, adminDetail.getStatusCode().value());
+        assertEquals(adminUser.getEmail(), data(adminDetail).path("reviewedByEmail").asText());
+        assertFalse(adminDetail.getBody().contains("passwordHash"));
+        assertFalse(adminDetail.getBody().contains("hibernateLazyInitializer"));
+
+        var recruiterCompany = call(HttpMethod.GET, "/api/v1/recruiter/company", null, hrToken);
+        assertEquals(200, recruiterCompany.getStatusCode().value());
+        assertEquals("VERIFIED", data(recruiterCompany).path("verificationStatus").asText());
+        assertFalse(recruiterCompany.getBody().contains("hibernateLazyInitializer"));
+
+        assertEquals(5L, db.queryForObject(
+                "SELECT COUNT(*) FROM admin_audit_logs WHERE target_type='COMPANY' AND target_id=? " +
+                        "AND action IN ('RECRUITER_SUBMIT_VERIFICATION','COMPANY_VERIFICATION_UNDER_REVIEW'," +
+                        "'COMPANY_VERIFICATION_CHANGES_REQUESTED','COMPANY_VERIFICATION_VERIFIED')",
+                Long.class, company.getId()).longValue());
+    }
+
     @Test void businessCompanySuspensionAppealAndAudit() throws Exception {
         Hiring h=hiring("CONFIRMED");User admin=actor(Role.ADMIN);String adminToken=login(admin).path("accessToken").asText(),hr=login(h.hr()).path("accessToken").asText();
         assertEquals(200,call(HttpMethod.POST,"/api/v1/admin/companies/"+h.company().getId()+"/verification/suspend",Map.of("reason","Disposable acceptance suspension"),adminToken).getStatusCode().value());
