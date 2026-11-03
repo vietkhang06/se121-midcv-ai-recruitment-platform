@@ -50,7 +50,7 @@ TAXONOMY_CATALOG = [
         "canonical_id": "SKILL_FRONTEND_REACT",
         "canonical_name": "React.js",
         "category": "FRONTEND",
-        "aliases": ["react", "reactjs", "react.js", "react js", "react native", "lập trình react"]
+        "aliases": ["react", "reactjs", "react.js", "react js", "lập trình react"]
     },
     {
         "canonical_id": "SKILL_FRONTEND_VUE",
@@ -183,12 +183,16 @@ class TaxonomyNormalizer:
     Layer 4: Semantic Top-K & Bounded LLM Disambiguation
     """
 
-    def __init__(self, llm_client: Optional[Any] = None):
+    def __init__(self, llm_client: Optional[Any] = None, embedding_service: Optional[Any] = None):
         self.catalog = TAXONOMY_CATALOG
         self.exact_canonical_map: Dict[str, dict] = {}
         self.alias_map: Dict[str, dict] = {}
         self.skills_by_id: Dict[str, dict] = {}
         self.llm_client = llm_client
+        if embedding_service is None:
+            from app.services.embedding_service import OllamaEmbeddingService
+            embedding_service = OllamaEmbeddingService(timeout=3.0)
+        self.embedding_service = embedding_service
 
         self._build_indexes()
 
@@ -246,6 +250,10 @@ class TaxonomyNormalizer:
                 category=entry["category"]
             )
 
+        # Short tokens and related-but-distinct products require exact/alias evidence.
+        if len(skill_lower) <= 3 or skill_lower in {"react native", "c++", "c sharp", "objective-c"}:
+            return self._unknown(raw_skill)
+
         # Layer 3: Fuzzy Match (Levenshtein similarity >= 0.85)
         fuzzy_match = self._fuzzy_match(skill_lower)
         if fuzzy_match:
@@ -261,33 +269,33 @@ class TaxonomyNormalizer:
 
         # Layer 4: Bounded Semantic & LLM Disambiguation
         top_candidates = self._find_top_k_candidates(skill_lower, k=5)
-        if top_candidates and self.llm_client and self.llm_client.is_configured:
+        if top_candidates and self.llm_client and getattr(self.llm_client, "is_configured", True):
             disambiguated = self._disambiguate_with_llm(raw_skill, top_candidates, context)
             if disambiguated:
                 return disambiguated
 
-        # If best candidate has decent partial similarity (>= 0.70), return SEMANTIC match
-        if top_candidates and top_candidates[0][1] >= 0.70:
-            best_entry, best_score = top_candidates[0]
-            return NormalizedSkillItem(
-                raw_name=raw_skill,
-                canonical_id=best_entry["canonical_id"],
-                canonical_name=best_entry["canonical_name"],
-                match_type="SEMANTIC",
-                confidence=round(best_score, 2),
-                category=best_entry["category"]
-            )
+        # A lexical ratio is not a semantic vector. Only actual embeddings may produce SEMANTIC.
+        try:
+            entries = list(self.skills_by_id.values())
+            vectors = self.embedding_service.embed_batch([raw_skill] + [e["canonical_name"] for e in entries])
+            if len(vectors) != len(entries) + 1:
+                raise ValueError("Embedding count mismatch")
+            from app.services.embedding_service import OllamaEmbeddingService
+            scores = sorted([(entry, OllamaEmbeddingService.cosine_similarity(vectors[0], vec))
+                             for entry, vec in zip(entries, vectors[1:])], key=lambda row: row[1], reverse=True)
+            if scores and scores[0][1] >= 0.85 and (len(scores) == 1 or scores[0][1] - scores[1][1] >= 0.05):
+                entry, score = scores[0]
+                return NormalizedSkillItem(raw_name=raw_skill, canonical_id=entry["canonical_id"],
+                    canonical_name=entry["canonical_name"], match_type="SEMANTIC", confidence=round(score, 2), category=entry["category"])
+        except Exception:
+            logger.debug("Semantic taxonomy unavailable; preserving unknown skill")
+        return self._unknown(raw_skill)
 
-        # Fallback: Unmapped / Custom Skill
+    @staticmethod
+    def _unknown(raw_skill: str) -> NormalizedSkillItem:
         canonical_fallback_id = f"SKILL_CUSTOM_{re.sub(r'[^A-Z0-9]', '_', raw_skill.upper())[:30]}"
-        return NormalizedSkillItem(
-            raw_name=raw_skill,
-            canonical_id=canonical_fallback_id,
-            canonical_name=raw_skill,
-            match_type="UNKNOWN",
-            confidence=0.5,
-            category="OTHER"
-        )
+        return NormalizedSkillItem(raw_name=raw_skill, canonical_id=canonical_fallback_id,
+            canonical_name=raw_skill, match_type="UNKNOWN", confidence=0.0, category="OTHER")
 
     def _fuzzy_match(self, query: str) -> Optional[Tuple[dict, float]]:
         best_entry = None
@@ -375,7 +383,7 @@ class TaxonomyNormalizer:
             if not resp or not resp.content:
                 return None
 
-            chosen_id = resp.content.strip().split()[0].replace('"', '').replace("'", "")
+            chosen_id = resp.content.strip()
             if chosen_id in valid_ids:
                 entry = self.skills_by_id[chosen_id]
                 return NormalizedSkillItem(
