@@ -283,3 +283,22 @@ def analyze_skill_gap_and_roadmap(request: SkillGapAnalysisRequest):
 
 
 
+
+
+# O02: optional post-extraction proposal; never invoked by DocumentExtractor.
+from app.services.ocr_review_service import OcrReviewService, OcrReviewRequest, OcrApplyRequest, OcrProposal
+ocr_review_service = OcrReviewService(CVStructuringService().orchestrator)
+
+@router.post("/cv/ocr-review", response_model=OcrProposal)
+async def propose_ocr_review(request: OcrReviewRequest):
+    try:
+        return await ocr_review_service.propose(request)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="OCR provider returned an unsafe or invalid proposal")
+
+@router.post("/cv/ocr-review/apply")
+def apply_ocr_review(request: OcrApplyRequest):
+    try:
+        return ocr_review_service.apply(request)
+    except ValueError:
+        raise HTTPException(status_code=409, detail="OCR proposal is stale or invalid")

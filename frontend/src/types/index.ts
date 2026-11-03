@@ -483,6 +483,9 @@ export interface CVEvidenceAttachmentItem {
 }
 
 export interface CVDraftData {
+  revision?: string;
+  expected_revision?: string;
+  presentation?: { template: string };
   [key: string]: unknown;
   cv_id: string;
   profile_id?: string;

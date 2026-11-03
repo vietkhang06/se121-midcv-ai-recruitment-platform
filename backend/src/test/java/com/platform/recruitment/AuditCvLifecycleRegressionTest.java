@@ -80,4 +80,14 @@ class AuditCvLifecycleRegressionTest {
         verify(versions,never()).save(any());
     }
 
+    @Test void staleDraftRevisionStopsSaveAndConfirmationBeforeWrites() {
+        String stale = DraftRevision.of(version);
+        version.setTitle("Newer title");
+        var request = UpdateCVDraftRequest.builder().versionId(version.getId()).expectedRevision(stale).title("Stale title").build();
+        assertThrows(CustomException.class, () -> svc.updateCVDraft(user, cv.getId(), request));
+        assertThrows(CustomException.class, () -> svc.confirmCV(user, cv.getId(), version.getId(), stale));
+        verify(versions, never()).save(any());
+        assertEquals("Newer title", version.getTitle());
+    }
+
 }

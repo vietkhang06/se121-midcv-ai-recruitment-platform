@@ -10,6 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -165,12 +166,35 @@ public class CVController {
         return ResponseEntity.ok(ApiResponse.success("CV draft updated successfully", response));
     }
 
+    @PostMapping("/{id}/ocr-review")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> proposeOcrReview(
+            @AuthenticationPrincipal User user, @PathVariable UUID id, @RequestBody UpdateCVDraftRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(cvService.proposeOcrReview(user, id, request)));
+    }
+
+    public record OcrReviewAcceptance(UUID version_id, String expected_revision, List<Integer> accepted_indices, boolean confirmed) {}
+
+    @PostMapping("/{id}/ocr-review/apply")
+    public ResponseEntity<ApiResponse<CVDraftResponse>> applyOcrReview(
+            @AuthenticationPrincipal User user, @PathVariable UUID id, @RequestBody OcrReviewAcceptance request) {
+        UpdateCVDraftRequest revision = UpdateCVDraftRequest.builder().versionId(request.version_id())
+                .expectedRevision(request.expected_revision()).build();
+        return ResponseEntity.ok(ApiResponse.success(cvService.applyOcrReview(user, id, revision,
+                request.accepted_indices(), request.confirmed())));
+    }
+
     @PostMapping("/{id}/confirm")
     public ResponseEntity<ApiResponse<CVConfirmResponse>> confirmCV(
             @AuthenticationPrincipal User currentUser,
-            @PathVariable UUID id) {
-        CVConfirmResponse response = cvService.confirmCV(currentUser, id);
+            @PathVariable UUID id,
+            @RequestBody(required = false) UpdateCVDraftRequest request) {
+        CVConfirmResponse response = request == null ? cvService.confirmCV(currentUser, id)
+                : cvService.confirmCV(currentUser, id, request.getVersionId(), request.getExpectedRevision());
         return ResponseEntity.ok(ApiResponse.success("CV profile confirmed successfully", response));
+    }
+
+    public ResponseEntity<ApiResponse<CVConfirmResponse>> confirmCV(User currentUser, UUID id) {
+        return confirmCV(currentUser, id, null);
     }
 
     @GetMapping("/{id}/versions")
@@ -218,4 +242,3 @@ public class CVController {
         return ResponseEntity.ok(ApiResponse.success("Evidence attachment deleted successfully", null));
     }
 }
-

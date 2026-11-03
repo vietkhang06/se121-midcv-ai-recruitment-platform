@@ -27,6 +27,10 @@ public class CVDraftResponse {
     @JsonProperty("version_number")
     private Integer versionNumber;
 
+    private String revision;
+
+    private Map<String, Object> presentation;
+
     private String title;
 
     private String status;

@@ -195,6 +195,20 @@ public class AiWorkerClient {
         }
     }
 
+    public Map<String, Object> reviewOcr(Map<String, Object> body, boolean apply) {
+        return postReview("/cv/ocr-review" + (apply ? "/apply" : ""), body);
+    }
+
+
+    private Map<String, Object> postReview(String endpoint, Map<String, Object> body) {
+        try {
+            return restClient.post().uri(endpoint).contentType(MediaType.APPLICATION_JSON)
+                    .body(body).retrieve().body(Map.class);
+        } catch (Exception ex) {
+            throw workerFailure(endpoint, UUID.randomUUID().toString(), ex);
+        }
+    }
+
     public Map<String, Object> checkHealth() {
         String correlationId = UUID.randomUUID().toString();
         try {
