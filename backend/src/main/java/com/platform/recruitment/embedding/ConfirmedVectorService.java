@@ -38,6 +38,13 @@ public class ConfirmedVectorService {
 
     private String vector(String type, UUID id, String source, String model, boolean persist) {
         String hash = MatchingInputTrace.hash(source);
+        if (persist) {
+            // Serialize a cache miss for this immutable source binding. Without this,
+            // two transactions can both miss and insert two ACTIVE vectors.
+            String lockKey = type + ":" + id + ":LOCAL_OLLAMA:" + model + ":1024:" + hash;
+            jdbc.queryForObject("SELECT pg_advisory_xact_lock(hashtextextended(?,0)) IS NULL",
+                    Boolean.class, lockKey);
+        }
         List<String> cached = jdbc.query(
                 "SELECT embedding_vector_1024::text FROM embeddings WHERE entity_type=? AND entity_id=? "
                         + "AND model_provider='LOCAL_OLLAMA' AND model_name=? AND source_sha256=? "
