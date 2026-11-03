@@ -3,6 +3,7 @@ package com.platform.recruitment.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -40,6 +41,10 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
+    /** Comma-separated exact browser origins. Never use "*" with credentialed CORS. */
+    @Value("${app.security.cors.allowed-origins:http://localhost:3000,http://127.0.0.1:3000}")
+    private String corsAllowedOrigins;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(10);
@@ -59,6 +64,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Container readiness/liveness only; the reverse proxy does not expose Actuator.
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/jobs", "/api/v1/jobs/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/taxonomy/skills/search", "/api/v1/taxonomy/industries", "/api/v1/taxonomy/categories").permitAll()
@@ -102,8 +109,17 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://127.0.0.1:3000"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        List<String> origins = Arrays.stream(corsAllowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isBlank())
+                .distinct()
+                .toList();
+        if (origins.isEmpty() || origins.stream().anyMatch("*"::equals)) {
+            throw new IllegalStateException(
+                    "app.security.cors.allowed-origins must contain exact origins; wildcard is forbidden when credentials are enabled");
+        }
+        configuration.setAllowedOrigins(origins);
+        configuration.setAllowedMethods(Arrays.asList("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList(
                 "Authorization",
                 "Content-Type",
@@ -111,9 +127,12 @@ public class SecurityConfig {
                 "Origin",
                 "X-Requested-With",
                 "Access-Control-Request-Method",
-                "Access-Control-Request-Headers", "Last-Event-ID", "X-Request-ID"
+                "Access-Control-Request-Headers", "Last-Event-ID", "X-Request-ID",
+                "If-Match", "If-None-Match"
         ));
-        configuration.setExposedHeaders(List.of("Authorization", "X-Request-ID"));
+        configuration.setExposedHeaders(List.of(
+                "Authorization", "X-Request-ID", "Content-Disposition", "ETag"
+        ));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

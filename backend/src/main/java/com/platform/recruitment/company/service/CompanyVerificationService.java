@@ -295,6 +295,7 @@ public class CompanyVerificationService {
         }
     }
 
+    @Transactional(readOnly = true)
     public CompanyAdminDto mapToCompanyAdminDto(Company company) {
         Optional<RecruiterProfile> recruiterOpt = recruiterProfileRepository.findTopByCompanyId(company.getId());
         return CompanyAdminDto.builder()

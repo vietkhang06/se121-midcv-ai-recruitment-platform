@@ -1,7 +1,6 @@
 package com.platform.recruitment.admin.dto;
 
 import com.platform.recruitment.company.CompanyVerification;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 @Getter
@@ -10,7 +9,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CompanyReviewRequest {
-    @NotNull(message = "Trạng thái mới không được để trống")
+    // Optional for canonical action endpoints; generic transition validates it in the service.
     private CompanyVerification status;
 
     private String reason;
