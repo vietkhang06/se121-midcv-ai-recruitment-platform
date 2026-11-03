@@ -1,0 +1,171 @@
+{
+  "timestamp_utc": "2026-11-02T05:49:20.671279+00:00",
+  "source": "AUTHENTICATED_BACKEND",
+  "base_url": "http://127.0.0.1:18089",
+  "dataset": {
+    "job_id": "d045fdd4-8bb4-4a73-a253-dcdee5d82ac8",
+    "provenance": "Synthetic task-authored rubric: strong=3, declared required skills or partial relevant evidence=2, unrelated/confusable=0; labels declared before backend calls, not HR expert annotations.",
+    "relevance": {
+      "5419b585-1d32-4feb-9ec2-5d62a891dfde": 3,
+      "1382ba94-7a27-4dc6-8274-22ed4d429501": 2,
+      "06d3e53e-1bdd-459d-8e4f-dddcd757d305": 2,
+      "f5bfc13e-5d9f-4840-b4c5-1e9eae97ba4c": 0,
+      "44997de2-6958-4a97-b2bb-99e393f92865": 0
+    }
+  },
+  "raw_predictions": [
+    {
+      "content": [
+        {
+          "id": "cdbe2f83-e180-48ab-98a6-3afea14e4a25",
+          "rank": 1,
+          "applicationId": "7d1068ad-31d7-4d8b-99e8-a8b2913259b0",
+          "candidateId": "06d3e53e-1bdd-459d-8e4f-dddcd757d305",
+          "candidateName": "Synthetic partial",
+          "headline": null,
+          "overallScore": 87.29,
+          "coreScore": 87.29,
+          "githubScore": null,
+          "requiredSkillsMatched": 2,
+          "requiredSkillsTotal": 2,
+          "requiredSkillsMissing": 0,
+          "preferredSkillsMatched": 0,
+          "preferredSkillsTotal": 0,
+          "isGithubActive": false,
+          "githubFallbackApplied": true,
+          "status": "COMPLETED",
+          "matchingAlgorithmVersion": "v2.0",
+          "aiSummary": null,
+          "appliedAt": "2026-11-02T05:32:06.94801Z"
+        },
+        {
+          "id": "26939a9a-e596-4a51-8477-505f3534f476",
+          "rank": 2,
+          "applicationId": "371401a4-b830-4ba8-a1ce-8d6e6be28899",
+          "candidateId": "5419b585-1d32-4feb-9ec2-5d62a891dfde",
+          "candidateName": "Synthetic strong",
+          "headline": null,
+          "overallScore": 86.89,
+          "coreScore": 86.89,
+          "githubScore": null,
+          "requiredSkillsMatched": 2,
+          "requiredSkillsTotal": 2,
+          "requiredSkillsMissing": 0,
+          "preferredSkillsMatched": 0,
+          "preferredSkillsTotal": 0,
+          "isGithubActive": false,
+          "githubFallbackApplied": true,
+          "status": "COMPLETED",
+          "matchingAlgorithmVersion": "v2.0",
+          "aiSummary": null,
+          "appliedAt": "2026-11-02T05:31:58.555767Z"
+        },
+        {
+          "id": "b3b1f490-e385-4051-8241-8306b1e8bb16",
+          "rank": 3,
+          "applicationId": "aa6efc47-82ef-45d6-abca-e5295c1eb18f",
+          "candidateId": "1382ba94-7a27-4dc6-8274-22ed4d429501",
+          "candidateName": "Synthetic declared-only",
+          "headline": null,
+          "overallScore": 38.87,
+          "coreScore": 38.87,
+          "githubScore": null,
+          "requiredSkillsMatched": 2,
+          "requiredSkillsTotal": 2,
+          "requiredSkillsMissing": 0,
+          "preferredSkillsMatched": 0,
+          "preferredSkillsTotal": 0,
+          "isGithubActive": false,
+          "githubFallbackApplied": true,
+          "status": "COMPLETED",
+          "matchingAlgorithmVersion": "v2.0",
+          "aiSummary": null,
+          "appliedAt": "2026-11-02T05:32:02.89598Z"
+        },
+        {
+          "id": "d127b223-6c50-43b3-977a-bacc4a9b3712",
+          "rank": 4,
+          "applicationId": "cd8ef117-1bf5-4c74-a836-17d740805565",
+          "candidateId": "f5bfc13e-5d9f-4840-b4c5-1e9eae97ba4c",
+          "candidateName": "Synthetic unrelated",
+          "headline": null,
+          "overallScore": 0.02,
+          "coreScore": 0.02,
+          "githubScore": null,
+          "requiredSkillsMatched": 0,
+          "requiredSkillsTotal": 2,
+          "requiredSkillsMissing": 2,
+          "preferredSkillsMatched": 0,
+          "preferredSkillsTotal": 0,
+          "isGithubActive": false,
+          "githubFallbackApplied": true,
+          "status": "COMPLETED",
+          "matchingAlgorithmVersion": "v2.0",
+          "aiSummary": null,
+          "appliedAt": "2026-11-02T05:32:11.209869Z"
+        },
+        {
+          "id": "29d8f989-6f83-4dc2-9c86-c9a4f6a0f7e8",
+          "rank": 5,
+          "applicationId": "1f535a0d-672d-4162-a4cc-a11b3885f407",
+          "candidateId": "44997de2-6958-4a97-b2bb-99e393f92865",
+          "candidateName": "Synthetic confusable",
+          "headline": null,
+          "overallScore": 0.02,
+          "coreScore": 0.02,
+          "githubScore": null,
+          "requiredSkillsMatched": 0,
+          "requiredSkillsTotal": 2,
+          "requiredSkillsMissing": 2,
+          "preferredSkillsMatched": 0,
+          "preferredSkillsTotal": 0,
+          "isGithubActive": false,
+          "githubFallbackApplied": true,
+          "status": "COMPLETED",
+          "matchingAlgorithmVersion": "v2.0",
+          "aiSummary": null,
+          "appliedAt": "2026-11-02T05:32:15.106872Z"
+        }
+      ],
+      "page": 0,
+      "size": 100,
+      "totalElements": 5,
+      "totalPages": 1,
+      "first": true,
+      "last": true,
+      "sort": {
+        "field": "overallScore",
+        "direction": "desc"
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "k": 3,
+      "ndcg": 0.8579514172105233,
+      "precision": 1.0,
+      "recall": 1.0,
+      "label_count": 5,
+      "prediction_count": 5,
+      "missing_ids": []
+    },
+    {
+      "k": 5,
+      "ndcg": 0.8579514172105233,
+      "precision": 0.6,
+      "recall": 1.0,
+      "label_count": 5,
+      "prediction_count": 5,
+      "missing_ids": []
+    },
+    {
+      "k": 10,
+      "ndcg": 0.8579514172105233,
+      "precision": 0.3,
+      "recall": 1.0,
+      "label_count": 5,
+      "prediction_count": 5,
+      "missing_ids": []
+    }
+  ]
+}

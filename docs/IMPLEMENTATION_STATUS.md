@@ -1,5 +1,7 @@
 # MidCV — Current implementation and verification status
 
+Gia Khang STT 65–79, trừ 71 (02/11/2026): xem [báo cáo theo task](tasks/GIA_KHANG_65_79_REPORT.md) và [API addendum](tasks/GIA_KHANG_API_ADDENDUM.md). Kiểm thử tiếp tục theo yêu cầu mock-only của chủ dự án. Không nâng acceptance status của các phase bên dưới dựa trên mock tests.
+
 Updated after implementation work on 21/10/2026.
 
 ## Verification rule

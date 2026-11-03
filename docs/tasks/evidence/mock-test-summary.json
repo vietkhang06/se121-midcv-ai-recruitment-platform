@@ -1,0 +1,62 @@
+{
+  "full_stack_verified": false,
+  "checks": [
+    {
+      "log_updated_utc": "2026-11-02T04:06:53.7616909Z",
+      "passed": 56,
+      "log": "backend-final-mock.log",
+      "suite": "java-targeted-mock",
+      "exit_code": 0,
+      "log_sha256": "5251d3d93196e19a407d2e4d494536479cfbd76ca97c3a619cb8b8188432fbc4"
+    },
+    {
+      "log_updated_utc": "2026-11-02T04:05:26.2199046Z",
+      "passed": 97,
+      "log": "python-final-mock.log",
+      "suite": "python-targeted-mock",
+      "exit_code": 0,
+      "log_sha256": "a8ae6d6cb96eb4525c0ab95ca506cd19b812af6fa52750a67163fdb9abab7680"
+    },
+    {
+      "log_updated_utc": "2026-11-02T04:07:21.7195264Z",
+      "passed": 20,
+      "log": "frontend-contracts-final.log",
+      "suite": "frontend-contract",
+      "exit_code": 0,
+      "log_sha256": "7674063e18e6f53eac8638f2523c03fc82a44fd9957191d52b048a0a128c7282"
+    },
+    {
+      "log_updated_utc": "2026-11-02T04:08:19.1244413Z",
+      "passed": 4,
+      "log": "browser-final-mock.log",
+      "suite": "browser-http-mock",
+      "exit_code": 0,
+      "log_sha256": "71a2eb938c9b1e086340f23ab27dae64c844d12044f624932fbe0c7f4495eafd"
+    },
+    {
+      "log_updated_utc": "2026-11-02T04:09:05.6961495Z",
+      "passed_groups": 4,
+      "log": "worker-http-mock-final.log",
+      "suite": "worker-http-local-provider",
+      "exit_code": 0,
+      "log_sha256": "61c402e1f9f7c88d5f2652cd2c18d07f2bce68cee89141454d583ffa4c09b068"
+    },
+    {
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "suite": "typescript",
+      "log_updated_utc": "2026-11-02T04:06:12.8870430Z",
+      "log": "typescript-final.log",
+      "exit_code": 0
+    },
+    {
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "suite": "eslint-test-files",
+      "log_updated_utc": "2026-11-02T04:06:53.8645125Z",
+      "log": "frontend-tests-lint.log",
+      "exit_code": 0
+    }
+  ],
+  "provider_mode": "LOCAL_SYNTHETIC_MOCK",
+  "generated_utc": "2026-11-02T04:11:43.8356221Z",
+  "scope": "Gia Khang STT 65-79 excluding 71"
+}

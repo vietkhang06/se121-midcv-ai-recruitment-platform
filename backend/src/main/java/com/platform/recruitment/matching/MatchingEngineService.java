@@ -455,11 +455,11 @@ public class MatchingEngineService {
             for (JobRequirement req : allReqs) {
                 if (skillNormalizer.matchesSkill(req.getSkillName(), cvRawText)) {
                     String grounded = extractGroundedSnippet(cvRawText, req.getSkillName());
-                    String snippetText = grounded != null ? grounded : String.format("Kỹ năng '%s' (%s) được xác thực trong hồ sơ CV ứng viên.", req.getSkillName(), req.getRequirementType());
+                    String snippetText = grounded;
                     Evidence skillEvidence = Evidence.builder()
                             .matchResult(savedResult)
                             .sourceType("CV")
-                            .sourceId(cvDocVersionId != null ? cvDocVersionId.toString() : null)
+                            .sourceId(inputVersion.getId().toString())
                             .section("SKILLS")
                             .requirementId(req.getId() != null ? req.getId().toString() : null)
                             .requirementText(req.getSkillName())
@@ -467,7 +467,7 @@ public class MatchingEngineService {
                             .matchStatus("VERIFIED")
                             .snippet(snippetText)
                             .normalizedValue(BigDecimal.valueOf(100.00))
-                            .validationStatus("VERIFIED")
+                            .validationStatus(grounded != null ? "SOURCE_QUOTE" : "NO_LITERAL_QUOTE")
                             .build();
                     evidenceRepository.save(skillEvidence);
                 }
@@ -476,7 +476,7 @@ public class MatchingEngineService {
                 Evidence expEvidence = Evidence.builder()
                         .matchResult(savedResult)
                         .sourceType("CV")
-                        .sourceId(cvDocVersionId != null ? cvDocVersionId.toString() : null)
+                        .sourceId(inputVersion.getId().toString())
                         .section("EXPERIENCE")
                         .requirementText("Kinh nghiệm làm việc phù hợp ngành " + job.getIndustry())
                         .snippet(String.format("Kinh nghiệm làm việc được ghi nhận trong CV với mức đánh giá %s%% phù hợp ngành %s.", expScore, job.getIndustry()))
@@ -523,10 +523,16 @@ public class MatchingEngineService {
         Job job = application.getJob();
         CandidateProfile candidate = application.getCandidate();
 
-        List<JobRequirement> allReqs = jobRequirementRepository.findByJobId(jobId);
+        com.fasterxml.jackson.databind.JsonNode trace = MatchingInputTrace.context(result.getPolicySnapshot());
+        List<JobRequirement> allReqs = MatchingInputTrace.requirements(trace);
 
         com.platform.recruitment.cv.ConfirmedCvInput.requireConfirmed(application.getAppliedCvVersion(), candidateId);
         String cvRawText = com.platform.recruitment.cv.ConfirmedCvInput.text(application.getAppliedCvVersion());
+        boolean traced = trace.hasNonNull("cv_version_id")
+                && application.getAppliedCvVersion().getId().toString().equals(trace.path("cv_version_id").asText())
+                && MatchingInputTrace.hash(cvRawText).equals(trace.path("cv_text_sha256").asText());
+        if (!traced) allReqs = List.of(); // Historical rows are not backfilled from today's JD.
+
 
         List<Evidence> persistedEvidences = evidenceRepository != null
                 ? evidenceRepository.findByMatchResultId(result.getId())
@@ -552,7 +558,8 @@ public class MatchingEngineService {
             boolean matched;
             String evidenceText;
 
-            if (persistedSkillEv != null) {
+            if (persistedSkillEv != null && application.getAppliedCvVersion().getId().toString().equals(persistedSkillEv.getSourceId())
+                    && MatchingInputTrace.isQuote(persistedSkillEv.getSnippet(), cvRawText)) {
                 matched = !"MISSING".equalsIgnoreCase(persistedSkillEv.getMatchStatus());
                 evidenceText = (persistedSkillEv.getSnippet() != null && !persistedSkillEv.getSnippet().isBlank())
                         ? persistedSkillEv.getSnippet()
@@ -620,14 +627,18 @@ public class MatchingEngineService {
                         .sourceType(ev.getSourceType())
                         .sourceId(ev.getSourceId())
                         .section(ev.getSection())
-                        .snippet(ev.getSnippet())
+                        .snippet("CV".equals(ev.getSourceType()) && (!traced
+                                || !application.getAppliedCvVersion().getId().toString().equals(ev.getSourceId())
+                                || !MatchingInputTrace.isQuote(ev.getSnippet(), cvRawText)) ? null : ev.getSnippet())
                         .normalizedValue(ev.getNormalizedValue())
                         .requirementId(ev.getRequirementId())
                         .requirementText(ev.getRequirementText())
                         .candidateValue(ev.getCandidateValue())
                         .matchStatus(ev.getMatchStatus())
                         .similarityConfidence(ev.getSimilarityConfidence())
-                        .validationStatus(ev.getValidationStatus())
+                        .validationStatus("CV".equals(ev.getSourceType())
+                                ? (traced && application.getAppliedCvVersion().getId().toString().equals(ev.getSourceId())
+                                    && MatchingInputTrace.isQuote(ev.getSnippet(), cvRawText) ? "SOURCE_QUOTE" : "NO_LITERAL_QUOTE") : ev.getValidationStatus())
                         .build())
                 .toList();
 
@@ -672,8 +683,11 @@ public class MatchingEngineService {
         }
 
         return MatchInspectionResponse.builder()
+                .sourceCvVersionId(application.getAppliedCvVersion().getId())
+                .sourceTextSha256(traced ? trace.path("cv_text_sha256").asText() : null)
+                .inputTraceStatus(traced ? "SNAPSHOT_VALIDATED" : "LEGACY_INPUT_UNAVAILABLE")
                 .applicationId(applicationId)
-                .jobTitle(job.getTitle())
+                .jobTitle(traced ? trace.path("job_title").asText() : null)
                 .candidateName(candidate.getFullName())
                 .algorithmVersion(result.getMatchingAlgorithmVersion() != null ? result.getMatchingAlgorithmVersion() : "v2.0")
                 .calculationStatus(result.getStatus())
@@ -758,10 +772,7 @@ public class MatchingEngineService {
             while (end < text.length() && Character.isLetterOrDigit(text.charAt(end))) end++;
         }
 
-        String snippet = text.substring(start, end).trim().replaceAll("\\s+", " ");
-        if (start > 0) snippet = "..." + snippet;
-        if (end < text.length()) snippet = snippet + "...";
-        return snippet;
+        return text.substring(start, end).trim();
     }
 
     private String extractTextFromStructuredJson(String json) {

@@ -1,0 +1,1182 @@
+{
+  "timestamp_utc": "2026-11-02T05:31:53.403036+00:00",
+  "phase": "core",
+  "source": "REAL_BACKEND_POSTGRESQL_PGVECTOR",
+  "provider_mode": "mock",
+  "semantic_model_quality_measured": false,
+  "synthetic_data": true,
+  "checks": [
+    {
+      "name": "M05 preview creates no application; submissions bind confirmed versions",
+      "status": "PASSED",
+      "candidates": 5
+    },
+    {
+      "name": "M02 backend score repeats 100/100; stored factors reconstruct core",
+      "status": "PASSED",
+      "score": 87.98,
+      "repeats": 100
+    },
+    {
+      "name": "M03 real backend ranking evaluated against independent synthetic relevance labels",
+      "status": "PASSED",
+      "metrics": [
+        {
+          "k": 3,
+          "ndcg": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "label_count": 5,
+          "prediction_count": 5,
+          "missing_ids": []
+        },
+        {
+          "k": 5,
+          "ndcg": 1.0,
+          "precision": 0.6,
+          "recall": 1.0,
+          "label_count": 5,
+          "prediction_count": 5,
+          "missing_ids": []
+        }
+      ]
+    },
+    {
+      "name": "M02 saved policy and actual recalculate endpoint",
+      "status": "PASSED",
+      "recalculated": 5
+    },
+    {
+      "name": "M06 current draft cannot rewrite applied snapshot or its evidence",
+      "status": "PASSED",
+      "source_version": "15dfd883-fb1c-4bfa-80fd-cd010ad2fb6d"
+    },
+    {
+      "name": "C01 PostgreSQL simultaneous stale saves: one winner, one conflict",
+      "status": "PASSED",
+      "statuses": [
+        200,
+        409
+      ]
+    },
+    {
+      "name": "M04 real worker/backend gap roadmap preserves confirmed CV",
+      "status": "PASSED",
+      "roadmap_source": "LLM"
+    },
+    {
+      "name": "M01 vectors cached by confirmed version/model/source hash",
+      "status": "PASSED",
+      "vector_rows": 6,
+      "embedding_model": "test-mock-1024",
+      "provider_mode": "mock"
+    }
+  ],
+  "http": [
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/cvs",
+      "status": 201,
+      "duration_ms": 705
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/a3141a3f-6192-4e7b-b890-27b7fae73540/draft",
+      "status": 200,
+      "duration_ms": 591
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/candidate/cvs/a3141a3f-6192-4e7b-b890-27b7fae73540/draft",
+      "status": 200,
+      "duration_ms": 559
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/cvs/a3141a3f-6192-4e7b-b890-27b7fae73540/confirm",
+      "status": 200,
+      "duration_ms": 532
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/match/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8?cvId=a3141a3f-6192-4e7b-b890-27b7fae73540",
+      "status": 200,
+      "duration_ms": 904
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/applications",
+      "status": 201,
+      "duration_ms": 786
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/cvs",
+      "status": 201,
+      "duration_ms": 686
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/4046f06a-0a5f-4635-9254-24ffabd83b9b/draft",
+      "status": 200,
+      "duration_ms": 570
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/candidate/cvs/4046f06a-0a5f-4635-9254-24ffabd83b9b/draft",
+      "status": 200,
+      "duration_ms": 824
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/cvs/4046f06a-0a5f-4635-9254-24ffabd83b9b/confirm",
+      "status": 200,
+      "duration_ms": 495
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/match/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8?cvId=4046f06a-0a5f-4635-9254-24ffabd83b9b",
+      "status": 200,
+      "duration_ms": 542
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/applications",
+      "status": 201,
+      "duration_ms": 599
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/cvs",
+      "status": 201,
+      "duration_ms": 599
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/45ec3bf4-182c-4c2d-a167-88a4e4ab3bdd/draft",
+      "status": 200,
+      "duration_ms": 529
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/candidate/cvs/45ec3bf4-182c-4c2d-a167-88a4e4ab3bdd/draft",
+      "status": 200,
+      "duration_ms": 610
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/cvs/45ec3bf4-182c-4c2d-a167-88a4e4ab3bdd/confirm",
+      "status": 200,
+      "duration_ms": 555
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/match/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8?cvId=45ec3bf4-182c-4c2d-a167-88a4e4ab3bdd",
+      "status": 200,
+      "duration_ms": 591
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/applications",
+      "status": 201,
+      "duration_ms": 614
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/cvs",
+      "status": 201,
+      "duration_ms": 637
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/ea0e60ef-5c4b-4d00-8b73-92363bfccff9/draft",
+      "status": 200,
+      "duration_ms": 520
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/candidate/cvs/ea0e60ef-5c4b-4d00-8b73-92363bfccff9/draft",
+      "status": 200,
+      "duration_ms": 487
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/cvs/ea0e60ef-5c4b-4d00-8b73-92363bfccff9/confirm",
+      "status": 200,
+      "duration_ms": 531
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/match/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8?cvId=ea0e60ef-5c4b-4d00-8b73-92363bfccff9",
+      "status": 200,
+      "duration_ms": 654
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/applications",
+      "status": 201,
+      "duration_ms": 898
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/cvs",
+      "status": 201,
+      "duration_ms": 520
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/24ef235c-925f-4a4b-88eb-b70a656d4215/draft",
+      "status": 200,
+      "duration_ms": 518
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/candidate/cvs/24ef235c-925f-4a4b-88eb-b70a656d4215/draft",
+      "status": 200,
+      "duration_ms": 539
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/cvs/24ef235c-925f-4a4b-88eb-b70a656d4215/confirm",
+      "status": 200,
+      "duration_ms": 492
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/match/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8?cvId=24ef235c-925f-4a4b-88eb-b70a656d4215",
+      "status": 200,
+      "duration_ms": 529
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/applications",
+      "status": 201,
+      "duration_ms": 773
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/matching/applications/371401a4-b830-4ba8-a1ce-8d6e6be28899/inspection",
+      "status": 200,
+      "duration_ms": 857
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 679
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 617
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 707
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 600
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 628
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 662
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 667
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 836
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 609
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 587
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 608
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 691
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 575
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 590
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 581
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 551
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 708
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 944
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 622
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 581
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 549
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 646
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 821
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 740
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 640
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 546
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 602
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 632
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 546
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 521
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 644
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 539
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 568
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 723
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 574
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 588
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 544
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 601
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 681
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 718
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 603
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 577
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 602
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 624
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 535
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 583
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 548
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 636
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 536
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 560
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 840
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 548
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 581
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 574
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 946
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 943
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 650
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 537
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 614
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 567
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 588
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 570
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 604
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 615
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 528
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 551
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 669
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 575
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 544
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 588
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 542
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 801
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 628
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 587
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 578
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 633
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 616
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 525
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 579
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 557
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 587
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 555
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 709
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 593
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 613
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 583
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 567
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 645
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 707
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 634
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 565
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 574
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 576
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 546
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 589
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 636
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 759
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 694
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 729
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 563
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/rankings?size=100",
+      "status": 200,
+      "duration_ms": 539
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/matching-policy",
+      "status": 200,
+      "duration_ms": 527
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/matching-policy",
+      "status": 200,
+      "duration_ms": 622
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/matching/recalculate",
+      "status": 200,
+      "duration_ms": 927
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/a3141a3f-6192-4e7b-b890-27b7fae73540/draft",
+      "status": 200,
+      "duration_ms": 535
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/candidate/cvs/a3141a3f-6192-4e7b-b890-27b7fae73540/draft",
+      "status": 200,
+      "duration_ms": 589
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/match/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8?cvId=a3141a3f-6192-4e7b-b890-27b7fae73540",
+      "status": 400,
+      "duration_ms": 529
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/matching/applications/371401a4-b830-4ba8-a1ce-8d6e6be28899/inspection",
+      "status": 200,
+      "duration_ms": 532
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/match/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/gap-analysis?cvId=45ec3bf4-182c-4c2d-a167-88a4e4ab3bdd",
+      "status": 200,
+      "duration_ms": 1291
+    }
+  ],
+  "ranking": {
+    "label_provenance": "Synthetic task-authored rubric: strong=3, declared required skills or partial relevant evidence=2, unrelated/confusable=0; labels declared before backend calls, not HR expert annotations.",
+    "labels": {
+      "5419b585-1d32-4feb-9ec2-5d62a891dfde": 3,
+      "1382ba94-7a27-4dc6-8274-22ed4d429501": 2,
+      "06d3e53e-1bdd-459d-8e4f-dddcd757d305": 2,
+      "f5bfc13e-5d9f-4840-b4c5-1e9eae97ba4c": 0,
+      "44997de2-6958-4a97-b2bb-99e393f92865": 0
+    },
+    "predictions": [
+      {
+        "id": "26939a9a-e596-4a51-8477-505f3534f476",
+        "rank": 1,
+        "applicationId": "371401a4-b830-4ba8-a1ce-8d6e6be28899",
+        "candidateId": "5419b585-1d32-4feb-9ec2-5d62a891dfde",
+        "candidateName": "Synthetic strong",
+        "headline": null,
+        "overallScore": 87.98,
+        "coreScore": 87.98,
+        "githubScore": null,
+        "requiredSkillsMatched": 2,
+        "requiredSkillsTotal": 2,
+        "requiredSkillsMissing": 0,
+        "preferredSkillsMatched": 0,
+        "preferredSkillsTotal": 0,
+        "isGithubActive": false,
+        "githubFallbackApplied": true,
+        "status": "COMPLETED",
+        "matchingAlgorithmVersion": "v2.0",
+        "aiSummary": null,
+        "appliedAt": "2026-11-02T05:31:58.555767Z"
+      },
+      {
+        "id": "cdbe2f83-e180-48ab-98a6-3afea14e4a25",
+        "rank": 2,
+        "applicationId": "7d1068ad-31d7-4d8b-99e8-a8b2913259b0",
+        "candidateId": "06d3e53e-1bdd-459d-8e4f-dddcd757d305",
+        "candidateName": "Synthetic partial",
+        "headline": null,
+        "overallScore": 87.29,
+        "coreScore": 87.29,
+        "githubScore": null,
+        "requiredSkillsMatched": 2,
+        "requiredSkillsTotal": 2,
+        "requiredSkillsMissing": 0,
+        "preferredSkillsMatched": 0,
+        "preferredSkillsTotal": 0,
+        "isGithubActive": false,
+        "githubFallbackApplied": true,
+        "status": "COMPLETED",
+        "matchingAlgorithmVersion": "v2.0",
+        "aiSummary": null,
+        "appliedAt": "2026-11-02T05:32:06.94801Z"
+      },
+      {
+        "id": "b3b1f490-e385-4051-8241-8306b1e8bb16",
+        "rank": 3,
+        "applicationId": "aa6efc47-82ef-45d6-abca-e5295c1eb18f",
+        "candidateId": "1382ba94-7a27-4dc6-8274-22ed4d429501",
+        "candidateName": "Synthetic declared-only",
+        "headline": null,
+        "overallScore": 38.87,
+        "coreScore": 38.87,
+        "githubScore": null,
+        "requiredSkillsMatched": 2,
+        "requiredSkillsTotal": 2,
+        "requiredSkillsMissing": 0,
+        "preferredSkillsMatched": 0,
+        "preferredSkillsTotal": 0,
+        "isGithubActive": false,
+        "githubFallbackApplied": true,
+        "status": "COMPLETED",
+        "matchingAlgorithmVersion": "v2.0",
+        "aiSummary": null,
+        "appliedAt": "2026-11-02T05:32:02.89598Z"
+      },
+      {
+        "id": "d127b223-6c50-43b3-977a-bacc4a9b3712",
+        "rank": 4,
+        "applicationId": "cd8ef117-1bf5-4c74-a836-17d740805565",
+        "candidateId": "f5bfc13e-5d9f-4840-b4c5-1e9eae97ba4c",
+        "candidateName": "Synthetic unrelated",
+        "headline": null,
+        "overallScore": 0.02,
+        "coreScore": 0.02,
+        "githubScore": null,
+        "requiredSkillsMatched": 0,
+        "requiredSkillsTotal": 2,
+        "requiredSkillsMissing": 2,
+        "preferredSkillsMatched": 0,
+        "preferredSkillsTotal": 0,
+        "isGithubActive": false,
+        "githubFallbackApplied": true,
+        "status": "COMPLETED",
+        "matchingAlgorithmVersion": "v2.0",
+        "aiSummary": null,
+        "appliedAt": "2026-11-02T05:32:11.209869Z"
+      },
+      {
+        "id": "29d8f989-6f83-4dc2-9c86-c9a4f6a0f7e8",
+        "rank": 5,
+        "applicationId": "1f535a0d-672d-4162-a4cc-a11b3885f407",
+        "candidateId": "44997de2-6958-4a97-b2bb-99e393f92865",
+        "candidateName": "Synthetic confusable",
+        "headline": null,
+        "overallScore": 0.02,
+        "coreScore": 0.02,
+        "githubScore": null,
+        "requiredSkillsMatched": 0,
+        "requiredSkillsTotal": 2,
+        "requiredSkillsMissing": 2,
+        "preferredSkillsMatched": 0,
+        "preferredSkillsTotal": 0,
+        "isGithubActive": false,
+        "githubFallbackApplied": true,
+        "status": "COMPLETED",
+        "matchingAlgorithmVersion": "v2.0",
+        "aiSummary": null,
+        "appliedAt": "2026-11-02T05:32:15.106872Z"
+      }
+    ],
+    "metrics": [
+      {
+        "k": 3,
+        "ndcg": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "label_count": 5,
+        "prediction_count": 5,
+        "missing_ids": []
+      },
+      {
+        "k": 5,
+        "ndcg": 1.0,
+        "precision": 0.6,
+        "recall": 1.0,
+        "label_count": 5,
+        "prediction_count": 5,
+        "missing_ids": []
+      }
+    ]
+  },
+  "gap_response": {
+    "roadmap_source": "LLM",
+    "roadmap_provider": "openai_compatible",
+    "roadmap_model": "mock-contract-model",
+    "gap_breakdown": [
+      {
+        "skill_name": "Java",
+        "canonical_id": "SKILL_PROG_JAVA",
+        "category": "MET",
+        "importance": "HIGH",
+        "reason": "Kỹ năng bắt buộc hoàn toàn đáp ứng yêu cầu của JD."
+      },
+      {
+        "skill_name": "Docker",
+        "canonical_id": "SKILL_DEVOPS_DOCKER",
+        "category": "MISSING_MANDATORY",
+        "importance": "HIGH",
+        "reason": "JD yêu cầu bắt buộc nhưng hồ sơ ứng viên chưa thể hiện."
+      },
+      {
+        "skill_name": "CI/CD",
+        "canonical_id": null,
+        "category": "RELATED_TO_LEARN",
+        "importance": "LOW",
+        "reason": "Kỹ năng mở rộng liên quan trực tiếp trong hệ sinh thái công nghệ của vị trí."
+      },
+      {
+        "skill_name": "Kubernetes",
+        "canonical_id": null,
+        "category": "RELATED_TO_LEARN",
+        "importance": "LOW",
+        "reason": "Kỹ năng mở rộng liên quan trực tiếp trong hệ sinh thái công nghệ của vị trí."
+      }
+    ],
+    "met_count": 1,
+    "missing_mandatory_count": 1,
+    "missing_preferred_count": 0,
+    "related_to_learn_count": 2,
+    "evidence_missing_count": 0,
+    "tailored_roadmap": [
+      {
+        "milestone_number": 1,
+        "title": "Giai đoạn 1: Docker — Java Backend Engineer",
+        "target_skills": [
+          "Docker"
+        ],
+        "estimated_weeks": 1,
+        "learning_objectives": [
+          "Học và thực hành Docker theo yêu cầu của Java Backend Engineer",
+          "Viết kiểm thử và tài liệu mô tả kết quả thực hành"
+        ],
+        "practice_project": "Tạo bài thực hành áp dụng Docker cho vị trí Java Backend Engineer, có kiểm thử và tài liệu minh chứng."
+      },
+      {
+        "milestone_number": 2,
+        "title": "Giai đoạn 2: Docker — Java Backend Engineer",
+        "target_skills": [
+          "Docker"
+        ],
+        "estimated_weeks": 1,
+        "learning_objectives": [
+          "Học và thực hành Docker theo yêu cầu của Java Backend Engineer",
+          "Viết kiểm thử và tài liệu mô tả kết quả thực hành"
+        ],
+        "practice_project": "Tạo bài thực hành áp dụng Docker cho vị trí Java Backend Engineer, có kiểm thử và tài liệu minh chứng."
+      }
+    ],
+    "disclaimer": "Recommended learning roadmap is strictly for guidance and does NOT automatically modify candidate profile.",
+    "job_id": "d045fdd4-8bb4-4a73-a253-dcdee5d82ac8",
+    "cv_version_id": "13efb8df-90dd-4934-8cd9-2b6c0e5189ec",
+    "evidence_assessment": "NOT_REQUESTED"
+  },
+  "vectors": [
+    {
+      "entity_type": "CV_VERSION",
+      "entity_id": "15dfd883-fb1c-4bfa-80fd-cd010ad2fb6d",
+      "model_name": "test-mock-1024",
+      "dimension": 1024,
+      "source_sha256": "9b37add01fee944faa2c0da979ebed8da602f82b9e79ec62a504e2dbe33c4a34",
+      "status": "ACTIVE"
+    },
+    {
+      "entity_type": "JOB",
+      "entity_id": "d045fdd4-8bb4-4a73-a253-dcdee5d82ac8",
+      "model_name": "test-mock-1024",
+      "dimension": 1024,
+      "source_sha256": "0cd36df7e1e80b819a4a85d0f8e8ab268d4267c06eed932a3b14274f8dc83ab2",
+      "status": "ACTIVE"
+    },
+    {
+      "entity_type": "CV_VERSION",
+      "entity_id": "e4d30f95-3834-4eff-b9b4-5a8febb3f267",
+      "model_name": "test-mock-1024",
+      "dimension": 1024,
+      "source_sha256": "c55894efaf34cd7de8ced590579f58da19cce13349c7507698d28ef4a3a103ad",
+      "status": "ACTIVE"
+    },
+    {
+      "entity_type": "CV_VERSION",
+      "entity_id": "13efb8df-90dd-4934-8cd9-2b6c0e5189ec",
+      "model_name": "test-mock-1024",
+      "dimension": 1024,
+      "source_sha256": "d64d690d211dae3ca84292cad1d3fb6d40d2bcb8b2cfaed196fea04d9222e9a6",
+      "status": "ACTIVE"
+    },
+    {
+      "entity_type": "CV_VERSION",
+      "entity_id": "ae9879b8-96aa-459e-bc5d-f8c7d1a79242",
+      "model_name": "test-mock-1024",
+      "dimension": 1024,
+      "source_sha256": "34c150426845a32f75fbacb95c760ae9011792c27b57e430b1a3a3bf19612b60",
+      "status": "ACTIVE"
+    },
+    {
+      "entity_type": "CV_VERSION",
+      "entity_id": "a252c980-20f2-4e87-ab8e-1c7a1b76d070",
+      "model_name": "test-mock-1024",
+      "dimension": 1024,
+      "source_sha256": "193933e1c37fca50f6d9625b47be3b18e2fa96b0641f4afb62055bff5beed209",
+      "status": "ACTIVE"
+    }
+  ],
+  "status": "PASSED"
+}

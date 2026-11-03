@@ -148,7 +148,8 @@ class OpenAICompatibleClient:
         model: str,
         timeout_seconds: float = 180.0,
         max_retries: int = 1,
-        temperature: float = 0.0
+        temperature: float = 0.0,
+        max_tokens: Optional[int] = None
     ):
         self.base_url = (base_url or "").rstrip("/")
         self.api_key = api_key or ""
@@ -156,15 +157,21 @@ class OpenAICompatibleClient:
         self.timeout_seconds = timeout_seconds
         self.max_retries = max(0, max_retries)
         self.temperature = temperature
+        if max_tokens is not None and max_tokens <= 0:
+            raise ValueError("max_tokens must be positive")
+        self.max_tokens = max_tokens
         self.provider = "openai_compatible"
 
     def _build_request(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
-        return {
+        request = {
             "model": self.model,
             "messages": messages,
             "temperature": self.temperature,
             "stream": False
         }
+        if self.max_tokens is not None:
+            request["max_tokens"] = self.max_tokens
+        return request
 
     def _build_headers(self) -> Dict[str, str]:
         headers = {
