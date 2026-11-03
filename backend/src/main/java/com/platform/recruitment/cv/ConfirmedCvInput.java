@@ -39,6 +39,17 @@ public final class ConfirmedCvInput {
         }
     }
 
+    public static String section(CVVersion version, String... sections) {
+        try {
+            JsonNode root = new ObjectMapper().readTree(version.getStructuredJsonContent());
+            StringBuilder out = new StringBuilder();
+            for (String section : sections) append(root.path(section), out);
+            return out.toString().strip();
+        } catch (java.io.IOException ex) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "CV structured JSON is invalid");
+        }
+    }
+
     private static final Set<String> IGNORED = Set.of("id", "origin", "source", "evidence", "raw_structured",
             "warnings", "attachment", "attachment_id", "attachmentId", "url", "verificationStatus", "status");
 

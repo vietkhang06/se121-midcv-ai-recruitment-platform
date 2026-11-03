@@ -36,7 +36,7 @@ public class ProjectRelevanceMatcher {
         }
 
         long matchedCount = relevantJdKeywords.stream()
-                .filter(cvLower::contains)
+                .filter(token -> new SkillNormalizer().matchesSkill(token, cvLower))
                 .count();
 
         double score = ((double) matchedCount / relevantJdKeywords.size()) * 100.0;
