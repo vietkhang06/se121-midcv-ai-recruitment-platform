@@ -201,6 +201,8 @@ public class CandidateCvDraftAndEvidenceIntegrationTest {
         String originalFilePath = cv.getFilePath();
 
         UpdateCVDraftRequest updateRequest = new UpdateCVDraftRequest();
+        updateRequest.setVersionId(draftVersion.getId());
+        updateRequest.setExpectedRevision(DraftRevision.of(draftVersion));
         updateRequest.setSummary(Map.of("summary", "<p>Updated <strong>rich text</strong> summary</p>"));
 
         Map<String, Object> personalInfo = new HashMap<>();
@@ -476,7 +478,8 @@ public class CandidateCvDraftAndEvidenceIntegrationTest {
     void testConfirmCVDraft() {
         when(cvVersionRepository.save(any(CVVersion.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        CVConfirmResponse confirmed = cvService.confirmCV(candidateUser, cvId);
+        CVConfirmResponse confirmed = cvService.confirmCV(candidateUser, cvId,
+                draftVersion.getId(), DraftRevision.of(draftVersion));
 
         assertNotNull(confirmed);
         assertEquals("CONFIRMED", confirmed.getStatus());

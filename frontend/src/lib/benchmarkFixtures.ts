@@ -419,7 +419,7 @@ export class BenchmarkFixtureClient implements ApiClient {
     };
   }
 
-  async confirmCandidateCV(cvId: string): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }> {
+  async confirmCandidateCV(cvId: string, _revision: { version_id: string; expected_revision: string }): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }> {
     return {
       cv_id: cvId,
       profile_id: 'cand-prof-01',

@@ -1685,11 +1685,6 @@ public class CVService {
     }
 
     @Transactional
-    public CVConfirmResponse confirmCV(User candidateUser, UUID cvId) {
-        return confirmCV(candidateUser, cvId, null, null);
-    }
-
-    @Transactional
     public CVConfirmResponse confirmCV(User candidateUser, UUID cvId, UUID expectedVersion, String expectedRevision) {
         String correlationId = UUID.randomUUID().toString();
         CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())

@@ -37,25 +37,28 @@ class AuditCvLifecycleRegressionTest {
     }
     @Test void cannotConfirmProcessingOrFailedCv() {
         for(String state:List.of("PROCESSING","FAILED")) {
-            cv.setStatus(state);assertThrows(CustomException.class,()->svc.confirmCV(user,cv.getId()));
+            cv.setStatus(state);assertThrows(CustomException.class,()->confirm());
         }
         verify(versions,never()).save(any());
     }
     @Test void emptyContentCannotBeConfirmed() {
-        version.setStructuredJsonContent("{}");assertThrows(CustomException.class,()->svc.confirmCV(user,cv.getId()));
+        version.setStructuredJsonContent("{}");assertThrows(CustomException.class,()->confirm());
         verify(versions,never()).save(any());
     }
     @Test void activeExtractionCannotBeConfirmed() {
         JdbcTemplate jdbc=mock(JdbcTemplate.class);
         when(jdbc.queryForObject(anyString(),eq(Integer.class),eq(cv.getId()))).thenReturn(1);
         svc=new CVService(cvs,versions,sections,candidates,null,null,jdbc,null,new ObjectMapper());
-        assertThrows(CustomException.class,()->svc.confirmCV(user,cv.getId()));
+        assertThrows(CustomException.class,()->confirm());
         verify(versions,never()).save(any());
     }
     @Test void confirmingAgainIsIdempotent() {
-        svc.confirmCV(user,cv.getId());assertEquals("CONFIRMED",version.getStatus());
-        var time=version.getConfirmedAt();svc.confirmCV(user,cv.getId());
+        confirm();assertEquals("CONFIRMED",version.getStatus());
+        var time=version.getConfirmedAt();confirm();
         assertEquals(time,version.getConfirmedAt());verify(versions,times(1)).save(version);
+    }
+    private CVConfirmResponse confirm() {
+        return svc.confirmCV(user, cv.getId(), version.getId(), DraftRevision.of(version));
     }
     ProcessingLifecycleService legacy() {
         return new ProcessingLifecycleService(ai,jobs,requirements,cvs,versions,sections,candidates,

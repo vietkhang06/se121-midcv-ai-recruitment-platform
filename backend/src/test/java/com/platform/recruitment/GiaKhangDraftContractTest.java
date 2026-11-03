@@ -27,6 +27,8 @@ class GiaKhangDraftContractTest {
         assertThrows(CustomException.class, () -> DraftRevision.requireCurrent(version, UUID.randomUUID(), DraftRevision.of(version)));
         String saved = DraftRevision.of(version); version.setStatus("CONFIRMED");
         assertThrows(CustomException.class, () -> DraftRevision.requireCurrent(version, version.getId(), saved));
+        assertThrows(CustomException.class, () -> DraftRevision.requireCurrent(version, null, null));
+        assertThrows(CustomException.class, () -> DraftRevision.requireCurrent(version, version.getId(), ""));
     }
 
 }

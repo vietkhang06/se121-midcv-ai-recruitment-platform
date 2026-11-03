@@ -25,8 +25,12 @@ public final class DraftRevision {
     }
 
     public static void requireCurrent(CVVersion current, UUID expectedVersion, String expectedRevision) {
-        if ((expectedVersion != null && (current == null || !expectedVersion.equals(current.getId())))
-                || (expectedRevision != null && !Objects.equals(expectedRevision, of(current)))) {
+        if (expectedVersion == null || expectedRevision == null || expectedRevision.isBlank()) {
+            throw new CustomException(ErrorCode.CONCURRENT_MODIFICATION,
+                    "CV version and revision are required. Reload before saving or confirming.");
+        }
+        if (current == null || !expectedVersion.equals(current.getId())
+                || !Objects.equals(expectedRevision, of(current))) {
             throw new CustomException(ErrorCode.CONCURRENT_MODIFICATION,
                     "CV changed since it was loaded. Reload and review before saving or confirming.");
         }

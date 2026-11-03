@@ -235,6 +235,8 @@ public class CandidateCvConfirmationIntegrationTest {
         newProjects.add(proj);
 
         UpdateCVDraftRequest updateReq = UpdateCVDraftRequest.builder()
+                .versionId(draftVersion1.getId())
+                .expectedRevision(DraftRevision.of(draftVersion1))
                 .title("Resume Nguyen Van A (Edited)")
                 .skills(updatedSkills)
                 .projects(newProjects)
@@ -253,7 +255,8 @@ public class CandidateCvConfirmationIntegrationTest {
         when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(testCv.getId()))
                 .thenReturn(List.of(draftVersion1));
 
-        CVConfirmResponse confirmRes = cvService.confirmCV(candidateUserA, testCv.getId());
+        CVConfirmResponse confirmRes = cvService.confirmCV(candidateUserA, testCv.getId(),
+                draftVersion1.getId(), DraftRevision.of(draftVersion1));
 
         assertNotNull(confirmRes);
         assertEquals(testCv.getId(), confirmRes.getCvId());
@@ -294,7 +297,8 @@ public class CandidateCvConfirmationIntegrationTest {
         assertTrue(appEx.getMessage().contains("DRAFT"));
 
         // 3. Confirm CV profile
-        cvService.confirmCV(candidateUserA, testCv.getId());
+        cvService.confirmCV(candidateUserA, testCv.getId(),
+                draftVersion1.getId(), DraftRevision.of(draftVersion1));
         assertEquals("CONFIRMED", testCv.getStatus());
         assertEquals("CONFIRMED", draftVersion1.getStatus());
 
@@ -321,6 +325,8 @@ public class CandidateCvConfirmationIntegrationTest {
 
         // Step 2: Candidate edits confirmed profile -> must fork v2.0 in DRAFT
         UpdateCVDraftRequest editReq = UpdateCVDraftRequest.builder()
+                .versionId(draftVersion1.getId())
+                .expectedRevision(DraftRevision.of(draftVersion1))
                 .title("Nguyen Van A - Updated Senior Title")
                 .build();
 
@@ -358,7 +364,8 @@ public class CandidateCvConfirmationIntegrationTest {
 
         // Candidate B attempts to CONFIRM Candidate A's draft
         assertThrows(UnauthorizedAccessException.class, () ->
-                cvService.confirmCV(candidateUserB, testCv.getId())
+                cvService.confirmCV(candidateUserB, testCv.getId(),
+                        draftVersion1.getId(), DraftRevision.of(draftVersion1))
         );
 
         // Candidate B attempts to list versions of Candidate A's CV
@@ -380,7 +387,8 @@ public class CandidateCvConfirmationIntegrationTest {
         when(matchResultRepository.findByApplicationCandidateId(profileA.getId()))
                 .thenReturn(List.of(existingMatch));
 
-        cvService.confirmCV(candidateUserA, testCv.getId());
+        cvService.confirmCV(candidateUserA, testCv.getId(),
+                draftVersion1.getId(), DraftRevision.of(draftVersion1));
 
         // Verify embedding invalidation
         verify(embeddingService).invalidateEmbedding("CV", testCv.getId());

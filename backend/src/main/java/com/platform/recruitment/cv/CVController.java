@@ -187,14 +187,10 @@ public class CVController {
     public ResponseEntity<ApiResponse<CVConfirmResponse>> confirmCV(
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID id,
-            @RequestBody(required = false) UpdateCVDraftRequest request) {
-        CVConfirmResponse response = request == null ? cvService.confirmCV(currentUser, id)
-                : cvService.confirmCV(currentUser, id, request.getVersionId(), request.getExpectedRevision());
+            @RequestBody UpdateCVDraftRequest request) {
+        CVConfirmResponse response = cvService.confirmCV(currentUser, id,
+                request.getVersionId(), request.getExpectedRevision());
         return ResponseEntity.ok(ApiResponse.success("CV profile confirmed successfully", response));
-    }
-
-    public ResponseEntity<ApiResponse<CVConfirmResponse>> confirmCV(User currentUser, UUID id) {
-        return confirmCV(currentUser, id, null);
     }
 
     @GetMapping("/{id}/versions")
