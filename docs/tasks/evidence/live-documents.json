@@ -1,0 +1,244 @@
+{
+  "timestamp_utc": "2026-11-02T05:38:26.335145+00:00",
+  "phase": "documents",
+  "source": "REAL_BACKEND_POSTGRESQL_PGVECTOR",
+  "provider_mode": "mock",
+  "semantic_model_quality_measured": false,
+  "synthetic_data": true,
+  "checks": [
+    {
+      "name": "R02 real backend queue/worker finishes a mock-provider job longer than 60 seconds",
+      "status": "PASSED",
+      "processing_seconds": 67.87
+    },
+    {
+      "name": "O02 backend stores revision-bound proposal, applies only approved typography and preserves extraction",
+      "status": "PASSED"
+    },
+    {
+      "name": "C01 save/reload/confirm preserves original bytes and raw text",
+      "status": "PASSED",
+      "sha256": "51b374c280f4c43cf533018443356acdc7fdcaa2019332e2c9eed28af6d6bea5",
+      "processing_seconds": 67.87
+    }
+  ],
+  "http": [
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/cvs/upload",
+      "status": 202,
+      "duration_ms": 656
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 525
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 469
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 515
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 391
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 452
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 343
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 365
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 382
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 414
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 377
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 411
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 845
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 925
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 1170
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 977
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 894
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 828
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 1067
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 1106
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 998
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 1827
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 1828
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 1166
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 1074
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/processing-status",
+      "status": 200,
+      "duration_ms": 508
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/review",
+      "status": 200,
+      "duration_ms": 426
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/draft",
+      "status": 200,
+      "duration_ms": 428
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/ocr-review",
+      "status": 200,
+      "duration_ms": 883
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/draft",
+      "status": 200,
+      "duration_ms": 725
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/ocr-review/apply",
+      "status": 200,
+      "duration_ms": 643
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/review",
+      "status": 200,
+      "duration_ms": 486
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/draft",
+      "status": 200,
+      "duration_ms": 471
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/draft",
+      "status": 200,
+      "duration_ms": 427
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/confirm",
+      "status": 200,
+      "duration_ms": 505
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/candidate/cvs/e430a0b1-5be1-4260-b624-4c03abf75bd2/review",
+      "status": 200,
+      "duration_ms": 799
+    }
+  ],
+  "status": "PASSED"
+}

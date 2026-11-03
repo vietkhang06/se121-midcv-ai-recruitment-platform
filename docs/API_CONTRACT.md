@@ -1,5 +1,7 @@
 # MidCV API Contract Specification
 
+> Gia Khang addendum (02/11/2026): [draft revision, OCR review, gap endpoint và vector trace](tasks/GIA_KHANG_API_ADDENDUM.md). Đây là hợp đồng source; provider thật và full-stack acceptance chưa được xác nhận.
+
 > Implementation addendum (21/10/2026): OAuth and salary endpoint details added at the end of this document. These describe the current source contract; provider/database acceptance still requires configured external credentials and a disposable/live verification environment.
 
 > Corrective implementation addendum (19/10/2026): `REMEDIATION_API_CONTRACT.md` defines the actual corrected preview/version/recalculation contract. Other sections below include roadmap examples and have not all been live-verified. A sample JSON is not an observed HTTP result.

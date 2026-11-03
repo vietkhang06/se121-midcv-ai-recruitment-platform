@@ -1,0 +1,340 @@
+{
+  "timestamp_utc": "2026-11-02T07:39:17.386779+00:00",
+  "manifest_sha256": "f2ff42dd4dc4f706a562740232e9fdf3b49de62551066717a95336b7dd46b6d6",
+  "python": "3.11.18",
+  "provenance": "Synthetic fixtures authored for Gia Khang O03 on 2026-11-01; no real CV or expert-labelled accuracy claim.",
+  "metric_normalization": "Unicode NFC + collapsed whitespace; accents/case/punctuation preserved",
+  "samples": [
+    {
+      "id": "en-image",
+      "sha256": "89986358515a509f0aebd0e0870e8eec9a4298f20d5c4b85b550635a6855ff32",
+      "status": "EXTRACTED",
+      "error_code": null,
+      "method": [
+        "image-ocr"
+      ],
+      "ocr_used": true,
+      "duration_ms": 2049,
+      "ground_truth": "SYNTHETIC CV - ALEX SAMPLE\nSoftware developer and test engineer\nEmail: alex.sample@example.com\nSkills: Python, Docker, PostgreSQL\nExperience: Example Lab, 2021-2024\nBuilt an API with automated tests.\nEducation: Example Institute, Bachelor 2021",
+      "raw_text": "SYNTHETIC CV - ALEX SAMPLE\n\nSoftware developer and test engineer\nEmail: alex.sample@example.com\n\nSkills: Python, Docker, PostgreSQL\nExperience: Example Lab, 2021-2024\n\nBuilt an API with automated tests.\nEducation: Example Institute, Bachelor 2021",
+      "before": {
+        "cer": 0.0,
+        "wer": 0.0
+      },
+      "after": {
+        "cer": 0.0,
+        "wer": 0.0
+      },
+      "after_status": "NO_CHANGE_PROPOSED",
+      "proposal": {
+        "source_sha256": "a598af2bc9d0cc3b854ad5d02977416731f91d74d459799af1942d6dcce0e8ac",
+        "edits": [],
+        "provider": "openai_compatible",
+        "model": "gpt-6-luna",
+        "fallback_used": false,
+        "warnings": [
+          "Only typography is proposed. Review every change; original extraction remains unchanged."
+        ],
+        "usage": {
+          "prompt_tokens": 266,
+          "completion_tokens": 43,
+          "total_tokens": 309
+        }
+      },
+      "corrected_text": "SYNTHETIC CV - ALEX SAMPLE\n\nSoftware developer and test engineer\nEmail: alex.sample@example.com\n\nSkills: Python, Docker, PostgreSQL\nExperience: Example Lab, 2021-2024\n\nBuilt an API with automated tests.\nEducation: Example Institute, Bachelor 2021",
+      "review_duration_ms": 8659,
+      "approval_state": "NOT_CONFIRMED_NO_CV_WRITE",
+      "delta": {
+        "cer": 0.0,
+        "wer": 0.0
+      }
+    },
+    {
+      "id": "vi-image",
+      "sha256": "7e94eeed1993f48692515151bb9dfaa90e9619c694a578b844b17ce28111ba44",
+      "status": "EXTRACTED",
+      "error_code": null,
+      "method": [
+        "image-ocr"
+      ],
+      "ocr_used": true,
+      "duration_ms": 2426,
+      "ground_truth": "HỒ SƠ GIẢ LẬP - NGUYỄN AN\nKỹ sư phần mềm và kiểm thử\nEmail: nguyen.an@example.com\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiệm: Công ty Ví Dụ, 2021-2024\nXây dựng hệ thống quản lý có kiểm thử.\nHọc vấn: Trường Giả Lập, Cử nhân 2021",
+      "raw_text": "HO SƠ GIA LẬP - NGUYEN AN\n\nKỹ sư phần mềm và kiểm thử\n\nEmail: nguyen.an@example.com\n\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiệm: Công ty Vi Du, 2021-2024\nXây dựng hệ thống quản lý có kiểm thử.\nHọc vấn: Trường Giả Lập, Cử nhân 2021",
+      "before": {
+        "cer": 0.02127659574468085,
+        "wer": 0.10869565217391304
+      },
+      "after": {
+        "cer": 0.02127659574468085,
+        "wer": 0.10869565217391304
+      },
+      "after_status": "NO_CHANGE_PROPOSED",
+      "proposal": {
+        "source_sha256": "0c9b66303371e8662553d89fe7eec21c44ab7f3d1203df4b524b9dd43ca21c66",
+        "edits": [],
+        "provider": "openai_compatible",
+        "model": "gpt-6-luna",
+        "fallback_used": false,
+        "warnings": [
+          "Only typography is proposed. Review every change; original extraction remains unchanged."
+        ],
+        "usage": {
+          "prompt_tokens": 293,
+          "completion_tokens": 66,
+          "total_tokens": 359
+        }
+      },
+      "corrected_text": "HO SƠ GIA LẬP - NGUYEN AN\n\nKỹ sư phần mềm và kiểm thử\n\nEmail: nguyen.an@example.com\n\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiệm: Công ty Vi Du, 2021-2024\nXây dựng hệ thống quản lý có kiểm thử.\nHọc vấn: Trường Giả Lập, Cử nhân 2021",
+      "review_duration_ms": 4714,
+      "approval_state": "NOT_CONFIRMED_NO_CV_WRITE",
+      "delta": {
+        "cer": 0.0,
+        "wer": 0.0
+      }
+    },
+    {
+      "id": "bilingual-scan",
+      "sha256": "2b27a5df016bd1717fe8c1de2878b14439bfb3aa91930e372fc3560f6641fdb4",
+      "status": "EXTRACTED",
+      "error_code": null,
+      "method": [
+        "pdf-ocr"
+      ],
+      "ocr_used": true,
+      "duration_ms": 6646,
+      "ground_truth": "SYNTHETIC CV - ALEX SAMPLE\nSoftware developer and test engineer\nEmail: alex.sample@example.com\nSkills: Python, Docker, PostgreSQL\nExperience: Example Lab, 2021-2024\nBuilt an API with automated tests.\nEducation: Example Institute, Bachelor 2021\nHỒ SƠ GIẢ LẬP - NGUYỄN AN\nKỹ sư phần mềm và kiểm thử\nEmail: nguyen.an@example.com\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiệm: Công ty Ví Dụ, 2021-2024\nXây dựng hệ thống quản lý có kiểm thử.\nHọc vấn: Trường Giả Lập, Cử nhân 2021",
+      "raw_text": "SYNTHETIC CV - ALEX SAMPLE\nSoftware developer and test engineer\nEmail: alex.sample@example.com\nSkills: Python, Docker, PostgreSQL\nExperience: Example Lab, 2021-2024\nBuilt an API with automated tests.\nEducation: Example Institute, Bachelor 2021\nHO SƠ GIA LAP - NGUYEN AN\n\nKỹ su phần mềm va kiểm thử\n\nEmail: nguyen.an@example.com\n\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiém: Céng ty Vi Du, 2021-2024\nXây dựng hệ thống quan ly có kiểm thử.\nHọc van: Trường Giả Lập, Cử nhân 2021",
+      "before": {
+        "cer": 0.027139874739039668,
+        "wer": 0.16883116883116883
+      },
+      "after": {
+        "cer": 0.016701461377870562,
+        "wer": 0.1038961038961039
+      },
+      "after_status": "PROPOSAL_PREVIEW_NOT_APPLIED",
+      "corrected_text": "SYNTHETIC CV - ALEX SAMPLE\nSoftware developer and test engineer\nEmail: alex.sample@example.com\nSkills: Python, Docker, PostgreSQL\nExperience: Example Lab, 2021-2024\nBuilt an API with automated tests.\nEducation: Example Institute, Bachelor 2021\nHO SƠ GIA LAP - NGUYEN AN\n\nKỹ sư phần mềm va kiểm thử\n\nEmail: nguyen.an@example.com\n\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiệm: Céng ty Vi Du, 2021-2024\nXây dựng hệ thống quản lý có kiểm thử.\nHọc vấn: Trường Giả Lập, Cử nhân 2021",
+      "review_duration_ms": 7683,
+      "approval_state": "NOT_CONFIRMED_NO_CV_WRITE",
+      "delta": {
+        "cer": -0.010438413361169106,
+        "wer": -0.06493506493506493
+      },
+      "previous_attempts": [
+        {
+          "after_status": "REJECTED_PROPOSAL_NO_CHANGE",
+          "after": {
+            "cer": 0.027139874739039668,
+            "wer": 0.16883116883116883
+          },
+          "rejection_trace": {
+            "source_sha256": "1ebb4aeb5fd64624498214df61e752e4da44927435dd9d0af4f6084e901359c9",
+            "provider": "openai_compatible",
+            "requested_model": "cx/gpt-6-luna",
+            "model": "gpt-6-luna",
+            "provider_output": "{\"edits\":[{\"before\":\"su\",\"after\":\"sư\"},{\"before\":\"Kinh nghiém\",\"after\":\"Kinh nghiệm\"},{\"before\":\"quan ly\",\"after\":\"quản lý\"},{\"before\":\"van\",\"after\":\"vấn\"}]}",
+            "usage": {
+              "prompt_tokens": 355,
+              "completion_tokens": 437,
+              "total_tokens": 792
+            }
+          },
+          "rejection_reason": "Ambiguous OCR change requires manual review",
+          "rejection_type": "OcrProposalRejected"
+        },
+        {
+          "after_status": "REJECTED_PROPOSAL_NO_CHANGE",
+          "after": {
+            "cer": 0.027139874739039668,
+            "wer": 0.16883116883116883
+          },
+          "rejection_trace": {
+            "source_sha256": "1ebb4aeb5fd64624498214df61e752e4da44927435dd9d0af4f6084e901359c9",
+            "provider": "openai_compatible",
+            "requested_model": "cx/gpt-6-luna",
+            "model": "gpt-6-luna",
+            "provider_output": "{\"edits\":[{\"before\":\"Kỹ su\",\"after\":\"Kỹ sư\"},{\"before\":\"Kinh nghiém\",\"after\":\"Kinh nghiệm\"},{\"before\":\"quan ly\",\"after\":\"quản lý\"},{\"before\":\"Học van\",\"after\":\"Học vấn\"}]}",
+            "usage": {
+              "prompt_tokens": 404,
+              "completion_tokens": 266,
+              "total_tokens": 670
+            }
+          },
+          "rejection_reason": "OCR review cannot alter contact tokens"
+        }
+      ],
+      "proposal": {
+        "source_sha256": "1ebb4aeb5fd64624498214df61e752e4da44927435dd9d0af4f6084e901359c9",
+        "edits": [
+          {
+            "start": 271,
+            "end": 276,
+            "before": "Kỹ su",
+            "after": "Kỹ sư"
+          },
+          {
+            "start": 368,
+            "end": 379,
+            "before": "Kinh nghiém",
+            "after": "Kinh nghiệm"
+          },
+          {
+            "start": 424,
+            "end": 431,
+            "before": "quan ly",
+            "after": "quản lý"
+          },
+          {
+            "start": 445,
+            "end": 452,
+            "before": "Học van",
+            "after": "Học vấn"
+          }
+        ],
+        "provider": "openai_compatible",
+        "model": "gpt-6-luna",
+        "fallback_used": false,
+        "warnings": [],
+        "usage": {
+          "prompt_tokens": 404,
+          "completion_tokens": 266,
+          "total_tokens": 670
+        }
+      },
+      "local_revalidation": {
+        "provider_output_sha256": "588feb1ea4e5ab40f10e783d77b0369d24e8b15ba22c1949eb8834f977e7e19f",
+        "additional_api_calls": 0
+      }
+    },
+    {
+      "id": "vi-blurred",
+      "sha256": "f4ce536326e160330d1a079a67faba2f23561cf0e652d3419f3e998fa7ffedf5",
+      "status": "EXTRACTED",
+      "error_code": null,
+      "method": [
+        "image-ocr"
+      ],
+      "ocr_used": true,
+      "duration_ms": 2835,
+      "ground_truth": "HỒ SƠ GIẢ LẬP - NGUYỄN AN\nKỹ sư phần mềm và kiểm thử\nEmail: nguyen.an@example.com\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiệm: Công ty Ví Dụ, 2021-2024\nXây dựng hệ thống quản lý có kiểm thử.\nHọc vấn: Trường Giả Lập, Cử nhân 2021",
+      "raw_text": "HÒ SƠ GIÁ LẬP - NGUYÊN AN\n\nKỹ sư phần mềm và kiểm thử\n\nEmail: nguyen.an@example.com\n\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiệm: Công ty Ví Dụ, 2021-2024\nXây dựng hệ thống quản lý có kiểm thử.\nHọc vấn: Trường Giả Lập, Cử nhân 2021",
+      "before": {
+        "cer": 0.01276595744680851,
+        "wer": 0.06521739130434782
+      },
+      "after": {
+        "cer": 0.01276595744680851,
+        "wer": 0.06521739130434782
+      },
+      "after_status": "NO_CHANGE_PROPOSED",
+      "proposal": {
+        "source_sha256": "167d37f71dadfdb5e1a481f41f23e33efb7a02a6413bda35435a633bfd343412",
+        "edits": [],
+        "provider": "openai_compatible",
+        "model": "gpt-6-luna",
+        "fallback_used": false,
+        "warnings": [
+          "Only typography is proposed. Review every change; original extraction remains unchanged."
+        ],
+        "usage": {
+          "prompt_tokens": 296,
+          "completion_tokens": 74,
+          "total_tokens": 370
+        }
+      },
+      "corrected_text": "HÒ SƠ GIÁ LẬP - NGUYÊN AN\n\nKỹ sư phần mềm và kiểm thử\n\nEmail: nguyen.an@example.com\n\nKỹ năng: Java, Spring Boot, PostgreSQL\nKinh nghiệm: Công ty Ví Dụ, 2021-2024\nXây dựng hệ thống quản lý có kiểm thử.\nHọc vấn: Trường Giả Lập, Cử nhân 2021",
+      "review_duration_ms": 4199,
+      "approval_state": "NOT_CONFIRMED_NO_CV_WRITE",
+      "delta": {
+        "cer": 0.0,
+        "wer": 0.0
+      }
+    },
+    {
+      "id": "en-native",
+      "sha256": "ce53179695e31fc13e8d2f30306745a454927b28be2aa30c4f6717bc79d66042",
+      "status": "EXTRACTED",
+      "error_code": null,
+      "method": [
+        "pdf-native"
+      ],
+      "ocr_used": false,
+      "duration_ms": 19,
+      "ground_truth": "SYNTHETIC CV - ALEX SAMPLE\nSoftware developer and test engineer\nEmail: alex.sample@example.com\nSkills: Python, Docker, PostgreSQL\nExperience: Example Lab, 2021-2024\nBuilt an API with automated tests.\nEducation: Example Institute, Bachelor 2021",
+      "raw_text": "SYNTHETIC CV - ALEX SAMPLE\n\nSoftware developer and test engineer\nEmail: alex.sample@example.com\nSkills: Python, Docker, PostgreSQL\n\nExperience: Example Lab, 2021-2024\nBuilt an API with automated tests.\n\nEducation: Example Institute, Bachelor 2021",
+      "before": {
+        "cer": 0.0,
+        "wer": 0.0
+      },
+      "after": {
+        "cer": 0.0,
+        "wer": 0.0
+      },
+      "after_status": "NO_CHANGE_PROPOSED",
+      "proposal": {
+        "source_sha256": "a6c551e91ac816c16f004cfe3a9181495a33e5b746051f892d05d263640e1d0b",
+        "edits": [],
+        "provider": "openai_compatible",
+        "model": "gpt-6-luna",
+        "fallback_used": false,
+        "warnings": [
+          "Only typography is proposed. Review every change; original extraction remains unchanged."
+        ],
+        "usage": {
+          "prompt_tokens": 266,
+          "completion_tokens": 47,
+          "total_tokens": 313
+        }
+      },
+      "corrected_text": "SYNTHETIC CV - ALEX SAMPLE\n\nSoftware developer and test engineer\nEmail: alex.sample@example.com\nSkills: Python, Docker, PostgreSQL\n\nExperience: Example Lab, 2021-2024\nBuilt an API with automated tests.\n\nEducation: Example Institute, Bachelor 2021",
+      "review_duration_ms": 4507,
+      "approval_state": "NOT_CONFIRMED_NO_CV_WRITE",
+      "delta": {
+        "cer": 0.0,
+        "wer": 0.0
+      }
+    }
+  ],
+  "successful_samples": 5,
+  "sample_count": 5,
+  "provider_calls": 7,
+  "run_config": {
+    "requested_model": "cx/gpt-6-luna",
+    "max_provider_calls": 1,
+    "max_output_tokens_per_call": 1024,
+    "retries": 0,
+    "fallback": false,
+    "labels_sent_to_provider": false,
+    "extraction_report_sha256": "a03f6b607cf8f5159fee48338938948e1b490458bd762390af8f94636b233b76"
+  },
+  "previous_runs": [
+    {
+      "report_sha256": "467e1fde2c5e218d3414fdc1b8bb6abb93d53a231be4bd85696a15bbc73d6075",
+      "run_config": {
+        "requested_model": "cx/gpt-6-luna",
+        "max_provider_calls": 5,
+        "max_output_tokens_per_call": 1024,
+        "retries": 0,
+        "fallback": false,
+        "labels_sent_to_provider": false,
+        "extraction_report_sha256": "a03f6b607cf8f5159fee48338938948e1b490458bd762390af8f94636b233b76"
+      },
+      "timestamp_utc": "2026-11-02T07:36:30.914723+00:00"
+    },
+    {
+      "report_sha256": "2837f2cf24a4a3f47580143e9460985489987c8f605fbf2145c90b604d2d1097",
+      "run_config": {
+        "requested_model": "cx/gpt-6-luna",
+        "max_provider_calls": 1,
+        "max_output_tokens_per_call": 1024,
+        "retries": 0,
+        "fallback": false,
+        "labels_sent_to_provider": false,
+        "extraction_report_sha256": "a03f6b607cf8f5159fee48338938948e1b490458bd762390af8f94636b233b76"
+      },
+      "timestamp_utc": "2026-11-02T07:38:08.321789+00:00"
+    }
+  ],
+  "validator_sha256": "8ec7d71ba9e4ad524832f5036d7a9301cb1acb2630cd00f4958d500996d9f8ff"
+}

@@ -15,6 +15,9 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MatchInspectionResponse {
+    private UUID sourceCvVersionId;
+    private String sourceTextSha256;
+    private String inputTraceStatus;
     private UUID applicationId;
     private String jobTitle;
     private String candidateName;

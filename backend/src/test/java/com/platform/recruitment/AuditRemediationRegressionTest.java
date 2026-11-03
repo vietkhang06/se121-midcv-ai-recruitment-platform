@@ -156,6 +156,19 @@ class AuditRemediationRegressionTest {
         }
     }
 
-
+    @Test void inspectionRejectsQuoteFromAnotherVersionEvenWhenItsTextMatches() {
+        MatchResult saved = engine.calculateAndPersistMatchResult(job.getId(), candidate.getId());
+        when(applications.findById(application.getId())).thenReturn(Optional.of(application));
+        when(results.findByApplicationId(application.getId())).thenReturn(Optional.of(saved));
+        EvidenceRepository evidence = mock(EvidenceRepository.class);
+        ReflectionTestUtils.setField(engine, "evidenceRepository", evidence);
+        Evidence foreign = Evidence.builder().sourceType("CV").sourceId(UUID.randomUUID().toString())
+                .section("SKILLS").snippet("Python").requirementText("Python").matchStatus("VERIFIED").build();
+        when(evidence.findByMatchResultId(saved.getId())).thenReturn(List.of(foreign));
+        var inspection = engine.getMatchInspection(application.getId());
+        assertEquals("SNAPSHOT_VALIDATED", inspection.getInputTraceStatus());
+        assertNull(inspection.getEvidences().get(0).getSnippet());
+        assertEquals("NO_LITERAL_QUOTE", inspection.getEvidences().get(0).getValidationStatus());
+    }
 
 }

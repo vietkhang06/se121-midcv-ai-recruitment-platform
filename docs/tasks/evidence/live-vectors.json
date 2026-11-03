@@ -1,0 +1,43 @@
+{
+  "timestamp_utc": "2026-11-02T05:33:45.513503+00:00",
+  "phase": "vectors",
+  "source": "REAL_BACKEND_POSTGRESQL_PGVECTOR",
+  "provider_mode": "mock",
+  "semantic_model_quality_measured": false,
+  "synthetic_data": true,
+  "checks": [
+    {
+      "name": "M01 JD title changes invalidate the persisted source hash",
+      "status": "PASSED"
+    },
+    {
+      "name": "M01 model changes invalidate both persisted vector spaces",
+      "status": "PASSED"
+    },
+    {
+      "name": "M01 SQL cache failure rolls back independently; outer score persists with explicit fallback",
+      "status": "PASSED"
+    }
+  ],
+  "http": [
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 666
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 631
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/matching/jobs/d045fdd4-8bb4-4a73-a253-dcdee5d82ac8/candidates/5419b585-1d32-4feb-9ec2-5d62a891dfde",
+      "status": 200,
+      "duration_ms": 600
+    }
+  ],
+  "status": "PASSED"
+}

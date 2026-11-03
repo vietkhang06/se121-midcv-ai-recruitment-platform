@@ -1,0 +1,27 @@
+{
+  "timestamp_utc": "2026-11-02T04:07:41.675492+00:00",
+  "provider_mode": "LOCAL_SYNTHETIC_MOCK",
+  "checks": [
+    {
+      "name": "O02 HTTP proposal/apply/reject/stale/unconfirmed/unsafe",
+      "status": "PASSED",
+      "model": "mock-contract-model"
+    },
+    {
+      "name": "M04 HTTP JD-specific gap/roadmap and no-gap behavior",
+      "status": "PASSED",
+      "source": "LLM"
+    },
+    {
+      "name": "L01 actual HTTP primary success and transient fallback",
+      "status": "PASSED",
+      "provider": "fallback"
+    },
+    {
+      "name": "R02 worker HTTP request completes after 60 seconds",
+      "status": "PASSED",
+      "duration_seconds": 69.48
+    }
+  ],
+  "status": "PASSED"
+}
