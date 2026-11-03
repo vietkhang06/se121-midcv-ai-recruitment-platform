@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { useLanguage } from '@/context/LanguageContext';
 import { formatSalary } from '@/lib/i18n';
 import { Reveal, staggerDelay } from '@/components/motion';
-import { Search, ArrowRight, ChevronRight, MapPin } from 'lucide-react';
+import { Search, ArrowRight, ChevronRight, MapPin, BriefcaseBusiness } from 'lucide-react';
 
 export default function HomePage() {
   const { locale } = useLanguage();
@@ -21,6 +21,7 @@ export default function HomePage() {
   const [applyJob, setApplyJob] = useState<Job | null>(null);
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const [selectedIndustry, setSelectedIndustry] = useState<string>('');
 
   useEffect(() => {
     let active = true;
@@ -49,7 +50,8 @@ export default function HomePage() {
     e.preventDefault();
     const params = new URLSearchParams();
     if (searchKeyword) params.set('keyword', searchKeyword);
-    if (selectedLocation && selectedLocation !== 'Toàn quốc') params.set('location', selectedLocation);
+    if (selectedLocation.trim() && selectedLocation !== 'Toàn quốc') params.set('location', selectedLocation.trim());
+    if (selectedIndustry) params.set('industry', selectedIndustry);
     router.push(`/jobs?${params.toString()}`);
   };
 
@@ -99,21 +101,28 @@ export default function HomePage() {
               {/* Divider */}
               <div className="hidden md:block w-px h-8 bg-blue-100 dark:bg-[var(--surface)]" />
 
-              {/* Input 2: Location selector */}
-              <div className="flex items-center gap-2 px-2 w-full md:w-52 text-slate-700 dark:text-slate-200">
-                <MapPin className="w-4 h-4 text-[var(--primary)] shrink-0" />
-                <select
-                  value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
-                  className="w-full bg-transparent text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer py-1"
-                >
-                  <option value="" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[var(--surface)]">{locale === 'vi' ? 'Địa điểm' : 'Location'}</option>
-                  <option value="Toàn quốc" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[var(--surface)]">{locale === 'vi' ? 'Toàn quốc' : 'All Regions'}</option>
-                  <option value="Hà Nội" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[var(--surface)]">Hà Nội</option>
-                  <option value="TP. Hồ Chí Minh" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[var(--surface)]">TP. Hồ Chí Minh</option>
-                  <option value="Đà Nẵng" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[var(--surface)]">Đà Nẵng</option>
-                  <option value="Remote" className="text-slate-800 dark:text-slate-100 bg-white dark:bg-[var(--surface)]">Remote / Từ xa</option>
+              {/* Industry selector: supported API enum values only */}
+              <div className="flex w-full items-center gap-2 px-2 text-slate-700 dark:text-slate-200 md:w-44">
+                <BriefcaseBusiness className="h-4 w-4 shrink-0 text-[var(--primary)]" />
+                <select value={selectedIndustry} onChange={(event) => setSelectedIndustry(event.target.value)} aria-label={locale === 'vi' ? 'Chọn ngành nghề' : 'Choose an industry'} className="w-full cursor-pointer bg-transparent py-1 text-xs font-medium text-slate-800 focus:outline-none dark:text-slate-100">
+                  <option value="" className="bg-white text-slate-800 dark:bg-[var(--surface)] dark:text-slate-100">{locale === 'vi' ? 'Danh mục nghề' : 'Industry'}</option>
+                  <option value="Technology">{locale === 'vi' ? 'Công nghệ thông tin' : 'Technology'}</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Design">{locale === 'vi' ? 'Thiết kế' : 'Design'}</option>
+                  <option value="Finance">{locale === 'vi' ? 'Tài chính' : 'Finance'}</option>
+                  <option value="HR">{locale === 'vi' ? 'Nhân sự' : 'Human Resources'}</option>
+                  <option value="Sales">{locale === 'vi' ? 'Kinh doanh' : 'Sales'}</option>
+                  <option value="OTHER">{locale === 'vi' ? 'Ngành nghề khác' : 'Other'}</option>
                 </select>
+              </div>
+
+              {/* Location field: supports both common suggestions and manually entered areas */}
+              <div className="flex w-full items-center gap-2 px-2 text-slate-700 dark:text-slate-200 md:w-52">
+                <MapPin className="h-4 w-4 shrink-0 text-[var(--primary)]" />
+                <input type="text" list="midcv-location-options" value={selectedLocation} onChange={(event) => setSelectedLocation(event.target.value)} placeholder={locale === 'vi' ? 'Tỉnh/thành, quận/huyện' : 'City, district'} aria-label={locale === 'vi' ? 'Địa điểm làm việc' : 'Work location'} className="w-full min-w-0 bg-transparent py-1 text-xs font-medium text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100" />
+                <datalist id="midcv-location-options">
+                  <option value="Hà Nội" /><option value="TP. Hồ Chí Minh" /><option value="Đà Nẵng" /><option value="Cần Thơ" /><option value="Hải Phòng" /><option value="Remote" />
+                </datalist>
               </div>
 
               {/* Input 3: Primary Blue Submit Button (var(--primary)) */}

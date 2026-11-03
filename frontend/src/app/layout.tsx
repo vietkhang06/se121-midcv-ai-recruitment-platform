@@ -8,6 +8,7 @@ import { Footer } from "@/components/layout/Footer";
 import { FirstVisitModal } from "@/components/onboarding/FirstVisitModal";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { SuspensionBanner } from "@/components/common/SuspensionBanner";
+import { FeedbackWidget } from "@/components/common/FeedbackWidget";
 
 export const metadata: Metadata = {
   title: "midCV® — AI-Powered Intelligent Recruitment Platform",
@@ -41,6 +42,7 @@ export default function RootLayout({
               <Footer />
               <FirstVisitModal />
               <AuthModal />
+              <FeedbackWidget />
             </AuthProvider>
           </LanguageProvider>
         </ThemeProvider>
