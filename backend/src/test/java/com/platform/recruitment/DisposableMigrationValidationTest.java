@@ -24,7 +24,7 @@ class DisposableMigrationValidationTest {
 
     @Test
     @EnabledIfEnvironmentVariable(named = "MIDCV_MIGRATION_TEST_MODE", matches = "FRESH|UPGRADE")
-    void migrationsReachV30AndHibernateValidatesTheMappedSchema() {
+    void migrationsReachV32AndHibernateValidatesTheMappedSchema() {
         String mode = requiredEnvironment("MIDCV_MIGRATION_TEST_MODE");
         DataSource dataSource = createDataSource();
 
@@ -55,7 +55,7 @@ class DisposableMigrationValidationTest {
             assertNotNull(context.getBean(EntityManagerFactory.class));
         }
 
-        assertCurrentVersion(dataSource, "30");
+        assertCurrentVersion(dataSource, "32");
     }
 
     private static DataSource createDataSource() {

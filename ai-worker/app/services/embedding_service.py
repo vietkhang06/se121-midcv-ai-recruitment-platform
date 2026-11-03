@@ -76,6 +76,12 @@ class OllamaEmbeddingService:
 
         data = resp.json()
         embeddings = data.get("embeddings", [])
+        if len(embeddings) != len(texts):
+            raise EmbeddingError("Embedding response count does not match input count.", status_code=502)
+        if data.get("model", self.model_name).removesuffix(":latest") != self.model_name.removesuffix(":latest"):
+            raise EmbeddingError("Embedding response model mismatch.", status_code=502)
+        for vector in embeddings:
+            self.validate_vector(vector)
         if not embeddings:
             raise EmbeddingError(f"No embeddings returned from model {self.model_name}", status_code=502)
 
@@ -88,6 +94,13 @@ class OllamaEmbeddingService:
         return embeddings
 
     @staticmethod
+    def validate_vector(vector: List[float]) -> None:
+        if len(vector) != 1024 or any(isinstance(x, bool) or not isinstance(x, (float, int)) or not math.isfinite(x) for x in vector):
+            raise EmbeddingError("Expected a finite 1024-dimensional embedding.", status_code=502)
+        if not any(vector):
+            raise EmbeddingError("Zero-norm embedding is invalid.", status_code=502)
+
+    @staticmethod
     def cosine_similarity(vec_a: List[float], vec_b: List[float]) -> float:
         """
         Calculates cosine similarity between two float vectors.
@@ -95,6 +108,8 @@ class OllamaEmbeddingService:
         """
         if not vec_a or not vec_b:
             return 0.0
+        if len(vec_a) != len(vec_b) or any(not math.isfinite(x) for x in vec_a + vec_b):
+            raise EmbeddingError("Vectors must have equal dimensions and finite values.", status_code=502)
 
         dot_product = sum(a * b for a, b in zip(vec_a, vec_b))
         norm_a = math.sqrt(sum(a * a for a in vec_a))

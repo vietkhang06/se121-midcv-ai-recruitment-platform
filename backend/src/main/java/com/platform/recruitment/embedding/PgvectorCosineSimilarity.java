@@ -40,6 +40,7 @@ public class PgvectorCosineSimilarity {
                         "SELECT greatest(0,least(100,(1-(cv.embedding <=> jd.embedding))*100)) AS score " +
                         "FROM document_versions cv CROSS JOIN document_versions jd " +
                         "WHERE cv.id=? AND jd.id=? AND cv.embedding IS NOT NULL AND jd.embedding IS NOT NULL " +
+                        "AND vector_dims(cv.embedding)=vector_dims(jd.embedding) AND vector_norm(cv.embedding)>0 AND vector_norm(jd.embedding)>0 " +
                         "AND cv.state='READY' AND jd.state='READY' AND cv.embedding_model IS NOT NULL AND cv.embedding_model=jd.embedding_model",
                         cvVersionId, jdVersionId
                 );
@@ -157,7 +158,7 @@ public class PgvectorCosineSimilarity {
         if (token.matches("develop.*|build.*|built|creat.*|architect.*|design.*")) return "sem_construct";
         if (token.matches("backend|back-end|server.*|service.*|api.*|microservice.*")) return "sem_backend";
         if (token.matches("frontend|front-end|client.*|web|ui|interface")) return "sem_frontend";
-        if (token.matches("java.*|spring.*|springboot|jvm")) return "sem_java";
+        if (token.matches("java(?:[0-9]+)?|spring.*|springboot|jvm")) return "sem_java";
         if (token.matches("python.*|django|fastapi|flask")) return "sem_python";
         if (token.matches("postgres.*|pgvector|sql|mysql|oracle|database|db")) return "sem_database";
         if (token.matches("docker|k8s|kubernetes|aws|cloud|container|devops")) return "sem_cloud_infra";
