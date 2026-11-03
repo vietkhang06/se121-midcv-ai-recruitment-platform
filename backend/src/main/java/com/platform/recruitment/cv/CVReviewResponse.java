@@ -29,6 +29,10 @@ public class CVReviewResponse {
     private List<Map<String, Object>> evidences;
     private List<Map<String, Object>> unverifiedFacts;
     private List<String> warnings;
+    private String ocrCorrectionStatus;
+    private Integer ocrAppliedCount;
+    private Boolean ocrHumanReviewRequired;
+    private List<Map<String, Object>> ocrCorrections;
     private List<Map<String, Object>> pages;
     private ZonedDateTime createdAt;
 }

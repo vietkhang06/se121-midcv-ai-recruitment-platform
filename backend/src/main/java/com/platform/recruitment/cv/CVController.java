@@ -77,13 +77,29 @@ public class CVController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    static String requireBearerToken(String authorization) {
+        if (authorization == null || authorization.length() <= 7
+                || !authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            throw new com.platform.recruitment.common.CustomException(
+                    com.platform.recruitment.common.ErrorCode.AUTHENTICATION_FAILED,
+                    "Authorization header phải sử dụng Bearer token.");
+        }
+        String token = authorization.substring(7).trim();
+        if (token.isEmpty() || token.chars().anyMatch(Character::isWhitespace)) {
+            throw new com.platform.recruitment.common.CustomException(
+                    com.platform.recruitment.common.ErrorCode.AUTHENTICATION_FAILED,
+                    "Bearer token không hợp lệ.");
+        }
+        return token;
+    }
+
     @GetMapping(value = "/processing/{jobId}/events", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
     public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamJobEvents(
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID jobId,
             @RequestHeader(value="Last-Event-ID", required=false) String lastId,
             @RequestHeader("Authorization") String authorization) {
-        return cvProcessingSseService.subscribe(jobId, currentUser, lastId, authorization.substring(7));
+        return cvProcessingSseService.subscribe(jobId, currentUser, lastId, requireBearerToken(authorization));
     }
 
     @GetMapping(value = "/{id}/events", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -92,7 +108,7 @@ public class CVController {
             @PathVariable UUID id,
             @RequestHeader(value="Last-Event-ID", required=false) String lastId,
             @RequestHeader("Authorization") String authorization) {
-        return cvProcessingSseService.subscribeByCvId(id, currentUser, lastId, authorization.substring(7));
+        return cvProcessingSseService.subscribeByCvId(id, currentUser, lastId, requireBearerToken(authorization));
     }
 
     @GetMapping("/{id}")

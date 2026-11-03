@@ -11,6 +11,8 @@ os.environ["USE_MOCK_LLM"] = "true"
 
 from app.config import settings
 settings.USE_MOCK_LLM = True
+# OCR post-processing requires an explicit fake orchestrator in its dedicated tests.
+settings.OCR_LLM_CORRECTION_ENABLED = False
 
 from tests.fixtures.mock_llm_client import MockLLMClient
 from app.services.llm_client import LLMClient

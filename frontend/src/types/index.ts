@@ -456,6 +456,18 @@ export interface CVReviewData {
   evidences?: CVEvidenceItem[];
   unverifiedFacts?: Array<{ field_path: string; quote?: string; reason?: string; [key: string]: unknown }>;
   warnings?: string[];
+  ocrCorrectionStatus?: string;
+  ocrAppliedCount?: number;
+  ocrHumanReviewRequired?: boolean;
+  ocrCorrections?: Array<{
+    original: string;
+    corrected: string;
+    category?: string;
+    confidence?: number;
+    reason?: string;
+    applied?: boolean;
+    requires_human_review?: boolean;
+  }>;
   pages?: PageSegmentItem[];
   createdAt?: string;
 }

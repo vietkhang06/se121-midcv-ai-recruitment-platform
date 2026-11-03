@@ -84,10 +84,11 @@ def health_check():
     primary_reachable = providers_health.get("primary", {}).get("reachable", False)
     ollama_reachable = providers_health.get("fallback", {}).get("reachable", False)
 
+    # Readiness requires every mandatory local capability plus at least one LLM route.
+    # Treat DISABLED/MISCONFIGURED as degraded too; otherwise production can report UP
+    # while scanned CVs cannot be processed by OCR.
     overall_status = "UP"
-    if ocr_status in ["BINARY_NOT_FOUND", "LANGUAGE_MISSING", "UNHEALTHY"]:
-        overall_status = "DEGRADED"
-    elif not primary_reachable and not ollama_reachable:
+    if ocr_status != "READY" or not (primary_reachable or ollama_reachable):
         overall_status = "DEGRADED"
 
     return {
@@ -166,6 +167,7 @@ class StructureCVRequest(BaseModel):
     rawText: str
     documentVersionId: Optional[str] = None
     correlationId: Optional[str] = None
+    ocrUsed: bool = False
 
 @router.post("/structure-cv", response_model=StructuringResponse)
 async def structure_cv(request: StructureCVRequest):
@@ -174,7 +176,8 @@ async def structure_cv(request: StructureCVRequest):
         structuring_service = CVStructuringService()
         result = await structuring_service.structure_raw_text(
             raw_text=request.rawText,
-            correlation_id=request.correlationId
+            correlation_id=request.correlationId,
+            ocr_used=request.ocrUsed,
         )
         if not result.success:
             raise HTTPException(
