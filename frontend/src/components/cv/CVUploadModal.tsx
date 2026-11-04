@@ -5,8 +5,8 @@ import { CV, CVQuota } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
 import { AnimatedModalShell, AnimatedStatus } from '@/components/motion';
-import { uploadCandidateCV, fetchCVProcessingStatus, retryCVExtraction, subscribeCVProcessingEvents, type CVProcessingEvent } from '@/lib/api';
-import { CVProcessingStatus } from '@/types';
+import { uploadCandidateCV, fetchCVProcessingStatus, retryCVExtraction, subscribeCVProcessingEvents } from '@/lib/api';
+import { waitForProcessing } from '@/lib/processingWait';
 import {
   X,
   UploadCloud,
@@ -137,143 +137,29 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
   };
 
   const pollProcessingStatus = async (cvId: string, cvEntity: CV, signal: AbortSignal) => {
-    let isDone = false;
-    const jobId = (cvEntity as CV & { jobId?: string }).jobId;
-
-    // 1. Subscribe to real-time SSE event stream for immediate stage progression
-    // Assign the unsubscribe callback before the event handler can use it.
-    // This also avoids a TypeScript self-reference error in the initializer.
-    let unsubscribe: () => void = () => {};
-    unsubscribe = subscribeCVProcessingEvents(
-      { cvId, jobId },
-      (eventData: CVProcessingEvent) => {
-        if (signal.aborted || isDone) return;
-        if (eventData.progress !== undefined && eventData.progress !== null) {
-          setProcessingProgress(Math.max(eventData.progress, 10));
-        }
-        if (eventData.message) {
-          setProcessingStageMessage(eventData.message);
-        }
-
-        const step = (eventData.step || '').toUpperCase();
-        const code = (eventData.code || '').toUpperCase();
-
-        if (step.includes('FAILED') || code.includes('FAILED')) {
-          isDone = true;
-          unsubscribe();
-          setStatus('FAILED');
-          setErrorMessage(eventData.message || 'Quá trình trích xuất hồ sơ gặp sự cố.');
-        } else if (
-          step.includes('SUCCEEDED') ||
-          step.includes('COMPLETED') ||
-          step.includes('NEEDS_REVIEW') ||
-          code.includes('JOB_SUCCEEDED')
-        ) {
-          isDone = true;
-          unsubscribe();
-          setProcessingProgress(100);
-          setStatus('COMPLETED');
-          if (onUploadSuccess) onUploadSuccess(cvEntity);
-          if (onSuccess) onSuccess();
-          setTimeout(() => {
-            if (!signal.aborted) {
-              onClose();
-              setStatus('IDLE');
-              setFile(null);
-              setUploadedCv(null);
-            }
-          }, 600);
-        }
-      },
-      (err) => {
-        console.warn('SSE stream notice, continuing background check:', err);
+    const result = await waitForProcessing({
+      signal,
+      poll: (requestSignal) => fetchCVProcessingStatus(cvId, requestSignal),
+      subscribe: (receive) => subscribeCVProcessingEvents(
+        { cvId, jobId: (cvEntity as CV & { jobId?: string }).jobId }, receive,
+        () => { /* Polling remains active when SSE disconnects. */ }
+      ),
+      onProgress: (event) => {
+        setProcessingProgress(Math.max(event.progress ?? 10, 10));
+        if (event.message) setProcessingStageMessage(event.message);
       }
-    );
-
-    // 2. Periodic status check fallback in case SSE connection drops
-    const maxAttempts = 60; // 60s timeout for safety
-    let attempts = 0;
-
-    while (!isDone && attempts < maxAttempts) {
-      if (signal.aborted) {
-        unsubscribe();
-        return;
-      }
-      await new Promise((r) => setTimeout(r, 1000));
-      if (signal.aborted || isDone) {
-        unsubscribe();
-        return;
-      }
-      attempts++;
-
-      try {
-        const statusResp: CVProcessingStatus = await fetchCVProcessingStatus(cvId);
-        if (signal.aborted || isDone) return;
-        if (statusResp) {
-          setProcessingProgress(Math.max(statusResp.progress || 10, 10));
-          if (statusResp.message) {
-            setProcessingStageMessage(statusResp.message);
-          }
-
-          if (statusResp.status === 'FAILED') {
-            isDone = true;
-            unsubscribe();
-            setStatus('FAILED');
-            const errDetail = statusResp.message || 'Quá trình trích xuất hồ sơ gặp sự cố.';
-            const codeDetail = statusResp.errorCode ? ` [${statusResp.errorCode}]` : '';
-            const corrDetail = statusResp.correlationId ? ` (Mã theo dõi: ${statusResp.correlationId})` : '';
-            setErrorMessage(`${errDetail}${codeDetail}${corrDetail}`);
-            return;
-          } else if (
-            statusResp.status === 'SUCCEEDED' ||
-            statusResp.status === 'COMPLETED' ||
-            statusResp.stage === 'NEEDS_REVIEW' ||
-            statusResp.status === 'CONFIRMED'
-          ) {
-            // Chỉ chuyển sang mở review khi processing-status trả về SUCCEEDED hoặc NEEDS_REVIEW hợp lệ
-            if (statusResp.progress && statusResp.progress >= 100) {
-              isDone = true;
-              unsubscribe();
-              setProcessingProgress(100);
-              setStatus('COMPLETED');
-              if (onUploadSuccess) onUploadSuccess(cvEntity);
-              if (onSuccess) onSuccess();
-              onClose();
-              return;
-            }
-          }
-        }
-      } catch (pollError: unknown) {
-        if (signal.aborted || isDone) return;
-        const pollErr = asRecord(pollError) || {};
-        const responseBody = asRecord(pollErr.responseBody) || {};
-        const pollMessage = typeof pollErr.message === 'string' ? pollErr.message : '';
-        const pollCode = String(pollErr.code || responseBody.code || '');
-        // Nếu polling gặp 404: dừng polling ngay lập tức và báo lỗi tính nhất quán ID/dữ liệu
-        const statusCode = pollErr.statusCode || pollErr.status || responseBody.code;
-        if (
-          statusCode === 404 ||
-          pollMessage.includes('404') ||
-          pollCode === 'RESOURCE_NOT_FOUND' ||
-          pollCode === 'CV_NOT_FOUND'
-        ) {
-          isDone = true;
-          unsubscribe();
-          setStatus('FAILED');
-          setErrorMessage('Lỗi tính nhất quán dữ liệu: Không tìm thấy phiên bản xử lý CV (ID không khớp giữa upload và processing). Vui lòng thử lại hoặc tải lại tệp.');
-          return;
-        }
-        console.warn('Polling processing status warning:', pollErr);
-      }
-    }
-
-    // Timeout tuyệt đối không được tự động chuyển sang COMPLETED hay mở review
-    if (!isDone && attempts >= maxAttempts) {
-      unsubscribe();
-      if (signal.aborted) return;
+    });
+    if (signal.aborted) return;
+    if ([result.status, result.stage, result.step, result.code].some(value => ['FAILED', 'JOB_FAILED', 'CANCELLED', 'JOB_CANCELLED'].includes(value?.toUpperCase() || ''))) {
       setStatus('FAILED');
-      setErrorMessage('Quá trình xử lý CV quá thời gian quy định (Timeout). Hệ thống chưa thể hoàn tất trích xuất. Vui lòng bấm Thử lại.');
+      setErrorMessage(result.message || 'Quá trình trích xuất hồ sơ gặp sự cố.');
+      return;
     }
+    setProcessingProgress(100);
+    setStatus('COMPLETED');
+    onUploadSuccess?.(cvEntity);
+    onSuccess?.();
+    onClose();
   };
 
   const handleStartProcessing = async (e: React.FormEvent) => {
@@ -298,7 +184,8 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
         file,
         cvTitle || file.name.replace(/\.[^/.]+$/, ''),
         undefined,
-        false
+        false,
+        signal
       );
 
       if (signal.aborted) return;
@@ -327,7 +214,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
       const signal = abortControllerRef.current.signal;
 
       try {
-        await retryCVExtraction(uploadedCv.id);
+        await retryCVExtraction(uploadedCv.id, signal);
         if (signal.aborted) return;
         await pollProcessingStatus(uploadedCv.id, uploadedCv, signal);
       } catch (err: unknown) {

@@ -446,8 +446,6 @@ if ([string]::IsNullOrWhiteSpace($databaseUrl) -or $databaseUrl -notmatch '^jdbc
     Write-Host "ERROR: DATABASE_URL must be a JDBC PostgreSQL URL in .env or the process environment." -ForegroundColor Red
     exit 1
 }
-Write-Host "  -> Configured PostgreSQL endpoint: ${databaseHost}:${databasePort}/${databaseName}" -ForegroundColor Gray
-
 try {
     $databaseUri = [Uri]($databaseUrl.Substring('jdbc:'.Length))
     $databaseHost = $databaseUri.Host
@@ -469,7 +467,15 @@ $databaseReady = Test-TcpEndpoint $databaseHost $databasePort
 if (-not $databaseReady) {
     $isLoopback = $databaseHost -in @('localhost', '127.0.0.1', '::1')
 
-    if (-not $isLoopback -or $databasePort -ne 5432 -or $databaseName -ne 'airecruit_db') {
+    $composeDatabasePort = 5432
+    if (-not [string]::IsNullOrWhiteSpace($env:POSTGRES_PORT)) {
+        if (-not [int]::TryParse($env:POSTGRES_PORT, [ref]$composeDatabasePort) -or $composeDatabasePort -lt 1 -or $composeDatabasePort -gt 65535) {
+            Write-Host "ERROR: POSTGRES_PORT must be an integer from 1 to 65535." -ForegroundColor Red
+            exit 1
+        }
+    }
+
+    if (-not $isLoopback -or $databasePort -ne $composeDatabasePort -or $databaseName -ne 'airecruit_db') {
         Write-Host "ERROR: Configured PostgreSQL endpoint refused connections. The local compose service is not configured for this endpoint; start the configured database and retry." -ForegroundColor Red
         exit 1
     }
@@ -704,7 +710,7 @@ try {
 Write-Host "`n==========================================" -ForegroundColor Cyan
 Write-Host " AI RECRUITMENT PLATFORM LOCAL STATUS" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host " PostgreSQL  : READY  (Port 5432)" -ForegroundColor Green
+Write-Host " PostgreSQL  : READY  (Port $databasePort)" -ForegroundColor Green
 
 if ($ollamaReady) {
     Write-Host " Ollama AI   : READY  (Port 11434, granite4.2 + bge-m3)" -ForegroundColor Green
