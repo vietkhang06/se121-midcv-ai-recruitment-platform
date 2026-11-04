@@ -575,20 +575,20 @@ export interface ApiClient {
   fetchCVQuota(): Promise<CVQuota>;
   saveCandidateCV(cv: CreateCVRequest): Promise<CV>;
   updateCVMetadata(cvId: string, metadata: { title: string }): Promise<CV>;
-  uploadCandidateCV(file: File, title?: string, targetIndustry?: string, isDefault?: boolean): Promise<CV>;
+  uploadCandidateCV(file: File, title?: string, targetIndustry?: string, isDefault?: boolean, signal?: AbortSignal): Promise<CV>;
   deleteCandidateCV(cvId: string): Promise<void>;
-  fetchCVReview(cvId: string): Promise<CVReviewData>;
-  fetchCVProcessingStatus(cvId: string): Promise<CVProcessingStatus>;
+  fetchCVReview(cvId: string, signal?: AbortSignal): Promise<CVReviewData>;
+  fetchCVProcessingStatus(cvId: string, signal?: AbortSignal): Promise<CVProcessingStatus>;
   subscribeCVProcessingEvents?(
     identifier: { cvId?: string; jobId?: string },
     onEvent: (event: CVProcessingEvent) => void,
     onError?: (err: Error) => void
   ): () => void;
   downloadCVFile(cvId: string, format: string, defaultFilename: string): Promise<void>;
-  retryCVExtraction(cvId: string): Promise<CVReviewData>;
+  retryCVExtraction(cvId: string, signal?: AbortSignal): Promise<CVReviewData>;
   fetchCVDraft(cvId: string): Promise<CVDraftData>;
   updateCVDraft(cvId: string, draftData: Record<string, unknown>): Promise<CVDraftData>;
-  confirmCandidateCV(cvId: string): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }>;
+  confirmCandidateCV(cvId: string, revision?: { version_id?: string; expected_revision?: string }): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }>;
   fetchCVVersions(cvId: string): Promise<CVVersion[]>;
   searchTaxonomySkills(query: string, limit?: number, category?: string): Promise<TaxonomySkillItem[]>;
   fetchFavoriteSkills(): Promise<TaxonomySkillItem[]>;
@@ -847,7 +847,7 @@ export class RealApiClient implements ApiClient {
     return mapBackendCVToFrontend(json.data);
   }
 
-  async uploadCandidateCV(file: File, title?: string, targetIndustry?: string, isDefault?: boolean): Promise<CV> {
+  async uploadCandidateCV(file: File, title?: string, targetIndustry?: string, isDefault?: boolean, signal?: AbortSignal): Promise<CV> {
     const token = getAuthToken();
     if (!token) {
       throw new ApiError('POST', '/api/v1/candidate/cvs/upload', 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
@@ -864,7 +864,7 @@ export class RealApiClient implements ApiClient {
       headers: {
         Authorization: `Bearer ${token}`
       },
-      body: formData
+      body: formData, signal
     });
 
     return mapBackendCVToFrontend(json.data);
@@ -882,23 +882,25 @@ export class RealApiClient implements ApiClient {
     });
   }
 
-  async fetchCVReview(cvId: string): Promise<CVReviewData> {
+  async fetchCVReview(cvId: string, signal?: AbortSignal): Promise<CVReviewData> {
     const token = getAuthToken();
     if (!token) {
       throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/review`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
     const json = await apiRequest<{ data: CVReviewData }>(`/api/v1/candidate/cvs/${cvId}/review`, {
+      signal,
       headers: { Authorization: `Bearer ${token}` }
     });
     return json.data;
   }
 
-  async fetchCVProcessingStatus(cvId: string): Promise<CVProcessingStatus> {
+  async fetchCVProcessingStatus(cvId: string, signal?: AbortSignal): Promise<CVProcessingStatus> {
     const token = getAuthToken();
     if (!token) {
       throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/processing-status`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
     const json = await apiRequest<{ data: CVProcessingStatus }>(`/api/v1/candidate/cvs/${cvId}/processing-status`, {
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(30000)]) : AbortSignal.timeout(30000),
       headers: { Authorization: `Bearer ${token}` }
     });
     return json.data;
@@ -948,12 +950,13 @@ export class RealApiClient implements ApiClient {
     window.URL.revokeObjectURL(downloadUrl);
   }
 
-  async retryCVExtraction(cvId: string): Promise<CVReviewData> {
+  async retryCVExtraction(cvId: string, signal?: AbortSignal): Promise<CVReviewData> {
     const token = getAuthToken();
     if (!token) {
       throw new ApiError('POST', `/api/v1/candidate/cvs/${cvId}/retry`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
     const json = await apiRequest<ApiEnvelope<CVReviewData>>(`/api/v1/candidate/cvs/${cvId}/retry`, {
+      signal,
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -984,12 +987,13 @@ export class RealApiClient implements ApiClient {
     return json.data;
   }
 
-  async confirmCandidateCV(cvId: string): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }> {
+  async confirmCandidateCV(cvId: string, revision?: { version_id?: string; expected_revision?: string }): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }> {
     const token = getAuthToken();
     if (!token) {
       throw new ApiError('POST', `/api/v1/candidate/cvs/${cvId}/confirm`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
     const json = await apiRequest<ApiEnvelope<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }>>(`/api/v1/candidate/cvs/${cvId}/confirm`, {
+      body: revision ? JSON.stringify(revision) : undefined,
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -1837,21 +1841,21 @@ export const fetchCandidateCVs = () => currentApiClient.fetchCandidateCVs();
 export const fetchCVQuota = () => currentApiClient.fetchCVQuota();
 export const saveCandidateCV = (cv: CreateCVRequest) => currentApiClient.saveCandidateCV(cv);
 export const updateCVMetadata = (cvId: string, metadata: { title: string }) => currentApiClient.updateCVMetadata(cvId, metadata);
-export const uploadCandidateCV = (file: File, title?: string, targetIndustry?: string, isDefault?: boolean) =>
-  currentApiClient.uploadCandidateCV(file, title, targetIndustry, isDefault);
+export const uploadCandidateCV = (file: File, title?: string, targetIndustry?: string, isDefault?: boolean, signal?: AbortSignal) =>
+  currentApiClient.uploadCandidateCV(file, title, targetIndustry, isDefault, signal);
 export const deleteCandidateCV = (cvId: string) => currentApiClient.deleteCandidateCV(cvId);
-export const fetchCVReview = (cvId: string) => currentApiClient.fetchCVReview(cvId);
-export const fetchCVProcessingStatus = (cvId: string) => currentApiClient.fetchCVProcessingStatus(cvId);
+export const fetchCVReview = (cvId: string, signal?: AbortSignal) => currentApiClient.fetchCVReview(cvId, signal);
+export const fetchCVProcessingStatus = (cvId: string, signal?: AbortSignal) => currentApiClient.fetchCVProcessingStatus(cvId, signal);
 export const subscribeCVProcessingEvents = (
   identifier: { cvId?: string; jobId?: string },
   onEvent: (event: CVProcessingEvent) => void,
   onError?: (err: Error) => void
 ) => (currentApiClient.subscribeCVProcessingEvents ? currentApiClient.subscribeCVProcessingEvents(identifier, onEvent, onError) : () => { });
 export const downloadCVFile = (cvId: string, format: string, defaultFilename: string) => currentApiClient.downloadCVFile(cvId, format, defaultFilename);
-export const retryCVExtraction = (cvId: string) => currentApiClient.retryCVExtraction(cvId);
+export const retryCVExtraction = (cvId: string, signal?: AbortSignal) => currentApiClient.retryCVExtraction(cvId, signal);
 export const fetchCVDraft = (cvId: string) => currentApiClient.fetchCVDraft(cvId);
 export const updateCVDraft = (cvId: string, draftData: Record<string, unknown>) => currentApiClient.updateCVDraft(cvId, draftData);
-export const confirmCandidateCV = (cvId: string) => currentApiClient.confirmCandidateCV(cvId);
+export const confirmCandidateCV = (cvId: string, revision?: { version_id?: string; expected_revision?: string }) => currentApiClient.confirmCandidateCV(cvId, revision);
 export const fetchCVVersions = (cvId: string) => currentApiClient.fetchCVVersions(cvId);
 export const searchTaxonomySkills = (query: string, limit?: number, category?: string) => currentApiClient.searchTaxonomySkills(query, limit, category);
 export const fetchFavoriteSkills = () => currentApiClient.fetchFavoriteSkills();

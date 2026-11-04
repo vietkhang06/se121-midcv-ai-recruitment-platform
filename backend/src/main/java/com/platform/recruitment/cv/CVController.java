@@ -100,6 +100,7 @@ public class CVController {
             @RequestHeader(value="Last-Event-ID", required=false) String lastId,
             @RequestHeader("Authorization") String authorization) {
         return cvProcessingSseService.subscribe(jobId, currentUser, lastId, requireBearerToken(authorization));
+        return cvProcessingSseService.subscribe(jobId, currentUser, lastId, authorization.substring(7));
     }
 
     @GetMapping(value = "/{id}/events", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -109,6 +110,7 @@ public class CVController {
             @RequestHeader(value="Last-Event-ID", required=false) String lastId,
             @RequestHeader("Authorization") String authorization) {
         return cvProcessingSseService.subscribeByCvId(id, currentUser, lastId, requireBearerToken(authorization));
+        return cvProcessingSseService.subscribeByCvId(id, currentUser, lastId, authorization.substring(7));
     }
 
     @GetMapping("/{id}")

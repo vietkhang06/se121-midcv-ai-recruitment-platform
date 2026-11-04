@@ -9,15 +9,31 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Resolve-Path (Join-Path $ScriptDir "..")
 Set-Location $ProjectRoot
 
+$envFile = Join-Path $ProjectRoot '.env'
+if (Test-Path -LiteralPath $envFile) {
+    . (Join-Path $ProjectRoot 'scripts\Import-MidcvEnv.ps1') -EnvFile $envFile -PreserveExistingEnvironment
+}
+$databaseHost = 'localhost'
+$databasePort = 5432
+$databaseConfigured = $false
+try {
+    if ($env:DATABASE_URL -match '^jdbc:postgresql://') {
+        $databaseUri = [Uri]$env:DATABASE_URL.Substring('jdbc:'.Length)
+        $databaseHost = $databaseUri.Host
+        $databasePort = if ($databaseUri.IsDefaultPort) { 5432 } else { $databaseUri.Port }
+        $databaseConfigured = -not [string]::IsNullOrWhiteSpace($databaseHost)
+    }
+} catch {}
+
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host " LOCAL DEVELOPMENT STATUS CHECK" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
 # Helper function to check TCP Port
-function Test-PortOccupied([int]$port) {
+function Test-PortOccupied([int]$port, [string]$hostName = 'localhost') {
     try {
         $conn = New-Object System.Net.Sockets.TcpClient
-        $asyncResult = $conn.BeginConnect("localhost", $port, $null, $null)
+        $asyncResult = $conn.BeginConnect($hostName, $port, $null, $null)
         $success = $asyncResult.AsyncWaitHandle.WaitOne(500, $false)
         if ($success) {
             $conn.EndConnect($asyncResult)
@@ -60,17 +76,16 @@ $pgStatus = "NOT RUNNING"
 
 try {
     $null = docker info 2>&1
-    $dockerStatus = "READY"
-    
-    $containerState = docker inspect --format='{{json .State.Health.Status}}' airecruit-postgres-pgvector 2>$null
-    if ($containerState -eq '"healthy"' -or (Test-PortOccupied 5432)) {
-        $pgStatus = "READY"
-    } else {
-        $pgStatus = "NOT READY"
-    }
+    if ($LASTEXITCODE -eq 0) { $dockerStatus = "READY" }
 } catch {
     $dockerStatus = "NOT RUNNING"
     $pgStatus = "NOT RUNNING"
+}
+
+if (-not $databaseConfigured) {
+    $pgStatus = 'NOT CONFIGURED'
+} elseif (Test-PortOccupied $databasePort $databaseHost) {
+    $pgStatus = 'REACHABLE (TCP)'
 }
 
 # 2. Check Local Ollama Engine (11434)
@@ -99,7 +114,7 @@ if ((Test-HttpUrl "http://127.0.0.1:3000") -eq "READY") {
 
 # Display Status Summary
 Write-Host " Docker Desktop : $dockerStatus" -ForegroundColor $(if ($dockerStatus -eq "READY") { "Green" } else { "Red" })
-Write-Host " PostgreSQL DB  : $pgStatus (Port 5432)" -ForegroundColor $(if ($pgStatus -eq "READY") { "Green" } else { "Yellow" })
+Write-Host " PostgreSQL DB  : $pgStatus (${databaseHost}:$databasePort)" -ForegroundColor $(if ($pgStatus.StartsWith('REACHABLE')) { "Green" } else { "Yellow" })
 Write-Host " Local Ollama   : $ollamaStatus" -ForegroundColor $(if ($ollamaStatus.StartsWith("READY")) { "Green" } else { "Yellow" })
 Write-Host " Backend        : $backendStatus (Port 8080)" -ForegroundColor $(if ($backendStatus -eq "READY") { "Green" } else { "Yellow" })
 Write-Host " Frontend       : $frontendStatus (Port 3000)" -ForegroundColor $(if ($frontendStatus -eq "READY") { "Green" } else { "Yellow" })

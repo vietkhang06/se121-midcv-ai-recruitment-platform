@@ -28,7 +28,7 @@ import java.util.UUID;
 public class AiWorkerClient {
 
     private static final int DEFAULT_CONNECT_TIMEOUT_MS = 3_000;
-    private static final int DEFAULT_RESPONSE_TIMEOUT_MS = 120_000;
+    private static final int DEFAULT_RESPONSE_TIMEOUT_MS = 960_000;
 
     private final RestClient restClient;
 
@@ -36,7 +36,7 @@ public class AiWorkerClient {
     public AiWorkerClient(
             @Value("${app.ai-worker.url:http://localhost:8000/internal/ai}") String aiWorkerUrl,
             @Value("${app.ai-worker.connect-timeout-ms:3000}") int connectTimeoutMs,
-            @Value("${app.ai-worker.response-timeout-ms:120000}") int responseTimeoutMs) {
+            @Value("${app.ai-worker.response-timeout-ms:960000}") int responseTimeoutMs) {
         if (connectTimeoutMs <= 0 || responseTimeoutMs <= 0) {
             throw new IllegalArgumentException("AI Worker timeouts must be positive");
         }

@@ -133,6 +133,9 @@ public class SecurityConfig {
         configuration.setExposedHeaders(List.of(
                 "Authorization", "X-Request-ID", "Content-Disposition", "ETag"
         ));
+                "Access-Control-Request-Headers", "Last-Event-ID", "X-Request-ID"
+        ));
+        configuration.setExposedHeaders(List.of("Authorization", "X-Request-ID"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
