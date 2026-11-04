@@ -78,7 +78,22 @@ app:
   github-token: ${GITHUB_TOKEN:}
   ai-timeout-seconds: ${AI_TIMEOUT_SECONDS:360}
   ai-num-ctx: ${AI_NUM_CTX:8192}
+  security:
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000}
   admin:
     bootstrap:
       email: ${ADMIN_INITIAL_EMAIL:}
       password: ${ADMIN_INITIAL_PASSWORD:}
+
+# Readiness/liveness endpoints are exposed to the container network only.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never

@@ -39,6 +39,7 @@ public class CvProcessingSseService {
         Map<String,Object> job = job(jobId);
         if (user == null || !user.getId().equals(job.get("owner_id")) && user.getRole() != com.platform.recruitment.user.Role.ADMIN)
             throw new CustomException(ErrorCode.ACCESS_DENIED,"Bạn không có quyền xem tiến trình này.");
+        long cursor = parseCursor(lastId);
         long cursor = 0;
         if (lastId != null && !lastId.isBlank()) {
             try { cursor=Long.parseLong(lastId); if(cursor<0) throw new NumberFormatException(); }
@@ -61,6 +62,22 @@ public class CvProcessingSseService {
         if(rows.isEmpty()) throw new ResourceNotFoundException("ProcessingJob","cvId",cvId);
         return subscribe((UUID)rows.get(0).get("id"),user,lastId,token);
     }
+    static long parseCursor(String lastId) {
+        if (lastId == null || lastId.isBlank()) return 0L;
+        // The event ID is a database BIGINT. Bound the header before parsing to avoid
+        // accepting whitespace/very large attacker-controlled values.
+        String value = lastId.trim();
+        if (value.length() > 19 || !value.matches("[0-9]+")) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Last-Event-ID không hợp lệ.");
+        }
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException ex) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Last-Event-ID không hợp lệ.");
+        }
+    }
+
+    }
     private Map<String,Object> job(UUID id) {
         List<Map<String,Object>> rows=jdbcTemplate.queryForList("SELECT id, owner_id, state, step, progress FROM processing_jobs WHERE id = ?",id);
         if(rows.isEmpty()) throw new ResourceNotFoundException("ProcessingJob","id",id);
@@ -68,6 +85,10 @@ public class CvProcessingSseService {
     }
     @Scheduled(fixedDelay=1000)
     public void poll() { for(Subscription sub:subscribers) drain(sub); }
+
+    // Events are read from committed storage by poll(), never broadcast before commit.
+    public void onEventEmitted(UUID jobId, UUID ownerId, String level, String step, String code, String message, Long duration) { }
+
 
     // Events are read from committed storage by poll(), never broadcast before commit.
     public void onEventEmitted(UUID jobId, UUID ownerId, String level, String step, String code, String message, Long duration) { }

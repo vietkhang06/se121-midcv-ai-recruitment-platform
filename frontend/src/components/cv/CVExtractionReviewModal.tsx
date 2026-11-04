@@ -827,6 +827,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
   const evidences = data?.evidences || [];
   const unverifiedFacts = data?.unverifiedFacts || [];
   const warnings = data?.warnings || [];
+  const ocrCorrections = data?.ocrCorrections || [];
   const pages = data?.pages || [];
 
   return (
@@ -2590,6 +2591,49 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
               {/* TAB 5: WARNINGS & AUDIT */}
               {activeTab === 'warnings' && (
                 <div className="animate-fade-in space-y-4 max-w-5xl mx-auto">
+
+                  {/* OCR correction suggestions are proposals, never silently applied to personal data. */}
+                  {typeof data?.ocrCorrectionStatus === 'string' && (
+                    <div className="bg-white dark:bg-[var(--surface)] border border-blue-200 dark:border-blue-900/50 rounded-xl p-4 text-xs text-slate-700 dark:text-slate-300">
+                      <span className="font-semibold">Trạng thái hiệu chỉnh OCR:</span> {data.ocrCorrectionStatus}
+                      {typeof data.ocrAppliedCount === 'number' && <span> · Đã tự áp dụng an toàn: {data.ocrAppliedCount}</span>}
+                    </div>
+                  )}
+                  {ocrCorrections.length > 0 && (
+                    <div className="bg-white dark:bg-[var(--surface)] border border-blue-200 dark:border-blue-900/50 rounded-xl p-5 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          <h4 className="text-sm font-bold text-[var(--heading)] dark:text-white uppercase tracking-wider">
+                            Gợi ý hiệu chỉnh OCR ({ocrCorrections.length})
+                          </h4>
+                        </div>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Đã tự áp dụng an toàn: {data?.ocrAppliedCount ?? 0}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        Đây là đề xuất từ AI, không phải dữ kiện đã xác minh. Văn bản OCR gốc vẫn được bảo toàn; hãy đối chiếu với CV và tự chỉnh sửa trường thông tin trước khi xác nhận.
+                      </p>
+                      <div className="space-y-2">
+                        {ocrCorrections.map((suggestion, idx) => (
+                          <div key={`${suggestion.original}-${suggestion.corrected}-${idx}`} className="rounded-lg border border-slate-200 dark:border-[var(--border)] p-3 space-y-1">
+                            <div className="flex flex-wrap items-center gap-2 text-xs">
+                              <span className="rounded bg-rose-50 dark:bg-rose-950/30 px-2 py-1 text-rose-700 dark:text-rose-300 line-through">{suggestion.original}</span>
+                              <span aria-hidden="true" className="text-slate-400">→</span>
+                              <span className="rounded bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 text-emerald-700 dark:text-emerald-300">{suggestion.corrected}</span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                              {suggestion.category && <span>{suggestion.category}</span>}
+                              {typeof suggestion.confidence === 'number' && <span>Độ tin cậy: {(suggestion.confidence * 100).toFixed(0)}%</span>}
+                              <span>{suggestion.applied ? 'Đã áp dụng vào văn bản xử lý' : 'Chờ người dùng kiểm tra'}</span>
+                            </div>
+                            {suggestion.reason && <p className="text-xs text-slate-600 dark:text-slate-300">{suggestion.reason}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Warnings List */}
                   <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs space-y-3">

@@ -63,7 +63,36 @@ public class Documents {
     return id;
   }
 
-  public record Saved(UUID documentId, UUID versionId, UUID jobId, int versionNo) {}
+  public record Saved(
+      UUID documentId,
+      UUID versionId,
+      UUID jobId,
+      int versionNo,
+      String storageKey,
+      String mediaType,
+      String filename) {
+    /** Backward-compatible constructor for text documents and existing test doubles. */
+    public Saved(UUID documentId, UUID versionId, UUID jobId, int versionNo) {
+      this(documentId, versionId, jobId, versionNo, null, null, null);
+    }
+  }
+
+  /** Normalize the client filename exactly once before deriving the storage extension. */
+  public static String sanitizeFilename(String originalFilename) {
+    String filename = Optional.ofNullable(originalFilename).orElse("document")
+        .replaceAll("[\\\\/\\r\\n]", "_");
+    if (filename.length() > 200) filename = filename.substring(filename.length() - 200);
+    return filename;
+  }
+
+  public static String extensionOf(String filename) {
+    String safe = sanitizeFilename(filename);
+    return safe.substring(safe.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
+  }
+
+  public static String storageKey(UUID versionId, String originalFilename) {
+    return versionId + "." + extensionOf(originalFilename);
+  }
 
   public static String shaHex(byte[] data) {
     try {
@@ -154,10 +183,9 @@ public class Documents {
     Path tempFile = null;
     try {
       tempFile = Files.createTempFile(this.directory, "upload_", ".tmp");
-      try (InputStream in = file.getInputStream();
-           OutputStream out = Files.newOutputStream(tempFile, StandardOpenOption.WRITE)) {
-        in.transferTo(out);
-      }
+      // Persist the exact byte array already validated and hashed above. Re-reading the
+      // MultipartFile stream can produce different bytes for custom/replayed streams.
+      Files.write(tempFile, bytes, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
       Files.move(tempFile, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
     } catch (Exception ex) {
       log.error("Failed to write uploaded file to storage: target={}", target, ex);
@@ -209,7 +237,7 @@ public class Documents {
           "FILE_STORED",
           "Đã lưu tệp và tạo phiên bản tài liệu.",
           null);
-      return new Saved(doc, id, job, version);
+      return new Saved(doc, id, job, version, key, mime(ext), filename);
     } catch (RuntimeException e) {
       try {
         Files.deleteIfExists(target);

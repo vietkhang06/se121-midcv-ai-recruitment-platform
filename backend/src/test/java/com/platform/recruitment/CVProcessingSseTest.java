@@ -1,4 +1,4 @@
-package com.platform.recruitment;
+package com.platform.recruitment.cv;
 
 import com.platform.recruitment.common.CustomException;
 import com.platform.recruitment.common.ResourceNotFoundException;
@@ -131,4 +131,15 @@ public class CVProcessingSseTest {
         assertEquals(100, CvProcessingSseService.calculateProgress("SUCCEEDED", "JOB_SUCCEEDED"));
         assertEquals(0, CvProcessingSseService.calculateProgress("FAILED", "PIPELINE_FAILED"));
     }
+    @Test
+    @DisplayName("Last-Event-ID accepts only non-negative BIGINT values")
+    void testParseCursor() {
+        assertEquals(0L, CvProcessingSseService.parseCursor(null));
+        assertEquals(0L, CvProcessingSseService.parseCursor("  "));
+        assertEquals(123L, CvProcessingSseService.parseCursor("123"));
+        assertThrows(CustomException.class, () -> CvProcessingSseService.parseCursor("-1"));
+        assertThrows(CustomException.class, () -> CvProcessingSseService.parseCursor("1.5"));
+        assertThrows(CustomException.class, () -> CvProcessingSseService.parseCursor("999999999999999999999"));
+    }
+
 }

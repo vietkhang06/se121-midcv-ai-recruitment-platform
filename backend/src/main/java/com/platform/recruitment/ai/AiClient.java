@@ -175,16 +175,26 @@ public class AiClient {
         List<SystemAiSettings> list =
             jdbc.query(
                 "SELECT * FROM system_ai_settings WHERE id='current'",
-                (rs, rowNum) ->
-                    new SystemAiSettings(
-                        rs.getString("provider"),
-                        rs.getString("ollama_url"),
-                        rs.getString("ollama_model"),
-                        rs.getString("cloud_base_url"),
-                        rs.getString("cloud_api_key"),
-                        rs.getString("cloud_model"),
-                        rs.getString("embedding_provider"),
-                        rs.getString("embedding_model")));
+                (rs, rowNum) -> {
+                  String configuredOllamaUrl = rs.getString("ollama_url");
+                  // Fresh databases still carry the legacy migration loopback URL.
+                  // Inside Docker, localhost is the backend container itself, so use
+                  // the explicit runtime URL until an Admin saves a different endpoint.
+                  if (configuredOllamaUrl == null || configuredOllamaUrl.isBlank()
+                      || "http://localhost:11434".equalsIgnoreCase(configuredOllamaUrl.trim())
+                      || "http://127.0.0.1:11434".equalsIgnoreCase(configuredOllamaUrl.trim())) {
+                    configuredOllamaUrl = url;
+                  }
+                  return new SystemAiSettings(
+                      rs.getString("provider"),
+                      configuredOllamaUrl,
+                      rs.getString("ollama_model"),
+                      rs.getString("cloud_base_url"),
+                      rs.getString("cloud_api_key"),
+                      rs.getString("cloud_model"),
+                      rs.getString("embedding_provider"),
+                      rs.getString("embedding_model"));
+                });
         if (!list.isEmpty()) {
           if (transactional) return list.get(0);
           cachedSettings = list.get(0);

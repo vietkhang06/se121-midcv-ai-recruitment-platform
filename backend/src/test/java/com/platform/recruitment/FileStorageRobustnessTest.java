@@ -78,8 +78,11 @@ class FileStorageRobustnessTest {
         Documents.Saved saved = docs.upload(ownerId, "CV", "Test Resume", file, UUID.randomUUID());
         assertNotNull(saved);
         assertNotNull(saved.versionId());
+        assertEquals(saved.versionId() + ".pdf", saved.storageKey());
+        assertEquals("application/pdf", saved.mediaType());
+        assertEquals("resume.pdf", saved.filename());
 
-        Path target = docs.path(saved.versionId() + ".pdf");
+        Path target = docs.path(saved.storageKey());
         assertTrue(Files.exists(target), "Stored file must exist on disk");
         assertArrayEquals(pdfBytes, Files.readAllBytes(target), "Stored content must match uploaded bytes exactly");
     }
@@ -97,7 +100,7 @@ class FileStorageRobustnessTest {
         Documents.Saved saved = docs.upload(ownerId, "CV", "DOCX Resume", file, UUID.randomUUID());
         assertNotNull(saved);
 
-        Path target = docs.path(saved.versionId() + ".docx");
+        Path target = docs.path(saved.storageKey());
         assertTrue(Files.exists(target));
         assertArrayEquals(docxBytes, Files.readAllBytes(target));
     }
@@ -113,7 +116,7 @@ class FileStorageRobustnessTest {
         Documents.Saved saved = docs.upload(ownerId, "CV", "Scanned CV", file, UUID.randomUUID());
         assertNotNull(saved);
 
-        Path target = docs.path(saved.versionId() + ".png");
+        Path target = docs.path(saved.storageKey());
         assertTrue(Files.exists(target));
         assertArrayEquals(pngBytes, Files.readAllBytes(target));
     }
@@ -129,7 +132,7 @@ class FileStorageRobustnessTest {
         Documents.Saved saved = docs.upload(ownerId, "CV", "Legacy Doc CV", file, UUID.randomUUID());
         assertNotNull(saved);
 
-        Path target = docs.path(saved.versionId() + ".doc");
+        Path target = docs.path(saved.storageKey());
         assertTrue(Files.exists(target));
         assertArrayEquals(docBytes, Files.readAllBytes(target));
     }
@@ -212,4 +215,33 @@ class FileStorageRobustnessTest {
             assertEquals(0, stream.count(), "Orphan file must be cleaned up if database insert fails");
         }
     }
+    @Test
+    @DisplayName("13. Storage key dùng đúng filename đã sanitize, không suy diễn lại từ tên gốc")
+    void testCanonicalStorageMetadataForSanitizedFilename() throws IOException {
+        Documents docs = new Documents(jdbcTemplate, queue, events, storageRoot.toString());
+        byte[] pdfBytes = "%PDF-1.4 Sanitized filename".getBytes(StandardCharsets.ISO_8859_1);
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "folder\\resume.pdf", "application/pdf", pdfBytes);
+
+        Documents.Saved saved = docs.upload(ownerId, "CV", "Sanitized", file, UUID.randomUUID());
+
+        assertEquals("folder_resume.pdf", saved.filename());
+        assertEquals(saved.versionId() + ".pdf", saved.storageKey());
+        assertTrue(Files.exists(docs.path(saved.storageKey())));
+        assertArrayEquals(pdfBytes, Files.readAllBytes(docs.path(saved.storageKey())));
+    }
+
+    @Test
+    @DisplayName("14. Extension được suy ra từ filename đã sanitize nhất quán")
+    void testFilenameSanitizationAndStorageKeyAreConsistent() {
+        UUID versionId = UUID.randomUUID();
+        String safeName = Documents.sanitizeFilename("folder\\resume.pdf");
+
+        assertEquals("folder_resume.pdf", safeName);
+        assertEquals("pdf", Documents.extensionOf(safeName));
+        assertEquals(versionId + ".pdf", Documents.storageKey(versionId, "folder\\resume.pdf"));
+        assertEquals("resume.pdf_", Documents.sanitizeFilename("resume.pdf\n"));
+        assertEquals("pdf_", Documents.extensionOf("resume.pdf\n"));
+    }
+
 }

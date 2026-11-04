@@ -17,6 +17,7 @@ from app.services.llm.openai_compatible_client import OpenAICompatibleClient
 from app.services.llm.ollama_client import OllamaClient
 from app.services.llm.fallback_client import FallbackLLMClient, FallbackExecutionResult
 from app.services.structured_cv_validator import StructuredCVValidator, StructuredCVData
+from app.services.ocr_text_correction import OcrTextCorrectionService
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,7 @@ class StructuringResponse(BaseModel):
     usage: Dict[str, Any] = Field(default_factory=dict)
     validation: Dict[str, bool] = Field(default_factory=dict)
     data: Optional[Dict[str, Any]] = None
+    ocrCorrections: Optional[Dict[str, Any]] = None
     correlationId: str
     error: Optional[str] = None
     error_message: Optional[str] = None
@@ -108,7 +110,8 @@ class CVStructuringService:
     def __init__(
         self,
         fallback_orchestrator: Optional[FallbackLLMClient] = None,
-        validator: Optional[StructuredCVValidator] = None
+        validator: Optional[StructuredCVValidator] = None,
+        ocr_correction_service: Optional[OcrTextCorrectionService] = None
     ):
         self.validator = validator or StructuredCVValidator()
         if fallback_orchestrator:
@@ -136,19 +139,35 @@ class CVStructuringService:
                 fallback_enabled=settings.LLM_FALLBACK_ENABLED
             )
 
-    def _build_user_prompt(self, raw_text: str) -> str:
+        self.ocr_correction_service = ocr_correction_service or OcrTextCorrectionService(
+            self.orchestrator,
+            enabled=settings.OCR_LLM_CORRECTION_ENABLED,
+            min_confidence=settings.OCR_LLM_CORRECTION_MIN_CONFIDENCE,
+            max_input_chars=settings.OCR_LLM_CORRECTION_MAX_CHARS,
+        )
+
+    def _build_user_prompt(self, raw_text: str, ocr_suggestions: Optional[list[dict[str, Any]]] = None) -> str:
+        suggestions_block = ""
+        if ocr_suggestions:
+            suggestions_block = (
+                "\nOCR_REVIEW_SUGGESTIONS (UNVERIFIED; NOT SOURCE FACTS):\n"
+                + json.dumps(ocr_suggestions, ensure_ascii=False)
+                + "\nUse these only to interpret possible OCR confusions. Do not treat them as confirmed facts, "
+                  "do not invent missing data, and preserve proper nouns. Address suggestions require candidate review.\n"
+            )
         return f"""Extract structured information from the following CV text:
 <CV_TEXT>
 {raw_text}
 </CV_TEXT>
-
+{suggestions_block}
 Target JSON schema structure:
 {SCHEMA_TEMPLATE}"""
 
     async def structure_raw_text(
         self,
         raw_text: str,
-        correlation_id: Optional[str] = None
+        correlation_id: Optional[str] = None,
+        ocr_used: bool = False
     ) -> StructuringResponse:
         cid = correlation_id or str(uuid.uuid4())
 
@@ -184,9 +203,20 @@ Target JSON schema structure:
                 error_message="Raw text exceeds maximum allowed limit of 150,000 characters."
             )
 
+        # The original OCR string remains the source of truth for grounding and persistence.
+        # LLM correction is only enabled when the extraction stage explicitly reports OCR.
+        llm_input_text = cleaned_text
+        ocr_correction_payload = None
+        ocr_suggestions: list[dict[str, Any]] = []
+        if ocr_used:
+            correction_result = await self.ocr_correction_service.correct_async(cleaned_text, cid)
+            ocr_correction_payload = correction_result.to_payload()
+            llm_input_text = correction_result.corrected_text
+            ocr_suggestions = correction_result.suggestions
+
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": self._build_user_prompt(cleaned_text)}
+            {"role": "user", "content": self._build_user_prompt(llm_input_text, ocr_suggestions)}
         ]
 
         # 2. Execute via fallback orchestrator (PRIMARY first)
@@ -259,6 +289,16 @@ Target JSON schema structure:
             formatted_err = f"{err_code}: {_sanitize_validation_error(err_msg)}"
         else:
             data_dict = parsed_data.model_dump() if parsed_data else {}
+            if ocr_correction_payload is not None:
+                data_dict["ocr_corrections"] = ocr_correction_payload
+                if ocr_correction_payload.get("human_review_required"):
+                    data_dict.setdefault("warnings", []).append(
+                        "OCR suggestions for technical terms/address require candidate review."
+                    )
+                if ocr_correction_payload.get("status") in {"FAILED_FALLBACK", "DISABLED", "SKIPPED"}:
+                    data_dict.setdefault("warnings", []).append(
+                        "LLM OCR post-processing did not run to completion; original OCR text was retained."
+                    )
             err_code = None
             formatted_err = None
 
@@ -273,6 +313,7 @@ Target JSON schema structure:
             usage=usage_dict,
             validation=validation_dict,
             data=data_dict,
+            ocrCorrections=ocr_correction_payload,
             correlationId=cid,
             error=err_code,
             error_message=formatted_err

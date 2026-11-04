@@ -167,9 +167,14 @@ public class AiWorkerClient {
     }
 
     public Map<String, Object> structureCv(String rawText, UUID documentVersionId, String correlationId) {
+        return structureCv(rawText, documentVersionId, correlationId, false);
+    }
+
+    public Map<String, Object> structureCv(String rawText, UUID documentVersionId, String correlationId, boolean ocrUsed) {
         String cid = correlationId != null ? correlationId : UUID.randomUUID().toString();
         Map<String, Object> body = new HashMap<>();
         body.put("rawText", rawText);
+        body.put("ocrUsed", ocrUsed);
         if (documentVersionId != null) {
             body.put("documentVersionId", documentVersionId.toString());
         }

@@ -71,3 +71,9 @@ frontend/tsconfig.tsbuildinfo
 
 # Reviewed task verification logs
 !docs/task-evidence/20261030/*.log
+
+# Safe production environment template (contains placeholders only)
+!.env.production.example
+
+# Production backup artifacts and recovery evidence (may contain private CV files)
+backups/

@@ -23,6 +23,18 @@ class AiSettingsPersistenceTest {
         db.execute("CREATE TABLE system_ai_settings(id VARCHAR PRIMARY KEY,provider VARCHAR,ollama_url VARCHAR,ollama_model VARCHAR,cloud_base_url VARCHAR,cloud_api_key VARCHAR,cloud_model VARCHAR,embedding_provider VARCHAR,embedding_model VARCHAR,updated_at TIMESTAMP)");
         db.update("INSERT INTO system_ai_settings VALUES('current','LOCAL_OLLAMA','http://127.0.0.1:11434','local-model','https://example.invalid/v1','fixture-key','cloud-a','LOCAL_OLLAMA','bge-m3',CURRENT_TIMESTAMP)");
     }
+    @Test void legacyLoopbackSettingUsesExplicitRuntimeEndpointInsideContainer() throws Exception {
+        db.update("UPDATE system_ai_settings SET ollama_url='http://localhost:11434' WHERE id='current'");
+        AiClient containerClient = new AiClient(db, mapper, "http://host.docker.internal:11434", "local-model", "bge-m3", 5);
+        assertEquals("http://host.docker.internal:11434", containerClient.getSettings().ollamaUrl());
+    }
+
+    @Test void explicitPrivateOllamaEndpointInDatabaseIsPreserved() throws Exception {
+        db.update("UPDATE system_ai_settings SET ollama_url='https://ollama.internal.example/v1' WHERE id='current'");
+        AiClient containerClient = new AiClient(db, mapper, "http://host.docker.internal:11434", "local-model", "bge-m3", 5);
+        assertEquals("https://ollama.internal.example/v1", containerClient.getSettings().ollamaUrl());
+    }
+
     @Test void changedModelPersistsAfterClientRecreation() throws Exception {
         var c=client();assertEquals("local-model",c.activeLlmModel());
         tx.execute(status->{c.updateSettings("CLOUD_OPENAI_COMPATIBLE","http://127.0.0.1:11434","local-model","https://example.invalid/v1","","cloud-b");return null;});

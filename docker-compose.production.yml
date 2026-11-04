@@ -1,0 +1,210 @@
+name: midcv-production
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env.production}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env.production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.production}
+      TZ: Asia/Ho_Chi_Minh
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [midcv]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  ai-worker:
+    image: ${WORKER_IMAGE:-midcv-ai-worker:production}
+    build:
+      context: ./ai-worker
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      AI_PROVIDER: ${AI_PROVIDER:-auto}
+      LLM_PRIMARY_ENABLED: ${LLM_PRIMARY_ENABLED:-true}
+      LLM_PRIMARY_PROVIDER: ${LLM_PRIMARY_PROVIDER:-openai_compatible}
+      LLM_PRIMARY_BASE_URL: ${LLM_PRIMARY_BASE_URL:-https://api.openai.com/v1}
+      LLM_PRIMARY_API_KEY: ${LLM_PRIMARY_API_KEY:?Set LLM_PRIMARY_API_KEY in .env.production}
+      LLM_PRIMARY_MODEL: ${LLM_PRIMARY_MODEL:?Set LLM_PRIMARY_MODEL in .env.production}
+      LLM_PRIMARY_TIMEOUT_SECONDS: ${LLM_PRIMARY_TIMEOUT_SECONDS:-180}
+      LLM_PRIMARY_MAX_RETRIES: ${LLM_PRIMARY_MAX_RETRIES:-1}
+      LLM_FALLBACK_ENABLED: ${LLM_FALLBACK_ENABLED:-false}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-dna5rm/granite4.2:3b-8k}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-bge-m3}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      OCR_ENABLED: ${OCR_ENABLED:-true}
+      OCR_LANGUAGES: ${OCR_LANGUAGES:-vie+eng}
+      ENABLE_DEV_AI_TEST_ENDPOINTS: "false"
+      USE_MOCK_LLM: "false"
+      TZ: Asia/Ho_Chi_Minh
+    networks: [midcv]
+    healthcheck:
+      # HTTP 200 is not sufficient: /health deliberately returns 200 for DEGRADED.
+      # Gate backend startup on OCR + at least one reachable LLM provider.
+      test: ["CMD", "python", "-c", "import json,urllib.request,sys; data=json.load(urllib.request.urlopen('http://127.0.0.1:8000/internal/ai/health', timeout=5)); sys.exit(0 if data.get('status') == 'UP' else 1)"]
+      interval: 30s
+      timeout: 8s
+      retries: 5
+      start_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  backend:
+    image: ${BACKEND_IMAGE:-midcv-backend:production}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      PORT_BACKEND: "8080"
+      DATABASE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      DATABASE_USERNAME: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Set a random JWT_SECRET in .env.production}
+      JWT_ACCESS_TOKEN_EXPIRATION_MS: ${JWT_ACCESS_TOKEN_EXPIRATION_MS:-3600000}
+      JWT_REFRESH_TOKEN_EXPIRATION_MS: ${JWT_REFRESH_TOKEN_EXPIRATION_MS:-604800000}
+      EMAIL_MODE: SMTP
+      SMTP_HOST: ${SMTP_HOST:?Set SMTP_HOST in .env.production}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_AUTH: ${SMTP_AUTH:-true}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      MAIL_FROM: ${MAIL_FROM:?Set MAIL_FROM in .env.production}
+      MIDCV_INBOX_EMAIL_ENABLED: ${MIDCV_INBOX_EMAIL_ENABLED:-true}
+      MIDCV_INBOX_EMAIL_FROM: ${MIDCV_INBOX_EMAIL_FROM:-noreply@example.com}
+      BACKEND_PUBLIC_URL: https://${PUBLIC_DOMAIN:?Set PUBLIC_DOMAIN in .env.production}
+      FRONTEND_PUBLIC_URL: https://${PUBLIC_DOMAIN}
+      CORS_ALLOWED_ORIGINS: https://${PUBLIC_DOMAIN}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
+      GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
+      ADMIN_INITIAL_EMAIL: ${ADMIN_INITIAL_EMAIL:-}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-}
+      UPLOAD_DIR: /app/uploads
+      FILE_STORAGE_PATH: /app/uploads
+      WORKER_ENABLED: ${WORKER_ENABLED:-true}
+      APP_AI_WORKER_URL: http://ai-worker:8000/internal/ai
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-360}
+      TZ: Asia/Ho_Chi_Minh
+    volumes:
+      - uploads:/app/uploads
+    expose:
+      - "8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      ai-worker:
+        condition: service_healthy
+    networks: [midcv]
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8080/actuator/health/readiness >/dev/null || exit 1"]
+      interval: 20s
+      timeout: 8s
+      retries: 8
+      start_period: 90s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-midcv-frontend:production}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://${PUBLIC_DOMAIN}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      NEXT_TELEMETRY_DISABLED: "1"
+    expose:
+      - "3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [midcv]
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:?Set PUBLIC_DOMAIN in .env.production}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    networks: [midcv]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:2019/config/ || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  pgdata:
+    name: ${POSTGRES_VOLUME_NAME:?Set POSTGRES_VOLUME_NAME in .env.production}
+  uploads:
+    name: ${UPLOADS_VOLUME_NAME:?Set UPLOADS_VOLUME_NAME in .env.production}
+  caddy_data:
+  caddy_config:
+
+networks:
+  midcv:
+    name: midcv-production-network

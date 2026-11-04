@@ -83,6 +83,9 @@ class Settings(BaseModel):
     OCR_MIN_TEXT_CHARS_PER_PAGE: int = int(os.getenv("OCR_MIN_TEXT_CHARS_PER_PAGE", "40"))
     OCR_MAX_PAGES: int = int(os.getenv("OCR_MAX_PAGES", "30"))
     OCR_PSM: int = int(os.getenv("OCR_PSM", "3"))
+    OCR_LLM_CORRECTION_ENABLED: bool = os.getenv("OCR_LLM_CORRECTION_ENABLED", "true").lower() == "true"
+    OCR_LLM_CORRECTION_MIN_CONFIDENCE: float = float(os.getenv("OCR_LLM_CORRECTION_MIN_CONFIDENCE", "0.92"))
+    OCR_LLM_CORRECTION_MAX_CHARS: int = int(os.getenv("OCR_LLM_CORRECTION_MAX_CHARS", "40000"))
 
     def validate_ocr_settings(self, fail_fast: bool = False) -> list[str]:
         """Validates OCR configuration parameters."""

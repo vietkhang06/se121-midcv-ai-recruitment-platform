@@ -116,15 +116,41 @@ export const Navbar: React.FC = () => {
         {/* Desktop Navigation Menus (Strictly segregated by Role, no text compression) */}
         <nav className="hidden lg:flex items-center gap-1 xl:gap-2.5 text-xs xl:text-[13px] font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap shrink-0">
           
-          {/* 1. Việc làm (Public / Shared) */}
-          <Link
-            href="/jobs"
-            className={`px-2.5 xl:px-3 py-1.5 rounded-xl hover:text-[var(--primary)] dark:hover:text-[var(--retro-sky)] transition-colors whitespace-nowrap shrink-0 ${
-              isTabActive('/jobs') ? 'text-[var(--primary)] font-bold' : ''
-            }`}
-          >
-            {locale === 'vi' ? 'Việc làm' : 'Jobs'}
-          </Link>
+          {/* 1. Việc làm + menu danh mục theo đúng Industry enum/API hiện có */}
+          <div className="group relative shrink-0 py-3">
+            <Link
+              href="/jobs"
+              aria-haspopup="true"
+              className={`flex items-center gap-1 rounded-xl px-2.5 py-1.5 transition-colors hover:text-[var(--primary)] dark:hover:text-[var(--retro-sky)] ${isTabActive('/jobs') ? 'font-bold text-[var(--primary)]' : ''}`}
+            >
+              <span>{locale === 'vi' ? 'Việc làm' : 'Jobs'}</span>
+              <ChevronDown className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:rotate-180 group-focus-within:rotate-180" />
+            </Link>
+            <div className="invisible absolute left-0 top-full z-50 grid w-[min(92vw,590px)] translate-y-1 grid-cols-2 gap-5 rounded-2xl border border-slate-200 bg-white p-5 opacity-0 shadow-2xl transition-all duration-150 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 dark:border-[var(--border)] dark:bg-[var(--surface)]">
+              <div>
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)]">{locale === 'vi' ? 'Khám phá việc làm' : 'Explore jobs'}</p>
+                <div className="space-y-1">
+                  {[
+                    ['Technology', locale === 'vi' ? 'Công nghệ thông tin' : 'Technology'],
+                    ['Marketing', 'Marketing'],
+                    ['Design', locale === 'vi' ? 'Thiết kế' : 'Design'],
+                    ['Finance', locale === 'vi' ? 'Tài chính' : 'Finance'],
+                  ].map(([industry, label]) => <Link key={industry} href={`/jobs?industry=${industry}`} className="block rounded-xl px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-blue-50 hover:text-[var(--primary)] dark:text-slate-200 dark:hover:bg-slate-800">{label}</Link>)}
+                </div>
+              </div>
+              <div>
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)]">{locale === 'vi' ? 'Theo nhóm ngành' : 'More categories'}</p>
+                <div className="space-y-1">
+                  {[
+                    ['HR', locale === 'vi' ? 'Nhân sự & Tuyển dụng' : 'Human Resources'],
+                    ['Sales', locale === 'vi' ? 'Kinh doanh & Bán hàng' : 'Sales'],
+                    ['OTHER', locale === 'vi' ? 'Ngành nghề khác' : 'Other industries'],
+                  ].map(([industry, label]) => <Link key={industry} href={`/jobs?industry=${industry}`} className="block rounded-xl px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-blue-50 hover:text-[var(--primary)] dark:text-slate-200 dark:hover:bg-slate-800">{label}</Link>)}
+                </div>
+                <Link href="/jobs" className="mt-3 inline-flex items-center rounded-xl bg-[var(--primary)] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[var(--primary-hover)]">{locale === 'vi' ? 'Xem tất cả việc làm' : 'Browse all jobs'} <span aria-hidden="true" className="ml-1">→</span></Link>
+              </div>
+            </div>
+          </div>
 
           {isCandidate && (
             /* CANDIDATE Desktop Links */

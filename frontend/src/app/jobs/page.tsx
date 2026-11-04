@@ -39,7 +39,7 @@ function JobsPageContent() {
   const [locationKeyword, setLocationKeyword] = useState<string>(() => searchParams.get('location') ?? '');
   const [selectedSectors, setSelectedSectors] = useState<string[]>(() => {
     const industry = searchParams.get('industry');
-    return industry && ['Technology', 'Marketing', 'Design', 'Finance', 'HR', 'Sales'].includes(industry) ? [industry] : [];
+    return industry && ['Technology', 'Marketing', 'Design', 'Finance', 'HR', 'Sales', 'OTHER'].includes(industry) ? [industry] : [];
   });
   const [selectedModes, setSelectedModes] = useState<string[]>([]);
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
@@ -48,6 +48,14 @@ function JobsPageContent() {
   const [skillFilter, setSkillFilter] = useState<string>('');
   const [onlyTargetIndustries, setOnlyTargetIndustries] = useState<boolean>(false);
   const [candidateIndustries, setCandidateIndustries] = useState<string[]>([]);
+  const [candidateLocation, setCandidateLocation] = useState<string>('');
+  const [prioritizeProfileLocation, setPrioritizeProfileLocation] = useState<boolean>(false);
+
+  const [serverSearch, setServerSearch] = useState({ query: searchKeyword, location: locationKeyword });
+  useEffect(() => {
+    const timer = window.setTimeout(() => setServerSearch({ query: searchKeyword, location: locationKeyword }), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchKeyword, locationKeyword]);
 
   const [serverSearch, setServerSearch] = useState({ query: searchKeyword, location: locationKeyword });
   useEffect(() => {
@@ -76,6 +84,7 @@ function JobsPageContent() {
     if (profileResult.status === 'fulfilled') {
       const profile = profileResult.value;
       setCandidateIndustries(profile?.targetIndustries?.length ? profile.targetIndustries : profile?.targetIndustry ? [profile.targetIndustry] : []);
+      setCandidateLocation(profile?.location?.trim() ?? '');
       setProfileFetchError(null);
     } else {
       setProfileFetchError(t('errors.generic', 'Candidate recommendations could not be loaded.'));
@@ -136,26 +145,32 @@ function JobsPageContent() {
       );
     }
 
-    // 5. Employment Mode Filter
+    // 5. Saved-profile location preference (real candidate profile data; no inferred GPS location).
+    if (prioritizeProfileLocation && candidateLocation.trim()) {
+      const savedLocation = candidateLocation.toLocaleLowerCase();
+      result = result.filter((j) => (j.location || '').toLocaleLowerCase().includes(savedLocation));
+    }
+
+    // 6. Employment Mode Filter
     if (selectedModes.length > 0) {
       result = result.filter((j) =>
         selectedModes.some((mode) => j.employmentType.toLowerCase().includes(mode.toLowerCase()))
       );
     }
 
-    // 6. Seniority / Experience Level Filter
+    // 7. Seniority / Experience Level Filter
     if (selectedLevels.length > 0) {
       result = result.filter((j) =>
         selectedLevels.some((lvl) => j.seniority.toLowerCase().includes(lvl.toLowerCase()))
       );
     }
 
-    // 7. Salary Filter
+    // 8. Salary Filter
     if (minSalary > 0) {
       result = result.filter((j) => (j.salaryCurrency || 'VND') === salaryCurrencyFilter && (j.salaryMax != null ? j.salaryMax >= minSalary : true));
     }
 
-    // 8. Skill Requirement Filter
+    // 9. Skill Requirement Filter
     if (skillFilter.trim()) {
       const sf = skillFilter.toLowerCase().trim();
       result = result.filter((j) =>
@@ -168,7 +183,7 @@ function JobsPageContent() {
       );
     }
 
-    // 9. Sorting
+    // 10. Sorting
     if (sortBy === 'newest') {
       result.sort((a, b) => (b.publishedDate || '').localeCompare(a.publishedDate || ''));
     } else if (sortBy === 'salary_high') {
@@ -183,6 +198,8 @@ function JobsPageContent() {
     selectedSectors,
     onlyTargetIndustries,
     candidateIndustries,
+    prioritizeProfileLocation,
+    candidateLocation,
     selectedModes,
     selectedLevels,
     minSalary,
@@ -200,6 +217,7 @@ function JobsPageContent() {
     setMinSalary(0);
     setSkillFilter('');
     setOnlyTargetIndustries(false);
+    setPrioritizeProfileLocation(false);
   };
 
   const toggleItem = (list: string[], setList: (v: string[]) => void, item: string) => {
@@ -218,7 +236,8 @@ function JobsPageContent() {
     selectedLevels.length +
     (minSalary > 0 ? 1 : 0) +
     (skillFilter ? 1 : 0) +
-    (onlyTargetIndustries ? 1 : 0);
+    (onlyTargetIndustries ? 1 : 0) +
+    (prioritizeProfileLocation ? 1 : 0);
 
   return (
     <div className="bg-slate-50/60 dark:bg-[var(--surface)] min-h-screen py-8 text-[var(--heading)] dark:text-[var(--retro-cream)] transition-colors">
@@ -305,6 +324,21 @@ function JobsPageContent() {
                 </div>
               )}
               {profileFetchError ? <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">{profileFetchError}</p> : null}
+              {user?.role === 'CANDIDATE' && (candidateLocation ? (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 dark:border-emerald-900/60 dark:bg-emerald-950/20">
+                  <label className="flex cursor-pointer items-start gap-2.5">
+                    <input type="checkbox" checked={prioritizeProfileLocation} onChange={(event) => setPrioritizeProfileLocation(event.target.checked)} className="mt-0.5 accent-emerald-600" />
+                    <span className="min-w-0">
+                      <span className="block text-xs font-semibold text-emerald-900 dark:text-emerald-200">{locale === 'vi' ? 'Gợi ý việc làm theo địa điểm của bạn' : 'Recommend jobs near your profile location'}</span>
+                      <span className="mt-1 block text-[11px] leading-5 text-emerald-800 dark:text-emerald-300">{locale === 'vi' ? `Ưu tiên tin tuyển dụng có địa điểm khớp với hồ sơ: ${candidateLocation}.` : `Prioritize jobs matching your profile location: ${candidateLocation}.`}</span>
+                    </span>
+                  </label>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-[11px] leading-5 text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+                  {locale === 'vi' ? 'Cập nhật địa điểm trong hồ sơ ứng viên để nhận gợi ý việc làm theo khu vực.' : 'Add a location to your candidate profile to receive location-based job suggestions.'}
+                </div>
+              ))}
 
               {/* Role Keyword Filter */}
               <div className="space-y-1.5">
@@ -374,7 +408,7 @@ function JobsPageContent() {
                   {t('jobs.industrySector', 'LĨNH VỰC HOẠT ĐỘNG')}
                 </label>
                 <div className="space-y-1.5 text-xs text-[var(--heading)] dark:text-slate-300">
-                  {['Technology', 'Marketing', 'Design', 'Finance', 'Healthcare', 'Engineering'].map((sector) => (
+                  {['Technology', 'Marketing', 'Design', 'Finance', 'HR', 'Sales', 'OTHER'].map((sector) => (
                     <label key={sector} className="flex items-center gap-2 cursor-pointer hover:text-[var(--primary)] dark:hover:text-white select-none">
                       <input
                         type="checkbox"

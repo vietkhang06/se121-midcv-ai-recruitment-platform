@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const externalWebUrl = process.env.MIDCV_E2E_WEB_URL;
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30000,
@@ -9,7 +11,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: externalWebUrl || 'http://localhost:3000',
     trace: 'retain-on-failure',
     screenshot: 'on',
   },
@@ -23,7 +25,7 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
+  webServer: externalWebUrl ? undefined : {
     command: 'npm run start',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,

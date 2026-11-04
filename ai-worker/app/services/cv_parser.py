@@ -18,6 +18,7 @@ from app.config import settings
 from app.services.llm.openai_compatible_client import OpenAICompatibleClient
 from app.services.llm.ollama_client import OllamaClient
 from app.services.llm.fallback_client import FallbackLLMClient
+from app.services.ocr_text_correction import OcrTextCorrectionService
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +86,8 @@ class CVParser:
         self,
         llm_client: Optional[Any] = None,
         document_extractor: Optional[DocumentExtractor] = None,
-        fallback_orchestrator: Optional[FallbackLLMClient] = None
+        fallback_orchestrator: Optional[FallbackLLMClient] = None,
+        ocr_correction_service: Optional[OcrTextCorrectionService] = None
     ):
         self.llm_client = llm_client
         self.document_extractor = document_extractor or DocumentExtractor()
@@ -114,11 +116,20 @@ class CVParser:
                 fallback_enabled=settings.LLM_FALLBACK_ENABLED
             )
 
+        self.ocr_correction_service = ocr_correction_service or OcrTextCorrectionService(
+            self.orchestrator,
+            enabled=settings.OCR_LLM_CORRECTION_ENABLED,
+            min_confidence=settings.OCR_LLM_CORRECTION_MIN_CONFIDENCE,
+            max_input_chars=settings.OCR_LLM_CORRECTION_MAX_CHARS,
+        )
+
     def parse_cv_document(self, request: CVExtractRequest) -> CVExtractResponse:
         correlation_id = request.correlation_id or str(uuid.uuid4())
         raw_text = request.raw_text
         pages: List[PageSegment] = []
         warnings: List[str] = []
+        ocr_used = False
+        ocr_correction_payload: Optional[dict] = None
 
         # 1. If raw_text is missing and file_base64 is provided, extract via DocumentExtractor
         if (raw_text is None or not raw_text.strip()) and request.file_base64:
@@ -138,8 +149,9 @@ class CVParser:
                     error_code=doc_res.error_code or "EXTRACTION_FAILED",
                     error_message=f"{doc_res.error_code}: {doc_res.error_message}"
                 )
-            raw_text = doc_res.text
+            raw_text = doc_res.raw_source_text or doc_res.text
             pages = doc_res.pages
+            ocr_used = bool(doc_res.used_ocr or any(page.used_ocr for page in pages))
             warnings.extend(doc_res.warnings)
 
         # 2. Strict input validation
@@ -172,6 +184,28 @@ class CVParser:
                 error_code="RAW_TEXT_INSUFFICIENT",
                 error_message="RAW_TEXT_INSUFFICIENT: Raw CV text is too short to contain meaningful resume content."
             )
+
+        # Keep source OCR immutable. Only the extraction prompt receives conservative
+        # post-processing; all evidence locators continue to reference original text.
+        llm_input_text = raw_text
+        if ocr_used:
+            correction_result = self.ocr_correction_service.correct(raw_text, correlation_id)
+            ocr_correction_payload = correction_result.to_payload()
+            llm_input_text = correction_result.corrected_text
+            if correction_result.applied_count:
+                warnings.append(
+                    f"OCR_LLM_CORRECTION_APPLIED: {correction_result.applied_count} high-confidence common-word correction(s); original OCR text retained."
+                )
+            if correction_result.suggestions:
+                review_count = sum(1 for item in correction_result.suggestions if item.get("requires_human_review", True))
+                if review_count:
+                    warnings.append(
+                        f"OCR_CORRECTION_REVIEW_REQUIRED: {review_count} technical-term/address suggestion(s) require candidate confirmation."
+                    )
+            if correction_result.status == "FAILED_FALLBACK":
+                warnings.append("OCR_LLM_CORRECTION_UNAVAILABLE: extraction continued with original OCR text.")
+            elif correction_result.skipped_reason:
+                warnings.append(f"OCR_LLM_CORRECTION_SKIPPED: {correction_result.skipped_reason}.")
 
         # If pages is empty (direct raw_text pass-through), create single page segment
         if not pages:
@@ -277,7 +311,7 @@ OUTPUT JSON SCHEMA:
 """
 
         # 5. Call LLM with Bounded Retry
-        raw_json = self._call_llm_with_retry(system_instruction, raw_text, correlation_id)
+        raw_json = self._call_llm_with_retry(system_instruction, llm_input_text, correlation_id)
         if raw_json is None:
             return CVExtractResponse(
                 cv_id=request.cv_id,
@@ -591,6 +625,7 @@ OUTPUT JSON SCHEMA:
             raw_text=raw_text,
             pages=pages,
             warnings=warnings,
+            ocr_corrections=ocr_correction_payload,
             schema_version="2.0",
             status="SUCCESS"
         )
