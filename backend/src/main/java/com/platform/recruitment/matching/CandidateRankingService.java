@@ -31,6 +31,11 @@ public class CandidateRankingService {
         // associations lazy and can fail when the service is called without OSIV.
         List<MatchResult> results = matchResultRepository.findByApplicationJobIdWithCandidate(jobId);
 
+        // Pending recomputations must not appear as fresh policy-compliant ranks.
+        results = results.stream()
+                .filter(r -> !"STALE_POLICY".equals(r.getStatus()))
+                .collect(Collectors.toList());
+
         // Filter by minimum score if provided
         if (minScoreFilter != null) {
             results = results.stream()

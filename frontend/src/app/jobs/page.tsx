@@ -57,12 +57,6 @@ function JobsPageContent() {
     return () => window.clearTimeout(timer);
   }, [searchKeyword, locationKeyword]);
 
-  const [serverSearch, setServerSearch] = useState({ query: searchKeyword, location: locationKeyword });
-  useEffect(() => {
-    const timer = window.setTimeout(() => setServerSearch({ query: searchKeyword, location: locationKeyword }), 300);
-    return () => window.clearTimeout(timer);
-  }, [searchKeyword, locationKeyword]);
-
   const [sortBy, setSortBy] = useState<string>('newest');
   const [applyJob, setApplyJob] = useState<Job | null>(null);
 

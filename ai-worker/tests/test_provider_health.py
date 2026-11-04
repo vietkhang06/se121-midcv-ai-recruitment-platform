@@ -36,7 +36,12 @@ def test_provider_health_ttl_caching():
     assert elapsed < 0.05, f"Cached provider checks should be sub-millisecond, took {elapsed}s"
 
 
-def test_check_primary_provider_model_resolution():
+def test_check_primary_provider_model_resolution(monkeypatch):
+    # Unit test must not depend on developer secrets or local .env values.
+    monkeypatch.setattr(settings, "LLM_PRIMARY_ENABLED", True)
+    monkeypatch.setattr(settings, "LLM_PRIMARY_BASE_URL", "http://127.0.0.1:20128/v1")
+    monkeypatch.setattr(settings, "LLM_PRIMARY_API_KEY", "unit-test-key")
+    monkeypatch.setattr(settings, "LLM_PRIMARY_MODEL", "unit-test-model")
     with patch("app.services.provider_health.is_tcp_reachable", return_value=True):
         # Case 1: Provider returns 200 with model in list
         mock_resp = Mock()
@@ -58,7 +63,16 @@ def test_check_primary_provider_model_resolution():
             assert info2["reachable"] is False
             assert info2["model_resolved"] is False
 
-        # Case 3: Provider returns 404 (must NOT be treated as healthy)
+        # Case 3: An empty 200 model list is not evidence of model availability.
+        mock_resp_empty = Mock()
+        mock_resp_empty.status_code = 200
+        mock_resp_empty.json.return_value = {"data": []}
+        with patch("httpx.Client.get", return_value=mock_resp_empty):
+            info_empty = check_primary_provider(timeout=1.0)
+            assert info_empty["reachable"] is False
+            assert info_empty["model_resolved"] is False
+
+        # Case 4: Provider returns 404 (must NOT be treated as healthy)
         mock_resp_404 = Mock()
         mock_resp_404.status_code = 404
 

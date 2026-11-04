@@ -26,6 +26,9 @@ public class JobService {
         this.inbox = inbox;
     }
 
+    @Autowired(required = false)
+    private com.platform.recruitment.embedding.VersionedEmbeddingLifecycle vectorLifecycle;
+
     private final JobRepository jobRepository;
     private final RecruiterProfileRepository recruiterProfileRepository;
     private final com.platform.recruitment.suspension.SuspensionGuard suspensionGuard;
@@ -102,6 +105,7 @@ public class JobService {
         }
 
         Job savedJob = jobRepository.save(job);
+        if (vectorLifecycle != null) vectorLifecycle.prepareJob(savedJob);
         return mapToResponse(savedJob);
     }
 
@@ -158,6 +162,7 @@ public class JobService {
         boolean newlyPublished = job.getStatus() != JobStatus.PUBLISHED;
         job.setStatus(JobStatus.PUBLISHED);
         Job publishedJob = jobRepository.save(job);
+        if (vectorLifecycle != null) vectorLifecycle.prepareJob(publishedJob);
 
         if (inbox != null && newlyPublished) {
             inbox.publishedJob(publishedJob);
@@ -262,6 +267,7 @@ public class JobService {
         }
 
         Job updatedJob = jobRepository.save(job);
+        if (vectorLifecycle != null) vectorLifecycle.prepareJob(updatedJob);
         return mapToResponse(updatedJob);
     }
 

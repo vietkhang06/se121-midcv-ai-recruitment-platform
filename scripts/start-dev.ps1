@@ -159,8 +159,6 @@ if (
     Write-Host "ERROR: Selected JDK must provide both java and javac version 21." -ForegroundColor Red
     exit 1
 }
-. (Join-Path $ProjectRoot "scripts\Import-MidcvEnv.ps1") -EnvFile $EnvFile -PreserveExistingEnvironment
-
 Write-Host "  -> Selected JDK 21: $($selectedJavaHome)" -ForegroundColor Gray
 
 $mvnCommand = Get-Command mvn -ErrorAction SilentlyContinue
@@ -434,6 +432,42 @@ function Test-HttpUrl([string]$url, [int]$timeoutMs = 5000) {
     }
 }
 
+# Validate the actual MidCV public API contract, not just an open TCP socket.
+# It is possible for an unrelated service to occupy port 8080.
+function Test-MidcvBackendEndpoint([string]$url, [int]$timeoutMs = 4000) {
+    try {
+        $req = [System.Net.HttpWebRequest]::Create($url)
+        $req.Timeout = $timeoutMs
+        $req.Method = 'GET'
+        $res = $req.GetResponse()
+        try {
+            if ([int]$res.StatusCode -ne 200) { return $false }
+            $reader = [System.IO.StreamReader]::new($res.GetResponseStream())
+            try { $json = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
+            if ($null -eq $json -or $json.success -ne $true -or $null -eq $json.data) { return $false }
+            $fields = @($json.data.PSObject.Properties.Name)
+            return ($fields -contains 'content') -and ($fields -contains 'totalPages')
+        } finally { $res.Close() }
+    } catch {
+        return $false
+    }
+}
+
+function Write-ListenerSummary([int]$port) {
+    try {
+        $owners = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction Stop |
+            Select-Object -ExpandProperty OwningProcess -Unique)
+        foreach ($ownerPid in $owners) {
+            $processName = 'unknown'
+            try { $processName = (Get-Process -Id $ownerPid -ErrorAction Stop).ProcessName } catch {}
+            # Command lines can contain credentials; print only PID and process name.
+            Write-Host "  -> Port ${port} listener: PID=$ownerPid Process=$processName" -ForegroundColor Gray
+        }
+    } catch {
+        Write-Host "  -> Port ${port}: listener details unavailable; HTTP contract check still required." -ForegroundColor Yellow
+    }
+}
+
 # ------------------------------------------------------------
 # STEP 2: Docker PostgreSQL + Pgvector Container
 # ------------------------------------------------------------
@@ -527,8 +561,9 @@ Write-Host "  -> PostgreSQL endpoint is accepting connections." -ForegroundColor
 
 Write-Host "`n[3/6] Starting Spring Boot Backend..." -ForegroundColor Yellow
 
-$backendUrl = "http://127.0.0.1:8080/api/v1/jobs"
+$backendUrl = "http://127.0.0.1:8080/api/v1/jobs?page=0&size=1"
 $backendRunning = Test-PortOccupied 8080
+if ($backendRunning) { Write-ListenerSummary 8080 }
 
 if (-not $backendRunning) {
     Write-Host "  -> Launching Backend terminal (mvn spring-boot:run)..." -ForegroundColor Gray
@@ -537,21 +572,20 @@ if (-not $backendRunning) {
     $quotedBackendDir = "'" + $backendDir.Replace("'", "''") + "'"
     $backendCmd = "Set-Location -LiteralPath $quotedBackendDir; `$Host.UI.RawUI.WindowTitle = 'AI Recruitment - Backend'; mvn clean spring-boot:run"
 
-    Start-Process `
+    $backendShell = Start-Process `
         -FilePath powershell.exe `
         -ArgumentList @('-NoProfile', '-NoExit', '-Command', $backendCmd) `
         -WorkingDirectory $ProjectRoot `
-        -WindowStyle Normal | Out-Null
+        -WindowStyle Normal `
+        -PassThru
 
-    Write-Host "  -> Waiting for Backend readiness on port 8080..." -ForegroundColor Gray
+    Write-Host "  -> Backend terminal PID=$($backendShell.Id). Waiting for a valid MidCV jobs API response..." -ForegroundColor Gray
 
     $elapsed = 0
     $backendReady = $false
 
     while ($elapsed -lt 180) {
-        $status = Test-HttpUrl $backendUrl
-
-        if ($status -eq "READY") {
+        if (Test-MidcvBackendEndpoint $backendUrl) {
             $backendReady = $true
             break
         }
@@ -561,16 +595,17 @@ if (-not $backendRunning) {
     }
 
     if (-not $backendReady) {
-        Write-Host "ERROR: Backend failed to start. Check Backend terminal window." -ForegroundColor Red
+        Write-ListenerSummary 8080
+        Write-Host "ERROR: Backend did not serve a valid MidCV jobs API response. Check the Backend terminal for the Maven/Flyway/Spring error." -ForegroundColor Red
         exit 1
     }
 } else {
-    if ((Test-HttpUrl $backendUrl) -ne 'READY') {
-        Write-Host "ERROR: Port 8080 is occupied but the recruitment jobs endpoint is not ready. No process was stopped." -ForegroundColor Red
+    if (-not (Test-MidcvBackendEndpoint $backendUrl)) {
+        Write-Host "ERROR: Port 8080 is occupied but its response does not match the MidCV jobs API contract. No process was stopped." -ForegroundColor Red
         exit 1
     }
 
-    Write-Host "  -> Backend endpoint is already responding on port 8080." -ForegroundColor Green
+    Write-Host "  -> Existing MidCV Backend API was verified on port 8080." -ForegroundColor Green
 }
 
 Write-Host "  -> Backend Service is READY on http://127.0.0.1:8080." -ForegroundColor Green
@@ -638,10 +673,14 @@ Set-Location -LiteralPath $quotedAiWorkerDir
         exit 1
     }
 } else {
-    Write-Host "  -> AI Worker is already running on port 8000." -ForegroundColor Green
+    if ((Test-HttpUrl $aiWorkerUrl) -ne 'READY') {
+        Write-Host "ERROR: Port 8000 is occupied but the AI Worker health endpoint is not ready. No process was stopped." -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "  -> Existing AI Worker health endpoint responded on port 8000." -ForegroundColor Green
 }
 
-Write-Host "  -> AI Worker Service is READY on http://127.0.0.1:8000." -ForegroundColor Green
+Write-Host "  -> AI Worker Service health endpoint is READY on http://127.0.0.1:8000." -ForegroundColor Green
 
 # ------------------------------------------------------------
 # STEP 5: Next.js Frontend Web App (Port 3000)

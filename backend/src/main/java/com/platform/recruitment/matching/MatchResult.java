@@ -45,6 +45,18 @@ public class MatchResult extends BaseEntity {
     @Column(name = "github_fallback_applied")
     private Boolean githubFallbackApplied = false;
 
+    @Column(name = "cv_version_id")
+    private java.util.UUID cvVersionId;
+
+    @Column(name = "jd_version_id")
+    private java.util.UUID jdVersionId;
+
+    @Column(name = "semantic_method", length = 80)
+    private String semanticMethod;
+
+    @Column(name = "embedding_model", length = 200)
+    private String embeddingModel;
+
     // Required Skill Gate Counters
     @Builder.Default
     @Column(name = "required_skills_total")

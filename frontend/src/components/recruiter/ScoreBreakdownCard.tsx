@@ -33,8 +33,30 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
         </div>
         <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[11px]">
           <Layers className="w-3.5 h-3.5" />
-          <span>{locale === 'vi' ? 'Không dùng điểm giả • Dynamic Re-weighting' : 'Zero Fake Fallbacks • Dynamic Re-weighting'}</span>
+          <span>{locale === 'vi' ? 'Minh bạch phương pháp • Dynamic Re-weighting' : 'Actual Method • Dynamic Re-weighting'}</span>
         </div>
+      </div>
+
+      {/* The real DB method is mandatory audit metadata, not a marketing claim. */}
+      <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl px-4 py-3 text-xs space-y-1">
+        <p className="font-semibold text-slate-800 dark:text-slate-200">
+          {locale === 'vi' ? 'Phương pháp so khớp ngữ nghĩa thực tế: ' : 'Actual semantic matching method: '}
+          <span className={data.semanticMethod === 'PGVECTOR_COSINE_SIMILARITY' ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}>
+            {data.semanticMethod || 'NOT_REPORTED'}
+          </span>
+        </p>
+        {data.semanticMethod !== 'PGVECTOR_COSINE_SIMILARITY' && (
+          <p className="text-amber-700 dark:text-amber-300">
+            {locale === 'vi'
+              ? 'Chưa xác thực Pgvector cho kết quả này; đang dùng phương pháp dự phòng được ghi rõ.'
+              : 'Pgvector is not verified for this result; the reported fallback method is being used.'}
+          </p>
+        )}
+        <p className="text-slate-600 dark:text-slate-400 break-all">
+          CV: {data.cvVersionId || 'N/A'} · JD: {data.jdVersionId || 'N/A'}
+          {' · '}Model: {data.embeddingModel || 'N/A'}
+          {' · '}Policy: {data.scoringPolicyVersion ?? 'N/A'}
+        </p>
       </div>
 
       {/* 3-Tier Official Scores Grid */}
@@ -50,7 +72,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
           </div>
           <p className="text-[11px] text-slate-300">
             {data.githubScoreActive
-              ? (locale === 'vi' ? 'Kết hợp: Core Score (85%) + GitHub Supporting (15%)' : 'Combined: Core Score (85%) + GitHub Supporting (15%)')
+              ? (locale === 'vi' ? 'Điểm Core kết hợp GitHub theo chính sách đang áp dụng' : 'Core and GitHub weights follow the active scoring policy')
               : (locale === 'vi' ? 'Dự phòng minh bạch: Core JD-CV Score (100% không phạt)' : 'Transparent Fallback: Core JD-CV Score (100% zero penalty)')}
           </p>
         </div>

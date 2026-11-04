@@ -58,6 +58,7 @@ jwt:
   refresh-expiration-ms: ${JWT_REFRESH_TOKEN_EXPIRATION_MS:604800000}
 
 app:
+
   email-mode: ${EMAIL_MODE:MOCK}
   mail-from: ${MAIL_FROM:noreply@midcv.local}
   public-base-url: ${BACKEND_PUBLIC_URL:http://localhost:8080}

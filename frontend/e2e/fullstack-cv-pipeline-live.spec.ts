@@ -21,9 +21,10 @@ async function login(request: APIRequestContext, credentials: Credentials): Prom
     timeout: 20_000,
   });
   expect(response.status(), `Login failed for ${credentials.email}`).toBe(200);
-  const data = (await response.json())?.data;
-  expect(data?.accessToken).toBeTruthy();
-  expect(data?.refreshToken).toBeTruthy();
+  const data = await bodyData(response);
+  if (!data?.accessToken || !data.refreshToken) {
+    throw new Error('Login returned no usable access and refresh tokens.');
+  }
   return { accessToken: data.accessToken, refreshToken: data.refreshToken };
 }
 
@@ -31,9 +32,26 @@ function auth(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
 
-async function bodyData(response: Awaited<ReturnType<APIRequestContext['get']>>) {
-  const payload = await response.json();
-  return payload?.data;
+// Typed projection of fields exercised by this live acceptance test only.
+// Values are read from actual HTTP responses, never synthesized as fixtures.
+type LiveResponseData = {
+  accessToken?: string; refreshToken?: string;
+  cvId?: string; id?: string; status?: string; errorCode?: string;
+  message?: string; correlationId?: string; rawText?: string;
+  structured?: unknown; version_id?: string; title?: string;
+  extractionMethod?: string; ocrCorrectionStatus?: string;
+  ocrCorrections?: unknown[];
+  content?: Array<{ jobId?: string; applicationId?: string; overallScore?: number; status?: string }>;
+};
+
+async function bodyData(response: Awaited<ReturnType<APIRequestContext['get']>>): Promise<LiveResponseData | null> {
+  const payload: unknown = await response.json();
+  if (!payload || typeof payload !== 'object' || !('data' in payload)) {
+    throw new Error('Unexpected API response: missing data envelope.');
+  }
+  const data = payload.data;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+  return data as LiveResponseData;
 }
 
 test.describe('W4-QA-01 — real CV processing to HR ranking (no API mocks)', () => {
@@ -70,7 +88,7 @@ test.describe('W4-QA-01 — real CV processing to HR ranking (no API mocks)', ()
       timeout: 60_000,
     });
     expect(upload.status(), `Real CV upload failed: ${await upload.text()}`).toBe(202);
-    const uploaded = (await upload.json())?.data;
+    const uploaded = await bodyData(upload);
     const cvId = String(uploaded?.cvId || uploaded?.id || '');
     expect(cvId, 'Upload response must contain cvId').toMatch(/^[0-9a-f-]{36}$/i);
 
@@ -103,12 +121,21 @@ test.describe('W4-QA-01 — real CV processing to HR ranking (no API mocks)', ()
     });
     expect(draft.status()).toBe(200);
     const draftData = await bodyData(draft);
-    expect(draftData?.version_id).toBeTruthy();
-    const saveDraft = await request.put(`${apiBase}/api/v1/candidate/cvs/${cvId}/draft`, {
-      headers: auth(candidateSession.accessToken),
-      data: { title: draftData.title || 'Live acceptance CV' },
-      timeout: 20_000,
-    });
+
+    if (draftData === null) {
+      throw new Error('CV draft endpoint returned null data.');
+    }
+
+    expect(draftData.version_id).toBeTruthy();
+
+    const saveDraft = await request.put(
+      `${apiBase}/api/v1/candidate/cvs/${cvId}/draft`,
+      {
+        headers: auth(candidateSession.accessToken),
+        data: { title: draftData.title || 'Live acceptance CV' },
+        timeout: 20_000,
+      }
+    );
     expect(saveDraft.status(), `Saving extracted CV draft failed: ${await saveDraft.text()}`).toBe(200);
 
     const confirm = await request.post(`${apiBase}/api/v1/candidate/cvs/${cvId}/confirm`, {
@@ -131,8 +158,16 @@ test.describe('W4-QA-01 — real CV processing to HR ranking (no API mocks)', ()
     expect(ranking.status(), `HR ranking endpoint failed: ${await ranking.text()}`).toBe(200);
     const rankingData = await bodyData(ranking);
     const candidates = Array.isArray(rankingData?.content) ? rankingData.content : [];
-    const ranked = candidates.find((item: any) => String(item.applicationId) === applicationId);
-    expect(ranked, 'The newly submitted candidate must appear in the job ranking').toBeTruthy();
+    const ranked = candidates.find(
+      (item: any) => String(item.applicationId) === applicationId
+    );
+
+    if (ranked === undefined) {
+      throw new Error(
+        `The newly submitted application (${applicationId}) was not found in the HR ranking.`
+      );
+    }
+
     expect(Number(ranked.overallScore)).toBeGreaterThanOrEqual(0);
     expect(Number(ranked.overallScore)).toBeLessThanOrEqual(100);
     expect(ranked.status).toBe('COMPLETED');
@@ -168,7 +203,7 @@ test.describe('W3-AI-01 — live Vietnamese OCR correction persistence (no API m
       timeout: 60_000,
     });
     expect(upload.status(), `Vietnamese OCR upload failed: ${await upload.text()}`).toBe(202);
-    const uploaded = (await upload.json())?.data;
+    const uploaded = await bodyData(upload);
     const cvId = String(uploaded?.cvId || uploaded?.id || '');
     expect(cvId).toMatch(/^[0-9a-f-]{36}$/i);
 

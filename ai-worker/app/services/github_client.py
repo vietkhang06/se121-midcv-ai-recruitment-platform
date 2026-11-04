@@ -53,7 +53,9 @@ class GitHubClient:
                 github_login = user_data.get("login", username)
                 public_repos_total = user_data.get("public_repos", 0)
                 html_url = user_data.get("html_url")
-                updated_at = user_data.get("updated_at")
+                # A profile edit is not evidence of public code activity.
+                # Track the latest push among non-fork, non-archived repositories.
+                latest_public_push = None
 
                 logger.info(f"[GitHubScan] Profile retrieved for '{github_login}'. Public repos reported by profile: {public_repos_total}")
 
@@ -63,7 +65,7 @@ class GitHubClient:
                         "username": github_login,
                         "github_url": html_url,
                         "public_repos_count": 0,
-                        "latest_activity_at": updated_at,
+                        "latest_activity_at": None,
                         "repositories": [],
                         "status": "PRIVATE_ONLY"
                     }
@@ -102,6 +104,14 @@ class GitHubClient:
                 for repo in all_raw_repos:
                     if repo.get("fork", False):
                         continue
+
+                    pushed_at = repo.get("pushed_at")
+                    if not repo.get("archived", False) and isinstance(pushed_at, str):
+                        # GitHub REST timestamps use UTC ISO-8601 (...Z), so
+                        # canonical strings can be ordered without guessing dates.
+                        if len(pushed_at) == 20 and pushed_at.endswith("Z"):
+                            if latest_public_push is None or pushed_at > latest_public_push:
+                                latest_public_push = pushed_at
 
                     repo_name = repo.get("name")
                     owner_login = repo.get("owner", {}).get("login", github_login)
@@ -158,7 +168,7 @@ class GitHubClient:
                         "username": github_login,
                         "github_url": html_url,
                         "public_repos_count": public_repos_total,
-                        "latest_activity_at": updated_at,
+                        "latest_activity_at": None,
                         "repositories": [],
                         "status": "PRIVATE_ONLY"
                     }
@@ -168,7 +178,7 @@ class GitHubClient:
                     "username": github_login,
                     "github_url": html_url,
                     "public_repos_count": public_repos_total,
-                    "latest_activity_at": updated_at,
+                    "latest_activity_at": latest_public_push,
                     "repositories": parsed_repos,
                     "status": "SYNCED"
                 }

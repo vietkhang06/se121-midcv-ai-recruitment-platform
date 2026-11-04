@@ -35,6 +35,12 @@ public class JobMatchingPolicyService {
     private final MatchingEngineService matchingEngineService;
     private final SuspensionGuard suspensionGuard;
 
+    // Optional field injection preserves legacy unit-test constructor signatures.
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private MatchResultRepository resultRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.platform.recruitment.worker.JobQueue jobQueue;
+
     @Transactional(readOnly = true)
     public JobMatchingPolicyDto getPolicy(User user, UUID jobId) {
         Job job = jobRepository.findById(jobId)
@@ -75,8 +81,29 @@ public class JobMatchingPolicyService {
         policy.setPolicyVersion(policy.getPolicyVersion() + 1);
 
         JobMatchingPolicy saved = policyRepository.save(policy);
-        log.info("Updated JobMatchingPolicy for job {} to version {}", jobId, saved.getPolicyVersion());
-
+        // A changed policy invalidates old ranking data. Do not expose historical
+        // scores as current until each application has been recalculated.
+        if (resultRepository != null) {
+            List<MatchResult> existing = resultRepository.findByApplicationJobId(jobId);
+            for (MatchResult result : existing) {
+                if (!java.util.Objects.equals(result.getPolicyVersion(), saved.getPolicyVersion())) {
+                    result.setStatus("STALE_POLICY");
+                }
+            }
+            resultRepository.saveAll(existing);
+        }
+        // Enqueue in the SAME transaction: failure rolls back the policy update as well.
+        // Preserve the application CV/JD snapshots; the worker uses pinned versions.
+        if (jobQueue != null) {
+            for (Application application : applicationRepository.findByJobId(jobId)) {
+                if (application.getCandidate() == null || application.getCandidate().getUser() == null) {
+                    throw new IllegalStateException("Application owner missing during policy invalidation");
+                }
+                jobQueue.enqueue(application.getCandidate().getUser().getId(),
+                        "MATCH", application.getId());
+            }
+        }
+        log.info("Updated JobMatchingPolicy for job {} to version {}; existing results invalidated", jobId, saved.getPolicyVersion());
         return JobMatchingPolicyDto.fromEntity(saved);
     }
 

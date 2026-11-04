@@ -1,3 +1,4 @@
+
 # MidCV API Contract Specification
 
 > Implementation addendum (21/10/2026): OAuth and salary endpoint details added at the end of this document. These describe the current source contract; provider/database acceptance still requires configured external credentials and a disposable/live verification environment.
@@ -243,7 +244,6 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
   ```
 
 #### `PATCH /api/v1/candidate/cvs/{id}/metadata`
-
 - **Role**: `CANDIDATE`
 - **Description**: Cập nhật metadata hiển thị của card CV trong thư viện. Endpoint này chỉ đổi tiêu đề card; không sửa nội dung draft, file gốc, trạng thái xác nhận hoặc bất kỳ CV version nào.
 - **Request Body**:
@@ -251,7 +251,6 @@ Các endpoint này yêu cầu xác thực JWT qua header `Authorization: Bearer 
   ```json
   { "title": "Backend Engineer CV" }
   ```
-
 - **Validation**: `title` bắt buộc, sau khi trim không được rỗng và tối đa 255 ký tự.
 - **Response**: `200 OK` với `CVResponse` đã cập nhật. Candidate chỉ được sửa CV thuộc sở hữu của mình.
 

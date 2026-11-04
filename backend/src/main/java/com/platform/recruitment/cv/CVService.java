@@ -36,6 +36,9 @@ import java.util.*;
 @Slf4j
 @Service
 public class CVService {
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.platform.recruitment.embedding.VersionedEmbeddingLifecycle versionedEmbeddingLifecycle;
+
     private static final Set<String> CV_UPLOAD_EXTENSIONS =
             Set.of("pdf", "docx", "doc", "png", "jpg", "jpeg", "webp");
 
@@ -1723,6 +1726,11 @@ public class CVService {
             embeddingService.invalidateEmbedding("CV", cvId);
         }
 
+        // The confirmed, reviewed version is the canonical matching source; asynchronous
+        // embedding is enqueued after the surrounding transaction commits.
+        if (versionedEmbeddingLifecycle != null) {
+            versionedEmbeddingLifecycle.prepareConfirmedCv(targetVersion, candidateUser.getId());
+        }
         // Existing applications remain bound to their immutable applied CV version.
 
         log.info("CV_DRAFT_CONFIRMED correlation_id={} cv_id={} version_id={}",

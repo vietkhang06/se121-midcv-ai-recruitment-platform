@@ -318,6 +318,13 @@ export function saveAuthTokens(auth: { accessToken: string; refreshToken?: strin
   if (auth.refreshToken) localStorage.setItem('auth_refresh_token', auth.refreshToken);
 }
 
+class AuthRefreshError extends Error {
+  constructor(readonly status: number) {
+    super('Phiên đăng nhập đã hết hạn hoặc bị thu hồi. Vui lòng đăng nhập lại.');
+    this.name = 'AuthRefreshError';
+  }
+}
+
 let refreshPromise: Promise<string | null> | null = null;
 export async function ensureAuthToken(rejectedToken?: string): Promise<string | null> {
   if (typeof window === 'undefined') return null;
@@ -331,8 +338,17 @@ export async function ensureAuthToken(rejectedToken?: string): Promise<string | 
       body: JSON.stringify({ refreshToken }), cache: 'no-store'
     });
     if (!response.ok) {
-      if (response.status === 401 || response.status === 400) clearAuthSession();
-      throw new Error('Không thể gia hạn phiên đăng nhập. Vui lòng thử lại.');
+      // Invalid/revoked refresh token: end only the session that initiated this request.
+      // Another tab may have logged in while the HTTP request was in flight.
+      if (response.status === 400 || response.status === 401) {
+        if (localStorage.getItem('auth_refresh_token') === refreshToken) {
+          clearAuthSession();
+          throw new AuthRefreshError(response.status);
+        }
+        return getAuthToken();
+      }
+      // 5xx/429 are temporary failures, not grounds for deleting a valid session.
+      throw new Error(`Máy chủ xác thực tạm thời không thể gia hạn phiên (HTTP ${response.status}).`);
     }
     const body = await response.json();
     if (!body?.data?.accessToken || !body?.data?.refreshToken) throw new Error('Phản hồi gia hạn phiên không hợp lệ.');
@@ -365,17 +381,30 @@ export async function authorizedFetch(url: string, options: RequestInit = {}): P
   return response;
 }
 
+// These routes are explicitly public in SecurityConfig. Do not attach stale
+// credentials or refresh the session before requesting their content.
+function isPublicRead(endpoint: string, method: string): boolean {
+  if (method.toUpperCase() !== 'GET') return false;
+  const path = endpoint.split('?')[0];
+  return path === '/api/v1/jobs' || /^\/api\/v1\/jobs\/[^/]+$/.test(path);
+}
+
 export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
   const method = options.method || 'GET';
   const url = `${BASE_URL}${endpoint}`;
+  const isPublic = isPublicRead(endpoint, method);
 
   const headers = new Headers(options.headers || {});
-  const token = getAuthToken();
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`);
+  if (isPublic) {
+    headers.delete('Authorization');
+  } else {
+    const token = getAuthToken();
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
   }
   if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
@@ -383,9 +412,12 @@ export async function apiRequest<T>(
 
   let res: Response;
   try {
-    res = await (['/api/v1/auth/login', '/api/v1/auth/verify-email', '/api/v1/auth/resend-verification', '/api/v1/auth/check-email', '/api/v1/auth/forgot-password', '/api/v1/auth/reset-password'].includes(endpoint.split('?')[0])
+    res = await (isPublic || ['/api/v1/auth/login', '/api/v1/auth/verify-email', '/api/v1/auth/resend-verification', '/api/v1/auth/check-email', '/api/v1/auth/forgot-password', '/api/v1/auth/reset-password'].includes(endpoint.split('?')[0])
       || endpoint.startsWith('/api/v1/auth/register') ? fetch : authorizedFetch)(url, { ...options, headers });
   } catch (netErr: unknown) {
+    if (netErr instanceof AuthRefreshError) {
+      throw new ApiError(method, url, netErr.status, 'AUTH_REFRESH_REJECTED', netErr.message);
+    }
     const errMsg = netErr instanceof Error ? netErr.message : 'Lỗi kết nối mạng đến máy chủ backend.';
     console.error(`[API ERROR] Network failure: method=${method} url=${url}`, netErr);
     throw new ApiError(method, url, 0, 'NETWORK_ERROR', errMsg);
@@ -404,12 +436,12 @@ export async function apiRequest<T>(
       res.statusText ||
       `Request failed with status ${res.status}`;
 
-    const isExpiredSessionResponse =
+    const isExpiredSessionResponse = !isPublic && (
       res.status === 401 ||
       (res.status === 403 &&
         /yêu cầu xác thực tài khoản|phiên làm việc đã hết hạn/i.test(
           errMsg
-        ));
+        )));
 
     if (typeof window !== 'undefined' && isExpiredSessionResponse) {
       clearAuthSession();
@@ -690,7 +722,8 @@ export class RealApiClient implements ApiClient {
     const url = `${BASE_URL}/api/v1/jobs/${id}`;
     let res: Response;
     try {
-      res = await authorizedFetch(url);
+      // This controller endpoint is public; token refresh must not block Job Detail.
+      res = await fetch(url, { cache: 'no-store' });
     } catch (netErr: unknown) {
       console.error(`[API ERROR] Network failure: GET ${url}`, netErr);
       throw new ApiError('GET', url, 0, 'NETWORK_ERROR', getErrorMessage(netErr, 'Lỗi kết nối mạng.'));
@@ -1651,6 +1684,13 @@ export class RealApiClient implements ApiClient {
       coreScore: Number(data.coreScore) || 0,
       githubScore: data.githubScore != null ? Number(data.githubScore) : undefined,
       githubScoreActive: !!data.githubScoreActive,
+      algorithmVersion: readString(data.algorithmVersion) || undefined,
+      calculationStatus: readString(data.calculationStatus) || undefined,
+      cvVersionId: readString(data.cvVersionId) || undefined,
+      jdVersionId: readString(data.jdVersionId) || undefined,
+      semanticMethod: readString(data.semanticMethod) || undefined,
+      embeddingModel: readString(data.embeddingModel) || undefined,
+      scoringPolicyVersion: readNumber(data.scoringPolicyVersion) ?? undefined,
       requiredSkillsStatus: getObjectRows(data.requiredSkillsStatus).map((skill) => ({
         skillName: readString(skill.skillName),
         requirementType: toRequirementType(skill.requirementType),
@@ -1666,6 +1706,12 @@ export class RealApiClient implements ApiClient {
       matchFactors: getObjectRows(data.matchFactors).map((factor) => ({
         factorName: readString(factor.factorName),
         score: readNumber(factor.score) ?? 0,
+        weight: readNumber(factor.weight) ?? undefined,
+        configuredWeight: readNumber(factor.configuredWeight) ?? undefined,
+        effectiveWeight: readNumber(factor.effectiveWeight) ?? undefined,
+        weightedContribution: readNumber(factor.weightedContribution) ?? undefined,
+        calculationMethod: readString(factor.calculationMethod) || undefined,
+        algorithmVersion: readString(factor.algorithmVersion) || undefined,
         status: readString(factor.status) || 'MODERATE',
         explanation: readString(factor.explanation),
         evidence: readString(factor.evidence) || undefined

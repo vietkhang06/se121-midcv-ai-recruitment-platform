@@ -134,7 +134,11 @@ public class MatchingEngineService {
             return persist ? matchResultRepository.save(insufficientResult) : insufficientResult;
         }
 
-        List<JobRequirement> allReqs = jobRequirementRepository.findByJobId(jobId);
+        // Application JD requirements are read from the pinned immutable snapshot.
+        // An edit to the live job cannot silently change an existing application's policy input.
+        JdContext jdContext = scoringJd(application);
+        String jdText = jdContext.description();
+        List<JobRequirement> allReqs = jdContext.requirements();
         List<JobRequirement> requiredSkills = allReqs.stream()
                 .filter(r -> r.getRequirementType() == RequirementType.REQUIRED)
                 .collect(Collectors.toList());
@@ -169,20 +173,20 @@ public class MatchingEngineService {
         double skillScoreVal = Math.max(0.0, Math.min(100.0, (0.80 * reqSkillScore.doubleValue()) + (0.20 * prefSkillScore.doubleValue())));
         BigDecimal skillScore = BigDecimal.valueOf(skillScoreVal).setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal expScore = experienceMatcher.evaluateExperience(job.getDescription(), cvRawText);
-        BigDecimal eduScore = educationMatcher.evaluateEducation(job.getDescription(), cvRawText);
-        BigDecimal projScore = projectRelevanceMatcher.evaluateProjectRelevance(job.getDescription(), cvRawText);
+        BigDecimal expScore = experienceMatcher.evaluateExperience(jdText, cvRawText);
+        BigDecimal eduScore = educationMatcher.evaluateEducation(jdText, cvRawText);
+        BigDecimal projScore = projectRelevanceMatcher.evaluateProjectRelevance(jdText, cvRawText);
 
         // Native PostgreSQL pgvector evaluation with grounded semantic similarity fallback
         UUID cvDocVersionId = inputVersion.getId();
-        UUID jdDocVersionId = findJdDocumentVersionId(job.getId());
+        UUID jdDocVersionId = findJdDocumentVersionId(job, application.getAppliedJdVersionId());
         BigDecimal semanticScore = null;
         String semanticMethod = "PGVECTOR_COSINE_SIMILARITY";
         if (jdbcTemplate != null && confirmedEmbeddingMatches(inputVersion) && jdDocVersionId != null) {
             semanticScore = pgvectorCosineSimilarity.evaluatePgvectorSemanticSimilarity(cvDocVersionId, jdDocVersionId);
         }
         if (semanticScore == null) {
-            semanticScore = pgvectorCosineSimilarity.evaluateSemanticSimilarity(job.getDescription(), cvRawText);
+            semanticScore = pgvectorCosineSimilarity.evaluateSemanticSimilarity(jdText, cvRawText);
             semanticMethod = "TF_CONCEPT_COSINE_SIMILARITY";
         }
 
@@ -339,7 +343,7 @@ public class MatchingEngineService {
         scoreCore = scoreCore.max(BigDecimal.ZERO).min(new BigDecimal("100.00"));
 
         // 4. GitHub Supporting Factor Evaluation
-        Optional<BigDecimal> githubScoreOpt = gitHubScoringService.calculateGitHubSupportingScore(candidateId, job.getIndustry(), job.getDescription());
+        Optional<BigDecimal> githubScoreOpt = gitHubScoringService.calculateGitHubSupportingScore(candidateId, jdContext.industry(), jdText);
 
         String statusGithub;
         BigDecimal scoreGithub = null;
@@ -390,6 +394,12 @@ public class MatchingEngineService {
         result.setPreferredSkillsMatched(prefMatched);
         result.setPreferredSkillsMissing(prefMissing);
         result.setStatus("COMPLETED");
+        result.setCvVersionId(inputVersion.getId());
+        result.setJdVersionId(application.getAppliedJdVersionId() != null
+                ? application.getAppliedJdVersionId() : jdDocVersionId);
+        result.setSemanticMethod(semanticMethod);
+        result.setEmbeddingModel("PGVECTOR_COSINE_SIMILARITY".equals(semanticMethod)
+                ? matchedEmbeddingModel(cvDocVersionId) : null);
         result.setMatchingAlgorithmVersion("v2.0");
         result.setPolicyVersion(policy.getPolicyVersion());
         result.setPolicySnapshot(policySnapshot);
@@ -442,7 +452,11 @@ public class MatchingEngineService {
             for (JobRequirement req : allReqs) {
                 if (skillNormalizer.matchesSkill(req.getSkillName(), cvRawText)) {
                     String grounded = extractGroundedSnippet(cvRawText, req.getSkillName());
-                    String snippetText = grounded != null ? grounded : String.format("Kỹ năng '%s' (%s) được xác thực trong hồ sơ CV ứng viên.", req.getSkillName(), req.getRequirementType());
+                    // No quotation can be marked VERIFIED unless it occurs in the reviewed CV text.
+                    if (grounded == null || !cvRawText.contains(grounded)) continue;
+                    String snippetText = grounded;
+                    int quoteOffset = cvRawText.indexOf(snippetText);
+                    if (quoteOffset < 0) continue;
                     Evidence skillEvidence = Evidence.builder()
                             .matchResult(savedResult)
                             .sourceType("CV")
@@ -453,6 +467,13 @@ public class MatchingEngineService {
                             .candidateValue(req.getSkillName())
                             .matchStatus("VERIFIED")
                             .snippet(snippetText)
+                            .sourceVersionId(cvDocVersionId)
+                            .contentSha256(com.platform.recruitment.document.Documents.shaHex(cvRawText))
+                            .quoteStartOffset(quoteOffset)
+                            .quoteEndOffset(quoteOffset + snippetText.length())
+                            .provenance("CANDIDATE_REVIEWED_CV")
+                            .verifiedAt(java.time.ZonedDateTime.now())
+                            .policyVersion(policy.getPolicyVersion())
                             .normalizedValue(BigDecimal.valueOf(100.00))
                             .validationStatus("VERIFIED")
                             .build();
@@ -466,14 +487,21 @@ public class MatchingEngineService {
                         .sourceId(cvDocVersionId != null ? cvDocVersionId.toString() : null)
                         .section("EXPERIENCE")
                         .requirementText("Kinh nghiệm làm việc phù hợp ngành " + job.getIndustry())
-                        .snippet(String.format("Kinh nghiệm làm việc được ghi nhận trong CV với mức đánh giá %s%% phù hợp ngành %s.", expScore, job.getIndustry()))
+                        .snippet(cvRawText.substring(0, Math.min(cvRawText.length(), 180)))
+                        .sourceVersionId(cvDocVersionId)
+                        .contentSha256(com.platform.recruitment.document.Documents.shaHex(cvRawText))
+                        .quoteStartOffset(0)
+                        .quoteEndOffset(Math.min(cvRawText.length(), 180))
+                        .provenance("CANDIDATE_REVIEWED_CV_EXCERPT")
+                        .verifiedAt(java.time.ZonedDateTime.now())
+                        .policyVersion(policy.getPolicyVersion())
                         .normalizedValue(expScore)
-                        .validationStatus("VERIFIED")
+                        .validationStatus("SOURCE_EXCERPT_NOT_REQUIREMENT_VERIFIED")
                         .build();
                 evidenceRepository.save(expEvidence);
             }
             if (scoreGithub != null && effGithubWeight != null && effGithubWeight.compareTo(BigDecimal.ZERO) > 0) {
-                List<String> relevantRepos = gitHubScoringService.findRelevantRepositories(candidateId, job.getDescription());
+                List<String> relevantRepos = gitHubScoringService.findRelevantRepositories(candidateId, jdText);
                 for (String rName : relevantRepos) {
                     Evidence ghEvidence = Evidence.builder()
                             .matchResult(savedResult)
@@ -483,7 +511,7 @@ public class MatchingEngineService {
                             .requirementText("Kho lưu trữ mã nguồn liên quan")
                             .candidateValue(rName)
                             .matchStatus("VERIFIED")
-                            .snippet(String.format("Kho lưu trữ mã nguồn '%s' được ghi nhận trong hồ sơ GitHub công khai của ứng viên, phù hợp yêu cầu kỹ thuật vị trí %s.", rName, job.getTitle()))
+                            .snippet(rName)
                             .normalizedValue(scoreGithub)
                             .validationStatus("VERIFIED")
                             .build();
@@ -506,11 +534,15 @@ public class MatchingEngineService {
 
         MatchResult result = matchResultRepository.findByApplicationId(applicationId)
                 .orElseGet(() -> calculateAndPersistMatchResult(jobId, candidateId));
+        if ("STALE_POLICY".equals(result.getStatus())) {
+            // Never present stale factors as if they were current on the HR inspection path.
+            result = calculateAndPersistMatchResult(jobId, candidateId);
+        }
 
         Job job = application.getJob();
         CandidateProfile candidate = application.getCandidate();
 
-        List<JobRequirement> allReqs = jobRequirementRepository.findByJobId(jobId);
+        List<JobRequirement> allReqs = scoringJd(application).requirements();
 
         com.platform.recruitment.cv.ConfirmedCvInput.requireConfirmed(application.getAppliedCvVersion(), candidateId);
         String cvRawText = com.platform.recruitment.cv.ConfirmedCvInput.text(application.getAppliedCvVersion());
@@ -615,6 +647,13 @@ public class MatchingEngineService {
                         .matchStatus(ev.getMatchStatus())
                         .similarityConfidence(ev.getSimilarityConfidence())
                         .validationStatus(ev.getValidationStatus())
+                        .sourceVersionId(ev.getSourceVersionId())
+                        .contentSha256(ev.getContentSha256())
+                        .quoteStartOffset(ev.getQuoteStartOffset())
+                        .quoteEndOffset(ev.getQuoteEndOffset())
+                        .provenance(ev.getProvenance())
+                        .verifiedAt(ev.getVerifiedAt())
+                        .policyVersion(ev.getPolicyVersion())
                         .build())
                 .toList();
 
@@ -668,6 +707,11 @@ public class MatchingEngineService {
                 .coreScore(result.getCoreScore())
                 .githubScore(result.getGithubScore())
                 .githubScoreActive(result.getIsGithubActive() != null ? result.getIsGithubActive() : false)
+                .cvVersionId(result.getCvVersionId())
+                .jdVersionId(result.getJdVersionId())
+                .semanticMethod(result.getSemanticMethod())
+                .embeddingModel(result.getEmbeddingModel())
+                .scoringPolicyVersion(result.getPolicyVersion())
                 .requiredSkillsStatus(reqSkillItems)
                 .preferredSkillsStatus(prefSkillItems)
                 .matchFactors(factorItems)
@@ -704,51 +748,95 @@ public class MatchingEngineService {
 
     private boolean confirmedEmbeddingMatches(CVVersion version) {
         if (jdbcTemplate == null || version.getId() == null) return false;
-        // Exact schema/content binding prevents an extraction vector from scoring edited review data.
-        Boolean matches = jdbcTemplate.queryForObject(
-                "SELECT EXISTS(SELECT 1 FROM document_versions WHERE id=? AND state='READY' "
-                        + "AND embedding IS NOT NULL AND normalized=?::jsonb)",
-                Boolean.class, version.getId(), version.getStructuredJsonContent());
-        return Boolean.TRUE.equals(matches);
+        String verifiedText = com.platform.recruitment.cv.ConfirmedCvInput.text(version);
+        if (verifiedText.isBlank()) return false;
+        String verifiedHash = com.platform.recruitment.document.Documents.shaHex(verifiedText);
+        try {
+            Boolean matches = jdbcTemplate.queryForObject(
+                    "SELECT EXISTS(SELECT 1 FROM document_versions WHERE id=? AND state='READY' "
+                            + "AND embedding IS NOT NULL AND embedding_dimension=1024 "
+                            + "AND embedding_text=? AND embedding_source_sha=? "
+                            + "AND normalized=?::jsonb)",
+                    Boolean.class, version.getId(), verifiedText, verifiedHash,
+                    version.getStructuredJsonContent());
+            return Boolean.TRUE.equals(matches);
+        } catch (Exception ex) {
+            log.warn("Confirmed CV vector metadata is unavailable: {}", ex.getMessage());
+            return false;
+        }
     }
 
-    private UUID findJdDocumentVersionId(UUID jobId) {
-        if (jdbcTemplate == null || jobId == null) return null;
+    private UUID findJdDocumentVersionId(Job job, UUID pinnedVersionId) {
+        if (jdbcTemplate == null || job == null) return null;
         try {
+            if (pinnedVersionId != null) {
+                List<UUID> ids = jdbcTemplate.query(
+                        "SELECT id FROM document_versions WHERE id=? AND document_id=? "
+                                + "AND state='READY' AND embedding IS NOT NULL AND embedding_dimension=1024 "
+                                + "AND embedding_source_sha=source_sha",
+                        (rs, rowNum) -> rs.getObject("id", UUID.class), pinnedVersionId, job.getId());
+                return ids.isEmpty() ? null : ids.get(0);
+            }
+            String hash = com.platform.recruitment.document.Documents.shaHex(
+                    com.platform.recruitment.embedding.VersionedEmbeddingLifecycle.canonicalJobText(job));
             List<UUID> ids = jdbcTemplate.query(
-                    "SELECT v.id FROM document_versions v JOIN documents d ON d.id=v.document_id " +
-                    "WHERE (d.id=? OR v.id IN (SELECT jd_version_id FROM screening_runs WHERE job_id=?)) " +
-                    "AND v.embedding IS NOT NULL AND v.state='READY' AND v.raw_text=(SELECT CASE WHEN btrim(description)='' THEN title ELSE description END FROM jobs WHERE id=?) ORDER BY v.created_at DESC LIMIT 1",
-                    (rs, rowNum) -> (UUID) rs.getObject("id"),
-                    jobId, jobId, jobId
-            );
+                    "SELECT id FROM document_versions WHERE document_id=? AND source_sha=? "
+                            + "AND state='READY' AND embedding IS NOT NULL AND embedding_dimension=1024 "
+                            + "AND embedding_source_sha=source_sha ORDER BY version_no DESC LIMIT 1",
+                    (rs, rowNum) -> rs.getObject("id", UUID.class), job.getId(), hash);
             return ids.isEmpty() ? null : ids.get(0);
-        } catch (Exception e) {
+        } catch (Exception ex) {
+            log.debug("JD version vector is not ready: {}", ex.getMessage());
             return null;
         }
     }
 
+    private String matchedEmbeddingModel(UUID cvVersionId) {
+        if (jdbcTemplate == null || cvVersionId == null) return null;
+        try {
+            return jdbcTemplate.queryForObject("SELECT embedding_model FROM document_versions WHERE id=?",
+                    String.class, cvVersionId);
+        } catch (Exception ex) { return null; }
+    }
+
+    private record JdContext(String description, String industry, List<JobRequirement> requirements) {}
+
+    private JdContext scoringJd(Application application) {
+        Job job = application.getJob();
+        List<JobRequirement> current = jobRequirementRepository.findByJobId(job.getId());
+        if (jdbcTemplate == null || application.getAppliedJdVersionId() == null)
+            return new JdContext(job.getDescription(), job.getIndustry(), current);
+        List<String> jsons = jdbcTemplate.query(
+                "SELECT normalized::text FROM document_versions WHERE id=? AND document_id=?",
+                (rs, i) -> rs.getString(1), application.getAppliedJdVersionId(), job.getId());
+        if (jsons.isEmpty() || jsons.get(0) == null)
+            throw new com.platform.recruitment.common.CustomException(
+                    com.platform.recruitment.common.ErrorCode.VALIDATION_ERROR,
+                    "Application JD snapshot is missing; refusing to score the current edited JD");
+        try {
+            var root = (objectMapper != null ? objectMapper : new com.fasterxml.jackson.databind.ObjectMapper())
+                    .readTree(jsons.get(0));
+            List<JobRequirement> pinned = new ArrayList<>();
+            for (var requirement : root.path("requirements")) {
+                String skill = requirement.path("skill").asText("");
+                String type = requirement.path("type").asText("");
+                if (skill.isBlank() || !("REQUIRED".equals(type) || "PREFERRED".equals(type)))
+                    throw new IllegalArgumentException("Corrupted JD requirement snapshot");
+                pinned.add(JobRequirement.builder().skillName(skill)
+                        .requirementType(RequirementType.valueOf(type))
+                        .minYearsExp(requirement.path("minYears").asInt(0)).build());
+            }
+            return new JdContext(root.path("description").asText(""), root.path("industry").asText(""), pinned);
+        } catch (Exception e) {
+            throw new com.platform.recruitment.common.CustomException(
+                    com.platform.recruitment.common.ErrorCode.VALIDATION_ERROR,
+                    "Application JD snapshot cannot be parsed: " + e.getMessage());
+        }
+    }
+
     private String extractGroundedSnippet(String text, String keyword) {
-        if (text == null || keyword == null || keyword.isBlank()) return null;
-        String lowerText = text.toLowerCase();
-        String lowerKeyword = keyword.toLowerCase().trim();
-        int idx = lowerText.indexOf(lowerKeyword);
-        if (idx < 0) return null;
-
-        int start = Math.max(0, idx - 30);
-        int end = Math.min(text.length(), idx + keyword.length() + 50);
-
-        if (start > 0 && Character.isLetterOrDigit(text.charAt(start))) {
-            while (start > 0 && Character.isLetterOrDigit(text.charAt(start - 1))) start--;
-        }
-        if (end < text.length() && Character.isLetterOrDigit(text.charAt(end - 1))) {
-            while (end < text.length() && Character.isLetterOrDigit(text.charAt(end))) end++;
-        }
-
-        String snippet = text.substring(start, end).trim().replaceAll("\\s+", " ");
-        if (start > 0) snippet = "..." + snippet;
-        if (end < text.length()) snippet = snippet + "...";
-        return snippet;
+        // Exact substring only; never construct pseudo-quotations with ellipses or aliases.
+        return skillNormalizer.findEvidence(keyword, text).orElse(null);
     }
 
     private String extractTextFromStructuredJson(String json) {
