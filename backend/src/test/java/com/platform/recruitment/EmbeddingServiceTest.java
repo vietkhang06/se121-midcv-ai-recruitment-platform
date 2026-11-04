@@ -30,19 +30,11 @@ class EmbeddingServiceTest {
     }
 
     @Test
-    void testGenerateEmbedding_Validates1024Dimension_PersistsCentralizedStore() {
+    void legacyMetadataOnlyGenerationMustNeverPretendToCreateAnActiveVector() {
         UUID cvId = UUID.randomUUID();
-        when(embeddingRepository.findByEntityTypeAndEntityId("CV", cvId)).thenReturn(Optional.empty());
-        when(embeddingRepository.save(any(Embedding.class))).thenAnswer(i -> i.getArgument(0));
-
-        Embedding result = embeddingService.generateAndPersistEmbedding("CV", cvId, "Java 21 Spring Boot");
-
-        assertNotNull(result);
-        assertEquals("CV", result.getEntityType());
-        assertEquals(cvId, result.getEntityId());
-        assertEquals("bge-m3", result.getModelName());
-        assertEquals(1024, result.getDimension());
-        assertEquals("ACTIVE", result.getStatus());
-        verify(embeddingRepository, times(1)).save(any(Embedding.class));
+        assertThrows(com.platform.recruitment.common.CustomException.class,
+                () -> embeddingService.generateAndPersistEmbedding("CV", cvId, "Java Spring Boot"));
+        verifyNoInteractions(embeddingRepository);
     }
+
 }

@@ -50,6 +50,28 @@ public class Evidence extends BaseEntity {
     @Column(name = "similarity_confidence", precision = 5, scale = 4)
     private BigDecimal similarityConfidence;
 
+    /** Source version is the application-pinned CV/JD document version, not the mutable profile. */
+    @Column(name = "source_version_id")
+    private java.util.UUID sourceVersionId;
+
+    @Column(name = "content_sha256", length = 64)
+    private String contentSha256;
+
+    @Column(name = "quote_start_offset")
+    private Integer quoteStartOffset;
+
+    @Column(name = "quote_end_offset")
+    private Integer quoteEndOffset;
+
+    @Column(name = "provenance")
+    private String provenance;
+
+    @Column(name = "verified_at")
+    private java.time.ZonedDateTime verifiedAt;
+
+    @Column(name = "policy_version")
+    private Integer policyVersion;
+
     @Builder.Default
     @Column(name = "validation_status")
     private String validationStatus = "VERIFIED";

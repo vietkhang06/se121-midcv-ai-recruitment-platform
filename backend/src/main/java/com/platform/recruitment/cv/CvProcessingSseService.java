@@ -40,11 +40,6 @@ public class CvProcessingSseService {
         if (user == null || !user.getId().equals(job.get("owner_id")) && user.getRole() != com.platform.recruitment.user.Role.ADMIN)
             throw new CustomException(ErrorCode.ACCESS_DENIED,"Bạn không có quyền xem tiến trình này.");
         long cursor = parseCursor(lastId);
-        long cursor = 0;
-        if (lastId != null && !lastId.isBlank()) {
-            try { cursor=Long.parseLong(lastId); if(cursor<0) throw new NumberFormatException(); }
-            catch(NumberFormatException ex) { throw new CustomException(ErrorCode.VALIDATION_ERROR,"Last-Event-ID không hợp lệ."); }
-        }
         Subscription sub=new Subscription(jobId,user,token,cursor);
         sub.emitter.onCompletion(() -> subscribers.remove(sub));
         sub.emitter.onTimeout(() -> { subscribers.remove(sub); sub.emitter.complete(); });
@@ -77,7 +72,6 @@ public class CvProcessingSseService {
         }
     }
 
-    }
     private Map<String,Object> job(UUID id) {
         List<Map<String,Object>> rows=jdbcTemplate.queryForList("SELECT id, owner_id, state, step, progress FROM processing_jobs WHERE id = ?",id);
         if(rows.isEmpty()) throw new ResourceNotFoundException("ProcessingJob","id",id);
@@ -85,10 +79,6 @@ public class CvProcessingSseService {
     }
     @Scheduled(fixedDelay=1000)
     public void poll() { for(Subscription sub:subscribers) drain(sub); }
-
-    // Events are read from committed storage by poll(), never broadcast before commit.
-    public void onEventEmitted(UUID jobId, UUID ownerId, String level, String step, String code, String message, Long duration) { }
-
 
     // Events are read from committed storage by poll(), never broadcast before commit.
     public void onEventEmitted(UUID jobId, UUID ownerId, String level, String step, String code, String message, Long duration) { }

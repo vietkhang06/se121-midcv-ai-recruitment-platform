@@ -105,11 +105,8 @@ def test_docx_ordered_paragraphs_and_tables(extractor):
     assert summary_pos < table_pos < edu_pos
 
 
-def test_legacy_doc_fallback_unavailable(extractor, monkeypatch):
-    """
-    Validates that legacy .doc files with no LibreOffice installed
-    return DOC_CONVERTER_UNAVAILABLE with clear error message.
-    """
+def test_legacy_doc_fake_container_rejected_before_converter(extractor, monkeypatch):
+    """A header-only fake OLE document must be rejected before conversion."""
     monkeypatch.setattr(extractor, "_find_libreoffice", lambda: None)
     doc_header = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1Fake Word 97-2003 OLE compound document"
 
@@ -121,8 +118,21 @@ def test_legacy_doc_fallback_unavailable(extractor, monkeypatch):
     res = extractor.extract_document(req)
     assert res.status == "FAILED"
     assert res.source_type == "DOC"
+    assert res.error_code == "DOC_INVALID_CONTAINER"
+
+
+def test_structurally_plausible_legacy_doc_reports_missing_converter(extractor, monkeypatch):
+    """Only validated container headers should reach the converter-availability check."""
+    monkeypatch.setattr(extractor, "_find_libreoffice", lambda: None)
+    header = bytearray(512)
+    header[:8] = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+    header[30:32] = (9).to_bytes(2, "little")
+    req = DocumentExtractRequest(file_base64=base64.b64encode(header).decode("utf-8"),
+                                 file_name="legacy.doc", file_type="DOC")
+    res = extractor.extract_document(req)
     assert res.error_code == "DOC_CONVERTER_UNAVAILABLE"
     assert "LibreOffice headless is required" in res.error_message
+
 
 
 def test_image_decompression_bomb_prevention(extractor, monkeypatch):

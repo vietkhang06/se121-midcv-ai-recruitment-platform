@@ -24,6 +24,11 @@ public class MatchInspectionResponse {
     private BigDecimal coreScore;
     private BigDecimal githubScore;
     private Boolean githubScoreActive;
+    private UUID cvVersionId;
+    private UUID jdVersionId;
+    private String semanticMethod;
+    private String embeddingModel;
+    private Integer scoringPolicyVersion;
     private List<SkillItem> requiredSkillsStatus;
     private List<SkillItem> preferredSkillsStatus;
     private List<FactorItem> matchFactors;
@@ -48,6 +53,13 @@ public class MatchInspectionResponse {
         private String matchStatus;
         private BigDecimal similarityConfidence;
         private String validationStatus;
+        private UUID sourceVersionId;
+        private String contentSha256;
+        private Integer quoteStartOffset;
+        private Integer quoteEndOffset;
+        private String provenance;
+        private java.time.ZonedDateTime verifiedAt;
+        private Integer policyVersion;
     }
 
     @Data

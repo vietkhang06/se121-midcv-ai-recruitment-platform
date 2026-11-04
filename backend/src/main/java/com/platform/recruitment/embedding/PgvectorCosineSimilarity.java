@@ -40,7 +40,9 @@ public class PgvectorCosineSimilarity {
                         "SELECT greatest(0,least(100,(1-(cv.embedding <=> jd.embedding))*100)) AS score " +
                         "FROM document_versions cv CROSS JOIN document_versions jd " +
                         "WHERE cv.id=? AND jd.id=? AND cv.embedding IS NOT NULL AND jd.embedding IS NOT NULL " +
-                        "AND cv.state='READY' AND jd.state='READY' AND cv.embedding_model IS NOT NULL AND cv.embedding_model=jd.embedding_model",
+                        "AND cv.state='READY' AND jd.state='READY' AND cv.embedding_model IS NOT NULL AND cv.embedding_model=jd.embedding_model " +
+                        "AND cv.embedding_dimension=1024 AND jd.embedding_dimension=1024 " +
+                        "AND cv.embedding_source_sha IS NOT NULL AND jd.embedding_source_sha IS NOT NULL",
                         cvVersionId, jdVersionId
                 );
                 if (!scoreRows.isEmpty() && scoreRows.get(0).get("score") != null) {
@@ -157,9 +159,15 @@ public class PgvectorCosineSimilarity {
         if (token.matches("develop.*|build.*|built|creat.*|architect.*|design.*")) return "sem_construct";
         if (token.matches("backend|back-end|server.*|service.*|api.*|microservice.*")) return "sem_backend";
         if (token.matches("frontend|front-end|client.*|web|ui|interface")) return "sem_frontend";
-        if (token.matches("java.*|spring.*|springboot|jvm")) return "sem_java";
+        if (token.matches("java|jvm")) return "sem_java";
+        if (token.matches("javascript|js")) return "sem_javascript";
+        if (token.matches("springboot|spring-boot")) return "sem_spring_boot";
+        if (token.matches("spring|springframework")) return "sem_spring_framework";
         if (token.matches("python.*|django|fastapi|flask")) return "sem_python";
-        if (token.matches("postgres.*|pgvector|sql|mysql|oracle|database|db")) return "sem_database";
+        if (token.matches("postgres.*")) return "sem_postgresql";
+        if (token.matches("mysql")) return "sem_mysql";
+        if (token.matches("pgvector")) return "sem_pgvector";
+        if (token.matches("sql|oracle|database|db")) return "sem_database";
         if (token.matches("docker|k8s|kubernetes|aws|cloud|container|devops")) return "sem_cloud_infra";
         if (token.matches("marketing|seo|ga4|ads|campaign|content")) return "sem_marketing";
         if (token.matches("finance|account.*|tax|audit|reporting|ledger")) return "sem_finance";

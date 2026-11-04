@@ -1,5 +1,6 @@
 import uuid
 import logging
+import re
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse
@@ -23,6 +24,20 @@ class GitHubAnalyzer:
 
     def analyze_candidate_github(self, request: GitHubAnalyzeRequest) -> GitHubAnalyzeResponse:
         username = self._extract_username(request.github_url)
+        if not username:
+            # Never silently map a missing/foreign GitHub URL to an unrelated
+            # user. GitHub is optional and must remain a zero-penalty signal.
+            return GitHubAnalyzeResponse(
+                candidate_id=request.candidate_id,
+                username="",
+                github_url=request.github_url,
+                public_repos_count=0,
+                activity_signal="LIMITED_OBSERVABLE_ACTIVITY",
+                summary_notes="Không có URL hồ sơ GitHub công khai hợp lệ; bỏ qua tín hiệu GitHub mà không trừ điểm.",
+                language_rank_summary="Không có bằng chứng GitHub công khai.",
+                overall_supporting_rating="UNAVAILABLE",
+                status="NOT_CONNECTED",
+            )
         logger.info(f"[GitHubAnalyzer] Analyzing candidate_id='{request.candidate_id}' username='{username}'")
 
         raw_data = self.github_client.fetch_user_repositories(username)
@@ -89,8 +104,11 @@ class GitHubAnalyzer:
                     bytes_count=bcount,
                     percentage_ratio=pratio
                 ))
-                language_bytes_map[lname] = language_bytes_map.get(lname, 0) + bcount
-                total_code_bytes += bcount
+                # Historical/archived repositories remain visible as evidence,
+                # but do not influence the active repository language ratio.
+                if not r.get("is_archived", False):
+                    language_bytes_map[lname] = language_bytes_map.get(lname, 0) + bcount
+                    total_code_bytes += bcount
 
             repos.append(ExtractedRepo(
                 name=r["name"],
@@ -154,19 +172,25 @@ class GitHubAnalyzer:
         )
 
     def _extract_username(self, url: str) -> str:
-        if not url:
-            return "candidate"
-        url = url.strip().rstrip("/")
-        if url.startswith("http://") or url.startswith("https://"):
-            parsed = urlparse(url)
-            path_parts = [p for p in parsed.path.split("/") if p]
-            if path_parts:
-                return path_parts[0]
-        elif "github.com/" in url:
-            parts = [p for p in url.split("github.com/")[-1].split("/") if p]
-            if parts:
-                return parts[0]
-        return url.split("/")[-1] if url else "candidate"
+        """Return only a GitHub profile username, never infer one from another host."""
+        if not url or not url.strip():
+            return ""
+        value = url.strip()
+        if "://" in value:
+            parsed = urlparse(value)
+            if parsed.scheme.lower() not in ("http", "https") or (parsed.hostname or "").lower() not in ("github.com", "www.github.com"):
+                return ""
+            parts = [part for part in parsed.path.split("/") if part]
+            username = parts[0] if parts else ""
+        elif value.lower().startswith(("github.com/", "www.github.com/")):
+            username = value.split("/", 1)[1].split("/", 1)[0]
+        else:
+            # Plain usernames are supported for older API clients; anything
+            # containing a URL/path/query separator is not a username.
+            username = value
+        if not re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?", username):
+            return ""
+        return username
 
     def _compute_activity_signal(self, timestamp_str: Optional[str]) -> str:
         """
@@ -177,7 +201,12 @@ class GitHubAnalyzer:
             return "LIMITED_OBSERVABLE_ACTIVITY"
         try:
             dt = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
-            days_ago = (datetime.now(timezone.utc) - dt).days
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            age = datetime.now(timezone.utc) - dt
+            if age.total_seconds() < 0:
+                return "LIMITED_OBSERVABLE_ACTIVITY"  # Future-dated evidence is not trustworthy.
+            days_ago = age.days
             if days_ago <= 14:
                 return "HIGH"
             elif days_ago <= 60:
