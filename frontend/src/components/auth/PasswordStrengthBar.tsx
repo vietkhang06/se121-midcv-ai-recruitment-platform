@@ -102,7 +102,7 @@ export function PasswordStrengthBar({ password, locale }: PasswordStrengthBarPro
           return (
             <div
               key={step}
-              className={`h-full rounded-full transition-all duration-300 ${
+              className={`h-full rounded-xl transition-all duration-300 ${
                 isActive ? barColor : 'bg-slate-200 dark:bg-slate-700/80'
               }`}
             />

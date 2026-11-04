@@ -198,9 +198,9 @@ public class ProcessingLifecycleService {
         log.info("Processing GitHub analysis lifecycle for candidate_id: {}", candidateId);
         Map<String, Object> result = aiWorkerClient.analyzeGithub(candidateId, candidate.getGithubUrl());
 
-        String statusStr = (String) result.getOrDefault("status", "SYNCED");
+        String statusStr = (String) result.getOrDefault("status", "UNAVAILABLE");
         String activitySignalStr = (String) result.getOrDefault("activity_signal", "LIMITED_OBSERVABLE_ACTIVITY");
-        GitHubActivitySignal signal = GitHubActivitySignal.MODERATE;
+        GitHubActivitySignal signal = GitHubActivitySignal.LIMITED_OBSERVABLE_ACTIVITY;
         try {
             signal = GitHubActivitySignal.valueOf(activitySignalStr);
         } catch (Exception ignored) {}
@@ -212,8 +212,12 @@ public class ProcessingLifecycleService {
                         .githubUrl(candidate.getGithubUrl())
                         .build());
 
+        String observedUsername = (String) result.getOrDefault("username", "unknown");
+        profile.setUsername(observedUsername);
+        profile.setGithubUrl(candidate.getGithubUrl());
+        profile.setLatestActivityAt(null);
         profile.setStatus(statusStr);
-        profile.setOwnershipStatus(oauthService != null && oauthService.isGithubOwned(candidate.getUser().getId(), profile.getUsername()) ? "OWNED" : "UNVERIFIED_PUBLIC");
+        profile.setOwnershipStatus("SYNCED".equals(statusStr) && githubLogin(candidate.getGithubUrl()).equalsIgnoreCase(observedUsername) && oauthService != null && candidate.getUser() != null && oauthService.isGithubOwned(candidate.getUser().getId(), observedUsername) ? "OWNED" : "UNVERIFIED_PUBLIC");
         profile.setActivitySignal(signal);
         profile.setPublicReposCount(result.get("public_repos_count") != null ? ((Number) result.get("public_repos_count")).intValue() : 0);
         if (result.get("latest_activity_at") != null) {
@@ -235,16 +239,18 @@ public class ProcessingLifecycleService {
         gitHubAssessmentRepository.save(assessment);
 
         // Persist Observable Public Repositories, Languages, and Topics
-        if (result.get("repositories") instanceof List<?> repoList && !repoList.isEmpty()) {
-            List<GitHubRepository> existingRepos = gitHubRepositoryRepository.findByGithubProfileId(savedProfile.getId());
-            if (!existingRepos.isEmpty()) {
-                gitHubRepositoryRepository.deleteAll(existingRepos);
-            }
-
+        List<GitHubRepository> existingRepos = gitHubRepositoryRepository.findByGithubProfileId(savedProfile.getId());
+        if (existingRepos != null && !existingRepos.isEmpty()) {
+            gitHubRepositoryRepository.deleteAll(existingRepos);
+            gitHubRepositoryRepository.flush();
+        }
+        if ("SYNCED".equals(statusStr) && result.get("repositories") instanceof List<?> repoList) {
             for (Object obj : repoList) {
                 if (obj instanceof Map<?, ?> repoMap) {
                     String name = (String) repoMap.get("name");
                     String repoUrl = (String) repoMap.get("repo_url");
+                    if (name == null || name.isBlank() || repoUrl == null || repoUrl.isBlank()
+                            || !githubLogin(repoUrl).equalsIgnoreCase(observedUsername)) continue;
                     String desc = (String) repoMap.get("description");
                     String lang = (String) repoMap.get("primary_language");
                     int stars = repoMap.get("stars_count") != null ? ((Number) repoMap.get("stars_count")).intValue() : 0;
@@ -307,5 +313,13 @@ public class ProcessingLifecycleService {
         }
 
         log.info("Successfully persisted GitHub analysis and repositories for candidate_id: {}", candidateId);
+    }
+    private static String githubLogin(String url) {
+        try {
+            java.net.URI uri = java.net.URI.create(url);
+            if (!("github.com".equalsIgnoreCase(uri.getHost()) || "www.github.com".equalsIgnoreCase(uri.getHost()))) return "";
+            String[] parts = uri.getPath().split("/");
+            return parts.length > 1 && parts[1].matches("[A-Za-z0-9-]{1,39}") ? parts[1] : "";
+        } catch (Exception invalid) { return ""; }
     }
 }

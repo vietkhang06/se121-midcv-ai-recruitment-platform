@@ -99,6 +99,7 @@ class CVExtractResponse(BaseModel):
     raw_text: Optional[str] = None
     pages: List[PageSegment] = Field(default_factory=list)
     warnings: List[str] = Field(default_factory=list)
+    ocr_corrections: Optional[dict] = None
     schema_version: str = "2.0"
     status: str = "SUCCESS"
     error_code: Optional[str] = None

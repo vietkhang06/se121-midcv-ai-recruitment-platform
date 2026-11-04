@@ -97,9 +97,10 @@ class AuditRemediationRegressionTest {
 
     @Test void submitSavesActualStructuredVersionAndReturnsItsNumber() {
         var actor=com.platform.recruitment.user.User.builder().role(com.platform.recruitment.user.Role.CANDIDATE).build();actor.setId(UUID.randomUUID());
-        when(candidates.findByUserId(actor.getId())).thenReturn(Optional.of(candidate));
-        when(cvs.findById(cv.getId())).thenReturn(Optional.of(cv));
+        when(candidates.findByUserIdForUpdate(actor.getId())).thenReturn(Optional.of(candidate));
+        when(cvs.findByIdForUpdate(cv.getId())).thenReturn(Optional.of(cv));
         when(versions.findByCvIdOrderByVersionNumberDesc(cv.getId())).thenReturn(List.of(version));
+        when(jobs.findByIdForApply(job.getId())).thenReturn(Optional.of(job));
         when(applications.save(any())).thenReturn(application);
         var snapshots=mock(ApplicationCVSnapshotRepository.class);
         var scorer=mock(MatchingEngineService.class);

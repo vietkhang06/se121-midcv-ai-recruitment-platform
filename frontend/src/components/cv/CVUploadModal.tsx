@@ -5,8 +5,8 @@ import { CV, CVQuota } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
 import { AnimatedModalShell, AnimatedStatus } from '@/components/motion';
-import { uploadCandidateCV, fetchCVProcessingStatus, retryCVExtraction, subscribeCVProcessingEvents, type CVProcessingEvent } from '@/lib/api';
-import { CVProcessingStatus } from '@/types';
+import { uploadCandidateCV, fetchCVProcessingStatus, retryCVExtraction, subscribeCVProcessingEvents } from '@/lib/api';
+import { waitForProcessing } from '@/lib/processingWait';
 import {
   X,
   UploadCloud,
@@ -137,143 +137,29 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
   };
 
   const pollProcessingStatus = async (cvId: string, cvEntity: CV, signal: AbortSignal) => {
-    let isDone = false;
-    const jobId = (cvEntity as CV & { jobId?: string }).jobId;
-
-    // 1. Subscribe to real-time SSE event stream for immediate stage progression
-    // Assign the unsubscribe callback before the event handler can use it.
-    // This also avoids a TypeScript self-reference error in the initializer.
-    let unsubscribe: () => void = () => {};
-    unsubscribe = subscribeCVProcessingEvents(
-      { cvId, jobId },
-      (eventData: CVProcessingEvent) => {
-        if (signal.aborted || isDone) return;
-        if (eventData.progress !== undefined && eventData.progress !== null) {
-          setProcessingProgress(Math.max(eventData.progress, 10));
-        }
-        if (eventData.message) {
-          setProcessingStageMessage(eventData.message);
-        }
-
-        const step = (eventData.step || '').toUpperCase();
-        const code = (eventData.code || '').toUpperCase();
-
-        if (step.includes('FAILED') || code.includes('FAILED')) {
-          isDone = true;
-          unsubscribe();
-          setStatus('FAILED');
-          setErrorMessage(eventData.message || 'Quá trình trích xuất hồ sơ gặp sự cố.');
-        } else if (
-          step.includes('SUCCEEDED') ||
-          step.includes('COMPLETED') ||
-          step.includes('NEEDS_REVIEW') ||
-          code.includes('JOB_SUCCEEDED')
-        ) {
-          isDone = true;
-          unsubscribe();
-          setProcessingProgress(100);
-          setStatus('COMPLETED');
-          if (onUploadSuccess) onUploadSuccess(cvEntity);
-          if (onSuccess) onSuccess();
-          setTimeout(() => {
-            if (!signal.aborted) {
-              onClose();
-              setStatus('IDLE');
-              setFile(null);
-              setUploadedCv(null);
-            }
-          }, 600);
-        }
-      },
-      (err) => {
-        console.warn('SSE stream notice, continuing background check:', err);
+    const result = await waitForProcessing({
+      signal,
+      poll: (requestSignal) => fetchCVProcessingStatus(cvId, requestSignal),
+      subscribe: (receive) => subscribeCVProcessingEvents(
+        { cvId, jobId: (cvEntity as CV & { jobId?: string }).jobId }, receive,
+        () => { /* Polling remains active when SSE disconnects. */ }
+      ),
+      onProgress: (event) => {
+        setProcessingProgress(Math.max(event.progress ?? 10, 10));
+        if (event.message) setProcessingStageMessage(event.message);
       }
-    );
-
-    // 2. Periodic status check fallback in case SSE connection drops
-    const maxAttempts = 60; // 60s timeout for safety
-    let attempts = 0;
-
-    while (!isDone && attempts < maxAttempts) {
-      if (signal.aborted) {
-        unsubscribe();
-        return;
-      }
-      await new Promise((r) => setTimeout(r, 1000));
-      if (signal.aborted || isDone) {
-        unsubscribe();
-        return;
-      }
-      attempts++;
-
-      try {
-        const statusResp: CVProcessingStatus = await fetchCVProcessingStatus(cvId);
-        if (signal.aborted || isDone) return;
-        if (statusResp) {
-          setProcessingProgress(Math.max(statusResp.progress || 10, 10));
-          if (statusResp.message) {
-            setProcessingStageMessage(statusResp.message);
-          }
-
-          if (statusResp.status === 'FAILED') {
-            isDone = true;
-            unsubscribe();
-            setStatus('FAILED');
-            const errDetail = statusResp.message || 'Quá trình trích xuất hồ sơ gặp sự cố.';
-            const codeDetail = statusResp.errorCode ? ` [${statusResp.errorCode}]` : '';
-            const corrDetail = statusResp.correlationId ? ` (Mã theo dõi: ${statusResp.correlationId})` : '';
-            setErrorMessage(`${errDetail}${codeDetail}${corrDetail}`);
-            return;
-          } else if (
-            statusResp.status === 'SUCCEEDED' ||
-            statusResp.status === 'COMPLETED' ||
-            statusResp.stage === 'NEEDS_REVIEW' ||
-            statusResp.status === 'CONFIRMED'
-          ) {
-            // Chỉ chuyển sang mở review khi processing-status trả về SUCCEEDED hoặc NEEDS_REVIEW hợp lệ
-            if (statusResp.progress && statusResp.progress >= 100) {
-              isDone = true;
-              unsubscribe();
-              setProcessingProgress(100);
-              setStatus('COMPLETED');
-              if (onUploadSuccess) onUploadSuccess(cvEntity);
-              if (onSuccess) onSuccess();
-              onClose();
-              return;
-            }
-          }
-        }
-      } catch (pollError: unknown) {
-        if (signal.aborted || isDone) return;
-        const pollErr = asRecord(pollError) || {};
-        const responseBody = asRecord(pollErr.responseBody) || {};
-        const pollMessage = typeof pollErr.message === 'string' ? pollErr.message : '';
-        const pollCode = String(pollErr.code || responseBody.code || '');
-        // Nếu polling gặp 404: dừng polling ngay lập tức và báo lỗi tính nhất quán ID/dữ liệu
-        const statusCode = pollErr.statusCode || pollErr.status || responseBody.code;
-        if (
-          statusCode === 404 ||
-          pollMessage.includes('404') ||
-          pollCode === 'RESOURCE_NOT_FOUND' ||
-          pollCode === 'CV_NOT_FOUND'
-        ) {
-          isDone = true;
-          unsubscribe();
-          setStatus('FAILED');
-          setErrorMessage('Lỗi tính nhất quán dữ liệu: Không tìm thấy phiên bản xử lý CV (ID không khớp giữa upload và processing). Vui lòng thử lại hoặc tải lại tệp.');
-          return;
-        }
-        console.warn('Polling processing status warning:', pollErr);
-      }
-    }
-
-    // Timeout tuyệt đối không được tự động chuyển sang COMPLETED hay mở review
-    if (!isDone && attempts >= maxAttempts) {
-      unsubscribe();
-      if (signal.aborted) return;
+    });
+    if (signal.aborted) return;
+    if ([result.status, result.stage, result.step, result.code].some(value => ['FAILED', 'JOB_FAILED', 'CANCELLED', 'JOB_CANCELLED'].includes(value?.toUpperCase() || ''))) {
       setStatus('FAILED');
-      setErrorMessage('Quá trình xử lý CV quá thời gian quy định (Timeout). Hệ thống chưa thể hoàn tất trích xuất. Vui lòng bấm Thử lại.');
+      setErrorMessage(result.message || 'Quá trình trích xuất hồ sơ gặp sự cố.');
+      return;
     }
+    setProcessingProgress(100);
+    setStatus('COMPLETED');
+    onUploadSuccess?.(cvEntity);
+    onSuccess?.();
+    onClose();
   };
 
   const handleStartProcessing = async (e: React.FormEvent) => {
@@ -298,7 +184,8 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
         file,
         cvTitle || file.name.replace(/\.[^/.]+$/, ''),
         undefined,
-        false
+        false,
+        signal
       );
 
       if (signal.aborted) return;
@@ -327,7 +214,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
       const signal = abortControllerRef.current.signal;
 
       try {
-        await retryCVExtraction(uploadedCv.id);
+        await retryCVExtraction(uploadedCv.id, signal);
         if (signal.aborted) return;
         await pollProcessingStatus(uploadedCv.id, uploadedCv, signal);
       } catch (err: unknown) {
@@ -375,7 +262,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
       descriptionId="cv-upload-modal-description"
       id="cv-upload-modal"
       testId="cv-upload-modal"
-      panelClassName="w-full max-w-xl bg-white dark:bg-[#111C38] border border-[#E2E8F0] dark:border-[#1E293B] rounded-2xl shadow-2xl p-6 sm:p-7 text-slate-800 dark:text-slate-100 relative transition-colors max-h-[90vh] overflow-y-auto"
+      panelClassName="w-full max-w-xl bg-white dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl shadow-2xl p-6 sm:p-7 text-slate-800 dark:text-slate-100 relative transition-colors max-h-[90vh] overflow-y-auto"
     >
       <div aria-busy={status === 'UPLOADING' || status === 'QUEUED' || status === 'PROCESSING'}>
         
@@ -385,18 +272,18 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
           onClick={handleClose}
           data-autofocus="true"
           aria-label={t('common.close', 'Đóng')}
-          className="absolute top-4 right-4 p-2 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#18294E] transition cursor-pointer"
+          className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[var(--surface)] transition cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-[#13233F] border border-blue-200 dark:border-blue-900/50 flex items-center justify-center text-[#2563EB] dark:text-[#3B82F6] shadow-sm flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-[var(--surface)] border border-blue-200 dark:border-blue-900/50 flex items-center justify-center text-[var(--primary)] dark:text-[var(--retro-sky)] shadow-sm flex-shrink-0">
             <UploadCloud className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#2563EB] dark:text-[#3B82F6] block">
+            <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-[var(--primary)] dark:text-[var(--retro-sky)] block">
             </span>
             <h3 id="cv-upload-modal-title" className="text-xl font-editorial font-bold text-slate-900 dark:text-white">
               {t('cvUpload.title', 'Tải Lên & Phân Tích CV (PDF / DOCX)')}
@@ -430,7 +317,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
               </div>
             )}
             {/* Drag & Drop Zone */}
-            <div className="border-2 border-dashed border-slate-300 dark:border-[#1E3A5F] hover:border-[#2563EB] dark:hover:border-[#3B82F6] rounded-2xl p-8 text-center bg-slate-50/50 dark:bg-[#13233F]/40 transition cursor-pointer group">
+            <div className="border-2 border-dashed border-slate-300 dark:border-[var(--border)] hover:border-[var(--border)] dark:hover:border-[var(--border)] rounded-xl p-8 text-center bg-slate-50/50 dark:bg-[var(--surface)]/40 transition cursor-pointer group">
               <input
                 type="file"
                 accept=".pdf,.docx,.doc,.png,.jpg,.jpeg,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,image/*"
@@ -439,7 +326,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
                 id="cv-file-modal-input"
               />
               <label htmlFor="cv-file-modal-input" className="cursor-pointer block space-y-2.5">
-                <div className="w-12 h-12 mx-auto rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-[#2563EB] dark:text-[#3B82F6] group-hover:scale-110 transition">
+                <div className="w-12 h-12 mx-auto rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-[var(--primary)] dark:text-[var(--retro-sky)] group-hover:scale-110 transition">
                   <FileText className="w-6 h-6" />
                 </div>
                 <div>
@@ -451,7 +338,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
                   </span>
                 </div>
                 {file && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#2563EB] dark:text-[#3B82F6] bg-blue-50 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800 px-2.5 py-0.5 rounded-full">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--primary)] dark:text-[var(--retro-sky)] bg-blue-50 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800 px-2.5 py-0.5 rounded-xl">
                     <CheckCircle2 className="w-3 h-3" />
                     {t('cvUpload.fileReady', 'Đã chọn sẵn sàng')}: {(file.size / 1024).toFixed(1)} KB
                   </span>
@@ -462,7 +349,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
             <button
               type="submit"
               disabled={!file || Boolean(quota && !quota.canUpload)}
-              className="w-full py-3 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3 rounded-xl text-xs font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>{t('cvUpload.startParse', 'Tải CV lên')}</span>
             </button>
@@ -477,25 +364,25 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
                 <CheckCircle2 className="w-16 h-16 text-emerald-500 animate-scale-in" aria-hidden="true" />
               ) : (
                 <>
-                  <div className="w-16 h-16 rounded-full border-4 border-slate-200 dark:border-[#1E293B] border-t-[#2563EB] animate-spin motion-reduce:animate-none" />
+                  <div className="w-16 h-16 rounded-xl border-4 border-slate-200 dark:border-[var(--border)] border-t-[var(--primary)] animate-spin motion-reduce:animate-none" />
                 </>
               )}
             </div>
 
             <div className="space-y-3 max-w-md mx-auto">
               <div className="flex items-center justify-between px-2">
-                <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-[#2563EB] dark:text-[#3B82F6] text-[10px] font-mono font-bold uppercase tracking-wider">
+                <span className="px-2.5 py-0.5 rounded-xl bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-[var(--primary)] dark:text-[var(--retro-sky)] text-[10px] font-sans font-bold uppercase tracking-wider">
                   TIẾN ĐỘ: {processingProgress}%
                 </span>
-                <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                <span className="text-[11px] font-sans text-slate-500 dark:text-slate-400">
                   {status === 'COMPLETED' ? 'HOÀN TẤT' : 'ĐANG XỬ LÝ'}
                 </span>
               </div>
 
               {/* Real Progress Bar */}
-              <div className="w-full bg-slate-100 dark:bg-[#18294E] rounded-full h-2.5 overflow-hidden border border-slate-200 dark:border-[#1E3A5F]">
+              <div className="w-full bg-slate-100 dark:bg-[var(--surface)] rounded-xl h-2.5 overflow-hidden border border-slate-200 dark:border-[var(--border)]">
                 <div
-                  className="bg-blue-600 h-2.5 rounded-full origin-left transition-transform duration-300 ease-out motion-reduce:transition-none"
+                  className="bg-blue-600 h-2.5 rounded-xl origin-left transition-transform duration-300 ease-out motion-reduce:transition-none"
                   style={{ transform: `scaleX(${Math.min(Math.max(processingProgress, 5), 100) / 100})` }}
                   role="progressbar"
                   aria-label={t('cvUpload.progressLabel', 'Tiến độ xử lý CV')}
@@ -526,7 +413,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
           <div className="space-y-4 animate-fade-in">
             <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300 flex items-center justify-between">
               <span className="font-semibold flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6] flex-shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-[var(--primary)] dark:text-[var(--retro-sky)] flex-shrink-0" />
                 {t('cvUpload.reviewSuccess', 'Trích xuất thành công! Kiểm tra và tinh chỉnh thông tin trước khi lưu.')}
               </span>
             </div>
@@ -540,7 +427,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
                   type="text"
                   value={cvTitle}
                   onChange={(e) => setCvTitle(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-slate-800 dark:text-white text-xs focus:outline-none focus:border-[#2563EB]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] text-slate-800 dark:text-white text-xs focus:outline-none focus:border-[var(--border)]"
                 />
               </div>
 
@@ -552,7 +439,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
                   rows={2}
                   value={extractedSummary}
                   onChange={(e) => setExtractedSummary(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-slate-800 dark:text-white text-xs focus:outline-none focus:border-[#2563EB] leading-relaxed"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] text-slate-800 dark:text-white text-xs focus:outline-none focus:border-[var(--border)] leading-relaxed"
                 />
               </div>
 
@@ -576,12 +463,12 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
                   rows={3}
                   value={extractedExp}
                   onChange={(e) => setExtractedExp(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] text-slate-800 dark:text-white text-xs focus:outline-none focus:border-[#2563EB] font-mono text-[11px] leading-relaxed"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] text-slate-800 dark:text-white text-xs focus:outline-none focus:border-[var(--border)] font-sans text-[11px] leading-relaxed"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-[#1E293B]">
+            <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-[var(--border)]">
               <button
                 type="button"
                 onClick={() => setStatus('IDLE')}
@@ -595,7 +482,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
                 type="button"
                 disabled={isSaving}
                 onClick={handleSaveParsedCV}
-                className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-50 transition shadow-md flex items-center gap-1.5 cursor-pointer"
+                className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary)] disabled:opacity-50 transition shadow-md flex items-center gap-1.5 cursor-pointer"
               >
                 {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <span>{isSaving ? 'Đang tải lên...' : t('cvUpload.confirmSave', 'Xác Nhận & Lưu Thư Viện CV')}</span>
@@ -608,7 +495,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
         {/* STEP: FAILED */}
         {status === 'FAILED' && (
           <AnimatedStatus stateKey="FAILED" isError className="py-8 text-center space-y-4">
-            <div className="w-12 h-12 mx-auto rounded-full bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+            <div className="w-12 h-12 mx-auto rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
               <AlertCircle className="w-6 h-6" />
             </div>
             <div className="space-y-1">
@@ -623,7 +510,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
               <button
                 type="button"
                 onClick={handleRetry}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary)] transition cursor-pointer"
               >
                 {t('cvUpload.retry', 'Thử Lại (Retry)')}
               </button>

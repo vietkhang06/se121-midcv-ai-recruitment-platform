@@ -1,5 +1,6 @@
 package com.platform.recruitment.config;
 
+import com.platform.recruitment.auth.AuthSessionService;
 import com.platform.recruitment.auth.JwtTokenProvider;
 import com.platform.recruitment.user.User;
 import com.platform.recruitment.user.UserRepository;
@@ -8,6 +9,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,7 +19,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -27,33 +30,60 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider tokenProvider;
     private final UserRepository userRepository;
 
+    @Autowired
+    private AuthSessionService sessions;
+
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
         try {
             String jwt = getJwtFromRequest(request);
 
-            if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
+            if (StringUtils.hasText(jwt) && tokenProvider.isAccessToken(jwt)) {
                 UUID userId = tokenProvider.getUserIdFromToken(jwt);
-                String role = tokenProvider.getRoleFromToken(jwt);
-
                 User user = userRepository.findById(userId).orElse(null);
-                if (user != null && user.getRole() != null && !user.isDeactivated()) {
-                    java.util.List<SimpleGrantedAuthority> authorities = new java.util.ArrayList<>();
-                    authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+                UUID sid = tokenProvider.getSessionId(jwt);
+
+                if ((sid == null || sessions.active(sid, userId))
+                        && user != null
+                        && user.getRole() != null
+                        && !user.isDeactivated()
+                        && (user.getAuthInvalidBefore() == null
+                            || tokenProvider.getIssuedAtMillis(jwt)
+                                > user.getAuthInvalidBefore().toEpochMilli())) {
+
+                    List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+                    authorities.add(
+                            new SimpleGrantedAuthority("ROLE_" + user.getRole().name())
+                    );
+
                     if (user.isSuspended()) {
                         authorities.add(new SimpleGrantedAuthority("ROLE_SUSPENDED"));
                     }
 
                     UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(user, null, authorities);
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                            new UsernamePasswordAuthenticationToken(
+                                    user,
+                                    null,
+                                    authorities
+                            );
 
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
+                    );
+
+                    SecurityContextHolder.getContext()
+                            .setAuthentication(authentication);
                 }
             }
         } catch (Exception ex) {
-            logger.error("Could not set user authentication in security context", ex);
+            logger.error(
+                    "Could not set user authentication in security context",
+                    ex
+            );
         }
 
         filterChain.doFilter(request, response);
@@ -61,9 +91,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+
+        if (StringUtils.hasText(bearerToken)
+                && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }
+
         // Authentication tokens must not be accepted from query strings, where
         // URLs can be retained in browser history, proxy logs, and referrers.
         return null;

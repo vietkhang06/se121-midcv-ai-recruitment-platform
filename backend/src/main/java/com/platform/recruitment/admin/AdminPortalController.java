@@ -40,6 +40,19 @@ public class AdminPortalController {
         return ResponseEntity.ok(ApiResponse.success("Thống kê bảng điều khiển quản trị", stats));
     }
 
+    @GetMapping("/users")
+    public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<UserAdminDto>>> listUsers(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) com.platform.recruitment.user.Role role,
+            @RequestParam(required = false) com.platform.recruitment.user.AccountStatus accountStatus,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        var pageable = com.platform.recruitment.common.PaginationUtils.createPageable(page, size,
+                "createdAt", "desc", java.util.Set.of("createdAt"), "createdAt");
+        return ResponseEntity.ok(ApiResponse.success(com.platform.recruitment.common.PageResponse.of(
+                adminService.listUsers(query, role, accountStatus, pageable), "createdAt", "desc")));
+    }
+
     // ==========================================
     // 2. CANDIDATE & RECRUITER MODERATION
     // ==========================================

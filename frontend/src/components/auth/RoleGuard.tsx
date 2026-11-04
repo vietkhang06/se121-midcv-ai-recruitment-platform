@@ -41,7 +41,7 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({ allowedRoles, children }) 
         id="role-guard-loading"
         className="min-h-[50vh] flex flex-col items-center justify-center space-y-4 p-8"
       >
-        <Loader2 className="w-8 h-8 animate-spin text-[#2563EB]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
           {locale === 'vi' ? 'Đang xác thực quyền truy cập...' : 'Verifying access authorization...'}
         </p>
@@ -54,9 +54,9 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({ allowedRoles, children }) 
     return (
       <div 
         id="role-guard-unauthenticated"
-        className="max-w-md mx-auto my-20 p-8 bg-white dark:bg-[#111C38] border border-amber-200 dark:border-amber-900/40 rounded-2xl text-center space-y-5 shadow-xl animate-fade-in"
+        className="max-w-md mx-auto my-20 p-8 bg-white dark:bg-[var(--surface)] border border-amber-200 dark:border-amber-900/40 rounded-xl text-center space-y-5 shadow-xl animate-fade-in"
       >
-        <div className="w-14 h-14 mx-auto rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-amber-400">
+        <div className="w-14 h-14 mx-auto rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-amber-400">
           <Lock className="w-7 h-7" />
         </div>
         <div className="space-y-2">
@@ -71,7 +71,7 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({ allowedRoles, children }) 
         </div>
         <button
           onClick={() => openAuthModal('LOGIN', { type: 'NAVIGATE', target: pathname })}
-          className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-xs cursor-pointer flex items-center justify-center gap-2"
+          className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[var(--primary)] hover:bg-[var(--primary)] transition shadow-xs cursor-pointer flex items-center justify-center gap-2"
         >
           <span>{locale === 'vi' ? 'Đăng nhập ngay' : 'Sign In Now'}</span>
           <ArrowRight className="w-4 h-4" />
@@ -90,9 +90,9 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({ allowedRoles, children }) 
     return (
       <div 
         id="role-guard-forbidden"
-        className="max-w-lg mx-auto my-20 p-8 bg-white dark:bg-[#111C38] border border-rose-200 dark:border-rose-900/40 rounded-2xl text-center space-y-5 shadow-xl animate-fade-in"
+        className="max-w-lg mx-auto my-20 p-8 bg-white dark:bg-[var(--surface)] border border-rose-200 dark:border-rose-900/40 rounded-xl text-center space-y-5 shadow-xl animate-fade-in"
       >
-        <div className="w-14 h-14 mx-auto rounded-full bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/40 flex items-center justify-center text-rose-600 dark:text-rose-400">
+        <div className="w-14 h-14 mx-auto rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/40 flex items-center justify-center text-rose-600 dark:text-rose-400">
           <ShieldAlert className="w-7 h-7" />
         </div>
         <div className="space-y-2">

@@ -42,6 +42,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
     private final EmailService emailService;
+    private final AuthSessionService sessions;
 
     @Transactional(readOnly = true)
     public EmailCheckResponse checkEmail(String email) {
@@ -136,7 +137,7 @@ public class AuthService {
                 )
                 .email(savedUser.getEmail())
                 .emailVerified(false)
-                .devVerificationToken(token)
+                .devVerificationToken(emailService instanceof com.platform.recruitment.email.MockEmailService ? token : null)
                 .build();
     }
 
@@ -199,7 +200,7 @@ public class AuthService {
                 )
                 .email(savedUser.getEmail())
                 .emailVerified(false)
-                .devVerificationToken(token)
+                .devVerificationToken(emailService instanceof com.platform.recruitment.email.MockEmailService ? token : null)
                 .build();
     }
 
@@ -303,7 +304,7 @@ public class AuthService {
         return "Verification email has been sent successfully.";
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public JwtResponse login(LoginRequest request) {
         User user = userRepository
                 .findByEmail(request.getEmail())
@@ -426,26 +427,6 @@ public class AuthService {
     }
 
     JwtResponse buildJwtResponse(User user) {
-        String accessToken =
-                tokenProvider.generateAccessToken(
-                        user.getId(),
-                        user.getEmail(),
-                        user.getRole()
-                );
-
-        String refreshToken =
-                tokenProvider.generateRefreshToken(
-                        user.getId()
-                );
-
-        return JwtResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .tokenType("Bearer")
-                .expiresIn(3600L)
-                .userId(user.getId())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .build();
+        return sessions.create(user);
     }
 }

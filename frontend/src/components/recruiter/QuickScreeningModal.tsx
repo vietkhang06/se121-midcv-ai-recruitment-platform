@@ -121,12 +121,12 @@ export function QuickScreeningModal({ job, isOpen, onClose }: QuickScreeningModa
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-        <div className="bg-white dark:bg-[#0F1A36] border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transition-colors">
+        <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transition-colors">
           {/* Header */}
           <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-900/40">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-mono">
+                <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-sans">
                   Sàng lọc nhanh hàng loạt (Multi-CV Screening)
                 </span>
               </div>
@@ -149,8 +149,8 @@ export function QuickScreeningModal({ job, isOpen, onClose }: QuickScreeningModa
           {/* Body */}
           <div className="p-6 overflow-y-auto space-y-6">
             {/* Upload Box */}
-            <div className="p-6 rounded-2xl border-2 border-dashed border-blue-200 dark:border-blue-900/50 bg-blue-50/30 dark:bg-blue-950/10 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500 text-white flex items-center justify-center mx-auto shadow-sm">
+            <div className="p-6 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/50 bg-blue-50/30 dark:bg-blue-950/10 text-center space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-blue-500 text-white flex items-center justify-center mx-auto shadow-sm">
                 <Upload className="w-6 h-6" />
               </div>
               <div>
@@ -229,7 +229,7 @@ export function QuickScreeningModal({ job, isOpen, onClose }: QuickScreeningModa
                 </h3>
                 <button
                   onClick={loadScreenings}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
                   title="Làm mới danh sách"
                 >
                   <RefreshCw className="w-4 h-4" />
@@ -242,11 +242,11 @@ export function QuickScreeningModal({ job, isOpen, onClose }: QuickScreeningModa
                   <span>Đang tải danh sách sàng lọc...</span>
                 </div>
               ) : runs.length === 0 ? (
-                <div className="p-8 text-center text-slate-400 text-xs border border-slate-100 dark:border-slate-800 rounded-2xl">
+                <div className="p-8 text-center text-slate-400 text-xs border border-slate-100 dark:border-slate-800 rounded-xl">
                   Chưa có CV nào được sàng lọc cho tin này. Tải lên CV ở khung phía trên để bắt đầu.
                 </div>
               ) : (
-                <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
+                <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead className="bg-slate-50 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
                       <tr>
@@ -257,7 +257,7 @@ export function QuickScreeningModal({ job, isOpen, onClose }: QuickScreeningModa
                         <th className="py-3 px-4 text-right">Thao tác</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-[#111C38]">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-[var(--surface)]">
                       {runs.map((r) => {
                         const isReady = r.processing_state === 'SUCCEEDED' || (r.score != null && r.score > 0);
                         const isProcessing = r.processing_state === 'RUNNING' || r.processing_state === 'QUEUED';
@@ -274,24 +274,24 @@ export function QuickScreeningModal({ job, isOpen, onClose }: QuickScreeningModa
 
                             <td className="py-3 px-4">
                               {isProcessing ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-mono">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-sans">
                                   <Loader2 className="w-3 h-3 animate-spin" />
                                   {r.processing_state || 'PROCESSING'}
                                 </span>
                               ) : isReady ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-mono">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-sans">
                                   <CheckCircle2 className="w-3 h-3" />
                                   READY
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 font-mono">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 font-sans">
                                   <AlertCircle className="w-3 h-3" />
                                   {r.error_code || 'FAILED'}
                                 </span>
                               )}
                             </td>
 
-                            <td className="py-3 px-4 font-mono font-bold">
+                            <td className="py-3 px-4 font-sans font-bold">
                               {r.score != null ? (
                                 <span className="text-blue-600 dark:text-blue-400 text-sm">
                                   {Number(r.score).toFixed(1)}%
@@ -301,7 +301,7 @@ export function QuickScreeningModal({ job, isOpen, onClose }: QuickScreeningModa
                               )}
                             </td>
 
-                            <td className="py-3 px-4 font-mono">
+                            <td className="py-3 px-4 font-sans">
                               {r.coverage != null ? (
                                 <span className="text-slate-700 dark:text-slate-300">
                                   {Number(r.coverage).toFixed(0)}%
@@ -317,7 +317,7 @@ export function QuickScreeningModal({ job, isOpen, onClose }: QuickScreeningModa
                                   type="button"
                                   onClick={() => handleViewDetail(r.id)}
                                   disabled={detailLoading}
-                                  className="px-3 py-1 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition"
+                                  className="px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition"
                                 >
                                   Xem chi tiết
                                 </button>
@@ -327,7 +327,7 @@ export function QuickScreeningModal({ job, isOpen, onClose }: QuickScreeningModa
                                 <button
                                   type="button"
                                   onClick={() => handleRematch(r.id)}
-                                  className="px-3 py-1 rounded-lg text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition"
+                                  className="px-3 py-1 rounded-xl text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition"
                                 >
                                   Thử lại
                                 </button>

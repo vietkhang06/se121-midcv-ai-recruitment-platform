@@ -22,12 +22,12 @@ export const CVCard: React.FC<CVCardProps> = ({
   onDelete
 }) => {
   return (
-    <div className="motion-hover-lift bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#3B82F6] rounded-2xl p-5 shadow-xs hover:shadow-md flex flex-col justify-between group transition-colors">
+    <div className="motion-hover-lift bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] hover:border-[var(--border)] dark:hover:border-[var(--border)] rounded-xl p-5 shadow-xs hover:shadow-md flex flex-col justify-between group transition-colors">
       <div className="space-y-3">
         {/* Header Badges */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className={`px-2 py-0.5 rounded-lg text-[11px] font-medium ${
+            <span className={`px-2 py-0.5 rounded-xl text-[11px] font-medium ${
               cv.creationPath === 'BUILDER'
                 ? 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-500/30'
                 : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30'
@@ -36,7 +36,7 @@ export const CVCard: React.FC<CVCardProps> = ({
             </span>
           </div>
           {cv.isDefault && (
-            <span className="flex items-center gap-1 text-[11px] font-semibold text-[#00B14F] dark:text-[#10B981] bg-[#E8F8EE] dark:bg-[#00B14F]/15 border border-[#00B14F]/30 px-2 py-0.5 rounded-full">
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-[var(--success)] dark:text-[var(--success)] bg-[var(--surface-secondary)] dark:bg-[var(--success)]/15 border border-[var(--border)]/30 px-2 py-0.5 rounded-xl">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>CV Mặc định</span>
             </span>
@@ -45,18 +45,18 @@ export const CVCard: React.FC<CVCardProps> = ({
 
         {/* Title */}
         <div>
-          <h3 className="text-base font-bold text-[#0F2A52] dark:text-white group-hover:text-[#2563EB] dark:group-hover:text-[#3B82F6] transition-colors line-clamp-1">
+          <h3 className="text-base font-bold text-[var(--heading)] dark:text-white group-hover:text-[var(--primary)] dark:group-hover:text-[var(--retro-sky)] transition-colors line-clamp-1">
             {cv.title}
           </h3>
         </div>
 
         {/* Info Line */}
-        <div className="flex items-center justify-between text-xs text-[#64748B] dark:text-[#94A3B8] pt-2 border-t border-slate-100 dark:border-slate-800/80">
+        <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)] pt-2 border-t border-slate-100 dark:border-slate-800/80">
           <span className="flex items-center gap-1">
             <Calendar className="w-3.5 h-3.5" />
             <span>Cập nhật: {cv.updatedAt}</span>
           </span>
-          <span className="font-mono text-[#2563EB] dark:text-[#3B82F6] font-semibold text-[11px]">v{cv.currentVersionNumber}.0</span>
+          <span className="font-sans text-[var(--primary)] dark:text-[var(--retro-sky)] font-semibold text-[11px]">v{cv.currentVersionNumber}.0</span>
         </div>
       </div>
 
@@ -65,25 +65,25 @@ export const CVCard: React.FC<CVCardProps> = ({
         <button
           onClick={() => onPreview(cv)}
           title="Xem trước CV"
-          className="flex items-center justify-center py-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-600 dark:text-slate-300 hover:text-[#2563EB] dark:hover:text-[#60A5FA] border border-slate-200/80 dark:border-slate-700/60 transition cursor-pointer"
+          className="flex items-center justify-center py-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-600 dark:text-slate-300 hover:text-[var(--primary)] dark:hover:text-[var(--retro-sky)] border border-slate-200/80 dark:border-slate-700/60 transition cursor-pointer"
         >
-          <Eye className="w-4 h-4 text-[#2563EB] dark:text-cyan-400" />
+          <Eye className="w-4 h-4 text-[var(--primary)] dark:text-cyan-400" />
         </button>
 
         <button
           onClick={() => onEdit(cv)}
           title="Chỉnh sửa CV"
-          className="flex items-center justify-center py-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-600 dark:text-slate-300 hover:text-[#2563EB] dark:hover:text-[#60A5FA] border border-slate-200/80 dark:border-slate-700/60 transition cursor-pointer"
+          className="flex items-center justify-center py-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-600 dark:text-slate-300 hover:text-[var(--primary)] dark:hover:text-[var(--retro-sky)] border border-slate-200/80 dark:border-slate-700/60 transition cursor-pointer"
         >
-          <Edit3 className="w-4 h-4 text-[#2563EB] dark:text-indigo-400" />
+          <Edit3 className="w-4 h-4 text-[var(--primary)] dark:text-indigo-400" />
         </button>
 
         <button
           onClick={() => onDuplicate(cv)}
           title="Nhân bản CV"
-          className="flex items-center justify-center py-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-slate-600 dark:text-slate-300 hover:text-[#00B14F] dark:hover:text-emerald-400 border border-slate-200/80 dark:border-slate-700/60 transition cursor-pointer"
+          className="flex items-center justify-center py-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-slate-600 dark:text-slate-300 hover:text-[var(--success)] dark:hover:text-emerald-400 border border-slate-200/80 dark:border-slate-700/60 transition cursor-pointer"
         >
-          <Copy className="w-4 h-4 text-[#00B14F] dark:text-emerald-400" />
+          <Copy className="w-4 h-4 text-[var(--success)] dark:text-emerald-400" />
         </button>
 
         <button

@@ -16,17 +16,17 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
   return (
     <div className="space-y-6 font-sans">
       {/* Algorithm Version & Transparency Header Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-xl text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl text-xs">
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           <span className="font-semibold text-slate-700 dark:text-slate-200">
             {locale === 'vi' ? 'Mô hình Đánh giá Minh bạch:' : 'Explainable Audit Model:'}
           </span>
-          <span className="font-mono px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold text-[11px]">
+          <span className="font-sans px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold text-[11px]">
             {data.algorithmVersion || 'v2.0 Grounded'}
           </span>
           {data.calculationStatus && (
-            <span className="font-mono px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-semibold text-[10px]">
+            <span className="font-sans px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-semibold text-[10px]">
               {data.calculationStatus}
             </span>
           )}
@@ -40,10 +40,10 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
       {/* 3-Tier Official Scores Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {/* Overall Score */}
-        <div className="bg-[#111C38] border border-[#1E293B] rounded-2xl p-6 text-white shadow-xs relative overflow-hidden space-y-2">
-          <span className="text-xs font-bold text-[#3B82F6] uppercase tracking-wider block font-mono">Overall Match Score</span>
+        <div className="bg-[var(--retro-deep)] border border-[var(--border)] rounded-xl p-6 text-white shadow-xs relative overflow-hidden space-y-2">
+          <span className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider block font-sans">Overall Match Score</span>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-extrabold text-white font-mono">
+            <span className="text-4xl font-extrabold text-white font-sans">
               {data.overallScore !== null && data.overallScore !== undefined ? `${data.overallScore.toFixed(1)}%` : 'N/A'}
             </span>
             <span className="text-xs text-blue-200/80 font-medium">/ 100%</span>
@@ -56,10 +56,10 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
         </div>
 
         {/* Core JD-CV Score */}
-        <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 shadow-xs space-y-2 transition-colors">
-          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block font-mono">Core JD-CV Score</span>
+        <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 shadow-xs space-y-2 transition-colors">
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block font-sans">Core JD-CV Score</span>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-slate-900 dark:text-white font-mono">
+            <span className="text-3xl font-bold text-slate-900 dark:text-white font-sans">
               {data.coreScore !== null && data.coreScore !== undefined ? `${data.coreScore.toFixed(1)}%` : 'N/A'}
             </span>
           </div>
@@ -69,14 +69,14 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
         </div>
 
         {/* GitHub Supporting Score */}
-        <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 shadow-xs space-y-2 transition-colors">
-          <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1 font-mono">
-            <GitBranch className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#3B82F6]" />
+        <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 shadow-xs space-y-2 transition-colors">
+          <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1 font-sans">
+            <GitBranch className="w-3.5 h-3.5 text-[var(--primary)] dark:text-[var(--retro-sky)]" />
             <span>GitHub Supporting Score</span>
           </span>
           <div className="flex items-baseline gap-2">
             {data.githubScoreActive && data.githubScore !== null && data.githubScore !== undefined ? (
-              <span className="text-3xl font-bold text-slate-900 dark:text-white font-mono">{data.githubScore.toFixed(1)}%</span>
+              <span className="text-3xl font-bold text-slate-900 dark:text-white font-sans">{data.githubScore.toFixed(1)}%</span>
             ) : (
               <span className="text-sm font-semibold text-slate-400 dark:text-slate-500 italic">
                 {locale === 'vi' ? 'Chưa thể đánh giá (Not Connected / Optional)' : 'Not Available (Not Connected / Optional)'}
@@ -90,10 +90,10 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
       </div>
 
       {/* Semantic Skills Status Section: Required vs Preferred */}
-      <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-7 shadow-xs space-y-6 transition-colors">
-        <div className="border-b border-slate-100 dark:border-[#1E293B] pb-4">
+      <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 sm:p-7 shadow-xs space-y-6 transition-colors">
+        <div className="border-b border-slate-100 dark:border-[var(--border)] pb-4">
           <h3 className="text-base font-bold font-editorial text-slate-900 dark:text-white flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-[#2563EB] dark:text-[#3B82F6]" />
+            <CheckCircle2 className="w-5 h-5 text-[var(--primary)] dark:text-[var(--retro-sky)]" />
             <span>
               {locale === 'vi'
                 ? 'Skills Proficiency Mapping Audit (Đánh giá Kỹ năng Bắt buộc vs Kỹ năng Ưu tiên)'
@@ -109,7 +109,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
 
         {/* Required Skills Grid */}
         <div className="space-y-3">
-          <span className="text-xs font-bold text-[#2563EB] dark:text-[#3B82F6] uppercase tracking-wider block font-mono">
+          <span className="text-xs font-bold text-[var(--primary)] dark:text-[var(--retro-sky)] uppercase tracking-wider block font-sans">
             1. Kỹ năng Bắt buộc (Required Skills - Gate Baseline)
           </span>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -124,8 +124,8 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                 style={{ animationDelay: `${staggerDelay(idx)}ms` }}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 dark:text-white font-mono">{item.skillName}</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
+                  <span className="font-bold text-slate-900 dark:text-white font-sans">{item.skillName}</span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-sans ${
                     item.status === 'MATCH' ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200' : 'bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200'
                   }`}>
                     {item.status === 'MATCH' ? 'MATCH ✓' : 'MISSING ✗'}
@@ -145,8 +145,8 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
 
         {/* Preferred Skills Grid */}
         {data.preferredSkillsStatus.length > 0 && (
-          <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-[#1E293B]">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block font-mono">
+          <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-[var(--border)]">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block font-sans">
               {locale === 'vi' ? '2. Kỹ năng Ưu tiên (Preferred Skills - Point Bonus Only)' : '2. Preferred Skills (Point Bonus Only)'}
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -155,14 +155,14 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                   key={idx}
                   className={`animate-fade-in p-3 rounded-xl border space-y-1 text-xs transition-colors ${
                     item.status === 'MATCH'
-                      ? 'bg-slate-50 dark:bg-[#13233F] border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300'
-                      : 'bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-slate-600 dark:text-slate-400'
+                      ? 'bg-slate-50 dark:bg-[var(--surface)] border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300'
+                      : 'bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] text-slate-600 dark:text-slate-400'
                   }`}
                   style={{ animationDelay: `${staggerDelay(idx)}ms` }}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-900 dark:text-white font-mono">{item.skillName}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] text-slate-600 dark:text-slate-400 font-medium font-mono">
+                    <span className="font-semibold text-slate-900 dark:text-white font-sans">{item.skillName}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] text-slate-600 dark:text-slate-400 font-medium font-sans">
                       {item.status === 'MATCH' ? '+ Point Bonus' : (locale === 'vi' ? 'Không tìm thấy' : 'Not Provided')}
                     </span>
                   </div>
@@ -174,13 +174,13 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
       </div>
 
       {/* Match Factor Breakdown List with Mathematical Explainability */}
-      <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 shadow-xs space-y-4 transition-colors">
-        <div className="border-b border-slate-100 dark:border-[#1E293B] pb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 shadow-xs space-y-4 transition-colors">
+        <div className="border-b border-slate-100 dark:border-[var(--border)] pb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-base font-bold font-editorial text-slate-900 dark:text-white flex items-center gap-2">
             <Calculator className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <span>{locale === 'vi' ? 'Chi tiết Thành phần & Tái dựng Điểm (Explainable Factor Breakdown)' : 'Explainable Match Factors Breakdown'}</span>
           </h3>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-sans">
             {locale === 'vi' ? 'Công thức: Score = ∑(Score_i × EffectiveWeight_i)' : 'Formula: Score = ∑(Score_i × EffectiveWeight_i)'}
           </span>
         </div>
@@ -189,11 +189,11 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
           {data.matchFactors.map((factor, idx) => {
             const isNotAvailable = factor.status === 'NOT_AVAILABLE' || factor.score === null;
             return (
-              <div key={idx} className="p-4 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] space-y-2 text-xs transition-colors">
+              <div key={idx} className="p-4 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] space-y-2 text-xs transition-colors">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-900 dark:text-white font-mono text-sm">{factor.factorName}</span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                    <span className="font-bold text-slate-900 dark:text-white font-sans text-sm">{factor.factorName}</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-sans font-bold ${
                       isNotAvailable
                         ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
                         : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
@@ -201,7 +201,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                       {factor.status || (isNotAvailable ? 'NOT_AVAILABLE' : 'AVAILABLE')}
                     </span>
                     {factor.calculationMethod && (
-                      <span className="hidden sm:inline-block text-[10px] text-slate-500 dark:text-slate-400 font-mono bg-white dark:bg-[#111C38] px-1.5 py-0.5 rounded border border-slate-200 dark:border-[#1E293B]">
+                      <span className="hidden sm:inline-block text-[10px] text-slate-500 dark:text-slate-400 font-sans bg-white dark:bg-[var(--surface)] px-1.5 py-0.5 rounded border border-slate-200 dark:border-[var(--border)]">
                         {factor.calculationMethod}
                       </span>
                     )}
@@ -210,17 +210,17 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                   {/* Score & Weighted Contribution */}
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <span className="text-[10px] text-slate-400 block font-mono">Điểm thô / Normalized</span>
+                      <span className="text-[10px] text-slate-400 block font-sans">Điểm thô / Normalized</span>
                       {isNotAvailable ? (
-                        <span className="font-mono text-xs font-semibold text-slate-400 italic">Chưa có dữ liệu</span>
+                        <span className="font-sans text-xs font-semibold text-slate-400 italic">Chưa có dữ liệu</span>
                       ) : (
-                        <span className="font-mono font-bold text-slate-900 dark:text-white">{factor.score?.toFixed(1)}%</span>
+                        <span className="font-sans font-bold text-slate-900 dark:text-white">{factor.score?.toFixed(1)}%</span>
                       )}
                     </div>
                     {factor.weightedContribution !== undefined && (
-                      <div className="text-right pl-3 border-l border-slate-200 dark:border-[#1E293B]">
-                        <span className="text-[10px] text-slate-400 block font-mono">Đóng góp (+pts)</span>
-                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      <div className="text-right pl-3 border-l border-slate-200 dark:border-[var(--border)]">
+                        <span className="text-[10px] text-slate-400 block font-sans">Đóng góp (+pts)</span>
+                        <span className="font-sans font-bold text-emerald-600 dark:text-emerald-400">
                           +{factor.weightedContribution.toFixed(2)}
                         </span>
                       </div>
@@ -230,7 +230,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
 
                 {/* Weights info bar */}
                 {(factor.configuredWeight !== undefined || factor.effectiveWeight !== undefined) && (
-                  <div className="flex items-center gap-4 text-[11px] text-slate-500 dark:text-slate-400 font-mono bg-white dark:bg-[#111C38] px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#1E293B]">
+                  <div className="flex items-center gap-4 text-[11px] text-slate-500 dark:text-slate-400 font-sans bg-white dark:bg-[var(--surface)] px-3 py-1.5 rounded-xl border border-slate-200 dark:border-[var(--border)]">
                     <span>Trọng số chuẩn: <strong>{((factor.configuredWeight ?? 0) * 100).toFixed(1)}%</strong></span>
                     <span>•</span>
                     <span className="text-blue-600 dark:text-blue-400">
@@ -241,7 +241,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
 
                 <p className="text-slate-600 dark:text-slate-300">{factor.explanation}</p>
                 {factor.evidence && (
-                  <div className="text-[11px] text-slate-800 dark:text-slate-200 font-mono bg-white dark:bg-[#111C38] p-2.5 rounded-lg border border-slate-200 dark:border-[#1E293B] flex items-start gap-2">
+                  <div className="text-[11px] text-slate-800 dark:text-slate-200 font-sans bg-white dark:bg-[var(--surface)] p-2.5 rounded-xl border border-slate-200 dark:border-[var(--border)] flex items-start gap-2">
                     <FileCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                     <span><strong>Minh chứng đã lưu:</strong> {factor.evidence}</span>
                   </div>
@@ -253,8 +253,8 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
       </div>
 
       {/* Evidence Audit Map: Grounded Evidence from PostgreSQL evidences table */}
-      <div id="evidence-audit-map" className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 sm:p-7 shadow-xs space-y-5 transition-colors">
-        <div className="border-b border-slate-100 dark:border-[#1E293B] pb-4 flex flex-wrap items-center justify-between gap-3">
+      <div id="evidence-audit-map" className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 sm:p-7 shadow-xs space-y-5 transition-colors">
+        <div className="border-b border-slate-100 dark:border-[var(--border)] pb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-bold font-editorial text-slate-900 dark:text-white flex items-center gap-2">
               <FileCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
@@ -270,7 +270,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                 : 'Directly loaded from the PostgreSQL evidences table. Evidences are stored at scoring time and persist across reloads.'}
             </p>
           </div>
-          <span className="font-mono text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+          <span className="font-sans text-[11px] font-bold px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
             ✓ {data.evidences?.length || 0} {locale === 'vi' ? 'Minh chứng đã lưu' : 'Persisted Evidences'}
           </span>
         </div>
@@ -280,38 +280,38 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
             {data.evidences.map((ev, idx) => (
               <div
                 key={ev.id || idx}
-                className="p-4 rounded-xl bg-slate-50/80 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] space-y-2.5 text-xs transition-colors"
+                className="p-4 rounded-xl bg-slate-50/80 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] space-y-2.5 text-xs transition-colors"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-sans font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700">
                       {ev.sourceType}
                     </span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-sans font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                       {ev.section}
                     </span>
                     {ev.requirementText && (
-                      <span className="font-semibold text-slate-900 dark:text-white font-mono text-[11px]">
+                      <span className="font-semibold text-slate-900 dark:text-white font-sans text-[11px]">
                         {ev.requirementText}
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
+                  <span className="text-[10px] font-sans font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
                     {ev.validationStatus || 'VERIFIED'}
                   </span>
                 </div>
 
-                <div className="p-3 rounded-lg bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] space-y-1">
-                  <span className="text-[10px] uppercase font-mono text-slate-400 block font-semibold">
+                <div className="p-3 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] space-y-1">
+                  <span className="text-[10px] uppercase font-sans text-slate-400 block font-semibold">
                     {locale === 'vi' ? 'Trích đoạn văn bản gốc (Verbatim Quote):' : 'Verbatim Quote:'}
                   </span>
-                  <p className="text-slate-800 dark:text-slate-200 italic font-serif leading-relaxed">
+                  <p className="text-slate-800 dark:text-slate-200 italic font-sans leading-relaxed">
                     "{ev.snippet}"
                   </p>
                 </div>
 
                 {ev.normalizedValue !== undefined && (
-                  <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200/60 dark:border-[#1E293B]">
+                  <div className="flex items-center justify-between text-[11px] font-sans text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200/60 dark:border-[var(--border)]">
                     <span>Trạng thái: <strong className="text-emerald-600 dark:text-emerald-400">{ev.matchStatus || 'MATCH'}</strong></span>
                     <span>Độ tin cậy: <strong>{ev.normalizedValue}%</strong></span>
                   </div>
@@ -320,7 +320,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
             ))}
           </div>
         ) : (
-          <div className="p-6 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-dashed border-slate-300 dark:border-[#1E293B] text-center text-xs text-slate-500 space-y-1">
+          <div className="p-6 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-dashed border-slate-300 dark:border-[var(--border)] text-center text-xs text-slate-500 space-y-1">
             <p className="font-medium">
               {locale === 'vi' ? 'Chưa có bản ghi minh chứng nào được lưu trong bảng evidences.' : 'No persisted evidence records found in evidences table.'}
             </p>

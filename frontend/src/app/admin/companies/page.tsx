@@ -112,42 +112,42 @@ export default function AdminCompaniesPage() {
     switch (status) {
       case 'VERIFIED':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
             <CheckCircle2 className="w-3 h-3" />
             Đã xác minh
           </span>
         );
       case 'UNDER_REVIEW':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
             <Eye className="w-3 h-3" />
             Đang thẩm định
           </span>
         );
       case 'CHANGES_REQUESTED':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
             <FileEdit className="w-3 h-3" />
             Yêu cầu sửa đổi
           </span>
         );
       case 'PENDING':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
             <Clock className="w-3 h-3" />
             Chờ thẩm định
           </span>
         );
       case 'REJECTED':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
             <XCircle className="w-3 h-3" />
             Bị từ chối
           </span>
         );
       case 'SUSPENDED':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
             <Ban className="w-3 h-3" />
             Bị đình chỉ
           </span>
@@ -158,7 +158,7 @@ export default function AdminCompaniesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#060D1E] text-slate-800 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 transition-colors">
       <main className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6">
         
         {/* Breadcrumb Navigation */}
@@ -213,7 +213,7 @@ export default function AdminCompaniesPage() {
         )}
 
         {/* Search & Filter Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 shadow-xs">
           <div className="relative w-full sm:w-80">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -244,7 +244,7 @@ export default function AdminCompaniesPage() {
                   setFilterStatus(st.id);
                   setCurrentPage(0);
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
                   filterStatus === st.id
                     ? 'bg-indigo-600 text-white shadow-xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -258,7 +258,7 @@ export default function AdminCompaniesPage() {
 
         {/* Loading State */}
         {loading && (
-          <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-[#0B1329] rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-[var(--surface)] rounded-xl border border-slate-200 dark:border-slate-800">
             <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-3" />
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Đang tải danh sách thẩm định doanh nghiệp...</p>
           </div>
@@ -266,7 +266,7 @@ export default function AdminCompaniesPage() {
 
         {/* Error State */}
         {!loading && error && (
-          <div className="p-8 rounded-2xl bg-white dark:bg-[#0B1329] border border-rose-200 dark:border-rose-900/50 text-center space-y-4">
+          <div className="p-8 rounded-xl bg-white dark:bg-[var(--surface)] border border-rose-200 dark:border-rose-900/50 text-center space-y-4">
             <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">Lỗi tải dữ liệu</h3>
             <p className="text-xs text-rose-600 dark:text-rose-400 max-w-md mx-auto">{error}</p>
@@ -282,7 +282,7 @@ export default function AdminCompaniesPage() {
 
         {/* Empty State */}
         {!loading && !error && companies.length === 0 && (
-          <div className="p-12 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 text-center space-y-3">
+          <div className="p-12 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 text-center space-y-3">
             <Building2 className="w-10 h-10 text-slate-400 mx-auto" />
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">Không có doanh nghiệp nào</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
@@ -293,9 +293,9 @@ export default function AdminCompaniesPage() {
 
         {/* Company Table */}
         {!loading && !error && companies.length > 0 && (
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1329] shadow-xs">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[var(--surface)] shadow-xs">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-[#111C38] text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider">
+              <thead className="bg-slate-50 dark:bg-[var(--surface)] text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider">
                 <tr>
                   <th className="py-3.5 px-4">Tên Doanh Nghiệp</th>
                   <th className="py-3.5 px-4">Mã Số Thuế</th>
@@ -317,7 +317,7 @@ export default function AdminCompaniesPage() {
                         Website: {c.website || 'Chưa cung cấp'}
                       </span>
                     </td>
-                    <td className="py-4 px-4 font-mono text-slate-700 dark:text-slate-300">
+                    <td className="py-4 px-4 font-sans text-slate-700 dark:text-slate-300">
                       {c.taxCode || 'Chưa có'}
                     </td>
                     <td className="py-4 px-4 text-slate-600 dark:text-slate-300">
@@ -335,7 +335,7 @@ export default function AdminCompaniesPage() {
                         {c.verificationStatus === 'PENDING' && (
                           <button
                             onClick={() => handleOpenActionModal(c, 'START_REVIEW')}
-                            className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px] transition flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px] transition flex items-center gap-1 cursor-pointer"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             <span>Bắt đầu duyệt</span>
@@ -346,7 +346,7 @@ export default function AdminCompaniesPage() {
                           <>
                             <button
                               onClick={() => handleOpenActionModal(c, 'VERIFY')}
-                              className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition flex items-center gap-1 cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition flex items-center gap-1 cursor-pointer"
                             >
                               <ShieldCheck className="w-3.5 h-3.5" />
                               <span>Xác minh</span>
@@ -354,7 +354,7 @@ export default function AdminCompaniesPage() {
 
                             <button
                               onClick={() => handleOpenActionModal(c, 'REQUEST_CHANGES')}
-                              className="px-2.5 py-1.5 rounded-lg border border-purple-300 dark:border-purple-800 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 font-semibold text-[11px] transition flex items-center gap-1 cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-xl border border-purple-300 dark:border-purple-800 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 font-semibold text-[11px] transition flex items-center gap-1 cursor-pointer"
                             >
                               <FileEdit className="w-3.5 h-3.5" />
                               <span>Yêu cầu sửa</span>
@@ -362,7 +362,7 @@ export default function AdminCompaniesPage() {
 
                             <button
                               onClick={() => handleOpenActionModal(c, 'REJECT')}
-                              className="px-2.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-semibold text-[11px] transition flex items-center gap-1 cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-semibold text-[11px] transition flex items-center gap-1 cursor-pointer"
                             >
                               <XCircle className="w-3.5 h-3.5" />
                               <span>Từ chối</span>
@@ -373,7 +373,7 @@ export default function AdminCompaniesPage() {
                         {c.verificationStatus === 'VERIFIED' && (
                           <button
                             onClick={() => handleOpenActionModal(c, 'SUSPEND')}
-                            className="px-2.5 py-1.5 rounded-lg border border-amber-300 dark:border-amber-800 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 font-semibold text-[11px] transition flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-xl border border-amber-300 dark:border-amber-800 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 font-semibold text-[11px] transition flex items-center gap-1 cursor-pointer"
                           >
                             <Ban className="w-3.5 h-3.5" />
                             <span>Đình chỉ</span>
@@ -383,7 +383,7 @@ export default function AdminCompaniesPage() {
                         {c.verificationStatus === 'SUSPENDED' && (
                           <button
                             onClick={() => handleOpenActionModal(c, 'RESTORE')}
-                            className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition flex items-center gap-1 cursor-pointer"
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
                             <span>Khôi phục</span>
@@ -406,14 +406,14 @@ export default function AdminCompaniesPage() {
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
                     disabled={currentPage === 0}
-                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
+                    className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
                     disabled={currentPage >= totalPages - 1}
-                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
+                    className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -426,7 +426,7 @@ export default function AdminCompaniesPage() {
         {/* Action Confirmation Modal */}
         {selectedCompany && actionType && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-            <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 p-6 shadow-xl space-y-4">
+            <div className="w-full max-w-md rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 p-6 shadow-xl space-y-4">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600">
                   <ShieldCheck className="w-6 h-6" />

@@ -128,7 +128,7 @@ export const EvidenceAttachmentControl: React.FC<EvidenceAttachmentControlProps>
       />
 
       {attachment ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-lg border border-slate-200 dark:border-[#1E293B] bg-slate-50/80 dark:bg-[#111C38]/80 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-xl border border-slate-200 dark:border-[var(--border)] bg-slate-50/80 dark:bg-[var(--surface)]/80 text-xs">
           <div className="flex items-center gap-2 min-w-0">
             <FileText className="w-4 h-4 text-blue-500 shrink-0" />
             <div className="min-w-0">
@@ -137,7 +137,7 @@ export const EvidenceAttachmentControl: React.FC<EvidenceAttachmentControlProps>
               </span>
               <div className="flex items-center gap-2 text-[10px] text-slate-400">
                 <span>{(attachment.fileSize / 1024).toFixed(1)} KB</span>
-                <span className="px-1.5 py-0.2 rounded-full font-mono font-medium text-[9px] bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                <span className="px-1.5 py-0.2 rounded-xl font-sans font-medium text-[9px] bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
                   {attachment.status || 'UNVERIFIED'}
                 </span>
               </div>
@@ -148,7 +148,7 @@ export const EvidenceAttachmentControl: React.FC<EvidenceAttachmentControlProps>
             <button
               type="button"
               onClick={() => setPreviewModalOpen(true)}
-              className="p-1 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-[#18294E] transition flex items-center gap-1 text-xs cursor-pointer"
+              className="p-1 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition flex items-center gap-1 text-xs cursor-pointer"
               title={vi ? 'Xem nhanh' : 'Preview'}
             >
               <Eye className="w-3.5 h-3.5" />
@@ -174,7 +174,7 @@ export const EvidenceAttachmentControl: React.FC<EvidenceAttachmentControlProps>
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="px-2.5 py-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 text-slate-600 dark:text-slate-400 hover:text-blue-500 text-xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+            className="px-2.5 py-1 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 text-slate-600 dark:text-slate-400 hover:text-blue-500 text-xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
           >
             {isUploading ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
@@ -196,8 +196,8 @@ export const EvidenceAttachmentControl: React.FC<EvidenceAttachmentControlProps>
       {/* Safe Preview Modal */}
       {previewModalOpen && attachment && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in" role="dialog" aria-modal="true" aria-label={`Minh chứng: ${attachment.fileName}`}>
-          <div className="bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E293B] rounded-2xl w-full max-w-3xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-200 dark:border-[#1E293B] flex items-center justify-between bg-slate-50 dark:bg-[#111C38]">
+          <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl w-full max-w-3xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-200 dark:border-[var(--border)] flex items-center justify-between bg-slate-50 dark:bg-[var(--surface)]">
               <div className="flex items-center gap-2 min-w-0">
                 <FileText className="w-4 h-4 text-blue-500 shrink-0" />
                 <h4 className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
@@ -208,7 +208,7 @@ export const EvidenceAttachmentControl: React.FC<EvidenceAttachmentControlProps>
                 <button
                   type="button"
                   onClick={handleDownload}
-                  className="px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1 cursor-pointer"
+                  className="px-2.5 py-1 text-xs rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1 cursor-pointer"
                 >
                   <ExternalLink className="w-3 h-3" />
                   <span>{vi ? 'Tải về' : 'Download'}</span>
@@ -216,14 +216,14 @@ export const EvidenceAttachmentControl: React.FC<EvidenceAttachmentControlProps>
                 <button
                   type="button"
                   onClick={() => setPreviewModalOpen(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white transition cursor-pointer"
+                  className="p-1 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white transition cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 p-2 bg-slate-100/50 dark:bg-[#070D1E] overflow-auto flex items-center justify-center">
+            <div className="flex-1 p-2 bg-slate-100/50 dark:bg-[var(--surface)] overflow-auto flex items-center justify-center">
               {isPreviewLoading ? <p role="status" className="text-sm text-slate-600">{vi ? 'Đang mở tệp…' : 'Opening file…'}</p> : isPdf && previewObjectUrl ? (
                 <iframe
                   src={previewObjectUrl}
@@ -235,9 +235,9 @@ export const EvidenceAttachmentControl: React.FC<EvidenceAttachmentControlProps>
                 <img
                   src={previewObjectUrl}
                   alt={attachment.fileName}
-                  className="max-w-full max-h-full object-contain rounded-lg"
+                  className="max-w-full max-h-full object-contain rounded-xl"
                 />
-              ) : !isPreviewLoading ? <div className="text-center"><p className="mb-3 text-sm text-slate-600">{vi ? 'Không thể xem trước định dạng này.' : 'Preview is unavailable for this file type.'}</p><button type="button" onClick={handleDownload} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white">{vi ? 'Tải tệp xuống' : 'Download file'}</button></div> : null}
+              ) : !isPreviewLoading ? <div className="text-center"><p className="mb-3 text-sm text-slate-600">{vi ? 'Không thể xem trước định dạng này.' : 'Preview is unavailable for this file type.'}</p><button type="button" onClick={handleDownload} className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white">{vi ? 'Tải tệp xuống' : 'Download file'}</button></div> : null}
             </div>
           </div>
         </div>

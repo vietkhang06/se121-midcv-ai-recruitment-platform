@@ -133,7 +133,7 @@ export const ConfirmActionDialog: React.FC<ConfirmActionDialogProps> = ({
     >
       <div
         ref={dialogRef}
-        className="relative bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 transition-all transform scale-100"
+        className="relative bg-white dark:bg-slate-900 rounded-xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 transition-all transform scale-100"
       >
         <div className="flex items-start gap-4">
           <div className={`p-3 rounded-xl flex-shrink-0 ${styles.iconBg}`}>
@@ -157,7 +157,7 @@ export const ConfirmActionDialog: React.FC<ConfirmActionDialogProps> = ({
             {children && <div className="mt-4">{children}</div>}
 
             {errorMessage && (
-              <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg text-sm text-red-600 dark:text-red-400">
+              <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl text-sm text-red-600 dark:text-red-400">
                 {errorMessage}
               </div>
             )}

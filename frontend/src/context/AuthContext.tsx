@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Industry, AuthState } from '@/types';
-import { loginAccount, registerCandidateAccount, registerRecruiterAccount, isJwtExpired } from '@/lib/api';
+import { loginAccount, registerCandidateAccount, registerRecruiterAccount, isJwtExpired, ensureAuthToken, saveAuthTokens, clearAuthSession, apiRequest } from '@/lib/api';
 
 interface QuickOnboardingData {
   age?: number;
@@ -51,28 +51,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
     setHasSeenFirstVisit(true);
 
-    // 2. Restore explicit user session if and only if valid session exists
-    const storedUser = localStorage.getItem('auth_user');
-    const storedToken = localStorage.getItem('auth_token');
-
-    if (storedUser && storedToken && !isJwtExpired(storedToken)) {
-      try {
-        const parsed = JSON.parse(storedUser);
-        setUser(parsed);
-        setAuthState('AUTHENTICATED');
-      } catch {
-        localStorage.removeItem('auth_user');
-        localStorage.removeItem('auth_token');
-        setUser(null);
-        setAuthState('ANONYMOUS');
+    let active = true;
+    void ensureAuthToken().then(token => {
+      if (!active) return;
+      const storedUser = localStorage.getItem('auth_user');
+      if (storedUser && token) {
+        try { setUser(JSON.parse(storedUser)); setAuthState('AUTHENTICATED'); return; }
+        catch { clearAuthSession(); }
       }
-    } else {
-      // Clean default state is strictly ANONYMOUS
-      localStorage.removeItem('auth_user');
-      localStorage.removeItem('auth_token');
-      setUser(null);
-      setAuthState('ANONYMOUS');
-    }
+      setUser(null); setAuthState('ANONYMOUS');
+    }).catch(() => { if (active) { setUser(null); setAuthState('ANONYMOUS'); } });
 
     // 3. Listen for session expired events
     const handleSessionExpired = () => {
@@ -82,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAuthState('ANONYMOUS');
     };
     window.addEventListener('midcv:session_expired', handleSessionExpired);
-    return () => window.removeEventListener('midcv:session_expired', handleSessionExpired);
+    return () => { active = false; window.removeEventListener('midcv:session_expired', handleSessionExpired); };
   }, []);
 
   const setFirstVisitChoice = (choice: 'CANDIDATE' | 'RECRUITER' | 'SKIP', data?: QuickOnboardingData) => {
@@ -119,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(result.user);
     setAuthState('AUTHENTICATED');
     localStorage.setItem('auth_user', JSON.stringify(result.user));
-    localStorage.setItem('auth_token', result.accessToken);
+    saveAuthTokens(result);
     closeAuthModal();
 
     if (typeof window !== 'undefined') {
@@ -160,17 +148,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('auth_user');
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_session');
-    setUser(null);
-    setAuthState('ANONYMOUS');
-
-    if (typeof window !== 'undefined') {
+  const logout = async () => {
+    try { if (getAuthTokenForLogout()) await apiRequest('/api/v1/auth/logout', { method: 'POST' }); }
+    finally {
+      clearAuthSession(); setUser(null); setAuthState('ANONYMOUS');
       window.location.href = '/';
     }
   };
+  function getAuthTokenForLogout() { return localStorage.getItem('auth_token'); }
 
   return (
     <AuthContext.Provider

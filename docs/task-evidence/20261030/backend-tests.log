@@ -1,0 +1,15 @@
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------< com.platform:recruitment-backend >------------------
+[INFO] Building recruitment-backend 1.0.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- clean:3.3.2:clean (default-clean) @ recruitment-backend ---
+[INFO] Deleting /workspace/scratch/f408ba5bc40d/work/se121-midcv-ai-recruitment-platform-master/backend/target
+[INFO]
+[INFO] --- resources:3.3.1:resources (default-resources) @ recruitment-backend ---
+[INFO] Copying 1 resource from src/main/resources to target/classes-mvn
+[INFO] Copying 30 resources from src/main/resources to target/classes-mvn
+[INFO]
+[INFO] --- compiler:3.13.0:compile (default-compile) @ recruitment-backend ---

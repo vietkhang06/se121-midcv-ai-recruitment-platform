@@ -25,6 +25,7 @@ public class SuspensionNoticeController {
     private final SuspensionAppealRepository appealRepository;
     private final RecruiterProfileRepository recruiterProfileRepository;
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     @GetMapping("/my-active")
     public ResponseEntity<ApiResponse<SuspensionNoticeResponse>> getMyActiveSuspension(
             @AuthenticationPrincipal User currentUser) {

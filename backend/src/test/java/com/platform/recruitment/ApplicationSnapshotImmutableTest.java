@@ -106,7 +106,7 @@ class ApplicationSnapshotImmutableTest {
         originalCV.setId(UUID.randomUUID());
 
         // AC-P3-04: CVVersion must be CONFIRMED to pass the confirmation gate
-        CVVersion version = CVVersion.builder().cv(originalCV).versionNumber(1).rawTextContent(originalCV.getRawText()).status("CONFIRMED").build();
+        CVVersion version = CVVersion.builder().cv(originalCV).title(originalCV.getTitle()).versionNumber(1).rawTextContent(originalCV.getRawText()).structuredJsonContent("{\"skills\":[\"Java\"]}").status("CONFIRMED").build();
         version.setId(UUID.randomUUID());
         lenient().when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(any())).thenReturn(List.of(version));
     }
@@ -117,9 +117,9 @@ class ApplicationSnapshotImmutableTest {
         request.setJobId(publishedJob.getId());
         request.setCvId(originalCV.getId());
 
-        when(candidateProfileRepository.findByUserId(candidateUser.getId())).thenReturn(Optional.of(candidateProfile));
-        when(jobRepository.findById(publishedJob.getId())).thenReturn(Optional.of(publishedJob));
-        when(cvRepository.findById(originalCV.getId())).thenReturn(Optional.of(originalCV));
+        when(candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())).thenReturn(Optional.of(candidateProfile));
+        when(jobRepository.findByIdForApply(publishedJob.getId())).thenReturn(Optional.of(publishedJob));
+        when(cvRepository.findByIdForUpdate(originalCV.getId())).thenReturn(Optional.of(originalCV));
         when(applicationRepository.existsByJobIdAndCandidateId(publishedJob.getId(), candidateProfile.getId())).thenReturn(false);
 
         when(applicationRepository.save(any())).thenAnswer(invocation -> {

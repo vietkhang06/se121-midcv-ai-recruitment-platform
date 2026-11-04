@@ -67,7 +67,7 @@ export default function RecruiterPipelinePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] p-12 text-center text-slate-500 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] p-12 text-center text-slate-500 flex items-center justify-center">
         <EmptyState
           type="LOADING"
           title={locale === 'vi' ? 'Đang tải quy trình tuyển dụng...' : 'Loading hiring pipeline...'}
@@ -79,7 +79,7 @@ export default function RecruiterPipelinePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] p-12 text-center flex flex-col items-center justify-center space-y-4">
+      <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] p-12 text-center flex flex-col items-center justify-center space-y-4">
         <EmptyState
           type="ERROR"
           title={locale === 'vi' ? 'Lỗi tải quy trình tuyển dụng' : 'Pipeline Load Error'}
@@ -100,7 +100,7 @@ export default function RecruiterPipelinePage() {
     : allApplications.filter(a => a.job?.id === selectedJobId);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-20 w-full min-w-0">
+    <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-20 w-full min-w-0">
       <main className="flex-1 w-full max-w-[1440px] min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Recruiter Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
@@ -116,7 +116,7 @@ export default function RecruiterPipelinePage() {
             <select
               value={selectedJobId}
               onChange={(e) => setSelectedJobId(e.target.value)}
-              className="px-3 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">{locale === 'vi' ? 'Tất cả vị trí tuyển dụng' : 'All Job Openings'} ({allApplications.length})</option>
               {jobs.map(j => {
@@ -150,14 +150,14 @@ export default function RecruiterPipelinePage() {
                   {/* Column Header */}
                   <div className="flex items-center justify-between px-1">
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center text-[10px] font-bold font-mono">
+                      <span className="w-5 h-5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center text-[10px] font-bold font-sans">
                         {cIdx + 1}
                       </span>
                       <span className="font-bold text-xs text-slate-900 dark:text-white">
                         {locale === 'vi' ? col.titleVi : col.titleEn}
                       </span>
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${col.badge}`}>
+                    <span className={`px-2 py-0.5 rounded-xl text-[10px] font-sans font-bold ${col.badge}`}>
                       {colApps.length}
                     </span>
                   </div>
@@ -165,7 +165,7 @@ export default function RecruiterPipelinePage() {
                   {/* Cards */}
                   <div className="space-y-2.5">
                     {colApps.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500 italic border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-white/40 dark:bg-[#111C38]/40">
+                      <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500 italic border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-white/40 dark:bg-[var(--surface)]/40">
                         {locale === 'vi' ? 'Chưa có hồ sơ' : 'No records'}
                       </div>
                     ) : (
@@ -186,7 +186,7 @@ export default function RecruiterPipelinePage() {
                             <div className="space-y-1.5">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <div className="w-7 h-7 rounded-lg bg-[#EFF6FF] dark:bg-[#13233F] text-[#2563EB] dark:text-[#60A5FA] border border-[#BFDBFE] dark:border-[#1E3A5F] flex items-center justify-center text-[10px] font-bold shrink-0">
+                                  <div className="w-7 h-7 rounded-xl bg-[var(--surface-secondary)] dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] border border-[var(--border-soft)] dark:border-[var(--border)] flex items-center justify-center text-[10px] font-bold shrink-0">
                                     {candidateInitials}
                                   </div>
                                   <span className="font-bold text-xs text-slate-900 dark:text-white block line-clamp-1">
@@ -194,7 +194,7 @@ export default function RecruiterPipelinePage() {
                                   </span>
                                 </div>
                                 {score !== null && (
-                                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold flex-shrink-0 ${
+                                  <span className={`px-1.5 py-0.5 rounded-xl text-[10px] font-sans font-bold flex-shrink-0 ${
                                     score >= 80
                                       ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                                       : 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-900'
@@ -208,7 +208,7 @@ export default function RecruiterPipelinePage() {
                               </span>
                             </div>
 
-                            <div className="text-[10px] text-slate-400 font-mono pl-9">
+                            <div className="text-[10px] text-slate-400 font-sans pl-9">
                               {locale === 'vi' ? 'Nộp ngày:' : 'Applied:'} {app.appliedDate || 'Gần đây'}
                             </div>
 
@@ -228,7 +228,7 @@ export default function RecruiterPipelinePage() {
                                   type="button"
                                   disabled={updatingId === app.id}
                                   onClick={() => handleAdvanceStatus(app.id, 'SHORTLISTED')}
-                                  className="text-[10px] px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 font-semibold cursor-pointer transition"
+                                  className="text-[10px] px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 font-semibold cursor-pointer transition"
                                 >
                                   Duyệt →
                                 </button>
@@ -238,7 +238,7 @@ export default function RecruiterPipelinePage() {
                                   type="button"
                                   disabled={updatingId === app.id}
                                   onClick={() => handleAdvanceStatus(app.id, 'INTERVIEWING')}
-                                  className="text-[10px] px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 font-semibold cursor-pointer transition"
+                                  className="text-[10px] px-2.5 py-1 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 font-semibold cursor-pointer transition"
                                 >
                                   Phỏng vấn →
                                 </button>
@@ -248,7 +248,7 @@ export default function RecruiterPipelinePage() {
                                   type="button"
                                   disabled={updatingId === app.id}
                                   onClick={() => handleAdvanceStatus(app.id, 'HIRED')}
-                                  className="text-[10px] px-2.5 py-1 rounded-lg bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300 border border-green-300 dark:border-green-800 hover:bg-green-200 font-semibold cursor-pointer transition"
+                                  className="text-[10px] px-2.5 py-1 rounded-xl bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300 border border-green-300 dark:border-green-800 hover:bg-green-200 font-semibold cursor-pointer transition"
                                 >
                                   Tuyển →
                                 </button>

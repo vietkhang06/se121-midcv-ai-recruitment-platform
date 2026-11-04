@@ -41,30 +41,30 @@ export const JobCard: React.FC<JobCardProps> = ({
   const percentVerified = totalReqs > 0 ? Math.round((verifiedCount / totalReqs) * 100) : 0;
 
   return (
-    <div className="motion-hover-lift bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#3B82F6] rounded-2xl p-6 shadow-xs hover:shadow-md transition-all">
+    <div className="motion-hover-lift bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] hover:border-[var(--border)] dark:hover:border-[var(--border)] rounded-xl p-6 shadow-xs hover:shadow-md transition-all">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         
         {/* Left: Company Icon + Details */}
         <div className="flex items-start gap-4 flex-1">
-          <div className="w-12 h-12 rounded-xl bg-[#EFF6FF] dark:bg-[#13233F] border border-[#BFDBFE] dark:border-[#1E3A5F] flex items-center justify-center text-[#2563EB] dark:text-[#60A5FA] shrink-0 font-bold">
+          <div className="w-12 h-12 rounded-xl bg-[var(--surface-secondary)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] flex items-center justify-center text-[var(--primary)] dark:text-[var(--retro-sky)] shrink-0 font-bold">
             <Briefcase className="w-6 h-6" />
           </div>
 
           <div className="space-y-2 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-base sm:text-lg font-semibold text-[#0F2A52] dark:text-[#F1F5F9] hover:text-[#2563EB] dark:hover:text-[#3B82F6] transition">
+              <h3 className="text-base sm:text-lg font-semibold text-[var(--heading)] dark:text-[var(--retro-cream)] hover:text-[var(--primary)] dark:hover:text-[var(--retro-sky)] transition">
                 <Link href={`/jobs/${job.id}`}>{job.title}</Link>
               </h3>
               {job.companyVerified && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#00B14F] dark:text-[#10B981] bg-[#E8F8EE] dark:bg-[#00B14F]/15 border border-[#00B14F]/30 px-2.5 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--success)] dark:text-[var(--success)] bg-[var(--surface-secondary)] dark:bg-[var(--success)]/15 border border-[var(--border)]/30 px-2.5 py-0.5 rounded-xl">
                   <ShieldCheck className="w-3.5 h-3.5" />
                   <span>{isVi ? 'Doanh nghiệp xác thực' : 'Company Verified'}</span>
                 </span>
               )}
             </div>
 
-            <div className="text-xs text-[#64748B] dark:text-[#94A3B8]">
-              <span className="font-semibold text-[#0F2A52] dark:text-slate-200">{job.companyName}</span>
+            <div className="text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
+              <span className="font-semibold text-[var(--heading)] dark:text-slate-200">{job.companyName}</span>
               <span className="mx-2 text-slate-300 dark:text-slate-600">•</span>
               <span>{job.location}</span>
             </div>
@@ -85,25 +85,25 @@ export const JobCard: React.FC<JobCardProps> = ({
             {/* Matching Technical Skills Bar */}
             <div className="pt-2 max-w-md space-y-1">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-[#64748B] dark:text-[#94A3B8] font-medium">
+                <span className="text-[var(--text-secondary)] dark:text-[var(--text-secondary)] font-medium">
                   {isVi ? 'Đối sánh kỹ năng yêu cầu' : 'Matching Technical Skills'}
                 </span>
-                <span className="font-semibold text-[#0F2A52] dark:text-slate-200 font-mono">
+                <span className="font-semibold text-[var(--heading)] dark:text-slate-200 font-sans">
                   {hasInsufficientData
                     ? (isVi ? 'Chưa đủ dữ liệu hồ sơ' : 'Insufficient profile data')
                     : `${verifiedCount} / ${totalReqs} ${isVi ? 'Đạt chuẩn' : 'Verified'}`}
                 </span>
               </div>
-              <div className="w-full bg-slate-100 dark:bg-[#13233F] rounded-full h-1.5 overflow-hidden">
+              <div className="w-full bg-slate-100 dark:bg-[var(--surface)] rounded-xl h-1.5 overflow-hidden">
                 <div
-                  className="bg-[#2563EB] dark:bg-[#3B82F6] h-1.5 rounded-full origin-left transition-transform duration-500 motion-reduce:transition-none"
+                  className="bg-[var(--primary)] dark:bg-[var(--primary)] h-1.5 rounded-xl origin-left transition-transform duration-500 motion-reduce:transition-none"
                   style={{ transform: `scaleX(${percentVerified / 100})` }}
                 />
               </div>
             </div>
 
             {/* Date line */}
-            <div className="pt-1 text-[11px] text-[#64748B] dark:text-[#94A3B8] font-mono">
+            <div className="pt-1 text-[11px] text-[var(--text-secondary)] dark:text-[var(--text-secondary)] font-sans">
               <span>{isVi ? `Đăng ${job.publishedDate || 'gần đây'}` : `Posted ${job.publishedDate || 'recently'}`}</span>
             </div>
           </div>
@@ -115,14 +115,14 @@ export const JobCard: React.FC<JobCardProps> = ({
             {hasInsufficientData ? (
               /* Insufficient Data Match State: Transparent Explanatory Badge */
               <div
-                className="group relative inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-[#13233F] text-[#64748B] dark:text-[#94A3B8] border border-slate-200 dark:border-[#1E293B] cursor-help"
+                className="group relative inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-medium bg-slate-100 dark:bg-[var(--surface)] text-[var(--text-secondary)] dark:text-[var(--text-secondary)] border border-slate-200 dark:border-[var(--border)] cursor-help"
                 title={
                   locale === 'vi'
                     ? 'Bạn hãy thêm CV hoặc bổ sung thông tin kinh nghiệm, kỹ năng và thế mạnh để AI có đủ dữ liệu tính toán.'
                     : 'We need more candidate information to calculate a reliable match. Add a CV or complete your experience and skills.'
                 }
               >
-                <Info className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
+                <Info className="w-3.5 h-3.5 text-[var(--text-secondary)] dark:text-[var(--text-secondary)]" />
                 <span>
                   {locale === 'vi' ? 'Chưa thể tính mức độ phù hợp' : 'Match unavailable'}
                 </span>
@@ -135,14 +135,14 @@ export const JobCard: React.FC<JobCardProps> = ({
                 </div>
               </div>
             ) : (
-              <span className="px-2.5 py-1 rounded-full text-xs font-bold font-mono bg-[#FEF9C3] dark:bg-[#FACC15]/20 text-[#92400E] dark:text-[#FACC15] border border-[#FACC15]/40">
+              <span className="px-2.5 py-1 rounded-xl text-xs font-bold font-sans bg-[var(--surface-secondary)] dark:bg-[var(--warning)]/20 text-[var(--warning)] dark:text-[var(--warning)] border border-[var(--border)]/40">
                 {matchScore}% MATCH
               </span>
             )}
 
             <button
               onClick={() => setIsSaved(!isSaved)}
-              className={`p-1.5 rounded-full border transition cursor-pointer ${
+              className={`p-1.5 rounded-xl border transition cursor-pointer ${
                 isSaved
                   ? 'border-rose-400 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400'
                   : 'border-slate-200 dark:border-slate-700 text-slate-400 hover:text-rose-500'
@@ -156,13 +156,13 @@ export const JobCard: React.FC<JobCardProps> = ({
           <div className="flex items-center gap-2 pt-2">
             <Link
               href={`/jobs/${job.id}`}
-              className="px-3.5 py-2 rounded-xl text-xs font-medium border border-slate-200 dark:border-[#1E293B] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition cursor-pointer"
+              className="px-3.5 py-2 rounded-xl text-xs font-medium border border-slate-200 dark:border-[var(--border)] text-[var(--heading)] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[var(--surface)] transition cursor-pointer"
             >
               {t('jobs.viewDetails', 'Xem chi tiết')}
             </Link>
             <button
               onClick={() => onApplyClick && onApplyClick(job)}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-xs active:scale-[0.99] cursor-pointer"
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary)] transition shadow-xs active:scale-[0.99] cursor-pointer"
             >
               {t('jobs.applyNow', 'Ứng tuyển nhanh')}
             </button>

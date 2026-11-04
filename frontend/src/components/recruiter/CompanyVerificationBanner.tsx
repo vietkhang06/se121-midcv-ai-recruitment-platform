@@ -17,7 +17,7 @@ export const CompanyVerificationBanner: React.FC<CompanyVerificationBannerProps>
 }) => {
   if (status === 'VERIFIED') {
     return (
-      <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between gap-4">
+      <div data-studio-verification className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
           <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
           <div>
@@ -25,7 +25,7 @@ export const CompanyVerificationBanner: React.FC<CompanyVerificationBannerProps>
             <span className="text-slate-300">{companyName} có đầy đủ quyền hạn lưu bản nháp và Xuất bản (Publish) bài tuyển dụng.</span>
           </div>
         </div>
-        <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 shrink-0">
+        <span className="px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 shrink-0">
           ✓ Ready to Publish
         </span>
       </div>
@@ -34,7 +34,7 @@ export const CompanyVerificationBanner: React.FC<CompanyVerificationBannerProps>
 
   if (status === 'UNDER_REVIEW') {
     return (
-      <div className="p-4 rounded-2xl bg-blue-950/40 border border-blue-500/40 text-blue-300 text-xs space-y-2">
+      <div data-studio-verification className="p-4 rounded-xl bg-blue-950/40 border border-blue-500/40 text-blue-300 text-xs space-y-2">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <Eye className="w-5 h-5 text-blue-400 shrink-0" />
@@ -43,7 +43,7 @@ export const CompanyVerificationBanner: React.FC<CompanyVerificationBannerProps>
               <span className="text-blue-200">Hồ sơ pháp lý của {companyName} đang được Quản trị viên trực tiếp kiểm tra.</span>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-900/60 border border-blue-500/40 text-blue-300 shrink-0">
+          <span className="px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-blue-900/60 border border-blue-500/40 text-blue-300 shrink-0">
             Publish Blocked
           </span>
         </div>
@@ -59,7 +59,7 @@ export const CompanyVerificationBanner: React.FC<CompanyVerificationBannerProps>
 
   if (status === 'CHANGES_REQUESTED') {
     return (
-      <div className="p-4 rounded-2xl bg-purple-950/40 border border-purple-500/40 text-purple-300 text-xs space-y-2">
+      <div data-studio-verification className="p-4 rounded-xl bg-purple-950/40 border border-purple-500/40 text-purple-300 text-xs space-y-2">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <FileEdit className="w-5 h-5 text-purple-400 shrink-0" />
@@ -68,7 +68,7 @@ export const CompanyVerificationBanner: React.FC<CompanyVerificationBannerProps>
               <span className="text-purple-200">{reason || 'Quản trị viên yêu cầu cập nhật hoặc bổ sung tài liệu pháp lý của công ty.'}</span>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-purple-900/60 border border-purple-500/40 text-purple-300 shrink-0">
+          <span className="px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-purple-900/60 border border-purple-500/40 text-purple-300 shrink-0">
             Cần cập nhật
           </span>
         </div>
@@ -84,7 +84,7 @@ export const CompanyVerificationBanner: React.FC<CompanyVerificationBannerProps>
 
   if (status === 'PENDING') {
     return (
-      <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs space-y-2">
+      <div data-studio-verification className="p-4 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs space-y-2">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <Clock className="w-5 h-5 text-amber-400 shrink-0" />
@@ -93,7 +93,7 @@ export const CompanyVerificationBanner: React.FC<CompanyVerificationBannerProps>
               <span className="text-amber-200">{companyName} hiện chưa được xác minh tài khoản doanh nghiệp chính thức.</span>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-900/60 border border-amber-500/40 text-amber-300 shrink-0">
+          <span className="px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-amber-900/60 border border-amber-500/40 text-amber-300 shrink-0">
             Publish Blocked
           </span>
         </div>
@@ -109,7 +109,7 @@ export const CompanyVerificationBanner: React.FC<CompanyVerificationBannerProps>
 
   if (status === 'SUSPENDED') {
     return (
-      <div className="p-4 rounded-2xl bg-slate-900/90 border border-rose-500/50 text-rose-300 text-xs space-y-2">
+      <div data-studio-verification className="p-4 rounded-xl bg-slate-900/90 border border-rose-500/50 text-rose-300 text-xs space-y-2">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <Ban className="w-5 h-5 text-rose-500 shrink-0" />
@@ -118,7 +118,7 @@ export const CompanyVerificationBanner: React.FC<CompanyVerificationBannerProps>
               <span className="text-slate-300">{reason || 'Doanh nghiệp bị tạm đình chỉ do có báo cáo vi phạm hoặc vấn đề pháp lý.'}</span>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-950 border border-rose-600 text-rose-300 shrink-0">
+          <span className="px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-rose-950 border border-rose-600 text-rose-300 shrink-0">
             Publish Forbidden
           </span>
         </div>
@@ -131,7 +131,7 @@ export const CompanyVerificationBanner: React.FC<CompanyVerificationBannerProps>
 
   // REJECTED
   return (
-    <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs space-y-2">
+    <div data-studio-verification className="p-4 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs space-y-2">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
           <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0" />
@@ -140,7 +140,7 @@ export const CompanyVerificationBanner: React.FC<CompanyVerificationBannerProps>
             <span className="text-rose-200">{reason || 'Thông tin doanh nghiệp không khớp với Giấy phép ĐKKD hoặc vi phạm điều khoản.'}</span>
           </div>
         </div>
-        <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-900/60 border border-rose-500/40 text-rose-300 shrink-0">
+        <span className="px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-rose-900/60 border border-rose-500/40 text-rose-300 shrink-0">
           Publish Forbidden
         </span>
       </div>

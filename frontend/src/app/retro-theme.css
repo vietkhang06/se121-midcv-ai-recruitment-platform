@@ -1,0 +1,488 @@
+/* MIDCV / BLUE TERMINAL — global retro vocabulary, including portals.
+   Four reference colors remain literal; supporting inks/statuses preserve legibility. */
+@theme {
+  --font-sans: 'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --font-serif: 'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif;
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-xl: 14px;
+  --radius-2xl: 14px; --radius-3xl: 14px; --radius-4xl: 14px;
+  --shadow-sm: var(--studio-shadow-sm);
+  --shadow-md: var(--studio-shadow-md);
+  --shadow-lg: var(--studio-shadow-md);
+  --shadow-xl: var(--studio-shadow-md);
+  --shadow-2xl: var(--studio-shadow-xl);
+}
+html:root {
+  --retro-blue: #3368A0; --retro-sky: #66A3BF;
+  --retro-mint: #C8DFDB; --retro-cream: #F2EFE7;
+  --retro-deep: #274256; --retro-shadow: #78939F;
+  --font-sans: 'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif;
+  --font-serif: 'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --primary: #3368A0; --primary-hover: #285580;
+  --primary-light: #E6EFF5; --primary-soft: #DCEAF1; --primary-foreground: #FFFEFA;
+  --brand-green: #47776C; --brand-green-hover: #365F56; --brand-green-soft: #E3EFE8;
+  --accent-yellow: #987124; --accent-yellow-light: #F7E7BD; --accent-yellow-soft: #FBF3DC;
+  --background: #F2EFE7; --foreground: #274256;
+  --surface: #FFFEFA; --surface-card: #FFFEFA; --surface-elevated: #FFFFFF;
+  --surface-secondary: #EDF3F0;
+  --heading: #274256; --text-primary: #274256; --text-secondary: #526A75; --text-muted: #617781;
+  --border: #405B68; --border-soft: #B9CDD1; --border-subtle: #DFE7E5;
+  --input-bg: #FFFEFA; --input-border: #8DA6B0; --input-focus-border: #3368A0;
+  --success: #3F7164; --success-bg: #E1EDE6;
+  --warning: #826022; --warning-bg: #F9EDCD;
+  --danger: #9A5049; --danger-bg: #F7E5DE;
+  --overlay: rgb(39 66 86 / .48);
+  --canvas-bg: var(--background); --card-bg: var(--surface); --card-border: var(--border);
+  --muted-text: var(--text-secondary); --hover-bg: var(--primary-light);
+  --motion-instant: 80ms; --motion-fast: 140ms; --motion-base: 200ms;
+  --motion-enter: 320ms; --motion-reveal: 360ms;
+  color-scheme: light;
+  scrollbar-color: #3368A0 #C8DFDB;
+  accent-color: #3368A0;
+}
+html.dark {
+  --retro-shadow: #89A8B1;
+  --background: #182F3D; --foreground: #F2EFE7;
+  --surface: #223F4E; --surface-card: #223F4E; --surface-elevated: #2C4B5B;
+  --surface-secondary: #294957;
+  --heading: #F2EFE7; --text-primary: #F2EFE7; --text-secondary: #D0E0DF; --text-muted: #A7C0C8;
+  --primary: #3368A0; --primary-hover: #4078AF; --primary-light: #315469; --primary-soft: #315469;
+  --border: #91AEB8; --border-soft: #5C7A87; --border-subtle: #3B5A68;
+  --input-bg: #1C3644; --input-border: #6D8B98; --input-focus-border: #B2D1DF;
+  --success: #BFDFCC; --success-bg: #2B5149;
+  --warning: #EAD8AE; --warning-bg: #514A35;
+  --danger: #F0B9AC; --danger-bg: #563F41;
+  --overlay: rgb(11 26 36 / .75);
+  --brand-green: #A8CFC0; --brand-green-soft: #2D514D;
+  --accent-yellow: #E3CF9A; --accent-yellow-light: #514C38;
+  color-scheme: dark;
+}
+/* Unlayered semantic rules intentionally override per-page legacy utilities. */
+html body {
+  font-family: var(--font-sans);
+  background-color: var(--background);
+  background-image: none;
+  background-size: auto;
+  line-height: 1.65;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+html :is(h1,h2,h3,h4,h5,h6,.font-editorial) {
+  font-family: var(--font-sans); font-weight: 700; letter-spacing: -.02em;
+  line-height: 1.3; text-wrap: balance;
+}
+html h1 { letter-spacing: -.03em; }
+html :is(input,textarea,select,button) { font: inherit; }
+html :is(button,input,select,textarea,a) { -webkit-tap-highlight-color: transparent; }
+html :is(button,a,input,textarea,select,[tabindex]):focus-visible {
+  outline: 2px solid var(--retro-sky) !important;
+  outline-offset: 4px !important;
+}
+html ::selection { background: #3368A0; color: #F2EFE7; }
+html :where([class*="rounded"],.midcv-card,.kanban-col,.kanban-card,.priority-alert-card,.status-chip,.job-highlight-badge,.badge-midcv) {
+  border-radius: 14px !important;
+}
+html :is(.midcv-card,.kanban-col,.kanban-card,.priority-alert-card) {
+  border: 1px solid var(--border); box-shadow: var(--studio-shadow-md);
+}
+html :is(.status-chip,.badge-midcv,.job-highlight-badge) {
+  border-width: 1px; font-weight: 600; line-height: 1.4;
+}
+html :is(button,[role="button"],a[class*="bg-"],a[class*="border"]):not(:disabled):not([aria-disabled="true"]) {
+  transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+html button { cursor: pointer; }
+html button:disabled { cursor: not-allowed; }
+html :is(button[class*="bg-"],a[class*="bg-"]):not([class*="bg-transparent"]) {
+  border: 1px solid var(--border); box-shadow: var(--studio-shadow-sm);
+}
+@media (hover: hover) and (pointer: fine) {
+  html :is(button[class*="bg-"],a[class*="bg-"]):not(:disabled):hover { box-shadow: var(--studio-shadow-md); }
+}
+html :is(button[class*="bg-"],a[class*="bg-"]):not(:disabled):active { translate: 1px 1px; box-shadow: none; }
+html :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),textarea,select) {
+  border-radius: 5px !important; font-family: var(--font-sans);
+  caret-color: var(--primary); line-height: 1.6;
+}
+html :is(input,textarea,select)[class*="border"] { border-width: 1px; border-color: var(--input-border); }
+html :is(input,textarea)::placeholder { color: var(--text-muted); opacity: .9; }
+html :is(input[type="checkbox"],input[type="radio"]) { accent-color: #3368A0; }
+html input[type="range"] { accent-color: #3368A0; cursor: ew-resize; }
+html input[type="range"]::-webkit-slider-thumb { border-radius: 999px; }
+html input[type="file"]::file-selector-button {
+  font: inherit; color: #F2EFE7; background: #3368A0;
+  border: 1px solid #193B59; padding: .4rem .7rem; margin-right: .7rem;
+}
+html progress { accent-color: #3368A0; }
+html table { font-variant-numeric: tabular-nums; }
+html th { font-weight: 700; letter-spacing: .025em; }
+html :is(thead,[role="tablist"]) { border-bottom: 2px solid var(--border); }
+html tbody tr { transition: background-color 140ms ease; }
+html tbody tr:hover { background-color: var(--primary-light); }
+html :is(nav,header)[class*="border"] { border-bottom-width: 1px; }
+html footer { border-top: 1px solid var(--border); }
+html [role="dialog"],html .motion-modal-panel {
+  border: 1px solid var(--border); box-shadow: var(--studio-shadow-xl);
+}
+html :is(.auth-modal-overlay,.motion-modal-overlay) { background-color: var(--overlay) !important; backdrop-filter: blur(3px); }
+html .auth-modal-panel { color-scheme: inherit; }
+html :is([class*="backdrop-blur"]) { backdrop-filter: blur(3px); }
+html :is([class*="bg-gradient-"],[class*="bg-linear-"]) {
+  background-image: none !important; background-color: var(--surface-secondary);
+}
+/* Hero panels that deliberately use light text remain deep-blue for contrast. */
+html :is([class*="bg-gradient-"],[class*="bg-linear-"])[class*="text-white"] { background-color: var(--retro-deep); }
+html :is(.card-hover-lift,.motion-hover-lift):hover { transform: translateY(-2px); box-shadow: var(--studio-shadow-md); }
+html .motion-reveal[data-mounted="true"][data-revealed="true"],
+html .motion-reveal[data-visible="true"] { animation-duration: var(--motion-duration,360ms); }
+/* Never turn every SVG into a square: score rings/charts keep their geometry. */
+html svg.lucide { stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+html ::-webkit-scrollbar { width: 10px; height: 10px; }
+html ::-webkit-scrollbar-track { background: var(--surface-secondary); }
+html ::-webkit-scrollbar-thumb { background: var(--retro-sky); border: 1px solid var(--surface-secondary); }
+@media (max-width:640px) {
+  html body { font-size: 14px; }
+  html h1 { letter-spacing: -.02em; }
+  html [role="dialog"],html .motion-modal-panel { box-shadow: var(--studio-shadow-md); }
+}
+@media (prefers-reduced-motion:reduce) {
+  html *,html *::before,html *::after {
+    animation-duration: .01ms !important; animation-delay: 0ms !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+@media print {
+  html body { background-image:none !important; }
+  html #printable-cv,html #printable-cv * { box-shadow:none !important; text-shadow:none !important; }
+}
+
+/* All named Tailwind palettes used by legacy screens share the same vocabulary. */
+@theme {
+  --color-white: #FFFEFA; --color-black: #182F3D;
+  --color-blue-50: #EFF5F8;
+  --color-blue-100: #DFEBF2;
+  --color-blue-200: #C3DAE6;
+  --color-blue-300: #9BBFD2;
+  --color-blue-400: #66A3BF;
+  --color-blue-500: #447FA8;
+  --color-blue-600: #3368A0;
+  --color-blue-700: #285580;
+  --color-blue-800: #274D6B;
+  --color-blue-900: #274256;
+  --color-blue-950: #1A303F;
+  --color-sky-50: #EFF6F8;
+  --color-sky-100: #E0EEF2;
+  --color-sky-200: #C5DFE8;
+  --color-sky-300: #9CC7D8;
+  --color-sky-400: #66A3BF;
+  --color-sky-500: #4D8DAD;
+  --color-sky-600: #387693;
+  --color-sky-700: #30617B;
+  --color-sky-800: #2C5168;
+  --color-sky-900: #274256;
+  --color-sky-950: #1A303F;
+  --color-cyan-50: #EFF6F8;
+  --color-cyan-100: #E0EEF2;
+  --color-cyan-200: #C5DFE8;
+  --color-cyan-300: #9CC7D8;
+  --color-cyan-400: #66A3BF;
+  --color-cyan-500: #4D8DAD;
+  --color-cyan-600: #387693;
+  --color-cyan-700: #30617B;
+  --color-cyan-800: #2C5168;
+  --color-cyan-900: #274256;
+  --color-cyan-950: #1A303F;
+  --color-indigo-50: #F6F4FA;
+  --color-indigo-100: #EDE8F5;
+  --color-indigo-200: #DCD4EA;
+  --color-indigo-300: #BEB0D5;
+  --color-indigo-400: #A08DBB;
+  --color-indigo-500: #826C9D;
+  --color-indigo-600: #6D5786;
+  --color-indigo-700: #5B4970;
+  --color-indigo-800: #4B3D5E;
+  --color-indigo-900: #3E344E;
+  --color-indigo-950: #2B263B;
+  --color-violet-50: #F6F4FA;
+  --color-violet-100: #EDE8F5;
+  --color-violet-200: #DCD4EA;
+  --color-violet-300: #BEB0D5;
+  --color-violet-400: #A08DBB;
+  --color-violet-500: #826C9D;
+  --color-violet-600: #6D5786;
+  --color-violet-700: #5B4970;
+  --color-violet-800: #4B3D5E;
+  --color-violet-900: #3E344E;
+  --color-violet-950: #2B263B;
+  --color-purple-50: #F6F4FA;
+  --color-purple-100: #EDE8F5;
+  --color-purple-200: #DCD4EA;
+  --color-purple-300: #BEB0D5;
+  --color-purple-400: #A08DBB;
+  --color-purple-500: #826C9D;
+  --color-purple-600: #6D5786;
+  --color-purple-700: #5B4970;
+  --color-purple-800: #4B3D5E;
+  --color-purple-900: #3E344E;
+  --color-purple-950: #2B263B;
+  --color-pink-50: #FCF3EE;
+  --color-pink-100: #F7E5DE;
+  --color-pink-200: #EDCCBE;
+  --color-pink-300: #DCAD9E;
+  --color-pink-400: #C78B7E;
+  --color-pink-500: #AE6D63;
+  --color-pink-600: #9A5049;
+  --color-pink-700: #80443E;
+  --color-pink-800: #6A3A38;
+  --color-pink-900: #543336;
+  --color-pink-950: #3E292D;
+  --color-fuchsia-50: #F6F4FA;
+  --color-fuchsia-100: #EDE8F5;
+  --color-fuchsia-200: #DCD4EA;
+  --color-fuchsia-300: #BEB0D5;
+  --color-fuchsia-400: #A08DBB;
+  --color-fuchsia-500: #826C9D;
+  --color-fuchsia-600: #6D5786;
+  --color-fuchsia-700: #5B4970;
+  --color-fuchsia-800: #4B3D5E;
+  --color-fuchsia-900: #3E344E;
+  --color-fuchsia-950: #2B263B;
+  --color-teal-50: #F0F7F4;
+  --color-teal-100: #E1F0E9;
+  --color-teal-200: #C8DFDB;
+  --color-teal-300: #A7CEC3;
+  --color-teal-400: #82B6A6;
+  --color-teal-500: #5C9789;
+  --color-teal-600: #47776C;
+  --color-teal-700: #395F57;
+  --color-teal-800: #315047;
+  --color-teal-900: #29463F;
+  --color-teal-950: #1E352F;
+  --color-slate-50: #FFFEFA;
+  --color-slate-100: #F2EFE7;
+  --color-slate-200: #DEE7E4;
+  --color-slate-300: #B6C9CD;
+  --color-slate-400: #617781;
+  --color-slate-500: #526A75;
+  --color-slate-600: #526A75;
+  --color-slate-700: #405B68;
+  --color-slate-800: #314D5C;
+  --color-slate-900: #274256;
+  --color-slate-950: #182F3D;
+  --color-gray-50: #FFFEFA;
+  --color-gray-100: #F2EFE7;
+  --color-gray-200: #DEE7E4;
+  --color-gray-300: #B6C9CD;
+  --color-gray-400: #617781;
+  --color-gray-500: #526A75;
+  --color-gray-600: #526A75;
+  --color-gray-700: #405B68;
+  --color-gray-800: #314D5C;
+  --color-gray-900: #274256;
+  --color-gray-950: #182F3D;
+  --color-zinc-50: #FFFEFA;
+  --color-zinc-100: #F2EFE7;
+  --color-zinc-200: #DEE7E4;
+  --color-zinc-300: #B6C9CD;
+  --color-zinc-400: #617781;
+  --color-zinc-500: #526A75;
+  --color-zinc-600: #526A75;
+  --color-zinc-700: #405B68;
+  --color-zinc-800: #314D5C;
+  --color-zinc-900: #274256;
+  --color-zinc-950: #182F3D;
+  --color-neutral-50: #FFFEFA;
+  --color-neutral-100: #F2EFE7;
+  --color-neutral-200: #DEE7E4;
+  --color-neutral-300: #B6C9CD;
+  --color-neutral-400: #617781;
+  --color-neutral-500: #526A75;
+  --color-neutral-600: #526A75;
+  --color-neutral-700: #405B68;
+  --color-neutral-800: #314D5C;
+  --color-neutral-900: #274256;
+  --color-neutral-950: #182F3D;
+  --color-stone-50: #FFFEFA;
+  --color-stone-100: #F2EFE7;
+  --color-stone-200: #DEE7E4;
+  --color-stone-300: #B6C9CD;
+  --color-stone-400: #617781;
+  --color-stone-500: #526A75;
+  --color-stone-600: #526A75;
+  --color-stone-700: #405B68;
+  --color-stone-800: #314D5C;
+  --color-stone-900: #274256;
+  --color-stone-950: #182F3D;
+  --color-red-50: #FCF3EE;
+  --color-red-100: #F7E5DE;
+  --color-red-200: #EDCCBE;
+  --color-red-300: #DCAD9E;
+  --color-red-400: #C78B7E;
+  --color-red-500: #AE6D63;
+  --color-red-600: #9A5049;
+  --color-red-700: #80443E;
+  --color-red-800: #6A3A38;
+  --color-red-900: #543336;
+  --color-red-950: #3E292D;
+  --color-rose-50: #FCF3EE;
+  --color-rose-100: #F7E5DE;
+  --color-rose-200: #EDCCBE;
+  --color-rose-300: #DCAD9E;
+  --color-rose-400: #C78B7E;
+  --color-rose-500: #AE6D63;
+  --color-rose-600: #9A5049;
+  --color-rose-700: #80443E;
+  --color-rose-800: #6A3A38;
+  --color-rose-900: #543336;
+  --color-rose-950: #3E292D;
+  --color-orange-50: #FCF8ED;
+  --color-orange-100: #F9EDCD;
+  --color-orange-200: #F0DCA7;
+  --color-orange-300: #DFC482;
+  --color-orange-400: #C6A35D;
+  --color-orange-500: #AB873D;
+  --color-orange-600: #8C692C;
+  --color-orange-700: #76552A;
+  --color-orange-800: #61472C;
+  --color-orange-900: #503D2B;
+  --color-orange-950: #3C2F24;
+  --color-amber-50: #FCF8ED;
+  --color-amber-100: #F9EDCD;
+  --color-amber-200: #F0DCA7;
+  --color-amber-300: #DFC482;
+  --color-amber-400: #C6A35D;
+  --color-amber-500: #AB873D;
+  --color-amber-600: #8C692C;
+  --color-amber-700: #76552A;
+  --color-amber-800: #61472C;
+  --color-amber-900: #503D2B;
+  --color-amber-950: #3C2F24;
+  --color-yellow-50: #FCF8ED;
+  --color-yellow-100: #F9EDCD;
+  --color-yellow-200: #F0DCA7;
+  --color-yellow-300: #DFC482;
+  --color-yellow-400: #C6A35D;
+  --color-yellow-500: #AB873D;
+  --color-yellow-600: #8C692C;
+  --color-yellow-700: #76552A;
+  --color-yellow-800: #61472C;
+  --color-yellow-900: #503D2B;
+  --color-yellow-950: #3C2F24;
+  --color-green-50: #F1F7F0;
+  --color-green-100: #E1EDE6;
+  --color-green-200: #C5DDCB;
+  --color-green-300: #A7CDB6;
+  --color-green-400: #82B396;
+  --color-green-500: #659B7D;
+  --color-green-600: #477961;
+  --color-green-700: #3A6452;
+  --color-green-800: #345446;
+  --color-green-900: #2B463D;
+  --color-green-950: #1E342D;
+  --color-emerald-50: #F1F7F0;
+  --color-emerald-100: #E1EDE6;
+  --color-emerald-200: #C5DDCB;
+  --color-emerald-300: #A7CDB6;
+  --color-emerald-400: #82B396;
+  --color-emerald-500: #659B7D;
+  --color-emerald-600: #477961;
+  --color-emerald-700: #3A6452;
+  --color-emerald-800: #345446;
+  --color-emerald-900: #2B463D;
+  --color-emerald-950: #1E342D;
+  --color-lime-50: #F1F7F0;
+  --color-lime-100: #E1EDE6;
+  --color-lime-200: #C5DDCB;
+  --color-lime-300: #A7CDB6;
+  --color-lime-400: #82B396;
+  --color-lime-500: #659B7D;
+  --color-lime-600: #477961;
+  --color-lime-700: #3A6452;
+  --color-lime-800: #345446;
+  --color-lime-900: #2B463D;
+  --color-lime-950: #1E342D;
+}
+html.dark {
+  --color-slate-300: #D0E0DF;
+  --color-slate-400: #B9D0D4;
+  --color-slate-500: #A7C0C8;
+  --color-slate-600: #9BB6C1;
+  --color-slate-700: #D0E0DF;
+  --color-gray-300: #D0E0DF;
+  --color-gray-400: #B9D0D4;
+  --color-gray-500: #A7C0C8;
+  --color-gray-600: #9BB6C1;
+  --color-gray-700: #D0E0DF;
+  --color-zinc-300: #D0E0DF;
+  --color-zinc-400: #B9D0D4;
+  --color-zinc-500: #A7C0C8;
+  --color-zinc-600: #9BB6C1;
+  --color-zinc-700: #D0E0DF;
+  --color-neutral-300: #D0E0DF;
+  --color-neutral-400: #B9D0D4;
+  --color-neutral-500: #A7C0C8;
+  --color-neutral-600: #9BB6C1;
+  --color-neutral-700: #D0E0DF;
+  --color-stone-300: #D0E0DF;
+  --color-stone-400: #B9D0D4;
+  --color-stone-500: #A7C0C8;
+  --color-stone-600: #9BB6C1;
+  --color-stone-700: #D0E0DF;
+}
+/* Auth photography is presented as a two-tone terminal illustration, not a glossy poster. */
+html [data-testid="auth-hero-banner"] {
+  background: var(--retro-deep);
+  border-right: 1px solid var(--retro-sky);
+  background-image: none;
+}
+html [data-testid="auth-hero-banner"] img {
+  filter: grayscale(1) contrast(1.1); mix-blend-mode: luminosity; opacity: .24;
+}
+html [data-testid="auth-hero-banner"] :is(h1,h2,h3,p,span) { color: var(--retro-cream); }
+html [data-testid="auth-hero-banner"] [class*="bg-gradient-"] { background: linear-gradient(0deg,var(--retro-deep),transparent) !important; }
+/* Explicit fixed-color public heroes need their own foreground contract. */
+html section[class*="bg-gradient-"]:has(> .pointer-events-none) { isolation: isolate; }
+/* Window frames: strong outlines rather than the old soft floating cards. */
+html :where(article,section,form,div)[class~="border"][class*="bg-"]:not([class*="bg-transparent"]):not([class*="pointer-events-none"]) {
+  border-color: var(--border); border-width: 1px;
+}
+html :where(article,section,div)[class~="border"][class*="bg-"][class*="rounded-"]:not([class*="pointer-events-none"]) {
+  box-shadow: var(--studio-shadow-md);
+}
+html main > div > section:first-child { border-bottom: 2px solid var(--border); }
+html [role="tab"][aria-selected="true"],html [aria-current="page"] { text-decoration-thickness: 3px; text-underline-offset: 6px; }
+/* Preserve readable surfaces for explicit dark utility backgrounds. */
+html.dark [class*="dark:bg-slate-7"],html.dark [class*="dark:bg-gray-7"] { background-color: var(--surface-secondary); }
+/* Theme-neutral legacy white surfaces must remain legible in night mode. */
+html.dark [class~="bg-white"] { background-color: var(--surface); }
+html.dark [class~="text-[var(--primary)]"] { color: var(--retro-sky); }
+/* Pixel switches retain native semantics and keyboard behavior. */
+html input:is([type="checkbox"],[type="radio"]) {
+  appearance: none; flex-shrink: 0; width: 1.1rem; height: 1.1rem;
+  border: 1px solid var(--input-border); border-radius: 5px !important;
+  background: var(--input-bg); vertical-align: middle; cursor: pointer;
+}
+html input:is([type="checkbox"],[type="radio"]):checked {
+  background: var(--primary); box-shadow: inset 0 0 0 2px var(--input-bg);
+}
+html input:is([type="checkbox"],[type="radio"]):indeterminate {
+  background: linear-gradient(transparent 35%,var(--primary) 35%,var(--primary) 65%,transparent 65%);
+}
+html input:is([type="checkbox"],[type="radio"]):disabled { cursor:not-allowed; opacity:.5; }
+html input[type="range"]::-moz-range-thumb { border-radius: 999px; background: var(--primary); border: 1px solid var(--border); }
+html option { font-family: var(--font-sans); color: var(--foreground); background:var(--surface); }
+/* Mono text is wider: allow actual wrapping/min-content shrink, not viewport clipping. */
+html body { overflow-wrap: anywhere; }
+html :is(.flex,.grid) > :where(div,section,article,form) { min-width:0; }
+html [data-retro-shell="admin"] { color: var(--retro-cream); }
+html [data-retro-shell="admin"] [data-retro-brand] span { color: var(--retro-cream); }
+html [data-retro-shell="admin"] nav a:not([class*="bg-indigo-600"]) { color: var(--retro-mint); }
+html [data-retro-shell="admin"] button { color: var(--retro-cream); }
+html :is(button,[role="button"]) { overflow-wrap:normal; word-break:normal; }
+html [data-retro-editor-toolbar] button { flex-shrink:0; white-space:nowrap; }
+html [data-retro-editor-toolbar] select { width:auto; max-width:100%; }
+html.dark [class*="bg-white/8"],html.dark [class*="bg-white/9"] { background-color:var(--surface-elevated); }
+/* CV preview is paper in either mode; print/export remains ink-on-paper. */
+html #printable-cv { background:#FAF8F1 !important; color:#193B59 !important; color-scheme:light; }
+html #printable-cv [class*="text-slate-"] { color:#486370; }

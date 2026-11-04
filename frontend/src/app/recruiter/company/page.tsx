@@ -39,7 +39,7 @@ export default function CompanyProfilePage() {
 
   if (loadError && !company) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center p-12">
+      <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center p-12">
         <div className="text-center text-slate-500 dark:text-slate-400 max-w-md space-y-4">
           <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
           <h2 className="text-base font-bold text-slate-900 dark:text-white">Không thể tải thông tin doanh nghiệp</h2>
@@ -58,9 +58,9 @@ export default function CompanyProfilePage() {
 
   if (!company) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center p-12">
+      <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center p-12">
         <div className="text-center text-slate-500 dark:text-slate-400">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-3" />
+          <div className="inline-block animate-spin rounded-xl h-8 w-8 border-b-2 border-blue-600 mb-3" />
           <p className="text-sm font-medium">{t('common.loading', 'Đang tải thông tin doanh nghiệp...')}</p>
         </div>
       </div>
@@ -111,7 +111,7 @@ export default function CompanyProfilePage() {
   const canSubmitVerification = company.verificationStatus !== 'VERIFIED' && company.verificationStatus !== 'UNDER_REVIEW';
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-16 w-full min-w-0">
+    <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-16 w-full min-w-0">
       <main className="flex-1 w-full max-w-4xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Recruiter Header */}
         <RecruiterPageHeader
@@ -145,22 +145,22 @@ export default function CompanyProfilePage() {
 
         {/* Company Quick Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
-            <span className="text-xs text-slate-500 dark:text-slate-400 block mb-1 font-mono">Doanh nghiệp</span>
+          <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span className="text-xs text-slate-500 dark:text-slate-400 block mb-1 font-sans">Doanh nghiệp</span>
             <span className="text-base font-bold text-slate-900 dark:text-white line-clamp-1">{company.name}</span>
           </div>
-          <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
-            <span className="text-xs text-slate-500 dark:text-slate-400 block mb-1 font-mono">Tin tuyển dụng đang mở</span>
-            <span className="text-xl font-bold text-blue-600 dark:text-blue-400 font-mono">{publishedJobsCount} / {jobs.length}</span>
+          <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span className="text-xs text-slate-500 dark:text-slate-400 block mb-1 font-sans">Tin tuyển dụng đang mở</span>
+            <span className="text-xl font-bold text-blue-600 dark:text-blue-400 font-sans">{publishedJobsCount} / {jobs.length}</span>
           </div>
-          <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
-            <span className="text-xs text-slate-500 dark:text-slate-400 block mb-1 font-mono">Mã số thuế</span>
-            <span className="text-sm font-semibold font-mono text-slate-800 dark:text-slate-200">{company.taxCode || 'Chưa cập nhật'}</span>
+          <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span className="text-xs text-slate-500 dark:text-slate-400 block mb-1 font-sans">Mã số thuế</span>
+            <span className="text-sm font-semibold font-sans text-slate-800 dark:text-slate-200">{company.taxCode || 'Chưa cập nhật'}</span>
           </div>
         </div>
 
         {/* Company Edit Form */}
-        <form onSubmit={handleSaveCompany} className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6 transition-colors">
+        <form onSubmit={handleSaveCompany} className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-8 shadow-xs space-y-6 transition-colors">
           <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-4">
             <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             <h3 className="text-base font-bold text-slate-900 dark:text-white">
@@ -177,7 +177,7 @@ export default function CompanyProfilePage() {
                 type="text"
                 value={company.name ?? ''}
                 onChange={(e) => setCompany({ ...company, name: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0B1329] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
                 required
               />
             </div>
@@ -191,7 +191,7 @@ export default function CompanyProfilePage() {
                 value={company.taxCode ?? ''}
                 onChange={(e) => setCompany({ ...company, taxCode: e.target.value })}
                 placeholder="0108877665"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0B1329] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans"
                 required
               />
             </div>
@@ -217,7 +217,7 @@ export default function CompanyProfilePage() {
                 value={company.website ?? ''}
                 onChange={(e) => setCompany({ ...company, website: e.target.value })}
                 placeholder="https://company.example.com"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0B1329] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans"
               />
             </div>
 
@@ -230,7 +230,7 @@ export default function CompanyProfilePage() {
                 value={company.companySize ?? ''}
                 onChange={(e) => setCompany({ ...company, companySize: e.target.value })}
                 placeholder="50-200 nhân viên"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0B1329] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -242,7 +242,7 @@ export default function CompanyProfilePage() {
                 type="email"
                 value={company.contactEmail ?? ''}
                 onChange={(e) => setCompany({ ...company, contactEmail: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0B1329] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans"
               />
             </div>
 
@@ -254,7 +254,7 @@ export default function CompanyProfilePage() {
                 type="text"
                 value={company.contactPhone ?? ''}
                 onChange={(e) => setCompany({ ...company, contactPhone: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0B1329] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans"
               />
             </div>
           </div>

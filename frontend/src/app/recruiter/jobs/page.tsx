@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { Job } from '@/types';
 import {
   closeJob,
-  fetchJobApplications,
+  deleteDraftJob,
+  fetchJobApplicationCount,
   fetchRecruiterJobs,
   publishJob,
 } from '@/lib/api';
@@ -41,6 +42,23 @@ export default function RecruiterJobsListPage() {
   const [actionInProgressId, setActionInProgressId] = useState<string | null>(null);
 
   const [policyModalJob, setPolicyModalJob] = useState<Job | null>(null);
+  const [confirmDeleteJobId, setConfirmDeleteJobId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const handleDelete = async () => {
+    if (!confirmDeleteJobId) return;
+    setActionInProgressId(confirmDeleteJobId);
+    setDeleteError(null);
+    try {
+      await deleteDraftJob(confirmDeleteJobId);
+      setConfirmDeleteJobId(null);
+      await loadJobs();
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Không thể xóa tin nháp.');
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
+
   const [confirmCloseJobId, setConfirmCloseJobId] = useState<string | null>(null);
   const [confirmPublishJobId, setConfirmPublishJobId] = useState<string | null>(null);
 
@@ -58,10 +76,9 @@ export default function RecruiterJobsListPage() {
       await Promise.all(
         data.map(async (job) => {
           try {
-            const applications = await fetchJobApplications(job.id);
-            counts[job.id] = applications.length;
+            counts[job.id] = await fetchJobApplicationCount(job.id);
           } catch {
-            counts[job.id] = 0;
+            // Keep the count unknown when the server cannot confirm it.
           }
         }),
       );
@@ -87,10 +104,10 @@ export default function RecruiterJobsListPage() {
         if (!active) return;
         setJobs(data);
         const counts = await Promise.all(data.map(async (job) => {
-          try { return [job.id, (await fetchJobApplications(job.id)).length] as const; }
-          catch { return [job.id, 0] as const; }
+          try { return [job.id, await fetchJobApplicationCount(job.id)] as const; }
+          catch { return null; }
         }));
-        if (active) setApplicationCounts(Object.fromEntries(counts));
+        if (active) setApplicationCounts(Object.fromEntries(counts.filter((entry) => entry !== null)));
       } catch (error: unknown) {
         if (active) setFetchError(error instanceof Error ? error.message : 'Unable to load jobs list. / Không thể tải danh sách bài tuyển dụng.');
       } finally {
@@ -165,13 +182,13 @@ export default function RecruiterJobsListPage() {
   const closedCount = jobs.filter((job) => job.status === 'CLOSED').length;
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col transition-colors">
+    <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 flex flex-col transition-colors">
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 w-full">
         {/* Page header */}
         <Reveal direction="up" delay={0}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider font-mono">
+              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider font-sans">
                 <Briefcase className="w-4 h-4" />
                 <span>Job Management Center</span>
               </div>
@@ -188,7 +205,7 @@ export default function RecruiterJobsListPage() {
 
             <Link
               href="/recruiter/jobs/new"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-md shadow-blue-500/20 transition active:scale-95 flex-shrink-0"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs text-white bg-[var(--primary)] hover:bg-[var(--primary)] shadow-md shadow-blue-500/20 transition active:scale-95 flex-shrink-0"
             >
               <PlusCircle className="w-4 h-4" />
               <span>{t('recruiterNav.createJob', 'Tạo Bài Tuyển Dụng Mới')}</span>
@@ -198,7 +215,7 @@ export default function RecruiterJobsListPage() {
 
         {/* Status summary */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="flex items-center gap-3 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-white dark:bg-[#111C38] px-4 py-3">
+          <div className="flex items-center gap-3 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-white dark:bg-[var(--surface)] px-4 py-3">
             <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -207,7 +224,7 @@ export default function RecruiterJobsListPage() {
               <p className="text-lg font-bold">{publishedCount}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-white dark:bg-[#111C38] px-4 py-3">
+          <div className="flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-white dark:bg-[var(--surface)] px-4 py-3">
             <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -216,7 +233,7 @@ export default function RecruiterJobsListPage() {
               <p className="text-lg font-bold">{draftCount}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#111C38] px-4 py-3">
+          <div className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[var(--surface)] px-4 py-3">
             <XCircle className="h-5 w-5 text-slate-500 dark:text-slate-400" />
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -229,7 +246,7 @@ export default function RecruiterJobsListPage() {
 
         {/* Search and status filters */}
         <Reveal direction="up" delay={80}>
-          <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-5 shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-4 transition-colors">
+          <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-4 transition-colors">
             <div className="relative sm:col-span-2">
               <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
               <input
@@ -237,7 +254,7 @@ export default function RecruiterJobsListPage() {
                 placeholder={locale === 'vi' ? 'Tìm kiếm vị trí tuyển dụng...' : 'Search job requisitions...'}
                 value={searchKeyword}
                 onChange={(event) => setSearchKeyword(event.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-xl text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[#2563EB]"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[var(--border)]"
               />
             </div>
 
@@ -245,7 +262,7 @@ export default function RecruiterJobsListPage() {
               <select
                 value={selectedStatus}
                 onChange={(event) => setSelectedStatus(event.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] rounded-xl text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[var(--border)]"
               >
                 <option value="ALL">{locale === 'vi' ? 'Tất cả trạng thái' : 'All Statuses'}</option>
                 <option value="PUBLISHED">PUBLISHED {locale === 'vi' ? '(Đã xuất bản)' : '(Published)'}</option>
@@ -286,19 +303,19 @@ export default function RecruiterJobsListPage() {
           <div className="space-y-4">
             {filteredJobs.map((job, index) => {
               const isBusy = actionInProgressId === job.id;
-              const applicationCount = applicationCounts[job.id] ?? 0;
+              const applicationCount = applicationCounts[job.id] ?? '—';
 
               return (
                 <Reveal key={job.id} delay={staggerDelay(index)}>
-                  <article className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#2563EB] transition shadow-xs space-y-4">
+                  <article className="p-5 sm:p-6 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] hover:border-[var(--border)] dark:hover:border-[var(--border)] transition shadow-xs space-y-4">
                     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
                       <div className="min-w-0 flex-1 space-y-3">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-slate-700 dark:text-[#93C5FD]">
+                          <span className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] text-slate-700 dark:text-[var(--retro-sky)]">
                             {translateIndustry(job.industry || '', locale)}
                           </span>
                           <span
-                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${
+                            className={`px-2.5 py-1 rounded-xl text-xs font-semibold border ${
                               job.status === 'PUBLISHED'
                                 ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900'
                                 : job.status === 'DRAFT'
@@ -312,7 +329,7 @@ export default function RecruiterJobsListPage() {
 
                         <div>
                           <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white break-words">
-                            <Link href={`/recruiter/jobs/${job.id}`} className="hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors">
+                            <Link href={`/recruiter/jobs/${job.id}`} className="hover:text-[var(--primary)] dark:hover:text-[var(--retro-sky)] transition-colors">
                               {job.title}
                             </Link>
                           </h2>
@@ -346,7 +363,7 @@ export default function RecruiterJobsListPage() {
                       <div className="flex flex-wrap lg:justify-end items-center gap-2">
                         <Link
                           href={`/recruiter/jobs/${job.id}`}
-                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-[#2563EB] hover:border-[#2563EB] transition text-xs font-semibold"
+                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-[var(--primary)] hover:border-[var(--border)] transition text-xs font-semibold"
                           title={locale === 'vi' ? 'Xem chi tiết JD' : 'View job details'}
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -354,7 +371,7 @@ export default function RecruiterJobsListPage() {
                         </Link>
                         <Link
                           href={`/recruiter/jobs/${job.id}/ranking`}
-                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] hover:bg-[#DBEAFE] border border-[#2563EB]/20 transition text-xs font-semibold"
+                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--surface-secondary)] dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] hover:bg-[var(--surface-secondary)] border border-[var(--border)]/20 transition text-xs font-semibold"
                           title={locale === 'vi' ? 'Xem bảng xếp hạng AI' : 'View AI ranking'}
                         >
                           <Award className="w-3.5 h-3.5" />
@@ -363,20 +380,31 @@ export default function RecruiterJobsListPage() {
                         <button
                           type="button"
                           onClick={() => setPolicyModalJob(job)}
-                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-400 transition text-xs font-semibold"
+                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-400 transition text-xs font-semibold"
                           title={locale === 'vi' ? 'Cấu hình trọng số đối sánh' : 'Configure matching policy'}
                         >
                           <Sliders className="w-3.5 h-3.5" />
                           {locale === 'vi' ? 'Đối sánh' : 'Matching'}
                         </button>
+                        <Link href={`/recruiter/jobs/${job.id}/edit`}
+                          className="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold">
+                          {locale === 'vi' ? 'Chỉnh sửa' : 'Edit'}
+                        </Link>
                         {job.status === 'DRAFT' && (
                           <button
                             type="button"
                             onClick={() => setConfirmPublishJobId(job.id)}
                             disabled={actionInProgressId !== null}
-                            className="inline-flex items-center justify-center px-3 py-2 rounded-lg text-xs font-semibold bg-[#E8F8EE] dark:bg-emerald-950/40 text-[#00873D] dark:text-emerald-400 hover:bg-[#C9F2D8] border border-[#00B14F]/30 transition disabled:opacity-50"
+                            className="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold bg-[var(--surface-secondary)] dark:bg-emerald-950/40 text-[var(--heading)] dark:text-emerald-400 hover:bg-[var(--surface-secondary)] border border-[var(--border)]/30 transition disabled:opacity-50"
                           >
                             {isBusy ? '...' : locale === 'vi' ? 'Xuất bản' : 'Publish'}
+                          </button>
+                        )}
+                        {job.status === 'DRAFT' && (
+                          <button type="button" disabled={actionInProgressId !== null}
+                            onClick={() => { setDeleteError(null); setConfirmDeleteJobId(job.id); }}
+                            className="px-3 py-2 rounded-xl border border-rose-300 text-rose-700 text-xs font-semibold disabled:opacity-50">
+                            {locale === 'vi' ? 'Xóa bản nháp' : 'Delete draft'}
                           </button>
                         )}
                         {job.status === 'PUBLISHED' && (
@@ -384,7 +412,7 @@ export default function RecruiterJobsListPage() {
                             type="button"
                             onClick={() => setConfirmCloseJobId(job.id)}
                             disabled={actionInProgressId !== null}
-                            className="inline-flex items-center justify-center px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-rose-50 hover:text-rose-600 border border-slate-200 dark:border-slate-700 transition disabled:opacity-50"
+                            className="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-rose-50 hover:text-rose-600 border border-slate-200 dark:border-slate-700 transition disabled:opacity-50"
                           >
                             {isBusy ? '...' : locale === 'vi' ? 'Đóng tin' : 'Close'}
                           </button>
@@ -392,10 +420,10 @@ export default function RecruiterJobsListPage() {
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 dark:border-[#1E293B] pt-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 dark:border-[var(--border)] pt-4">
                       <Link
                         href={`/recruiter/jobs/${job.id}/applications`}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB] dark:text-[#3B82F6] font-semibold text-xs hover:bg-[#DBEAFE] transition"
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--surface-secondary)] dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] font-semibold text-xs hover:bg-[var(--surface-secondary)] transition"
                       >
                         <Users className="w-4 h-4" />
                         <span>{applicationCount} {locale === 'vi' ? 'ứng viên ứng tuyển' : 'applicants'}</span>
@@ -423,6 +451,14 @@ export default function RecruiterJobsListPage() {
         )}
       </main>
 
+      <ConfirmActionDialog
+        isOpen={confirmDeleteJobId !== null}
+        title={locale === 'vi' ? 'Xóa tin tuyển dụng nháp?' : 'Delete this draft job?'}
+        description={locale === 'vi' ? 'Bản nháp sẽ được xóa khỏi danh sách.' : 'The draft will be removed from the list.'}
+        confirmLabel={locale === 'vi' ? 'Xóa bản nháp' : 'Delete draft'}
+        variant="danger" isLoading={actionInProgressId !== null} errorMessage={deleteError}
+        onConfirm={handleDelete} onCancel={() => setConfirmDeleteJobId(null)}
+      />
       {policyModalJob && (
         <JobMatchingPolicyModal
           jobId={policyModalJob.id}

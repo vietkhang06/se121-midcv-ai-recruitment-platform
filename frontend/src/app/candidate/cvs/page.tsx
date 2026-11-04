@@ -77,17 +77,17 @@ export default function CVLibraryPage() {
   };
 
   return (
-    <div className="bg-slate-50/60 dark:bg-[#0B1329] min-h-screen py-8 text-[#0F2A52] dark:text-[#F1F5F9] space-y-8 transition-colors">
+    <div className="bg-slate-50/60 dark:bg-[var(--surface)] min-h-screen py-8 text-[var(--heading)] dark:text-[var(--retro-cream)] space-y-8 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         {/* 06 — Header Section (Figma Screen 06) */}
         <Reveal direction="up" delay={0}>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1E293B] pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[var(--border)] pb-4">
             <div className="space-y-1">
-              <span className="text-[11px] font-mono font-semibold text-[#2563EB] dark:text-[#60A5FA] uppercase tracking-widest">
+              <span className="text-[11px] font-sans font-semibold text-[var(--primary)] dark:text-[var(--retro-sky)] uppercase tracking-widest">
                 CANDIDATE ASSETS
               </span>
-              <h1 className="text-3xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9]">
+              <h1 className="text-3xl font-editorial font-bold text-[var(--heading)] dark:text-[var(--retro-cream)]">
                 {t('candidatePages.myCvsTitle', 'Hồ Sơ & Bản Lưu Năng Lực midCV®')}
                 <span className="sr-only"> — Thư Viện CV Cá Nhân</span>
               </h1>
@@ -97,10 +97,10 @@ export default function CVLibraryPage() {
               {quota && (
                 <div
                   id="cv-quota-badge"
-                  className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold border flex items-center gap-1.5 transition ${
+                  className={`px-3 py-2 rounded-xl text-xs font-sans font-semibold border flex items-center gap-1.5 transition ${
                     quota.remainingSlots === 0
                       ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300'
-                      : 'bg-blue-50 dark:bg-[#13233F] border-blue-200 dark:border-blue-900/50 text-[#2563EB] dark:text-[#60A5FA]'
+                      : 'bg-blue-50 dark:bg-[var(--surface)] border-blue-200 dark:border-blue-900/50 text-[var(--primary)] dark:text-[var(--retro-sky)]'
                   }`}
                   title={`${isVi ? 'Gói tài khoản' : 'Account plan'}: ${quota.plan} (${quota.currentCount}/${quota.maxLimit} CV)`}
                 >
@@ -113,7 +113,7 @@ export default function CVLibraryPage() {
                 id="upload-cv-btn"
                 onClick={() => setIsUploadModalOpen(true)}
                 disabled={quota?.canUpload !== true}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[var(--border)] text-[var(--heading)] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[var(--surface)] disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
                 title={quota?.canUpload !== true ? (isVi ? 'Đã đạt giới hạn hoặc chưa kiểm tra được hạn mức CV' : 'CV limit reached or quota unavailable') : undefined}
               >
                 {t('candidatePages.uploadCv', 'Tải CV Lên / Ingest Repo')}
@@ -129,7 +129,7 @@ export default function CVLibraryPage() {
                 className={`px-4 py-2.5 rounded-xl text-xs font-semibold text-white transition shadow-xs flex items-center gap-1.5 ${
                   quota?.canUpload !== true
                     ? 'bg-slate-400 dark:bg-slate-600 opacity-50 cursor-not-allowed'
-                    : 'bg-[#2563EB] hover:bg-[#1D4ED8] cursor-pointer'
+                    : 'bg-[var(--primary)] hover:bg-[var(--primary)] cursor-pointer'
                 }`}
                 title={quota?.canUpload !== true ? (isVi ? 'Đã đạt giới hạn hoặc chưa kiểm tra được hạn mức CV' : 'CV limit reached or quota unavailable') : undefined}
               >
@@ -167,28 +167,28 @@ export default function CVLibraryPage() {
               <Reveal key={cv.id} delay={staggerDelay(idx)} className="h-full">
                 <div
                   data-testid={`cv-card-${cv.id}`}
-                  className={`motion-hover-lift bg-white dark:bg-[#111C38] rounded-2xl p-6 flex flex-col justify-between h-full transition-colors ${statusCardStyle}`}
+                  className={`motion-hover-lift bg-white dark:bg-[var(--surface)] rounded-xl p-6 flex flex-col justify-between h-full transition-colors ${statusCardStyle}`}
                 >
                   <div className="space-y-4">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="font-semibold text-[#0F2A52] dark:text-white text-sm truncate max-w-[220px]" title={cv.title}>
+                        <h3 className="font-semibold text-[var(--heading)] dark:text-white text-sm truncate max-w-[220px]" title={cv.title}>
                           {cv.title}
                         </h3>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00873D] dark:text-[#10B981] border border-[#00B14F]/30">
+                          <span className="px-2 py-0.5 rounded-xl text-[10px] font-sans font-bold bg-[var(--surface-secondary)] dark:bg-[var(--success)]/15 text-[var(--heading)] dark:text-[var(--success)] border border-[var(--border)]/30">
                             v{cv.currentVersionNumber || cv.versions?.[0]?.versionNumber || 1}.0
                           </span>
                           <button
                             id={`version-history-btn-${cv.id}`}
                             onClick={() => setSelectedCvForHistory(cv)}
-                            className="version-history-btn text-[11px] flex items-center gap-1 text-[#2563EB] dark:text-[#60A5FA] hover:underline font-semibold font-mono"
+                            className="version-history-btn text-[11px] flex items-center gap-1 text-[var(--primary)] dark:text-[var(--retro-sky)] hover:underline font-semibold font-sans"
                           >
                             <GitBranch className="w-3 h-3" />
                             <span>{cv.versions?.length || 1} {isVi ? 'phiên bản (Lịch sử)' : 'versions (History)'}</span>
                           </button>
                         </div>
-                        <div className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-mono mt-0.5">
+                        <div className="text-[11px] text-[var(--text-secondary)] dark:text-[var(--text-secondary)] font-sans mt-0.5">
                           {cv.updatedAt ? `${isVi ? 'Cập nhật' : 'Updated'}: ${cv.updatedAt}` : (isVi ? 'Mới cập nhật' : 'Recently updated')}
                         </div>
                       </div>
@@ -199,7 +199,7 @@ export default function CVLibraryPage() {
                     <div className="flex flex-wrap gap-1.5 text-[11px]">
                       <span
                         role="status"
-                        className={`inline-flex items-center rounded-full border px-2.5 py-1 font-semibold ${isConfirmed
+                        className={`inline-flex items-center rounded-xl border px-2.5 py-1 font-semibold ${isConfirmed
                           ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300'
                           : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300'
                         }`}
@@ -208,14 +208,14 @@ export default function CVLibraryPage() {
                           ? (isVi ? 'Đã xác nhận' : 'Confirmed')
                           : (isVi ? 'Bản nháp' : 'Draft')}
                       </span>
-                      <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-[#0B1329] text-[#64748B] dark:text-[#94A3B8] border border-slate-200 dark:border-[#1E293B]">
+                      <span className="px-2 py-0.5 rounded-xl bg-slate-100 dark:bg-[var(--surface)] text-[var(--text-secondary)] dark:text-[var(--text-secondary)] border border-slate-200 dark:border-[var(--border)]">
                         {cv.creationPath === 'BUILDER' ? (isVi ? 'Hồ sơ có cấu trúc' : 'Structured Profile') : (isVi ? 'CV tải lên' : 'Uploaded Document')}
                       </span>
                     </div>
                   </div>
 
                   {/* Card Actions Footer */}
-                  <div className="pt-5 mt-4 border-t border-slate-100 dark:border-[#1E293B] flex items-center justify-between gap-2">
+                  <div className="pt-5 mt-4 border-t border-slate-100 dark:border-[var(--border)] flex items-center justify-between gap-2">
                     <button
                       onClick={() => setSelectedCvForReview(cv)}
                       title={isVi ? 'Rà soát và chỉnh sửa CV' : 'Review and edit CV'}
@@ -229,7 +229,7 @@ export default function CVLibraryPage() {
                       type="button"
                       onClick={() => setSelectedCvForMetadata(cv)}
                       title={isVi ? 'Sửa thông tin thẻ CV' : 'Edit CV card details'}
-                      className="py-2 px-3 rounded-xl text-center text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18294E] transition"
+                      className="py-2 px-3 rounded-xl text-center text-xs font-semibold border border-slate-200 dark:border-[var(--border)] text-[var(--heading)] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[var(--surface)] transition"
                     >
                       {t('common.edit', isVi ? 'Chỉnh Sửa' : 'Edit')}
                     </button>
@@ -237,14 +237,14 @@ export default function CVLibraryPage() {
                     <button
                       onClick={() => handleExport(cv)}
                       title="Export / Download PDF"
-                      className="p-2 rounded-xl border border-slate-200 dark:border-[#1E293B] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F2A52] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#18294E] transition cursor-pointer"
+                      className="p-2 rounded-xl border border-slate-200 dark:border-[var(--border)] text-[var(--text-secondary)] dark:text-[var(--text-secondary)] hover:text-[var(--heading)] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[var(--surface)] transition cursor-pointer"
                     >
                       <Download className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDelete(cv)}
                       title="Delete Profile"
-                      className="p-2 rounded-xl border border-slate-200 dark:border-[#1E293B] text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer"
+                      className="p-2 rounded-xl border border-slate-200 dark:border-[var(--border)] text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -264,18 +264,18 @@ export default function CVLibraryPage() {
                   }
                   setIsUploadModalOpen(true);
                 }}
-                className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center transition min-h-[220px] h-full space-y-3 ${
+                className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center transition min-h-[220px] h-full space-y-3 ${
                   quota?.canUpload !== true
-                    ? 'border-slate-200 dark:border-[#1E293B] opacity-50 cursor-not-allowed bg-slate-50/20 dark:bg-[#18294E]/20'
-                    : 'border-slate-200 dark:border-[#1E293B] hover:border-[#2563EB] cursor-pointer hover:bg-slate-50/50 dark:hover:bg-[#18294E]/50'
+                    ? 'border-slate-200 dark:border-[var(--border)] opacity-50 cursor-not-allowed bg-slate-50/20 dark:bg-[var(--surface)]/20'
+                    : 'border-slate-200 dark:border-[var(--border)] hover:border-[var(--border)] cursor-pointer hover:bg-slate-50/50 dark:hover:bg-[var(--surface)]/50'
                 }`}
               >
-                <div className="w-12 h-12 rounded-2xl bg-[#EFF6FF] dark:bg-[#0B1329] text-[#2563EB] flex items-center justify-center border border-[#BFDBFE] dark:border-[#1E293B]">
+                <div className="w-12 h-12 rounded-xl bg-[var(--surface-secondary)] dark:bg-[var(--surface)] text-[var(--primary)] flex items-center justify-center border border-[var(--border-soft)] dark:border-[var(--border)]">
                   <Upload className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-[#0F2A52] dark:text-white">{t('candidatePages.uploadCv', isVi ? 'Tải CV Mới Lên' : 'Upload New CV')}</div>
-                  <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1">
+                  <div className="text-sm font-semibold text-[var(--heading)] dark:text-white">{t('candidatePages.uploadCv', isVi ? 'Tải CV Mới Lên' : 'Upload New CV')}</div>
+                  <p className="text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)] mt-1">
                     {isVi ? 'Kéo thả PDF, DOCX hoặc trích xuất từ repository' : 'Drag & drop PDF, DOCX or extract from repository'}
                   </p>
                 </div>
@@ -285,7 +285,7 @@ export default function CVLibraryPage() {
         ) : (
           <EmptyState
             type="EMPTY"
-            icon={<FolderOpen className="w-8 h-8 text-[#2563EB]" />}
+            icon={<FolderOpen className="w-8 h-8 text-[var(--primary)]" />}
             title={t('emptyStates.cvs.emptyTitle', 'Bạn chưa có CV nào')}
             description={t('emptyStates.cvs.emptyDesc', 'Tạo hồ sơ CV có cấu trúc hoặc tải lên bản CV để hệ thống trích xuất năng lực và kích hoạt đối sánh AI.')}
             primaryCtaText={t('emptyStates.cvs.createCvCta', 'Tạo CV Mới')}
@@ -338,23 +338,23 @@ export default function CVLibraryPage() {
       {/* Version History Modal */}
       {selectedCvForHistory && (
         <div id="version-history-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4 animate-fade-in duration-150">
-          <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-5 text-[#0F2A52] dark:text-[#F1F5F9] max-h-[85vh] flex flex-col">
-            <div className="flex items-start justify-between border-b border-slate-100 dark:border-[#1E293B] pb-4">
+          <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 max-w-xl w-full shadow-2xl space-y-5 text-[var(--heading)] dark:text-[var(--retro-cream)] max-h-[85vh] flex flex-col">
+            <div className="flex items-start justify-between border-b border-slate-100 dark:border-[var(--border)] pb-4">
               <div>
-                <span className="text-[10px] font-mono font-semibold uppercase text-[#2563EB] dark:text-[#60A5FA] tracking-wider">
+                <span className="text-[10px] font-sans font-semibold uppercase text-[var(--primary)] dark:text-[var(--retro-sky)] tracking-wider">
                   IMMUTABLE AUDIT TRAIL
                 </span>
-                <h3 className="text-lg font-bold font-editorial text-[#0F2A52] dark:text-white">
+                <h3 className="text-lg font-bold font-editorial text-[var(--heading)] dark:text-white">
                   Lịch Sử Phiên Bản CV
                 </h3>
-                <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-0.5">
+                <p className="text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)] mt-0.5">
                   {selectedCvForHistory.title}
                 </p>
               </div>
               <button
                 id="close-version-history-modal-btn"
                 onClick={() => setSelectedCvForHistory(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-[#0F2A52] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#18294E] transition"
+                className="p-1 rounded-xl text-slate-400 hover:text-[var(--heading)] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[var(--surface)] transition"
               >
                 ✕
               </button>
@@ -369,39 +369,39 @@ export default function CVLibraryPage() {
                     key={ver.id}
                     className={`p-4 rounded-xl border transition-[color,background-color,border-color,box-shadow] ${
                       isActive
-                        ? 'bg-[#E8F8EE]/60 dark:bg-[#00B14F]/10 border-[#00B14F]/40'
-                        : 'bg-slate-50 dark:bg-[#0B1329] border-slate-200 dark:border-[#1E293B]'
+                        ? 'bg-[var(--surface-secondary)]/60 dark:bg-[var(--success)]/10 border-[var(--border)]/40'
+                        : 'bg-slate-50 dark:bg-[var(--surface)] border-slate-200 dark:border-[var(--border)]'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-[#2563EB] text-white">
+                        <span className="px-2 py-0.5 rounded text-xs font-sans font-bold bg-[var(--primary)] text-white">
                           v{ver.versionNumber}.0
                         </span>
                         {isActive && (
-                          <span className="text-[10px] font-semibold text-[#00873D] dark:text-[#10B981] bg-[#E8F8EE] dark:bg-[#00B14F]/20 px-2 py-0.5 rounded-full border border-[#00B14F]/30">
+                          <span className="text-[10px] font-semibold text-[var(--heading)] dark:text-[var(--success)] bg-[var(--surface-secondary)] dark:bg-[var(--success)]/20 px-2 py-0.5 rounded-xl border border-[var(--border)]/30">
                             Phiên bản hiện tại
                           </span>
                         )}
                       </div>
-                      <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-mono">
+                      <span className="text-[11px] text-[var(--text-secondary)] dark:text-[var(--text-secondary)] font-sans">
                         {ver.createdAt}
                       </span>
                     </div>
 
                     {ver.summaryText && (
-                      <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-2 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)] mt-2 line-clamp-2 leading-relaxed">
                         {ver.summaryText}
                       </p>
                     )}
 
-                    <div className="mt-3 pt-3 border-t border-slate-200/60 dark:border-[#1E293B] flex items-center justify-between">
-                      <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-mono">
+                    <div className="mt-3 pt-3 border-t border-slate-200/60 dark:border-[var(--border)] flex items-center justify-between">
+                      <span className="text-[10px] text-[var(--text-secondary)] dark:text-[var(--text-secondary)] font-sans">
                         {ver.sections?.length || 0} mục nội dung
                       </span>
                       <Link
                         href={`/candidate/cvs/builder?edit=${selectedCvForHistory.id}&v=${ver.versionNumber}`}
-                        className="text-xs font-semibold text-[#2563EB] dark:text-[#60A5FA] hover:underline flex items-center gap-1"
+                        className="text-xs font-semibold text-[var(--primary)] dark:text-[var(--retro-sky)] hover:underline flex items-center gap-1"
                       >
                         <span>Mở bản này trong Studio</span>
                         <ExternalLink className="w-3 h-3" />
@@ -412,10 +412,10 @@ export default function CVLibraryPage() {
               })}
             </div>
 
-            <div className="pt-3 border-t border-slate-100 dark:border-[#1E293B] flex justify-end">
+            <div className="pt-3 border-t border-slate-100 dark:border-[var(--border)] flex justify-end">
               <button
                 onClick={() => setSelectedCvForHistory(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-[#0B1329] text-[#0F2A52] dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-[#18294E] transition"
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-[var(--surface)] text-[var(--heading)] dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition"
               >
                 Đóng
               </button>

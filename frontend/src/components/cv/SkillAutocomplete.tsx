@@ -148,7 +148,7 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
         {normalizedSkills.map((skill, idx) => (
           <span
             key={idx}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium border transition ${
               skill.isCustom
                 ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60'
                 : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60'
@@ -156,7 +156,7 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
           >
             <span>{skill.name}</span>
             {skill.isCustom && (
-              <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
+              <span className="text-[9px] font-sans px-1 py-0.2 rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
                 tùy chỉnh
               </span>
             )}
@@ -188,7 +188,7 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
             }}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 transition"
+            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 transition"
           />
           {isLoading && (
             <Loader2 className="w-3.5 h-3.5 absolute right-3 text-blue-500 animate-spin" />
@@ -197,7 +197,7 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
 
         {/* Dropdown Suggestions */}
         {isOpen && query.trim() && (
-          <div className="absolute z-30 mt-1 w-full rounded-xl border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#111C38] shadow-xl overflow-hidden py-1 max-h-56 overflow-y-auto">
+          <div className="absolute z-30 mt-1 w-full rounded-xl border border-slate-200 dark:border-[var(--border)] bg-white dark:bg-[var(--surface)] shadow-xl overflow-hidden py-1 max-h-56 overflow-y-auto">
             {suggestions.length > 0 ? (
               suggestions.map((item, idx) => {
                 const alreadySelected = isDuplicate(item.canonicalName);
@@ -211,16 +211,16 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
                     onClick={() => handleAddSkill(item.canonicalName, false, item.category)}
                     className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between transition cursor-pointer ${
                       alreadySelected
-                        ? 'opacity-40 cursor-not-allowed bg-slate-50 dark:bg-[#0B1329]'
+                        ? 'opacity-40 cursor-not-allowed bg-slate-50 dark:bg-[var(--surface)]'
                         : isHighlighted
                         ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300'
-                        : 'hover:bg-slate-50 dark:hover:bg-[#18294E] text-slate-700 dark:text-slate-200'
+                        : 'hover:bg-slate-50 dark:hover:bg-[var(--surface)] text-slate-700 dark:text-slate-200'
                     }`}
                   >
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{item.canonicalName}</span>
                       {item.category && (
-                        <span className="text-[10px] text-slate-400 font-mono">({item.category})</span>
+                        <span className="text-[10px] text-slate-400 font-sans">({item.category})</span>
                       )}
                     </div>
                     {alreadySelected ? (
@@ -245,7 +245,7 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
                 <button
                   type="button"
                   onClick={() => handleAddSkill(query.trim(), true)}
-                  className="w-full px-3 py-2 border-t border-slate-100 dark:border-[#1E293B] text-left text-xs flex items-center gap-2 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition cursor-pointer"
+                  className="w-full px-3 py-2 border-t border-slate-100 dark:border-[var(--border)] text-left text-xs flex items-center gap-2 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition cursor-pointer"
                 >
                   <Sparkles className="w-3 h-3" />
                   <span>Thêm kỹ năng tùy chỉnh: &quot;<strong>{query.trim()}</strong>&quot;</span>

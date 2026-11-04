@@ -19,7 +19,7 @@ export function Reveal({
   className = '',
   direction = 'up',
   delay = 0,
-  duration = 2580,
+  duration = 360,
   once = true,
   threshold = 0.08,
 }: RevealProps) {
@@ -53,8 +53,8 @@ export function Reveal({
     };
   }, [once, threshold]);
 
-  const boundedDelay = Math.min(Math.max(delay, 0), 1000);
-  const boundedDuration = Math.min(Math.max(duration, 150), 5000);
+  const boundedDelay = Math.min(Math.max(delay, 0), 240);
+  const boundedDuration = Math.min(Math.max(duration, 150), 600);
 
   const style = {
     '--motion-delay': `${boundedDelay}ms`,

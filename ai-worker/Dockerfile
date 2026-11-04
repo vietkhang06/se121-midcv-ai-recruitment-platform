@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-eng \
     tesseract-ocr-vie \
+    libreoffice-writer \
     libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
@@ -29,7 +30,8 @@ COPY . .
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/internal/ai/health || exit 1
+# The health endpoint always returns HTTP 200 so orchestrators must inspect the JSON readiness state.
+HEALTHCHECK --interval=30s --timeout=8s --start-period=60s --retries=5 \
+    CMD python -c "import json,urllib.request,sys; data=json.load(urllib.request.urlopen('http://127.0.0.1:8000/internal/ai/health', timeout=5)); sys.exit(0 if data.get('status') == 'UP' else 1)"
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -9,7 +9,7 @@ export default function AdminAiSettingsPage() {
     const { t } = useLanguage();
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#060D1E] text-slate-800 dark:text-slate-100 transition-colors">
+        <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 transition-colors">
             <main className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6">
                 {/* Breadcrumb Navigation */}
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
@@ -38,7 +38,7 @@ export default function AdminAiSettingsPage() {
                             <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                                 {t(
                                     'admin.title',
-                                    'Cấu hình AI & Engine Đối sánh'
+                                    'Cấu hình AI backend'
                                 )}
                             </h1>
                         </div>
@@ -46,7 +46,7 @@ export default function AdminAiSettingsPage() {
                         <p className="text-sm text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
                             {t(
                                 'admin.subtitle',
-                                'Quản lý mô hình bóc tách tài liệu (LLM) và vector embedding (BGE-M3 1024d) cho quy trình tuyển dụng thông minh.'
+                                'Quản lý AI sàng lọc của backend và xem cấu hình model worker đang tải.'
                             )}
                         </p>
                     </div>

@@ -973,3 +973,10 @@ Developed by **Đoàn Việt Khang** and **Phạm Ngọc Gia Khang**<br />
 University of Information Technology – VNU-HCM
 
 </div>
+
+## Bản sửa task ngày 30/10/2026
+
+Xem [hướng dẫn áp dụng, nghiệm thu 8 task và dọn file](docs/TASKS_20261030.md),
+[ma trận 15 UC và trạng thái](docs/UC_TASK_MATRIX_20261030.md), cùng
+[kết quả kiểm tra thực chạy](docs/task-evidence/20261030/verification.json).
+Migration mới là V29; task live vẫn cần nghiệm thu như ghi trong các tài liệu này.

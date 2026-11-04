@@ -21,6 +21,11 @@ public class MockEmailService implements EmailService {
         log.info("[MOCK EMAIL SERVICE] Verification email sent to: {} | Verification URL: {}", recipientEmail, verificationUrl);
     }
 
+    @Override public void sendPasswordResetEmail(String recipientEmail, String token) {
+        devTokenStore.put("reset:" + recipientEmail, token);
+        log.info("[MOCK EMAIL SERVICE] Password reset requested; SMTP delivery is disabled.");
+    }
+
     @Override
     public String getLastSentTokenForDev(String recipientEmail) {
         return devTokenStore.get(recipientEmail);

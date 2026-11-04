@@ -69,6 +69,10 @@ public class CreateJobRequest {
     @NotBlank(message = "Job description is required")
     private String description;
 
+    @jakarta.validation.constraints.Size(max = 100)
+    private List<@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 2000) String> responsibilities;
+
+    @jakarta.validation.Valid
     private List<RequirementItem> requirements;
 
     @Data
@@ -76,6 +80,7 @@ public class CreateJobRequest {
         @NotBlank(message = "Skill name is required")
         private String skillName;
         private RequirementType type; // REQUIRED or PREFERRED
+        @jakarta.validation.constraints.Min(0)
         private Integer minYearsExp;
     }
 }

@@ -244,10 +244,10 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
                   type="button"
                   disabled={isAlreadyChosen}
                   onClick={() => handleChooseSkill({ id: fav.id, name: fav.name, category: fav.category })}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition ${
+                  className={`px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center gap-1 transition ${
                     isAlreadyChosen
                       ? 'bg-slate-200/70 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed line-through'
-                      : 'bg-white dark:bg-[#111C38] text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800 hover:bg-amber-100 hover:border-amber-400 shadow-2xs cursor-pointer active:scale-95'
+                      : 'bg-white dark:bg-[var(--surface)] text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800 hover:bg-amber-100 hover:border-amber-400 shadow-2xs cursor-pointer active:scale-95'
                   }`}
                   title={isAlreadyChosen ? (isVi ? 'Đã có trong danh sách' : 'Already added') : (isVi ? 'Thêm kỹ năng này' : 'Add this skill')}
                 >
@@ -266,7 +266,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
 
       {/* Favorite Feedback Message Banner */}
       {favoriteMessage && (
-        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 text-xs text-blue-700 dark:text-blue-300 flex items-center justify-between">
+        <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 text-xs text-blue-700 dark:text-blue-300 flex items-center justify-between">
           <span className="flex items-center gap-1.5">
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
             <span>{favoriteMessage}</span>
@@ -284,12 +284,12 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
       {/* 2. Taxonomy Filters Row */}
       <div className="flex flex-wrap items-center gap-2 text-xs">
         {/* Industry Filter Dropdown */}
-        <div className="flex items-center gap-1 bg-white dark:bg-[#111C38] border border-[#CBD5E1] dark:border-[#1E3A5F] rounded-lg px-2.5 py-1.5 shadow-2xs">
+        <div className="flex items-center gap-1 bg-white dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl px-2.5 py-1.5 shadow-2xs">
           <Briefcase className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <select
             value={selectedIndustry}
             onChange={(e) => setSelectedIndustry(e.target.value)}
-            className="bg-transparent text-xs text-[#0F2A52] dark:text-white font-medium focus:outline-none cursor-pointer max-w-[160px] truncate"
+            className="bg-transparent text-xs text-[var(--heading)] dark:text-white font-medium focus:outline-none cursor-pointer max-w-[160px] truncate"
             title={isVi ? 'Lọc theo ngành nghề' : 'Filter by industry'}
           >
             <option value="ALL">{isVi ? 'Tất cả ngành nghề' : 'All Industries'}</option>
@@ -305,10 +305,10 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
         <button
           type="button"
           onClick={() => setShowOnlyFavorites((prev) => !prev)}
-          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition cursor-pointer shadow-2xs ${
+          className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition cursor-pointer shadow-2xs ${
             showOnlyFavorites
               ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border-amber-400'
-              : 'bg-white dark:bg-[#111C38] text-slate-600 dark:text-slate-300 border-[#CBD5E1] dark:border-[#1E3A5F] hover:border-amber-400'
+              : 'bg-white dark:bg-[var(--surface)] text-slate-600 dark:text-slate-300 border-[var(--border-soft)] dark:border-[var(--border)] hover:border-amber-400'
           }`}
           title={isVi ? 'Chỉ hiện kỹ năng yêu thích' : 'Show only favorites'}
         >
@@ -338,7 +338,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
               onFocus={() => setIsOpen(true)}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
-              className="w-full pl-9 pr-8 py-2 bg-white dark:bg-[#111C38] border border-[#CBD5E1] dark:border-[#1E3A5F] rounded-lg text-[#0F2A52] dark:text-white text-xs focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] shadow-2xs"
+              className="w-full pl-9 pr-8 py-2 bg-white dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white text-xs focus:outline-none focus:border-[var(--border)] focus:ring-1 focus:ring-[var(--border)] shadow-2xs"
             />
             {query && (
               <button
@@ -356,7 +356,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
 
           {/* Autocomplete Dropdown List */}
           {isOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#111C38] border border-blue-200 dark:border-[#1E293B] rounded-xl shadow-xl z-50 max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-[#1E293B] animate-fade-in">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[var(--surface)] border border-blue-200 dark:border-[var(--border)] rounded-xl shadow-xl z-50 max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-[var(--border)] animate-fade-in">
               {suggestions.length === 0 ? (
                 <div className="p-3.5 text-center text-xs text-slate-500 dark:text-slate-400 space-y-1">
                   <p>{isVi ? 'Không tìm thấy kỹ năng có sẵn khớp từ khóa.' : 'No catalog skills found matching query.'}</p>
@@ -364,7 +364,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
                     <button
                       type="button"
                       onClick={() => handleChooseSkill({ name: query.trim() })}
-                      className="text-xs font-bold text-[#2563EB] hover:underline flex items-center justify-center gap-1 mx-auto cursor-pointer"
+                      className="text-xs font-bold text-[var(--primary)] hover:underline flex items-center justify-center gap-1 mx-auto cursor-pointer"
                     >
                       <Plus className="w-3 h-3" />
                       <span>{isVi ? `Thêm tùy chỉnh "${query.trim()}"` : `Add custom "${query.trim()}"`}</span>
@@ -383,8 +383,8 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
                       onMouseEnter={() => setSelectedIndex(idx)}
                       className={`px-3.5 py-2.5 flex items-center justify-between gap-3 text-xs cursor-pointer transition ${
                         isSelected
-                          ? 'bg-blue-50 dark:bg-[#18294E] text-[#2563EB] dark:text-[#3B82F6]'
-                          : 'hover:bg-slate-50 dark:hover:bg-[#142342] text-slate-800 dark:text-slate-200'
+                          ? 'bg-blue-50 dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)]'
+                          : 'hover:bg-slate-50 dark:hover:bg-[var(--surface)] text-slate-800 dark:text-slate-200'
                       }`}
                     >
                       <div className="min-w-0 flex-1 space-y-0.5">
@@ -392,7 +392,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
                           <span className="font-bold text-slate-900 dark:text-white truncate">
                             {skill.canonicalName}
                           </span>
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-mono uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-sans uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                             {skill.category}
                           </span>
                         </div>
@@ -406,7 +406,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
                         type="button"
                         onClick={(e) => handleToggleFavorite(e, skill)}
                         disabled={isUpdatingFavorite}
-                        className={`p-1.5 rounded-lg transition shrink-0 cursor-pointer ${
+                        className={`p-1.5 rounded-xl transition shrink-0 cursor-pointer ${
                           isFavorited
                             ? 'text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30'
                             : 'text-slate-300 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -430,7 +430,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
               <select
                 value={draftReqType}
                 onChange={(e) => setDraftReqType(e.target.value as 'REQUIRED' | 'PREFERRED')}
-                className="w-full px-3 py-2 bg-white dark:bg-[#111C38] border border-[#CBD5E1] dark:border-[#1E3A5F] rounded-lg text-[#0F2A52] dark:text-white text-xs focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-3 py-2 bg-white dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white text-xs focus:outline-none focus:border-[var(--border)]"
               >
                 <option value="REQUIRED">{isVi ? 'Bắt buộc (REQUIRED)' : 'REQUIRED'}</option>
                 <option value="PREFERRED">{isVi ? 'Ưu tiên (PREFERRED)' : 'PREFERRED'}</option>
@@ -445,7 +445,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
                 placeholder={isVi ? 'Năm KN' : 'Years'}
                 value={draftYears}
                 onChange={(e) => setDraftYears(Number(e.target.value))}
-                className="w-20 px-2.5 py-2 bg-white dark:bg-[#111C38] border border-[#CBD5E1] dark:border-[#1E3A5F] rounded-lg text-[#0F2A52] dark:text-white text-xs font-mono"
+                className="w-20 px-2.5 py-2 bg-white dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white text-xs font-sans"
                 title={isVi ? 'Số năm kinh nghiệm tối thiểu' : 'Minimum years of experience'}
               />
               <button
@@ -457,7 +457,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
                     handleChooseSkill(suggestions[0]);
                   }
                 }}
-                className="flex-1 py-2 px-3 rounded-lg text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition cursor-pointer shadow-xs whitespace-nowrap active:scale-95"
+                className="flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary)] transition cursor-pointer shadow-xs whitespace-nowrap active:scale-95"
               >
                 {isVi ? '+ Thêm' : '+ Add'}
               </button>

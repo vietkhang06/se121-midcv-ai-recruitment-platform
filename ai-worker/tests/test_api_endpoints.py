@@ -7,10 +7,44 @@ from app.main import app
 
 client = TestClient(app)
 
-def test_health_check_endpoint():
+def test_health_check_endpoint_reports_up_only_when_ocr_and_llm_are_ready(monkeypatch):
+    from app.api import endpoints
+
+    monkeypatch.setattr(endpoints.tesseract_runtime, "get_health", lambda: {"status": "READY"})
+    monkeypatch.setattr(endpoints, "get_llm_providers_health", lambda: {
+        "primary": {"reachable": True},
+        "fallback": {"reachable": False},
+    })
     response = client.get("/internal/ai/health")
     assert response.status_code == 200
     assert response.json()["status"] == "UP"
+    assert response.json()["ocr"]["status"] == "READY"
+
+
+def test_health_check_endpoint_is_degraded_when_ocr_is_misconfigured(monkeypatch):
+    from app.api import endpoints
+
+    monkeypatch.setattr(endpoints.tesseract_runtime, "get_health", lambda: {"status": "MISCONFIGURED"})
+    monkeypatch.setattr(endpoints, "get_llm_providers_health", lambda: {
+        "primary": {"reachable": True},
+        "fallback": {"reachable": True},
+    })
+    response = client.get("/internal/ai/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "DEGRADED"
+
+
+def test_health_check_endpoint_is_degraded_when_no_llm_provider_is_reachable(monkeypatch):
+    from app.api import endpoints
+
+    monkeypatch.setattr(endpoints.tesseract_runtime, "get_health", lambda: {"status": "READY"})
+    monkeypatch.setattr(endpoints, "get_llm_providers_health", lambda: {
+        "primary": {"reachable": False},
+        "fallback": {"reachable": False},
+    })
+    response = client.get("/internal/ai/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "DEGRADED"
 
 def test_extract_jd_endpoint():
     payload = {

@@ -86,8 +86,8 @@ class ApplicationUnpublishedJobRuleTest {
         request.setJobId(draftJob.getId());
         request.setCvId(candidateCV.getId());
 
-        when(candidateProfileRepository.findByUserId(candidateUser.getId())).thenReturn(Optional.of(candidateProfile));
-        when(jobRepository.findById(draftJob.getId())).thenReturn(Optional.of(draftJob));
+        when(candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())).thenReturn(Optional.of(candidateProfile));
+        when(jobRepository.findByIdForApply(draftJob.getId())).thenReturn(Optional.of(draftJob));
 
         CustomException ex = assertThrows(CustomException.class, () -> {
             applicationService.submitApplication(candidateUser, request);

@@ -23,6 +23,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @RestController
+@org.springframework.transaction.annotation.Transactional(readOnly = true)
 @RequestMapping("/api/v1/matching")
 public class MatchingController {
 
@@ -56,6 +57,7 @@ public class MatchingController {
         this(matchingEngineService, candidateRankingService, jobRepository, recruiterProfileRepository, applicationRepository, null);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     @PostMapping("/jobs/{jobId}/candidates/{candidateId}")
     public ResponseEntity<ApiResponse<MatchScoreResponse>> calculateMatchScore(
             @AuthenticationPrincipal User currentUser,
@@ -88,6 +90,7 @@ public class MatchingController {
         return getCandidateRankings(currentUser, jobId, minScore, 0, 20, "overallScore", "desc");
     }
 
+    @org.springframework.transaction.annotation.Transactional
     @GetMapping("/applications/{id}/inspection")
     public ResponseEntity<ApiResponse<MatchInspectionResponse>> getMatchInspection(
             @AuthenticationPrincipal User currentUser,

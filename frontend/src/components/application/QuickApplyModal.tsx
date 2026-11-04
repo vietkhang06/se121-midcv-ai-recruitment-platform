@@ -71,7 +71,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
   if (!isAuthenticated) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-        <div className="w-full max-w-md bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 text-slate-900 dark:text-slate-100 text-center space-y-4 shadow-2xl">
+        <div className="w-full max-w-md bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 text-slate-900 dark:text-slate-100 text-center space-y-4 shadow-2xl">
           <ShieldAlert className="w-12 h-12 mx-auto text-amber-500" />
           <h2 className="text-lg font-bold font-editorial text-slate-900 dark:text-white">
             {isVi ? 'Yêu cầu Đăng nhập để Ứng tuyển' : 'Sign In Required to Apply'}
@@ -91,7 +91,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
                 closeModal();
                 openAuthModal('LOGIN', { type: 'NAVIGATE', target: `/jobs/${job.id}` });
               }}
-              className="px-4 py-2 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] dark:bg-[#2563EB] dark:hover:bg-[#1D4ED8] rounded-lg transition"
+              className="px-4 py-2 text-xs font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary)] dark:bg-[var(--primary)] dark:hover:bg-[var(--primary)] rounded-xl transition"
             >
               {isVi ? 'Đăng nhập ngay' : 'Sign In Now'}
             </button>
@@ -147,25 +147,25 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md overflow-y-auto">
       
       {/* 07 — Modal Card (Figma Screen 07: 1440x1332 node container) */}
-      <div className="w-full max-w-2xl bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl shadow-2xl text-[#0F2A52] dark:text-[#F1F5F9] relative overflow-hidden my-8">
+      <div className="w-full max-w-2xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl shadow-2xl text-[var(--heading)] dark:text-[var(--retro-cream)] relative overflow-hidden my-8">
         
         {/* Modal Header */}
-        <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-[#1E293B] relative">
+        <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-[var(--border)] relative">
           <button
             onClick={closeModal}
-            className="absolute right-6 top-6 w-8 h-8 rounded-full border border-slate-200 dark:border-[#1E293B] flex items-center justify-center text-slate-400 hover:text-[#0F2A52] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#18294E] transition"
+            className="absolute right-6 top-6 w-8 h-8 rounded-xl border border-slate-200 dark:border-[var(--border)] flex items-center justify-center text-slate-400 hover:text-[var(--heading)] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[var(--surface)] transition"
           >
             <X className="w-4 h-4" />
           </button>
 
           <div className="space-y-1">
-            <span className="text-[10px] font-mono font-bold text-[#2563EB] dark:text-[#3B82F6] uppercase tracking-widest">
+            <span className="text-[10px] font-sans font-bold text-[var(--primary)] dark:text-[var(--retro-sky)] uppercase tracking-widest">
               {isVi ? 'Ứng tuyển' : 'Application'}
             </span>
-            <h2 className="text-2xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9]">
+            <h2 className="text-2xl font-editorial font-bold text-[var(--heading)] dark:text-[var(--retro-cream)]">
               {job.title}
             </h2>
-            <div className="text-xs text-[#64748B] dark:text-[#94A3B8] font-mono">
+            <div className="text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)] font-sans">
               {job.companyName} — {job.location}
             </div>
           </div>
@@ -177,15 +177,15 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
           
           {isSubmitted ? (
             <div className="text-center py-8 space-y-3">
-              <CheckCircle2 className="w-12 h-12 text-[#00B14F] mx-auto" />
-              <h3 className="text-xl font-editorial font-bold text-[#0F2A52] dark:text-[#F1F5F9]">{t('quickApply.successTitle', 'Nộp Hồ Sơ Thành Công!')}</h3>
-              <p className="text-xs text-[#64748B] dark:text-[#94A3B8] max-w-md mx-auto">
+              <CheckCircle2 className="w-12 h-12 text-[var(--success)] mx-auto" />
+              <h3 className="text-xl font-editorial font-bold text-[var(--heading)] dark:text-[var(--retro-cream)]">{t('quickApply.successTitle', 'Nộp Hồ Sơ Thành Công!')}</h3>
+              <p className="text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)] max-w-md mx-auto">
                 {isVi ? 'Đơn ứng tuyển và phiên bản CV đã chọn đã được lưu.' : 'Your application and selected CV version have been saved.'}
               </p>
               <div className="pt-4">
                 <button
                   onClick={closeModal}
-                  className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-[#2563EB] text-white hover:bg-[#1D4ED8] transition shadow-xs"
+                  className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-[var(--primary)] text-white hover:bg-[var(--primary)] transition shadow-xs"
                 >
                   {t('common.close', 'Đóng cửa sổ')}
                 </button>
@@ -195,7 +195,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
             <>
               {/* CV Selection */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#0F2A52] dark:text-[#E2E8F0] flex items-center justify-between">
+                <label className="text-xs font-semibold text-[var(--heading)] dark:text-[var(--retro-cream)] flex items-center justify-between">
                   <span>{isVi ? 'Bản CV ứng tuyển:' : 'Application CV:'}</span>
                   {candidateCVs?.length === 0 && !cvLoadError && (
                     <span className="text-rose-500 text-[11px]">
@@ -211,7 +211,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
                   <select
                     value={selectedCvId}
                     onChange={(e) => setSelectedCvId(e.target.value)}
-                    className="w-full text-xs bg-white dark:bg-[#13233F] border border-slate-200 dark:border-[#1E3A5F] rounded-xl px-3.5 py-2.5 text-[#0F2A52] dark:text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]"
+                    className="w-full text-xs bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl px-3.5 py-2.5 text-[var(--heading)] dark:text-[var(--retro-cream)] focus:outline-none focus:border-[var(--border)]"
                   >
                     {candidateCVs.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -237,11 +237,11 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
               )}
 
               {/* Action Buttons */}
-              <div className="pt-4 border-t border-slate-100 dark:border-[#1E293B] flex items-center justify-between gap-4">
+              <div className="pt-4 border-t border-slate-100 dark:border-[var(--border)] flex items-center justify-between gap-4">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#1E293B] text-[#0F2A52] dark:text-[#94A3B8] hover:bg-slate-50 dark:hover:bg-[#18294E] transition"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[var(--border)] text-[var(--heading)] dark:text-[var(--text-secondary)] hover:bg-slate-50 dark:hover:bg-[var(--surface)] transition"
                 >
                   {t('quickApply.back', 'Quay lại')}
                 </button>
@@ -250,7 +250,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
                   type="button"
                   disabled={isSubmitting || !candidateCVs?.length || !selectedCv}
                   onClick={handleConfirmApplication}
-                  className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition shadow-xs flex items-center gap-1.5 active:scale-[0.99] cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary)] transition shadow-xs flex items-center gap-1.5 active:scale-[0.99] cursor-pointer"
                 >
                   <span>{isSubmitting ? t('quickApply.submitting', 'Đang nộp hồ sơ...') : t('quickApply.submitApplication', 'Xác nhận & Nộp hồ sơ')}</span>
                   <ArrowRight className="w-3.5 h-3.5" />

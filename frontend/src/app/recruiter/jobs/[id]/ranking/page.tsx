@@ -75,7 +75,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center p-16">
+      <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center p-16">
         <EmptyState
           type="LOADING"
           title={locale === 'vi' ? 'Đang tải Bảng Xếp Hạng AI Engine...' : 'Loading AI Ranking Engine...'}
@@ -87,7 +87,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
 
   if (fetchError || !job) {
     return (
-      <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center p-16">
+      <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center p-16">
         <EmptyState
           type="ERROR"
           title={locale === 'vi' ? 'Không thể tải Bảng Xếp Hạng AI' : 'Failed to load AI Ranking'}
@@ -106,17 +106,17 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors w-full min-w-0">
+    <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors w-full min-w-0">
       <main className="flex-1 w-full max-w-7xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
         {/* Top Breadcrumb & Page Header */}
         <Reveal direction="up" delay={0}>
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#E2E8F0] dark:border-[#1E293B] pb-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[var(--border-soft)] dark:border-[var(--border)] pb-6">
             <div className="space-y-1.5">
               <Link href={`/recruiter/jobs/${job.id}`} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white mb-1 transition">
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>{locale === 'vi' ? 'Quay lại bài đăng JD' : 'Back to Job JD'}</span>
               </Link>
-              <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider font-mono">
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider font-sans">
                 <Award className="w-4 h-4" />
                 <span>Backend Sourced Candidate Ranking Engine</span>
               </div>
@@ -133,7 +133,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
             {selectedCompareCandidates.length > 0 && (
               <button
                 onClick={() => setIsCompareModalOpen(true)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-md shadow-blue-500/20 transition active:scale-95 flex-shrink-0 cursor-pointer"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-[var(--primary)] hover:bg-[var(--primary)] shadow-md shadow-blue-500/20 transition active:scale-95 flex-shrink-0 cursor-pointer"
               >
                 <Layers className="w-4 h-4 text-white" />
                 <span>{locale === 'vi' ? `So Sánh (${selectedCompareCandidates.length} Ứng viên)` : `Compare (${selectedCompareCandidates.length} Candidates)`}</span>
@@ -159,20 +159,20 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
               <section className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-serif font-bold text-slate-900 dark:text-white">Match Report Evaluation</h2>
+                    <h2 className="text-xl font-sans font-bold text-slate-900 dark:text-white">Match Report Evaluation</h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       {locale === 'vi' ? 'Đánh giá đa chiều dựa trên mô hình đối sánh ngữ nghĩa và năng lực kỹ thuật' : 'Multidimensional evaluation based on semantic matching and technical skills'}
                     </p>
                   </div>
-                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-full">
+                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-xl">
                     {locale === 'vi' ? 'Ứng viên dẫn đầu (Spotlight)' : 'Top Candidate (Spotlight)'}
                   </span>
                 </div>
 
                 {/* Candidate Spotlight Banner */}
-                <div className="bg-gradient-to-r from-[#0F2A52] via-[#1E3A5F] to-[#0F2A52] border border-blue-900/30 rounded-2xl p-6 sm:p-7 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                <div className="bg-gradient-to-r from-[var(--retro-deep)] via-[var(--retro-deep)] to-[var(--retro-deep)] border border-blue-900/30 rounded-xl p-6 sm:p-7 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-5">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-white/10 border-2 border-blue-400 flex items-center justify-center font-bold text-xl text-white shadow-inner">
+                    <div className="w-14 h-14 rounded-xl bg-white/10 border-2 border-blue-400 flex items-center justify-center font-bold text-xl text-white shadow-inner">
                       {topCandidate.candidateName.charAt(0)}
                     </div>
                     <div>
@@ -186,7 +186,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="px-3.5 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs tracking-wider uppercase font-mono">
+                    <span className="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs tracking-wider uppercase font-sans">
                       {topCandidate.overallMatchScore.toFixed(1)}% MATCH
                     </span>
                     <Link
@@ -203,14 +203,14 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                   {/* Left Column: Match Factors & GitHub Activity */}
                   <div className="space-y-6">
                     {/* Professional Experience & Match Factors Card */}
-                    <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 shadow-xs space-y-4 transition-colors">
-                      <h4 className="text-sm font-bold font-editorial text-slate-900 dark:text-white border-b border-slate-100 dark:border-[#1E293B] pb-3">
+                    <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 shadow-xs space-y-4 transition-colors">
+                      <h4 className="text-sm font-bold font-editorial text-slate-900 dark:text-white border-b border-slate-100 dark:border-[var(--border)] pb-3">
                         {locale === 'vi' ? 'Đánh Giá Yếu Tố Hồ Sơ & Kinh Nghiệm' : 'Profile Factors & Experience Assessment'}
                       </h4>
                       <div className="space-y-4 text-xs">
                         {topInspection?.matchFactors && topInspection.matchFactors.length > 0 ? (
                           topInspection.matchFactors.map((factor, idx) => (
-                            <div key={idx} className={idx > 0 ? "pt-2 border-t border-slate-100 dark:border-[#1E293B]" : ""}>
+                            <div key={idx} className={idx > 0 ? "pt-2 border-t border-slate-100 dark:border-[var(--border)]" : ""}>
                               <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white">
                                 <span>{factor.factorName}</span>
                                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${
@@ -243,13 +243,13 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                     </div>
 
                     {/* GitHub Activity Analytics Card */}
-                    <div className="bg-gradient-to-br from-[#0F172A] to-[#1E293B] border border-slate-700 rounded-2xl p-6 text-white shadow-md space-y-4">
+                    <div className="bg-gradient-to-br from-[var(--retro-deep)] to-[var(--retro-deep)] border border-slate-700 rounded-xl p-6 text-white shadow-md space-y-4">
                       <div className="flex items-center justify-between border-b border-slate-700/80 pb-3">
                         <span className="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
                           <GitBranch className="w-4 h-4 text-blue-400" />
                           <span>GitHub Activity Analytics</span>
                         </span>
-                        <span className="text-[11px] font-mono text-emerald-300/80">
+                        <span className="text-[11px] font-sans text-emerald-300/80">
                           {topCandidate.gitHubConnected ? (locale === 'vi' ? 'Đã liên kết GitHub' : 'GitHub connected') : (locale === 'vi' ? 'Chưa liên kết' : 'Not connected')}
                         </span>
                       </div>
@@ -257,18 +257,18 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                       {topCandidate.gitHubConnected && topInspection?.githubAssessment?.connected ? (
                         <>
                           <div className="grid grid-cols-2 gap-4">
-                            <div className="p-3 rounded-xl bg-[#13233F] border border-[#1F4A40]">
+                            <div className="p-3 rounded-xl bg-[var(--retro-deep)] border border-[var(--border)]">
                               <span className="text-[10px] text-emerald-200/70 block uppercase font-bold">Public Repositories</span>
-                              <span className="text-lg font-extrabold text-[#FACC15] font-mono">
+                              <span className="text-lg font-extrabold text-[var(--warning)] font-sans">
                                 {topInspection.githubAssessment.publicRepoCount ?? 0} repos
                               </span>
                             </div>
 
-                            <div className="p-3 rounded-xl bg-[#13233F] border border-[#1F4A40]">
+                            <div className="p-3 rounded-xl bg-[var(--retro-deep)] border border-[var(--border)]">
                               <span className="text-[10px] text-emerald-200/70 block uppercase font-bold">
                                 {locale === 'vi' ? 'Tín hiệu hoạt động' : 'Activity Signal'}
                               </span>
-                              <span className="text-lg font-extrabold text-[#FACC15] font-mono">
+                              <span className="text-lg font-extrabold text-[var(--warning)] font-sans">
                                 {topInspection.githubAssessment.activitySignal || 'ACTIVE'}
                               </span>
                             </div>
@@ -301,8 +301,8 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                   {/* Right Column: Verified Skill Comparison & Rank Alignment Audit */}
                   <div className="space-y-6">
                     {/* Verified Skill Comparison Card */}
-                    <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 shadow-xs space-y-4 transition-colors">
-                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
+                    <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 shadow-xs space-y-4 transition-colors">
+                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-[var(--border)] pb-3">
                         <h4 className="text-sm font-bold font-editorial text-slate-900 dark:text-white">
                           {locale === 'vi' ? 'Kỹ Năng Đối Sánh Với Yêu Cầu JD' : 'Skills Alignment with Job Criteria'}
                         </h4>
@@ -327,9 +327,9 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                                   {skill.status === 'MATCH' ? (locale === 'vi' ? 'Khớp 100%' : '100% Match') : skill.status === 'PARTIAL' ? (locale === 'vi' ? 'Khớp một phần' : 'Partial Match') : (locale === 'vi' ? 'Còn thiếu' : 'Missing')}
                                 </span>
                               </div>
-                              <div className="w-full h-2 bg-slate-100 dark:bg-[#0B1329] rounded-full overflow-hidden">
+                              <div className="w-full h-2 bg-slate-100 dark:bg-[var(--surface)] rounded-xl overflow-hidden">
                                 <div
-                                  className={`h-full rounded-full ${
+                                  className={`h-full rounded-xl ${
                                     skill.status === 'MATCH' ? 'bg-emerald-500' : skill.status === 'PARTIAL' ? 'bg-amber-500' : 'bg-rose-400'
                                   }`}
                                   style={{ width: skill.status === 'MATCH' ? '100%' : skill.status === 'PARTIAL' ? '50%' : '15%' }}
@@ -368,11 +368,11 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                     </div>
 
                     {/* Rank Alignment Audit Card */}
-                    <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-6 shadow-xs space-y-3 transition-colors">
-                      <h4 className="text-sm font-bold font-editorial text-slate-900 dark:text-white border-b border-slate-100 dark:border-[#1E293B] pb-3">
+                    <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 shadow-xs space-y-3 transition-colors">
+                      <h4 className="text-sm font-bold font-editorial text-slate-900 dark:text-white border-b border-slate-100 dark:border-[var(--border)] pb-3">
                         Rank Alignment Audit
                       </h4>
-                      <span className="text-sm font-bold text-[#2563EB] dark:text-blue-400 block font-mono">
+                      <span className="text-sm font-bold text-[var(--primary)] dark:text-blue-400 block font-sans">
                         {locale === 'vi' ? `Xếp hạng #${topCandidate.rank || 1} trên tổng số ${rankings.length} ứng viên` : `Rank #${topCandidate.rank || 1} of ${rankings.length} candidates`}
                       </span>
                       <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -389,7 +389,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
 
             {/* Filter Bar & Ranking Overview */}
             <section className="space-y-4">
-              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs transition-colors">
+              <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs transition-colors">
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="flex items-center gap-2">
                     <span className="text-slate-500 dark:text-slate-400 font-semibold">
@@ -398,7 +398,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                     <select
                       value={minScoreFilter}
                       onChange={(e) => setMinScoreFilter(parseFloat(e.target.value) || 0)}
-                      className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[#2563EB] font-semibold"
+                      className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[var(--border)] font-semibold"
                     >
                       <option value={0}>{locale === 'vi' ? 'Tất cả điểm số' : 'All scores'}</option>
                       <option value={70}>≥ 70.0% ({locale === 'vi' ? 'Tốt' : 'Good'})</option>
@@ -413,7 +413,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                       type="checkbox"
                       checked={onlyFullRequired}
                       onChange={(e) => setOnlyFullRequired(e.target.checked)}
-                      className="rounded text-[#2563EB] focus:ring-[#2563EB] border-slate-300 dark:border-[#1E293B]"
+                      className="rounded text-[var(--primary)] focus:ring-[var(--border)] border-slate-300 dark:border-[var(--border)]"
                     />
                     <span>{locale === 'vi' ? 'Chỉ hiển thị ứng viên đáp ứng 100% Kỹ năng Bắt buộc (0 missing)' : 'Only show candidates meeting 100% Required Skills (0 missing)'}</span>
                   </label>

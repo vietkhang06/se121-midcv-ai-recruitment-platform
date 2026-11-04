@@ -1,0 +1,332 @@
+{
+  "started_at": "2026-10-31T06:49:12.085547+07:00",
+  "jdk": 21,
+  "commands": [
+    {
+      "name": "backend-regression",
+      "exit_code": 0,
+      "log": "backend-regression.log"
+    },
+    {
+      "name": "backend-package",
+      "exit_code": 0,
+      "log": "backend-package.log"
+    },
+    {
+      "name": "worker-runtime-contract",
+      "exit_code": 0,
+      "log": "worker-runtime-contract.log"
+    }
+  ],
+  "live_acceptance": {
+    "status": "NOT_EXECUTED",
+    "postgresql_http_cases_skipped": 15,
+    "other_live_cases_skipped": 10,
+    "required": [
+      "PostgreSQL fresh/upgrade and Hibernate validate",
+      "HTTP authorization/concurrent apply and real database rollback",
+      "process restart with same uploads and database",
+      "SMTP delivery/retry with Mailpit or configured server",
+      "real GitHub OAuth ownership/public repositories/fallback",
+      "real model requested/resolved traces after config and restart"
+    ]
+  },
+  "source": "local checkout",
+  "finished_at": "2026-10-31T06:49:52.348037+07:00",
+  "checks_passed": true,
+  "task_ids": [
+    "C02",
+    "J01",
+    "P01",
+    "P02",
+    "G01",
+    "Q01",
+    "Q02",
+    "Q03",
+    "N01",
+    "N02"
+  ],
+  "backend": {
+    "tests": 205,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 25,
+    "passed": 180
+  },
+  "backend_classes": [
+    {
+      "class": "com.platform.recruitment.AdminDomainAndVerificationStateTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.AdminModerationApiIntegrationTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.ApplicationDuplicateProtectionTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.ApplicationSnapshotImmutableTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.ApplicationSnapshotVersionTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.ApplicationUnpublishedJobRuleTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.AuditCvLifecycleRegressionTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.AuditDocumentAccessSqlTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.AuditRemediationRegressionTest",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.AuditScreeningPipelineRegressionTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.BusinessRepositoryIntegrationTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.BusinessTaskRegressionTest",
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.CVProcessingSseTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.CandidateCvConfirmationIntegrationTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.CandidateCvDraftAndEvidenceIntegrationTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.CandidateRankingAndRecruiterDecisionIntegrationTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.CompanyVerificationAndOperationalStatusTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.CompanyVerificationRuleTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.CompanyVerificationWorkflowTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.DisposableMigrationValidationTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "class": "com.platform.recruitment.FailureInjectionAndSecurityTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.GitHubPipelineIntegrationTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.GitHubPipelineRemediationTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.RecruiterSecurityOwnershipTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.StrictRoleSeparationSecurityTest",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.SuspensionAppealWorkflowIntegrationTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.TaskHttpAcceptanceTest",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 15
+    },
+    {
+      "class": "com.platform.recruitment.ai.AiSettingsPersistenceTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.auth.AuthTokenLifecycleTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.auth.OAuthBrowserBindingTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.auth.OAuthServiceStateTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.auth.SmtpEmailServiceTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.communication.InboxIntegrationTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 9
+    },
+    {
+      "class": "com.platform.recruitment.communication.InboxOutboxTransactionTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.config.JwtAuthenticationFilterTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.job.CreateJobSalaryValidationTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.platform.recruitment.job.JobPublicAccessTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "frontend": {
+    "contracts_passed": 33,
+    "typescript_exit_code": 0,
+    "build_exit_code": 0
+  },
+  "worker_runtime_contract": {
+    "passed": 4,
+    "real_provider_called": false
+  },
+  "baseline": {
+    "archive": "MidCV_TaskFix_20261030.zip",
+    "sha256": "148920ab16cc178e145800895f9340b6f70f994945ea0319f2f28df551f163f7",
+    "user_git_head": "UNKNOWN; local Git snapshot is not the user repository HEAD"
+  },
+  "scope_note": "Mockito/H2/loopback HTTP tests are regression evidence, not live PostgreSQL/OAuth/SMTP/LLM acceptance."
+}

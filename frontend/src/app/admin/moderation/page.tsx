@@ -254,7 +254,7 @@ export default function AdminModerationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#060D1E] text-slate-800 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 transition-colors">
       <main className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6">
 
         {/* Breadcrumb */}
@@ -313,7 +313,7 @@ export default function AdminModerationPage() {
             onClick={() => setActiveTab('JOBS')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'JOBS'
               ? 'bg-indigo-600 text-white shadow-sm'
-              : 'bg-white dark:bg-[#0B1329] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-900'
+              : 'bg-white dark:bg-[var(--surface)] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-900'
               }`}
           >
             <Briefcase className="w-4 h-4" />
@@ -323,7 +323,7 @@ export default function AdminModerationPage() {
             onClick={() => setActiveTab('REPORTS')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'REPORTS'
               ? 'bg-indigo-600 text-white shadow-sm'
-              : 'bg-white dark:bg-[#0B1329] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-900'
+              : 'bg-white dark:bg-[var(--surface)] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-900'
               }`}
           >
             <AlertTriangle className="w-4 h-4" />
@@ -333,7 +333,7 @@ export default function AdminModerationPage() {
             onClick={() => setActiveTab('APPEALS')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'APPEALS'
               ? 'bg-indigo-600 text-white shadow-sm'
-              : 'bg-white dark:bg-[#0B1329] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-900'
+              : 'bg-white dark:bg-[var(--surface)] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-900'
               }`}
           >
             <Scale className="w-4 h-4" />
@@ -345,7 +345,7 @@ export default function AdminModerationPage() {
         {activeTab === 'JOBS' && (
           <div className="space-y-4">
             {/* Filter Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 shadow-xs">
               <div className="relative w-full sm:w-80">
                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
@@ -373,7 +373,7 @@ export default function AdminModerationPage() {
                       setJobsStatusFilter(s.id as any);
                       setJobsPage(0);
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${jobsStatusFilter === s.id
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${jobsStatusFilter === s.id
                       ? 'bg-indigo-600 text-white shadow-xs'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                       }`}
@@ -386,7 +386,7 @@ export default function AdminModerationPage() {
 
             {/* Jobs Loading */}
             {jobsLoading && (
-              <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-[#0B1329] rounded-2xl border border-slate-200 dark:border-slate-800">
+              <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-[var(--surface)] rounded-xl border border-slate-200 dark:border-slate-800">
                 <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-3" />
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Đang tải danh sách tin...</p>
               </div>
@@ -394,7 +394,7 @@ export default function AdminModerationPage() {
 
             {/* Jobs Error */}
             {!jobsLoading && jobsError && (
-              <div className="p-8 rounded-2xl bg-white dark:bg-[#0B1329] border border-rose-200 dark:border-rose-900/50 text-center space-y-4">
+              <div className="p-8 rounded-xl bg-white dark:bg-[var(--surface)] border border-rose-200 dark:border-rose-900/50 text-center space-y-4">
                 <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">Lỗi tải dữ liệu</h3>
                 <p className="text-xs text-rose-600 dark:text-rose-400 max-w-md mx-auto">{jobsError}</p>
@@ -409,7 +409,7 @@ export default function AdminModerationPage() {
 
             {/* Jobs Empty */}
             {!jobsLoading && !jobsError && jobs.length === 0 && (
-              <div className="p-12 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 text-center space-y-3">
+              <div className="p-12 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 text-center space-y-3">
                 <Briefcase className="w-10 h-10 text-slate-400 mx-auto" />
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">Không có tin tuyển dụng</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
@@ -420,9 +420,9 @@ export default function AdminModerationPage() {
 
             {/* Jobs Table */}
             {!jobsLoading && !jobsError && jobs.length > 0 && (
-              <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1329] shadow-xs">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[var(--surface)] shadow-xs">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 dark:bg-[#111C38] text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider">
+                  <thead className="bg-slate-50 dark:bg-[var(--surface)] text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider">
                     <tr>
                       <th className="py-3.5 px-4">Tiêu Đề Tin Tuyển Dụng</th>
                       <th className="py-3.5 px-4">Doanh Nghiệp</th>
@@ -448,22 +448,22 @@ export default function AdminModerationPage() {
                         </td>
                         <td className="py-4 px-4">
                           {j.status === 'PUBLISHED' && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                               <CheckCircle2 className="w-3 h-3" /> Đang hiển thị
                             </span>
                           )}
                           {j.status === 'SUSPENDED' && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
                               <Ban className="w-3 h-3" /> Đã đình chỉ
                             </span>
                           )}
                           {j.status === 'DRAFT' && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                               <FileText className="w-3 h-3" /> Bản nháp
                             </span>
                           )}
                           {j.status === 'CLOSED' && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                               <Clock className="w-3 h-3" /> Đã đóng
                             </span>
                           )}
@@ -479,7 +479,7 @@ export default function AdminModerationPage() {
                                 setJobAction('SUSPEND');
                                 setJobReason('');
                               }}
-                              className="px-2.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-semibold text-[11px] transition inline-flex items-center gap-1 cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-semibold text-[11px] transition inline-flex items-center gap-1 cursor-pointer"
                             >
                               <Ban className="w-3.5 h-3.5" /> Đình chỉ
                             </button>
@@ -491,7 +491,7 @@ export default function AdminModerationPage() {
                                 setJobAction('RESTORE');
                                 setJobReason('');
                               }}
-                              className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition inline-flex items-center gap-1 cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition inline-flex items-center gap-1 cursor-pointer"
                             >
                               <RotateCcw className="w-3.5 h-3.5" /> Khôi phục
                             </button>
@@ -512,14 +512,14 @@ export default function AdminModerationPage() {
                       <button
                         onClick={() => setJobsPage((p) => Math.max(0, p - 1))}
                         disabled={jobsPage === 0}
-                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
+                        className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setJobsPage((p) => Math.min(jobsTotalPages - 1, p + 1))}
                         disabled={jobsPage >= jobsTotalPages - 1}
-                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
+                        className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
                       >
                         <ChevronRight className="w-4 h-4" />
                       </button>
@@ -535,7 +535,7 @@ export default function AdminModerationPage() {
         {activeTab === 'REPORTS' && (
           <div className="space-y-4">
             {/* Filter Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 shadow-xs">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold text-slate-500">Đối tượng:</span>
                 {(['ALL', 'JOB', 'COMPANY', 'CANDIDATE', 'RECRUITER'] as const).map((t) => (
@@ -545,7 +545,7 @@ export default function AdminModerationPage() {
                       setReportsTypeFilter(t);
                       setReportsPage(0);
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${reportsTypeFilter === t
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${reportsTypeFilter === t
                       ? 'bg-indigo-600 text-white shadow-xs'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                       }`}
@@ -564,7 +564,7 @@ export default function AdminModerationPage() {
                       setReportsStatusFilter(s);
                       setReportsPage(0);
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${reportsStatusFilter === s
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${reportsStatusFilter === s
                       ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-xs'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                       }`}
@@ -577,7 +577,7 @@ export default function AdminModerationPage() {
 
             {/* Reports Loading */}
             {reportsLoading && (
-              <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-[#0B1329] rounded-2xl border border-slate-200 dark:border-slate-800">
+              <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-[var(--surface)] rounded-xl border border-slate-200 dark:border-slate-800">
                 <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-3" />
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Đang tải báo cáo vi phạm...</p>
               </div>
@@ -585,7 +585,7 @@ export default function AdminModerationPage() {
 
             {/* Reports Error */}
             {!reportsLoading && reportsError && (
-              <div className="p-8 rounded-2xl bg-white dark:bg-[#0B1329] border border-rose-200 dark:border-rose-900/50 text-center space-y-4">
+              <div className="p-8 rounded-xl bg-white dark:bg-[var(--surface)] border border-rose-200 dark:border-rose-900/50 text-center space-y-4">
                 <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">Lỗi tải dữ liệu</h3>
                 <p className="text-xs text-rose-600 dark:text-rose-400 max-w-md mx-auto">{reportsError}</p>
@@ -600,7 +600,7 @@ export default function AdminModerationPage() {
 
             {/* Reports Empty */}
             {!reportsLoading && !reportsError && reports.length === 0 && (
-              <div className="p-12 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 text-center space-y-3">
+              <div className="p-12 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 text-center space-y-3">
                 <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">Hệ thống trong sạch</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
@@ -611,9 +611,9 @@ export default function AdminModerationPage() {
 
             {/* Reports Table */}
             {!reportsLoading && !reportsError && reports.length > 0 && (
-              <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1329] shadow-xs">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[var(--surface)] shadow-xs">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 dark:bg-[#111C38] text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider">
+                  <thead className="bg-slate-50 dark:bg-[var(--surface)] text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider">
                     <tr>
                       <th className="py-3.5 px-4">Mục Tiêu Vi Phạm</th>
                       <th className="py-3.5 px-4">Lý Do Báo Cáo</th>
@@ -626,7 +626,7 @@ export default function AdminModerationPage() {
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                     {reports.map((r) => (
                       <tr key={r.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
-                        <td className="py-4 px-4 font-mono font-medium text-slate-900 dark:text-white">
+                        <td className="py-4 px-4 font-sans font-medium text-slate-900 dark:text-white">
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 mr-2">
                             {r.targetType}
                           </span>
@@ -640,17 +640,17 @@ export default function AdminModerationPage() {
                         </td>
                         <td className="py-4 px-4">
                           {r.status === 'PENDING' && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                               <Clock className="w-3 h-3" /> Đang chờ
                             </span>
                           )}
                           {r.status === 'RESOLVED' && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                               <CheckCircle2 className="w-3 h-3" /> Đã xử lý
                             </span>
                           )}
                           {r.status === 'DISMISSED' && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                               <XCircle className="w-3 h-3" /> Đã bác bỏ
                             </span>
                           )}
@@ -667,7 +667,7 @@ export default function AdminModerationPage() {
                                   setReportAction('RESOLVE');
                                   setReportNotes('');
                                 }}
-                                className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition cursor-pointer"
+                                className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition cursor-pointer"
                               >
                                 Xử lý
                               </button>
@@ -677,7 +677,7 @@ export default function AdminModerationPage() {
                                   setReportAction('DISMISS');
                                   setReportNotes('');
                                 }}
-                                className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold text-[11px] transition cursor-pointer"
+                                className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold text-[11px] transition cursor-pointer"
                               >
                                 Bác bỏ
                               </button>
@@ -699,14 +699,14 @@ export default function AdminModerationPage() {
                       <button
                         onClick={() => setReportsPage((p) => Math.max(0, p - 1))}
                         disabled={reportsPage === 0}
-                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
+                        className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setReportsPage((p) => Math.min(reportsTotalPages - 1, p + 1))}
                         disabled={reportsPage >= reportsTotalPages - 1}
-                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
+                        className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
                       >
                         <ChevronRight className="w-4 h-4" />
                       </button>
@@ -722,7 +722,7 @@ export default function AdminModerationPage() {
         {activeTab === 'APPEALS' && (
           <div className="space-y-4">
             {/* Filter Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 shadow-xs">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 shadow-xs">
               <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
                 {[
                   { id: 'ALL', label: 'Tất cả' },
@@ -738,7 +738,7 @@ export default function AdminModerationPage() {
                       setAppealsStatusFilter(s.id as any);
                       setAppealsPage(0);
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${appealsStatusFilter === s.id
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${appealsStatusFilter === s.id
                       ? 'bg-indigo-600 text-white'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900'
                       }`}
@@ -750,7 +750,7 @@ export default function AdminModerationPage() {
 
               <button
                 onClick={() => fetchAppeals()}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Làm mới</span>
@@ -764,7 +764,7 @@ export default function AdminModerationPage() {
                 <span className="text-xs text-slate-500">Đang tải danh sách khiếu nại...</span>
               </div>
             ) : appealsError ? (
-              <div className="p-6 rounded-2xl bg-rose-50 dark:bg-rose-950/20 text-center">
+              <div className="p-6 rounded-xl bg-rose-50 dark:bg-rose-950/20 text-center">
                 <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">{appealsError}</p>
                 <button
                   onClick={() => fetchAppeals()}
@@ -774,13 +774,13 @@ export default function AdminModerationPage() {
                 </button>
               </div>
             ) : appeals.length === 0 ? (
-              <div className="py-16 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+              <div className="py-16 text-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
                 <Scale className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                 <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">Không có đơn khiếu nại nào</h4>
                 <p className="text-xs text-slate-500 mt-1">Hiện không có đơn khiếu nại nào phù hợp với bộ lọc đã chọn.</p>
               </div>
             ) : (
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1329] overflow-hidden shadow-xs">
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[var(--surface)] overflow-hidden shadow-xs">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold">
                     <tr>
@@ -828,7 +828,7 @@ export default function AdminModerationPage() {
                           )}
                         </td>
                         <td className="py-4 px-4">
-                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${a.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
+                          <span className={`px-2.5 py-1 rounded-xl text-[11px] font-bold ${a.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
                             a.status === 'UNDER_REVIEW' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' :
                               a.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
                                 a.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300' :
@@ -846,7 +846,7 @@ export default function AdminModerationPage() {
                               <button
                                 onClick={() => handleStartReview(a)}
                                 disabled={submitting}
-                                className="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold text-[11px] transition"
+                                className="px-2.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-[11px] transition"
                               >
                                 Xem xét
                               </button>
@@ -859,7 +859,7 @@ export default function AdminModerationPage() {
                                     setAppealAction('APPROVE');
                                     setAppealResolutionNote('');
                                   }}
-                                  className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition"
+                                  className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition"
                                 >
                                   Chấp thuận
                                 </button>
@@ -869,7 +869,7 @@ export default function AdminModerationPage() {
                                     setAppealAction('REJECT');
                                     setAppealResolutionNote('');
                                   }}
-                                  className="px-2.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-semibold text-[11px] transition"
+                                  className="px-2.5 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-semibold text-[11px] transition"
                                 >
                                   Từ chối
                                 </button>
@@ -892,14 +892,14 @@ export default function AdminModerationPage() {
                       <button
                         onClick={() => setAppealsPage((p) => Math.max(0, p - 1))}
                         disabled={appealsPage === 0}
-                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
+                        className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setAppealsPage((p) => Math.min(appealsTotalPages - 1, p + 1))}
                         disabled={appealsPage >= appealsTotalPages - 1}
-                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
+                        className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
                       >
                         <ChevronRight className="w-4 h-4" />
                       </button>
@@ -953,7 +953,7 @@ export default function AdminModerationPage() {
         {/* Job Action Modal */}
         {selectedJob && jobAction && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-            <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 p-6 shadow-xl space-y-4">
+            <div className="w-full max-w-md rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 p-6 shadow-xl space-y-4">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 {jobAction === 'SUSPEND' ? 'Đình chỉ tin tuyển dụng' : 'Khôi phục tin tuyển dụng'}
               </h3>
@@ -1002,12 +1002,12 @@ export default function AdminModerationPage() {
         {/* Report Resolution Modal */}
         {selectedReport && reportAction && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-            <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-slate-800 p-6 shadow-xl space-y-4">
+            <div className="w-full max-w-md rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 p-6 shadow-xl space-y-4">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 {reportAction === 'RESOLVE' ? 'Xác nhận xử lý vi phạm' : 'Xác nhận bác bỏ báo cáo'}
               </h3>
               <p className="text-xs text-slate-500">
-                Đối tượng: <span className="font-mono text-slate-800 dark:text-slate-200">{selectedReport.targetType} ({selectedReport.targetId})</span>
+                Đối tượng: <span className="font-sans text-slate-800 dark:text-slate-200">{selectedReport.targetType} ({selectedReport.targetId})</span>
               </p>
 
               <div>

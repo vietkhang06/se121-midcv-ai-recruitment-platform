@@ -152,7 +152,7 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="relative bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+      <div className="relative bg-white dark:bg-slate-900 rounded-xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
         <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
           <div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -161,7 +161,7 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Vị trí: <span className="font-semibold text-slate-700 dark:text-slate-200">{jobTitle}</span>
               {policy?.policyVersion && (
-                <span className="ml-2 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-mono">
+                <span className="ml-2 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-sans">
                   v{policy.policyVersion}
                 </span>
               )}
@@ -169,7 +169,7 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
           >
             ✕
           </button>
@@ -190,21 +190,21 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleApplyPreset('BALANCED')}
-                  className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  className="px-2.5 py-1 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   Cân bằng
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApplyPreset('TECH_HEAVY')}
-                  className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  className="px-2.5 py-1 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   Ưu tiên kỹ năng (Tech)
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApplyPreset('EXPERIENCE_HEAVY')}
-                  className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  className="px-2.5 py-1 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   Ưu tiên thâm niên
                 </button>
@@ -240,7 +240,7 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
                     max="100"
                     value={reqWeight}
                     onChange={(e) => setReqWeight(Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-xl appearance-none cursor-pointer accent-indigo-600"
                   />
                 </div>
 
@@ -255,7 +255,7 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
                     max="100"
                     value={prefWeight}
                     onChange={(e) => setPrefWeight(Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-xl appearance-none cursor-pointer accent-indigo-600"
                   />
                 </div>
 
@@ -270,7 +270,7 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
                     max="100"
                     value={expWeight}
                     onChange={(e) => setExpWeight(Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-xl appearance-none cursor-pointer accent-indigo-600"
                   />
                 </div>
 
@@ -285,7 +285,7 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
                     max="100"
                     value={eduWeight}
                     onChange={(e) => setEduWeight(Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-xl appearance-none cursor-pointer accent-indigo-600"
                   />
                 </div>
 
@@ -300,7 +300,7 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
                     max="100"
                     value={projWeight}
                     onChange={(e) => setProjWeight(Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-xl appearance-none cursor-pointer accent-indigo-600"
                   />
                 </div>
 
@@ -315,7 +315,7 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
                     max="100"
                     value={semWeight}
                     onChange={(e) => setSemWeight(Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-xl appearance-none cursor-pointer accent-indigo-600"
                   />
                 </div>
               </div>
@@ -363,7 +363,7 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
                       setGithubWeight(gh);
                       setCoreWeight(100 - gh);
                     }}
-                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-xl appearance-none cursor-pointer accent-indigo-600"
                   />
                   <p className="text-[11px] text-slate-500 leading-relaxed">
                     * GitHub tối đa 15%. Nếu ứng viên không cung cấp GitHub, hệ thống tự động áp dụng chính sách Fallback an toàn (Core CV 100%), không gây lạm phát hoặc trừ điểm oan uổng.
@@ -373,13 +373,13 @@ export const JobMatchingPolicyModal: React.FC<JobMatchingPolicyModalProps> = ({
             </div>
 
             {errorMsg && (
-              <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg text-xs text-red-600 dark:text-red-400">
+              <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl text-xs text-red-600 dark:text-red-400">
                 {errorMsg}
               </div>
             )}
 
             {successMsg && (
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-lg text-xs text-emerald-700 dark:text-emerald-300">
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-xl text-xs text-emerald-700 dark:text-emerald-300">
                 {successMsg}
               </div>
             )}

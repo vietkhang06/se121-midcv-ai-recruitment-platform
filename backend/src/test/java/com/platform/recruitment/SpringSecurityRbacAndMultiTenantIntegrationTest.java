@@ -48,6 +48,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -206,6 +207,28 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     // =========================================================================
     // 1. RBAC Integration Tests via Spring Security Filter Chain
     // =========================================================================
+
+    @Test
+    @DisplayName("CORS: exact configured origin supports credentialed PATCH preflight; other origins are not reflected")
+    void corsUsesExactOriginsAndAllowsPatchPreflight() throws Exception {
+        mockMvc.perform(options("/api/v1/admin/users")
+                        .header("Origin", "http://localhost:3000")
+                        .header("Access-Control-Request-Method", "PATCH")
+                        .header("Access-Control-Request-Headers", "authorization,content-type"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Access-Control-Allow-Origin", "http://localhost:3000"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Access-Control-Allow-Credentials", "true"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Access-Control-Allow-Methods", org.hamcrest.Matchers.containsString("PATCH")));
+
+        mockMvc.perform(options("/api/v1/admin/users")
+                        .header("Origin", "https://untrusted.example")
+                        .header("Access-Control-Request-Method", "GET"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .doesNotExist("Access-Control-Allow-Origin"));
+    }
 
     @Test
     @DisplayName("Filter Chain: ADMIN calling /api/admin/ai-settings is permitted (HTTP 200)")

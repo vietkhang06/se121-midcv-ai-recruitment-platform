@@ -344,7 +344,8 @@ public class PipelineWorker {
     Exception structureException = null;
 
     try {
-      structureRes = aiWorkerClient.structureCv(finalRaw, version, correlationId);
+      boolean ocrUsed = finalMethod != null && finalMethod.toUpperCase(Locale.ROOT).contains("OCR");
+      structureRes = aiWorkerClient.structureCv(finalRaw, version, correlationId, ocrUsed);
     } catch (Exception ex) {
       structureException = ex;
       log.error("AI Worker structureCv call failed [correlationId={}]: {}", correlationId, ex.getMessage(), ex);
@@ -400,8 +401,10 @@ public class PipelineWorker {
               + "pipeline_version=?, state='READY', error_code=NULL, error_message=NULL WHERE id=? AND state='PROCESSING'",
           finalNormJson, screeningVector, embedModel, "cv-structure-v1", version);
       jdbc.update("UPDATE cvs SET status='DRAFT', raw_text=? WHERE id=?", finalRaw, docId);
-      jdbc.update("UPDATE cv_versions SET structured_json_content=?, status='DRAFT', raw_text_content=? WHERE id=?",
-          finalNormJson, finalRaw, version);
+      // Keep the immutable AI extraction payload (including OCR correction suggestions)
+      // separate from the user-editable canonical draft.
+      jdbc.update("UPDATE cv_versions SET structured_json_content=?, raw_structured_content=?, status='DRAFT', raw_text_content=? WHERE id=?",
+          finalNormJson, finalNormJson, finalRaw, version);
     });
 
     if (!screeningCv) persistCvSections(version, finalCvData);

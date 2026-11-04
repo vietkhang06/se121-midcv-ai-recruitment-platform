@@ -79,7 +79,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] p-12 text-center text-slate-500 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] p-12 text-center text-slate-500 flex items-center justify-center">
         <EmptyState
           type="LOADING"
           title={locale === 'vi' ? 'Đang tải pipeline ứng viên...' : 'Loading candidate pipeline...'}
@@ -91,7 +91,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
 
   if (fetchError || !job) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] p-12 text-center text-slate-500 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] p-12 text-center text-slate-500 flex items-center justify-center">
         <EmptyState
           type="ERROR"
           title={locale === 'vi' ? 'Không thể tải pipeline ứng viên' : 'Failed to load candidate pipeline'}
@@ -130,7 +130,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1329] text-slate-800 dark:text-slate-100 flex flex-col py-8 transition-colors pb-20 w-full min-w-0">
+    <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 flex flex-col py-8 transition-colors pb-20 w-full min-w-0">
       <main className="flex-1 w-full max-w-7xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         {/* Header Section */}
         <div className="border-b border-slate-200 dark:border-slate-800 pb-5 space-y-3">
@@ -145,10 +145,10 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="px-2.5 py-0.5 rounded text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 font-mono">
+                <span className="px-2.5 py-0.5 rounded text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 font-sans">
                   {job.industry || 'Technology'}
                 </span>
-                <span className="text-xs text-slate-400 font-mono">Job ID: #{job.id.slice(0, 8)}</span>
+                <span className="text-xs text-slate-400 font-sans">Job ID: #{job.id.slice(0, 8)}</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                 {locale === 'vi' ? `Pipeline Ứng Viên — ${job.title}` : `Candidate Pipeline — ${job.title}`}
@@ -173,7 +173,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
         </div>
 
         {/* Filter Bar & Search */}
-        <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs space-y-4">
+        <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs space-y-4">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             {/* Status Tabs */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
@@ -194,7 +194,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                     }`}
                   >
                     <span>{locale === 'vi' ? tab.labelVi : tab.labelEn}</span>
-                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                    <span className={`px-1.5 py-0.2 rounded-xl text-[10px] font-sans ${
                       isActive ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                     }`}>
                       {count}
@@ -213,7 +213,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={locale === 'vi' ? 'Tìm tên ứng viên, CV...' : 'Search applicant name, CV...'}
-                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0B1329] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[var(--surface)] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
@@ -249,7 +249,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
               return (
                 <div
                   key={app.id}
-                  className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs hover:border-blue-300 dark:hover:border-blue-800/80 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs hover:border-blue-300 dark:hover:border-blue-800/80 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
                 >
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-base flex-shrink-0">
@@ -260,7 +260,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                         <h4 className="text-sm font-bold text-slate-900 dark:text-white">
                           {app.candidateName || 'Ứng viên'}
                         </h4>
-                        <span className={`px-2 py-0.5 rounded text-[11px] font-semibold font-mono border ${
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-semibold font-sans border ${
                           app.status === 'SHORTLISTED'
                             ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60'
                             : app.status === 'INTERVIEWING'
@@ -274,7 +274,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                           {app.status}
                         </span>
                         {score !== null && (
-                          <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold ${
+                          <span className={`px-2 py-0.5 rounded text-[11px] font-sans font-bold ${
                             score >= 80
                               ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
                               : score >= 60
@@ -293,7 +293,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                         {app.candidateEmail && (
                           <>
                             <span>•</span>
-                            <span className="font-mono">{app.candidateEmail}</span>
+                            <span className="font-sans">{app.candidateEmail}</span>
                           </>
                         )}
                       </div>
@@ -308,7 +308,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                         type="button"
                         disabled={updatingAppId === app.id}
                         onClick={() => handleQuickStatusChange(app.id, 'SHORTLISTED')}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 transition disabled:opacity-50"
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 transition disabled:opacity-50"
                       >
                         {locale === 'vi' ? 'Duyệt' : 'Shortlist'}
                       </button>
@@ -320,7 +320,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                         type="button"
                         disabled={updatingAppId === app.id}
                         onClick={() => handleQuickStatusChange(app.id, 'INTERVIEWING')}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 transition disabled:opacity-50"
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 transition disabled:opacity-50"
                       >
                         {locale === 'vi' ? 'Phỏng vấn' : 'Interview'}
                       </button>
@@ -329,7 +329,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                     {/* Inspect Match Full Report */}
                     <Link
                       href={`/recruiter/applications/${app.id}`}
-                      className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition active:scale-95 flex items-center gap-1"
+                      className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition active:scale-95 flex items-center gap-1"
                     >
                       <span>{locale === 'vi' ? 'Chi tiết & Quyết định' : 'Inspect & Decide'}</span>
                       <ChevronRight className="w-3.5 h-3.5" />

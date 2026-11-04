@@ -34,6 +34,7 @@ public class JobResponse {
     private String employmentType;
     private String employmentTypeOther;
     private String description;
+    private List<String> responsibilities;
     private List<RequirementResponse> requirements;
     private ZonedDateTime createdAt;
 

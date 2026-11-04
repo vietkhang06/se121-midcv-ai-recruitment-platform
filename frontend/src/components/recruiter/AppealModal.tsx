@@ -51,15 +51,15 @@ export const AppealModal: React.FC<AppealModalProps> = ({ isOpen, onClose, onSuc
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#0B1329] border border-[#E2E8F0] dark:border-[#1E293B] shadow-2xl overflow-hidden text-[#1E3A5F] dark:text-[#D6E4E1]">
+      <div className="w-full max-w-lg rounded-xl bg-white dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] shadow-2xl overflow-hidden text-[var(--heading)] dark:text-[var(--text-secondary)]">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-[#E2E8F0] dark:border-[#1E293B]">
+        <div className="flex items-center justify-between p-5 border-b border-[var(--border-soft)] dark:border-[var(--border)]">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-red-500/10 text-red-600 dark:text-red-400">
+            <div className="p-2 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400">
               <ShieldAlert className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-[#0F2A52] dark:text-white">
+              <h2 className="text-base font-bold text-[var(--heading)] dark:text-white">
                 Gửi khiếu nại đình chỉ
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -69,7 +69,7 @@ export const AppealModal: React.FC<AppealModalProps> = ({ isOpen, onClose, onSuc
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -89,7 +89,7 @@ export const AppealModal: React.FC<AppealModalProps> = ({ isOpen, onClose, onSuc
         ) : (
           <form onSubmit={handleSubmit} className="p-5 space-y-4">
             {errorMessage && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{errorMessage}</span>
               </div>
@@ -104,7 +104,7 @@ export const AppealModal: React.FC<AppealModalProps> = ({ isOpen, onClose, onSuc
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="Ví dụ: Khiếu nại khóa tài khoản doanh nghiệp nhầm lẫn..."
-                className="w-full px-3 py-2 text-xs rounded-lg border border-[#CBD5E1] dark:border-[#1E293B] bg-white dark:bg-[#111C38] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--border-soft)] dark:border-[var(--border)] bg-white dark:bg-[var(--surface)] focus:outline-none focus:ring-2 focus:ring-[var(--border)]"
                 maxLength={255}
                 required
               />
@@ -119,24 +119,24 @@ export const AppealModal: React.FC<AppealModalProps> = ({ isOpen, onClose, onSuc
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Trình bày rõ lý do, cung cấp thông tin đối chiếu hoặc liên kết minh chứng hoạt động hợp pháp của bạn..."
                 rows={5}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-[#CBD5E1] dark:border-[#1E293B] bg-white dark:bg-[#111C38] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--border-soft)] dark:border-[var(--border)] bg-white dark:bg-[var(--surface)] focus:outline-none focus:ring-2 focus:ring-[var(--border)]"
                 required
               />
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#E2E8F0] dark:border-[#1E293B]">
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-[var(--border-soft)] dark:border-[var(--border)]">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={isSubmitting}
-                className="px-4 py-2 text-xs font-medium rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                className="px-4 py-2 text-xs font-medium rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 Hủy
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-[#2563EB] text-white hover:bg-[#1D4ED8] transition disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-[var(--primary)] text-white hover:bg-[var(--primary)] transition disabled:opacity-50"
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>{isSubmitting ? 'Đang gửi...' : 'Gửi khiếu nại'}</span>

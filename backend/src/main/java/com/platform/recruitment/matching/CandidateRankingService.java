@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@org.springframework.transaction.annotation.Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class CandidateRankingService {
 

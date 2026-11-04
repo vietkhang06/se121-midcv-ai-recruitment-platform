@@ -21,77 +21,52 @@ export const AuthHeroBanner: React.FC<AuthHeroBannerProps> = ({ role, className 
       className={`relative w-full h-full min-h-[320px] md:min-h-screen overflow-hidden flex flex-col justify-between p-6 sm:p-10 lg:p-14 select-none ${className}`}
       data-testid="auth-hero-banner"
     >
-      {/* Background Image: Candidate */}
-      <div
-        className={`absolute inset-0 w-full h-full transition-opacity duration-500 ease-in-out ${
-          isCandidate ? 'opacity-100 z-0' : 'opacity-0 -z-10 pointer-events-none'
-        }`}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/auth/candidate-auth-hero.jpg"
-          alt="Bắt đầu hành trình sự nghiệp cùng midCV"
-          className="w-full h-full object-cover object-center"
-          loading="eager"
-        />
-      </div>
-
-      {/* Background Image: Recruiter / HR */}
-      <div
-        className={`absolute inset-0 w-full h-full transition-opacity duration-500 ease-in-out ${
-          !isCandidate ? 'opacity-100 z-0' : 'opacity-0 -z-10 pointer-events-none'
-        }`}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/auth/hr-auth-hero.jpg"
-          alt="Kết nối đúng ứng viên cùng midCV"
-          className="w-full h-full object-cover object-center"
-          loading="eager"
-        />
+      <div aria-hidden="true" className="absolute inset-0 flex items-center justify-center opacity-70 pointer-events-none">
+        <svg viewBox="0 0 600 720" className="w-full max-w-[600px]" fill="none">
+          <circle cx="445" cy="250" r="128" fill="var(--studio-sky)" opacity=".55"/>
+          <circle cx="145" cy="395" r="110" fill="var(--studio-butter)" opacity=".6"/>
+          <rect x="123" y="137" width="342" height="350" rx="26" fill="var(--studio-butter)" stroke="var(--studio-auth-ink)" strokeWidth="1.7"/>
+          <rect x="115" y="129" width="342" height="350" rx="26" fill="var(--studio-auth-paper)" stroke="var(--studio-auth-ink)" strokeWidth="1.7"/>
+          <path d="M115 192H457" stroke="var(--studio-auth-ink)" strokeWidth="1.4"/>
+          <circle cx="143" cy="161" r="5" fill="var(--studio-peach)"/>
+          <circle cx="165" cy="161" r="5" fill="var(--studio-butter)"/>
+          <circle cx="187" cy="161" r="5" fill="var(--retro-mint)"/>
+          <rect x="145" y="220" width="95" height="95" rx="22" fill="var(--retro-mint)" stroke="var(--studio-auth-ink)" strokeWidth="1.3"/>
+          <circle cx="193" cy="251" r="15" stroke="var(--studio-auth-ink)" strokeWidth="1.8"/>
+          <path d="M168 291c4-26 46-26 50 0" stroke="var(--studio-auth-ink)" strokeWidth="1.8" strokeLinecap="round"/>
+          <path d="M267 238h150M267 260h117M267 282h139M145 349h271M145 373h234" stroke="var(--retro-sky)" strokeWidth="7" strokeLinecap="round" opacity=".7"/>
+          <rect x="145" y="407" width="104" height="36" rx="11" fill="var(--studio-lavender)" stroke="var(--studio-auth-ink)"/>
+          <rect x="262" y="407" width="91" height="36" rx="11" fill="var(--studio-peach)" stroke="var(--studio-auth-ink)"/>
+          <rect x="370" y="407" width="48" height="36" rx="11" fill="var(--retro-mint)" stroke="var(--studio-auth-ink)"/>
+          <path d="m385 425 7 6 13-14" stroke="var(--studio-auth-ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <rect x="358" y="315" width="170" height="68" rx="18" fill="var(--studio-butter)" stroke="var(--studio-auth-ink)" strokeWidth="1.5"/>
+          <circle cx="386" cy="349" r="12" fill="var(--retro-mint)" stroke="var(--studio-auth-ink)"/>
+          <path d="m381 349 4 4 7-8M410 341h92M410 355h65" stroke="var(--studio-auth-ink)" strokeWidth="1.8" strokeLinecap="round"/>
+        </svg>
       </div>
 
       {/* Atmospheric Overlays */}
       {/* Top subtle vignette for logo clarity */}
-      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#050D20]/80 via-[#050D20]/40 to-transparent pointer-events-none z-[1]" />
+      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[var(--retro-deep)]/80 via-[var(--retro-deep)]/40 to-transparent pointer-events-none z-[1]" />
 
       {/* Bottom deep gradient for typography readability */}
-      <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[#06122A] via-[#08183B]/85 to-transparent pointer-events-none z-[1]" />
+      <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[var(--retro-deep)] via-[var(--retro-deep)]/85 to-transparent pointer-events-none z-[1]" />
 
       {/* Right-edge soft blue ambient accent */}
-      <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#06122A]/40 to-transparent pointer-events-none z-[1]" />
+      <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[var(--retro-deep)]/40 to-transparent pointer-events-none z-[1]" />
 
-      {/* Futuristic Glowing Neon Rings (matching Figma bottom-right aesthetic) */}
-      <div className="absolute -bottom-20 -right-20 w-80 h-80 sm:w-96 sm:h-96 pointer-events-none z-[2] opacity-80">
-        <svg viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-          <circle cx="260" cy="260" r="160" stroke="#38BDF8" strokeWidth="1.5" strokeOpacity="0.3" strokeDasharray="6 4" />
-          <circle cx="260" cy="260" r="130" stroke="#2563EB" strokeWidth="2" strokeOpacity="0.4" />
-          <circle cx="260" cy="260" r="95" stroke="#60A5FA" strokeWidth="2.5" strokeOpacity="0.6" />
-          <circle cx="260" cy="260" r="60" fill="url(#blueCoreGlow)" />
-          <circle cx="330" cy="180" r="4" fill="#67E8F9" filter="url(#glowFilter)" />
-          <circle cx="170" cy="300" r="3.5" fill="#38BDF8" filter="url(#glowFilter)" />
-          <defs>
-            <radialGradient id="blueCoreGlow" cx="0.5" cy="0.5" r="0.5" fx="0.5" fy="0.5">
-              <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.5" />
-              <stop offset="60%" stopColor="#2563EB" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#1E3A8A" stopOpacity="0" />
-            </radialGradient>
-            <filter id="glowFilter" x="-10" y="-10" width="30" height="30" filterUnits="userSpaceOnUse">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
-        </svg>
+      <div aria-hidden="true" className="absolute -bottom-20 -right-20 w-80 h-80 sm:w-96 sm:h-96 pointer-events-none z-[2] opacity-80">
+        <svg viewBox="0 0 400 400" fill="none" className="w-full h-full"><circle cx="260" cy="260" r="160" stroke="var(--retro-sky)" strokeWidth="1" opacity=".3"/><circle cx="260" cy="260" r="130" stroke="var(--retro-sky)" strokeWidth="1" opacity=".3"/></svg>
       </div>
 
       {/* Top Section: midCV Brand Logo */}
       <div className="relative z-10">
         <Link
           href="/"
-          className="inline-flex items-center gap-1 group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded-lg py-1 px-1.5 -ml-1.5 transition-transform hover:scale-105"
+          className="inline-flex items-center gap-1 group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded-xl py-1 px-1.5 -ml-1.5 transition-transform hover:scale-105"
         >
           <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-md">
-            mid<span className="text-[#3B82F6]">CV</span>
+            mid<span className="text-[var(--primary)]">CV</span>
           </span>
         </Link>
       </div>

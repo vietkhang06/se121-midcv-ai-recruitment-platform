@@ -20,23 +20,13 @@ public class AdminAuditLogService {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void log(User admin, String action, String targetType, UUID targetId, String previousState, String newState, String reason, String ipAddress, String correlationId) {
-        try {
-            AdminAuditLog logEntry = AdminAuditLog.builder()
-                    .admin(admin)
-                    .action(action)
-                    .targetType(targetType)
-                    .targetId(targetId)
-                    .previousState(previousState)
-                    .newState(newState)
-                    .reason(reason)
-                    .ipAddress(ipAddress)
-                    .correlationId(correlationId != null ? correlationId : UUID.randomUUID().toString())
-                    .build();
-
-            adminAuditLogRepository.save(logEntry);
-            log.info("AdminAuditLog: action={}, targetType={}, targetId={}, admin={}", action, targetType, targetId, admin.getEmail());
-        } catch (Exception ex) {
-            log.error("Failed to write AdminAuditLog: {}", ex.getMessage(), ex);
-        }
+        AdminAuditLog entry = AdminAuditLog.builder()
+                .admin(admin).action(action).targetType(targetType).targetId(targetId)
+                .previousState(previousState).newState(newState).reason(reason).ipAddress(ipAddress)
+                .correlationId(correlationId != null ? correlationId : UUID.randomUUID().toString()).build();
+        // Audit and business change must commit together; do not swallow persistence failures.
+        adminAuditLogRepository.save(entry);
+        log.info("AdminAuditLog: action={}, targetType={}, targetId={}, actorId={}",
+                action, targetType, targetId, admin.getId());
     }
 }

@@ -28,7 +28,7 @@ import java.util.UUID;
 public class AiWorkerClient {
 
     private static final int DEFAULT_CONNECT_TIMEOUT_MS = 3_000;
-    private static final int DEFAULT_RESPONSE_TIMEOUT_MS = 120_000;
+    private static final int DEFAULT_RESPONSE_TIMEOUT_MS = 960_000;
 
     private final RestClient restClient;
 
@@ -36,7 +36,7 @@ public class AiWorkerClient {
     public AiWorkerClient(
             @Value("${app.ai-worker.url:http://localhost:8000/internal/ai}") String aiWorkerUrl,
             @Value("${app.ai-worker.connect-timeout-ms:3000}") int connectTimeoutMs,
-            @Value("${app.ai-worker.response-timeout-ms:120000}") int responseTimeoutMs) {
+            @Value("${app.ai-worker.response-timeout-ms:960000}") int responseTimeoutMs) {
         if (connectTimeoutMs <= 0 || responseTimeoutMs <= 0) {
             throw new IllegalArgumentException("AI Worker timeouts must be positive");
         }
@@ -167,9 +167,14 @@ public class AiWorkerClient {
     }
 
     public Map<String, Object> structureCv(String rawText, UUID documentVersionId, String correlationId) {
+        return structureCv(rawText, documentVersionId, correlationId, false);
+    }
+
+    public Map<String, Object> structureCv(String rawText, UUID documentVersionId, String correlationId, boolean ocrUsed) {
         String cid = correlationId != null ? correlationId : UUID.randomUUID().toString();
         Map<String, Object> body = new HashMap<>();
         body.put("rawText", rawText);
+        body.put("ocrUsed", ocrUsed);
         if (documentVersionId != null) {
             body.put("documentVersionId", documentVersionId.toString());
         }
@@ -184,6 +189,14 @@ public class AiWorkerClient {
                     .body(Map.class);
         } catch (Exception ex) {
             throw workerFailure("/structure-cv", cid, ex);
+        }
+    }
+
+    public Map<String, Object> runtimeConfiguration() {
+        try {
+            return restClient.get().uri("/runtime-config").retrieve().body(Map.class);
+        } catch (Exception ex) {
+            throw workerFailure("/runtime-config", UUID.randomUUID().toString(), ex);
         }
     }
 

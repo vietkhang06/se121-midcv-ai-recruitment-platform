@@ -197,7 +197,7 @@ class SuspensionAppealWorkflowIntegrationTest {
                 .build();
         appeal.setId(appealId);
 
-        when(appealRepository.findById(appealId)).thenReturn(Optional.of(appeal));
+        when(appealRepository.findByIdForUpdate(appealId)).thenReturn(Optional.of(appeal));
         when(suspensionRecordRepository.countByTargetTypeAndTargetIdAndStatus(
                 SuspensionTargetType.USER, suspendedUser.getId(), SuspensionStatus.ACTIVE))
                 .thenReturn(0L);
@@ -234,7 +234,7 @@ class SuspensionAppealWorkflowIntegrationTest {
                 .build();
         appeal.setId(appealId);
 
-        when(appealRepository.findById(appealId)).thenReturn(Optional.of(appeal));
+        when(appealRepository.findByIdForUpdate(appealId)).thenReturn(Optional.of(appeal));
 
         ReviewAppealRequest request = ReviewAppealRequest.builder()
                 .resolutionNote("Giấy tờ không đủ điều kiện chứng minh.")
@@ -261,7 +261,7 @@ class SuspensionAppealWorkflowIntegrationTest {
                 .build();
         appeal.setId(appealId);
 
-        when(appealRepository.findById(appealId)).thenReturn(Optional.of(appeal));
+        when(appealRepository.findByIdForUpdate(appealId)).thenReturn(Optional.of(appeal));
 
         ReviewAppealRequest request = ReviewAppealRequest.builder()
                 .resolutionNote("Thử duyệt lại")

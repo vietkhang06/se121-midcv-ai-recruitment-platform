@@ -38,7 +38,7 @@ export const DeactivateAccountSection: React.FC = () => {
 
   return (
     <div className="mt-8 pt-8 border-t border-red-200 dark:border-red-950/60">
-      <div className="p-6 rounded-2xl bg-red-50/50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 space-y-4">
+      <div className="p-6 rounded-xl bg-red-50/50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 space-y-4">
         <div>
           <h4 className="text-sm font-bold text-red-900 dark:text-red-300">
             Khu vực rủi ro cao: Vô hiệu hóa tài khoản
@@ -86,7 +86,7 @@ export const DeactivateAccountSection: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Nhập mật khẩu của bạn..."
-                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-red-500"
+                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-red-500"
               />
             </div>
             <div>
@@ -98,7 +98,7 @@ export const DeactivateAccountSection: React.FC = () => {
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Chia sẻ lý do bạn rời đi..."
-                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-red-500"
+                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-red-500"
               />
             </div>
           </div>

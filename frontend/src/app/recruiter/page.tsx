@@ -196,23 +196,23 @@ export default function HRDashboardPage() {
 
       {/* Welcome Banner */}
       <Reveal direction="up" delay={0}>
-        <div className="bg-gradient-to-r from-[#0F2A52] via-[#1E3A5F] to-[#0F2A52] text-white rounded-2xl p-8 border border-blue-900/30 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="bg-gradient-to-r from-[var(--retro-deep)] via-[var(--retro-deep)] to-[var(--retro-deep)] text-white rounded-xl p-8 border border-blue-900/30 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <h2 suppressHydrationWarning className="text-2xl sm:text-3xl font-editorial font-normal text-white">
               {isVi ? 'Chào mừng trở lại, ' : 'Welcome back, '}{company?.name || (isVi ? 'Nhà tuyển dụng' : 'Recruiter')}
             </h2>
             <p className="text-xs sm:text-sm text-slate-200 font-light leading-relaxed">
               {isVi ? (
-                <>Hệ sinh thái <strong className="font-semibold text-white">mid<span className="text-[#00B14F]">CV</span><sup>®</sup></strong> đang đồng bộ các vị trí tuyển dụng với mô hình trích xuất thực thể và đối sánh vector chuẩn hóa.</>
+                <>Hệ sinh thái <strong className="font-semibold text-white">mid<span className="text-[var(--success)]">CV</span><sup>®</sup></strong> đang đồng bộ các vị trí tuyển dụng với mô hình trích xuất thực thể và đối sánh vector chuẩn hóa.</>
               ) : (
-                <>The <strong className="font-semibold text-white">mid<span className="text-[#00B14F]">CV</span><sup>®</sup></strong> ecosystem is syncing requisition vectors and candidate semantic pipelines.</>
+                <>The <strong className="font-semibold text-white">mid<span className="text-[var(--success)]">CV</span><sup>®</sup></strong> ecosystem is syncing requisition vectors and candidate semantic pipelines.</>
               )}
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <Link
               href="/recruiter/jobs/new"
-              className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#00B14F] hover:bg-[#009643] text-white transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-[var(--success)] hover:bg-[var(--retro-deep)] text-white transition shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isVi ? 'Đăng Tin Tuyển Dụng' : 'Post New Job'}</span>
@@ -220,7 +220,7 @@ export default function HRDashboardPage() {
             {jobs.length > 0 && (
               <Link
                 href={`/recruiter/jobs/${jobs[0].id}/applications`}
-                className="px-4 py-2 rounded-lg text-xs font-medium border border-white/25 text-white hover:bg-white/10 transition cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-medium border border-white/25 text-white hover:bg-white/10 transition cursor-pointer"
               >
                 {isVi ? 'Duyệt Ứng Viên' : 'Review Candidates'}
               </Link>
@@ -248,36 +248,36 @@ export default function HRDashboardPage() {
           {/* 4 KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             <Reveal delay={staggerDelay(0)}>
-              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-                <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+              <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs space-y-1">
+                <span className="text-[10px] font-sans font-semibold uppercase text-slate-500 dark:text-slate-400">
                   {isVi ? 'TIN TUYỂN DỤNG ĐANG MỞ' : 'ACTIVE JOB POSTINGS'}
                 </span>
                 <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
                   {publishedJobs.length}
                 </div>
-                <div className="text-[11px] text-[#00B14F] dark:text-[#3B82F6] font-medium pt-1">
+                <div className="text-[11px] text-[var(--success)] dark:text-[var(--retro-sky)] font-medium pt-1">
                   {isVi ? `${jobs.length} tổng số vị trí đã tạo` : `${jobs.length} total positions created`}
                 </div>
               </div>
             </Reveal>
 
             <Reveal delay={staggerDelay(1)}>
-              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-                <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+              <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs space-y-1">
+                <span className="text-[10px] font-sans font-semibold uppercase text-slate-500 dark:text-slate-400">
                   {isVi ? 'HỒ SƠ ỨNG TUYỂN' : 'APPLICANTS RECEIVED'}
                 </span>
                 <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
                   {applications.length}
                 </div>
-                <div className="text-[11px] text-[#00B14F] dark:text-[#3B82F6] font-medium pt-1">
+                <div className="text-[11px] text-[var(--success)] dark:text-[var(--retro-sky)] font-medium pt-1">
                   {isVi ? 'Xác thực danh tính thực tế' : 'Verified applicant profiles'}
                 </div>
               </div>
             </Reveal>
 
             <Reveal delay={staggerDelay(2)}>
-              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-                <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+              <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs space-y-1">
+                <span className="text-[10px] font-sans font-semibold uppercase text-slate-500 dark:text-slate-400">
                   {isVi ? 'TIN NHÁP CHỜ ĐĂNG' : 'DRAFT JOBS'}
                 </span>
                 <div className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
@@ -290,14 +290,14 @@ export default function HRDashboardPage() {
             </Reveal>
 
             <Reveal delay={staggerDelay(3)}>
-              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-5 shadow-xs space-y-1">
-                <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-slate-400">
+              <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs space-y-1">
+                <span className="text-[10px] font-sans font-semibold uppercase text-slate-500 dark:text-slate-400">
                   {isVi ? 'ĐỐI SÁNH AI & VECTOR' : 'AI MATCH ENGINE'}
                 </span>
-                <div className="text-3xl font-editorial font-bold text-[#00B14F] dark:text-[#3B82F6]">
+                <div className="text-3xl font-editorial font-bold text-[var(--success)] dark:text-[var(--retro-sky)]">
                   {avgMatchScore !== null ? `${avgMatchScore}%` : (isVi ? 'Sẵn sàng' : 'Ready')}
                 </div>
-                <div className="text-[11px] text-[#00B14F] dark:text-[#3B82F6] font-medium pt-1 truncate" title={avgMatchScore !== null ? (isVi ? `${highMatchCount} ứng viên phù hợp cao (>=75%)` : `${highMatchCount} high-fit candidates (>=75%)`) : (isVi ? 'Chờ hồ sơ ứng tuyển để đối sánh' : 'Awaiting candidate applications')}>
+                <div className="text-[11px] text-[var(--success)] dark:text-[var(--retro-sky)] font-medium pt-1 truncate" title={avgMatchScore !== null ? (isVi ? `${highMatchCount} ứng viên phù hợp cao (>=75%)` : `${highMatchCount} high-fit candidates (>=75%)`) : (isVi ? 'Chờ hồ sơ ứng tuyển để đối sánh' : 'Awaiting candidate applications')}>
                   {avgMatchScore !== null
                     ? (isVi ? `${highMatchCount} ứng viên phù hợp cao (>=75%)` : `${highMatchCount} high-fit candidates (>=75%)`)
                     : (isVi ? 'Chờ hồ sơ ứng tuyển để đối sánh' : 'Awaiting candidate applications')}
@@ -308,14 +308,14 @@ export default function HRDashboardPage() {
 
           {/* Active Sourcing Funnel Stage */}
           <Reveal delay={120}>
-            <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
+            <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[var(--border)] pb-3">
                 <div className="text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wide">
                   {isVi ? 'Phễu Tuyển Dụng Đang Hoạt Động' : 'Active Sourcing Funnel'}
                 </div>
                 <Link
                   href="/recruiter/pipeline"
-                  className="text-xs font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-semibold text-[var(--primary)] dark:text-[var(--retro-sky)] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <span>{isVi ? 'Xem Kanban Pipeline' : 'View Kanban Pipeline'}</span>
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -329,9 +329,9 @@ export default function HRDashboardPage() {
                   { count: applications.filter(a => a.status === 'SHORTLISTED').length, label: isVi ? 'Duyệt hồ sơ (Shortlisted)' : 'Shortlisted' },
                   { count: applications.filter(a => a.status === 'REJECTED').length, label: isVi ? 'Từ chối (Rejected)' : 'Rejected' },
                 ].map((st, idx) => (
-                  <div key={idx} className="bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] rounded-lg p-3">
+                  <div key={idx} className="bg-slate-50 dark:bg-[var(--surface)] border border-slate-200/80 dark:border-[var(--border)] rounded-xl p-3">
                     <div className="text-xl font-bold font-editorial text-slate-900 dark:text-white">{st.count}</div>
-                    <div className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 mt-0.5">{st.label}</div>
+                    <div className="text-[10px] font-sans uppercase text-slate-500 dark:text-slate-400 mt-0.5">{st.label}</div>
                   </div>
                 ))}
               </div>
@@ -342,15 +342,15 @@ export default function HRDashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left Column: Top Performing Postings (8 cols) */}
             <Reveal delay={160} className="lg:col-span-8">
-              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
+              <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-[var(--border)] pb-3">
                   <div className="flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-[#2563EB]" />
+                    <Briefcase className="w-4 h-4 text-[var(--primary)]" />
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                       {isVi ? 'Vị Trí Đang Tuyển Dụng' : 'Active Requisitions'}
                     </h3>
                   </div>
-                  <Link href="/recruiter/jobs" className="text-xs font-semibold text-[#2563EB] hover:underline">
+                  <Link href="/recruiter/jobs" className="text-xs font-semibold text-[var(--primary)] hover:underline">
                     {isVi ? `Xem tất cả (${jobs.length})` : `View all (${jobs.length})`}
                   </Link>
                 </div>
@@ -358,7 +358,7 @@ export default function HRDashboardPage() {
                 {jobs.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 dark:bg-[#13233F] text-slate-500 dark:text-slate-400 font-mono text-[10px] uppercase border-b border-slate-200 dark:border-[#1E293B]">
+                      <thead className="bg-slate-50 dark:bg-[var(--surface)] text-slate-500 dark:text-slate-400 font-sans text-[10px] uppercase border-b border-slate-200 dark:border-[var(--border)]">
                         <tr>
                           <th className="py-2.5 px-3 font-semibold">{isVi ? 'Tiêu đề vị trí' : 'Job Title'}</th>
                           <th className="py-2.5 px-3 font-semibold">{isVi ? 'Ngành nghề' : 'Industry'}</th>
@@ -367,14 +367,14 @@ export default function HRDashboardPage() {
                           <th className="py-2.5 px-3 font-semibold text-right">{isVi ? 'Trạng thái' : 'Status'}</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-[#1E293B] text-slate-700 dark:text-slate-300">
+                      <tbody className="divide-y divide-slate-100 dark:divide-[var(--border)] text-slate-700 dark:text-slate-300">
                         {jobs.slice(0, 5).map((j) => {
                           const jobAppCount = applications.filter(a => a.job?.id === j.id).length;
                           return (
-                            <tr key={j.id} className="hover:bg-slate-50/80 dark:hover:bg-[#152342] transition">
+                            <tr key={j.id} className="hover:bg-slate-50/80 dark:hover:bg-[var(--surface)] transition">
                               <td className="py-3 px-3 font-medium text-slate-900 dark:text-white">
 
-                                <Link href={`/recruiter/jobs/${j.id}/ranking`} className="hover:text-[#2563EB] hover:underline">
+                                <Link href={`/recruiter/jobs/${j.id}/ranking`} className="hover:text-[var(--primary)] hover:underline">
 
                                   {j.title}
 
@@ -382,13 +382,13 @@ export default function HRDashboardPage() {
 
                               </td>
 
-                              <td className="py-3 px-3 font-mono">{j.industry}</td>
+                              <td className="py-3 px-3 font-sans">{j.industry}</td>
 
-                              <td className="py-3 px-3 font-mono">{formatSalary(j.salaryMin, j.salaryMax, j.salaryRange, locale, j.salaryNegotiable, j.salaryCurrency)}</td>
+                              <td className="py-3 px-3 font-sans">{formatSalary(j.salaryMin, j.salaryMax, j.salaryRange, locale, j.salaryNegotiable, j.salaryCurrency)}</td>
                               <td className="py-3 px-3 text-center">
                                 <Link
                                   href={`/recruiter/jobs/${j.id}/ranking`}
-                                  className="inline-flex items-center gap-1 font-mono font-semibold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition"
+                                  className="inline-flex items-center gap-1 font-sans font-semibold px-2 py-0.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition"
                                   title={isVi ? 'Xem bảng xếp hạng ứng viên' : 'View candidate ranking'}
                                 >
                                   <Users className="w-3 h-3" />
@@ -399,9 +399,9 @@ export default function HRDashboardPage() {
 
                                 <span
 
-                                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${j.status === 'PUBLISHED'
+                                  className={`px-2 py-0.5 rounded-xl text-[10px] font-semibold ${j.status === 'PUBLISHED'
 
-                                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-[#00B14F] border border-emerald-200 dark:border-emerald-800'
+                                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-[var(--success)] border border-emerald-200 dark:border-emerald-800'
 
                                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
 
@@ -436,17 +436,17 @@ export default function HRDashboardPage() {
 
             {/* Right Column: Unified Recent Applications (4 cols) */}
             <Reveal delay={200} className="lg:col-span-4">
-              <div className="bg-white dark:bg-[#111C38] border border-slate-200 dark:border-[#1E293B] rounded-xl p-6 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
+              <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-[var(--border)] pb-3">
                   <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-[#00B14F] dark:text-[#10B981]" />
+                    <Users className="w-4 h-4 text-[var(--success)] dark:text-[var(--success)]" />
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                       {isVi ? 'Ứng Tuyển Mới Nhất' : 'Latest Applications'}
                     </h3>
                   </div>
                   <Link
                     href="/recruiter/pipeline"
-                    className="text-xs font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:underline flex items-center gap-1 cursor-pointer"
+                    className="text-xs font-semibold text-[var(--primary)] dark:text-[var(--retro-sky)] hover:underline flex items-center gap-1 cursor-pointer"
                   >
                     <span>{isVi ? 'Pipeline' : 'Pipeline'}</span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -459,17 +459,17 @@ export default function HRDashboardPage() {
                       <Link
                         key={app.id}
                         href={`/recruiter/applications/${app.id}`}
-                        className="p-3 rounded-xl bg-slate-50 dark:bg-[#13233F] border border-slate-200/80 dark:border-[#1E293B] hover:border-[#2563EB] dark:hover:border-[#3B82F6] hover:bg-slate-100/60 dark:hover:bg-[#172b4d] shadow-2xs transition block space-y-1.5 group cursor-pointer"
+                        className="p-3 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200/80 dark:border-[var(--border)] hover:border-[var(--border)] dark:hover:border-[var(--border)] hover:bg-slate-100/60 dark:hover:bg-[var(--surface)] shadow-2xs transition block space-y-1.5 group cursor-pointer"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#2563EB] dark:group-hover:text-[#3B82F6] transition truncate">
+                          <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[var(--primary)] dark:group-hover:text-[var(--retro-sky)] transition truncate">
                             {app.candidateName || (isVi ? 'Ứng viên' : 'Candidate')}
                           </span>
                           <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase shrink-0 ${app.status === 'SHORTLISTED'
-                                ? 'bg-[#E8F8EE] dark:bg-[#00B14F]/15 text-[#00B14F]'
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-sans font-bold uppercase shrink-0 ${app.status === 'SHORTLISTED'
+                                ? 'bg-[var(--surface-secondary)] dark:bg-[var(--success)]/15 text-[var(--success)]'
                                 : app.status === 'SUBMITTED'
-                                  ? 'bg-[#EFF6FF] dark:bg-[#152342] text-[#2563EB]'
+                                  ? 'bg-[var(--surface-secondary)] dark:bg-[var(--surface)] text-[var(--primary)]'
                                   : app.status === 'REJECTED'
                                     ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600'
                                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
@@ -484,7 +484,7 @@ export default function HRDashboardPage() {
                           <span className="truncate max-w-[180px]">
                             {app.job?.title || (isVi ? 'Vị trí tuyển dụng' : 'Job Position')}
                           </span>
-                          <span className="font-mono text-[10px] shrink-0">
+                          <span className="font-sans text-[10px] shrink-0">
                             {app.appliedDate}
                           </span>
                         </div>
