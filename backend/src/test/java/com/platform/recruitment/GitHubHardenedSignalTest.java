@@ -113,7 +113,7 @@ public class GitHubHardenedSignalTest {
                 .build();
         helpdeskJob.setId(UUID.randomUUID());
 
-        application = Application.builder()
+        application = Application.builder().aiAnalysisConsent(true)
                 .job(javaBackendJob)
                 .candidate(candidate)
                 .build();
@@ -160,7 +160,7 @@ public class GitHubHardenedSignalTest {
     @Test
     @DisplayName("2. Non-Technical Job (Marketing): GitHub Disabled, Zero Penalty Fallback")
     void testNonTechnicalJob_GitHubDisabled() {
-        Application mktApp = Application.builder().job(marketingJob).candidate(candidate).build();
+        Application mktApp = Application.builder().aiAnalysisConsent(true).job(marketingJob).candidate(candidate).build();
         mktApp.setId(UUID.randomUUID());
         when(applicationRepository.findByJobIdAndCandidateId(marketingJob.getId(), candidate.getId())).thenReturn(Optional.of(mktApp));
 
@@ -184,7 +184,7 @@ public class GitHubHardenedSignalTest {
     @Test
     @DisplayName("3. Technical Job with Non-Coding Role (IT Helpdesk): GitHub Disabled, Zero Penalty")
     void testNonCodingITJob_GitHubDisabled() {
-        Application hdApp = Application.builder().job(helpdeskJob).candidate(candidate).build();
+        Application hdApp = Application.builder().aiAnalysisConsent(true).job(helpdeskJob).candidate(candidate).build();
         hdApp.setId(UUID.randomUUID());
         when(applicationRepository.findByJobIdAndCandidateId(helpdeskJob.getId(), candidate.getId())).thenReturn(Optional.of(hdApp));
 

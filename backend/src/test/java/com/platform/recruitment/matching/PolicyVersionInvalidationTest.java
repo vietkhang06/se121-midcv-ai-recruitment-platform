@@ -50,7 +50,7 @@ class PolicyVersionInvalidationTest {
         when(results.findByApplicationJobId(jobId)).thenReturn(List.of(old));
         User owner = new User();
         owner.setId(ownerId);
-        Application application = Application.builder()
+        Application application = Application.builder().aiAnalysisConsent(true)
                 .candidate(CandidateProfile.builder().user(owner).build()).build();
         application.setId(applicationId);
         when(applications.findByJobId(jobId)).thenReturn(List.of(application));
@@ -75,7 +75,7 @@ class PolicyVersionInvalidationTest {
     void pendingOldPolicyResultsAreNotIncludedInRecruiterRanking() {
         UUID jobId = UUID.randomUUID();
         MatchResult old = MatchResult.builder().status("STALE_POLICY").build();
-        MatchResult current = MatchResult.builder().status("COMPLETED").build();
+        MatchResult current = MatchResult.builder().application(Application.builder().aiAnalysisConsent(true).build()).status("COMPLETED").build();
         when(results.findByApplicationJobIdWithCandidate(jobId))
                 .thenReturn(List.of(old, current));
         List<MatchResult> ranked = new CandidateRankingService(results)

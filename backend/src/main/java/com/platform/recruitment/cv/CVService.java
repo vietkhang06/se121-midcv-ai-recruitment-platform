@@ -36,6 +36,8 @@ import java.util.*;
 @Slf4j
 @Service
 public class CVService {
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private com.platform.recruitment.product.RecruiterEntitlements entitlements;
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.platform.recruitment.embedding.VersionedEmbeddingLifecycle versionedEmbeddingLifecycle;
 
@@ -1488,6 +1490,7 @@ public class CVService {
                 .title(version.getTitle() != null ? version.getTitle() : cv.getTitle())
                 .status(version.getStatus() != null ? version.getStatus() : "DRAFT")
                 .confirmedAt(version.getConfirmedAt())
+                .presentation(structured.get("presentation") instanceof Map<?, ?> p ? (Map<String, Object>) p : Collections.emptyMap())
                 .personalInfo(personalInfo)
                 .summary(summary)
                 .skills(skills)
@@ -1653,6 +1656,14 @@ public class CVService {
         }
         if (request.getLinks() != null) {
             updatedStructured.put("links", markLineageOnMap(request.getLinks()));
+        }
+        if (request.getPresentation() != null) {
+            Object photo = request.getPresentation().get("photo");
+            if (photo != null && (!(photo instanceof String image) || image.length() > 1500000
+                    || (!image.isEmpty() && !image.matches("^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$")))) {
+                throw new CustomException(ErrorCode.VALIDATION_ERROR, "Ảnh CV không hợp lệ hoặc quá lớn.");
+            }
+            updatedStructured.put("presentation", request.getPresentation());
         }
         if (request.getStructuredJson() != null) {
             updatedStructured.putAll(request.getStructuredJson());
@@ -2817,7 +2828,7 @@ public class CVService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public DownloadResult getEvidenceAttachmentFile(User currentUser, UUID cvId, UUID attachmentId) {
         CandidateProfile candidate = candidateProfileRepository.findByUserId(currentUser.getId()).orElse(null);
         CV cv = cvRepository.findById(cvId)
@@ -2833,6 +2844,8 @@ public class CVService {
                 throw new UnauthorizedAccessException("Bạn không có quyền truy cập minh chứng này.");
             }
         }
+
+        if (!isOwner && entitlements != null) entitlements.viewCv(currentUser,cvId);
 
         if (cvEvidenceAttachmentRepository == null) {
             throw new ResourceNotFoundException("EvidenceAttachment", "id", attachmentId);

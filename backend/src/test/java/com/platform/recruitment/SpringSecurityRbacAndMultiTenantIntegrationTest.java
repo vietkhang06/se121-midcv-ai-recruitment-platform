@@ -186,7 +186,7 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
         profileCand2 = CandidateProfile.builder().user(candUser2).fullName("Candidate Two").build();
         profileCand2.setId(UUID.randomUUID());
 
-        appCand1JobA = Application.builder().candidate(profileCand1).job(jobA).build();
+        appCand1JobA = Application.builder().aiAnalysisConsent(true).candidate(profileCand1).job(jobA).build();
         appCand1JobA.setId(UUID.randomUUID());
 
         // Wire tokenProvider mock

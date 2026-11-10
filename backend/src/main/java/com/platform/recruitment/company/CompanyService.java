@@ -53,6 +53,11 @@ public class CompanyService {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "Mã số thuế là bắt buộc khi nộp thẩm định.");
         }
 
+        if (company.getContactPhone() == null || company.getContactPhone().isBlank()
+                || company.getAddress() == null || company.getAddress().isBlank()
+                || company.getBusinessLicense() == null) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Cần số điện thoại, địa chỉ và giấy phép kinh doanh để gửi thẩm định.");
+        }
         CompanyVerification currentStatus = company.getVerificationStatus();
         if (currentStatus == CompanyVerification.VERIFIED) {
             throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION, "Doanh nghiệp đã được xác minh thành công.");
@@ -97,14 +102,33 @@ public class CompanyService {
             recruiterProfileRepository.save(recruiter);
         }
 
+        boolean identityChanged = changed(updateData.getName(),company.getName())
+                || changed(updateData.getTaxCode(),company.getTaxCode())
+                || changed(updateData.getAddress(),company.getAddress())
+                || changed(updateData.getContactPhone(),company.getContactPhone());
+        if (identityChanged && company.getVerificationStatus() == CompanyVerification.UNDER_REVIEW) {
+            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION,"Hồ sơ đang thẩm định; liên hệ quản trị viên trước khi thay thông tin định danh.");
+        }
+        if (identityChanged && company.getVerificationStatus() == CompanyVerification.VERIFIED) {
+            company.setVerificationStatus(CompanyVerification.PENDING); company.setTrustLevel(2);
+            company.setReviewNotes("Thông tin định danh đã thay đổi; cần thẩm định lại.");
+        }
         if (updateData.getName() != null) company.setName(updateData.getName());
         if (updateData.getTaxCode() != null) company.setTaxCode(updateData.getTaxCode());
         if (updateData.getWebsite() != null) company.setWebsite(updateData.getWebsite());
         if (updateData.getSize() != null) company.setSize(updateData.getSize());
         if (updateData.getIndustry() != null) company.setIndustry(updateData.getIndustry());
         if (updateData.getDescription() != null) company.setDescription(updateData.getDescription());
+        if (updateData.getAddress() != null) company.setAddress(updateData.getAddress());
+        if (updateData.getContactPhone() != null) company.setContactPhone(updateData.getContactPhone());
+        if (updateData.getDescriptionHtml() != null) company.setDescriptionHtml(updateData.getDescriptionHtml());
+
 
         Company saved = companyRepository.save(company);
         return CompanyResponse.fromEntity(saved);
     }
+    private static boolean changed(String incoming,String existing) {
+        return incoming != null && !java.util.Objects.equals(incoming.strip(),existing == null ? "" : existing.strip());
+    }
+
 }

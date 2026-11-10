@@ -117,7 +117,7 @@ public class NativePgvectorMatchingTest {
                 .build();
         job.setId(UUID.randomUUID());
 
-        application = Application.builder()
+        application = Application.builder().aiAnalysisConsent(true)
                 .job(job)
                 .candidate(candidate)
                 .build();

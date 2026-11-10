@@ -13,4 +13,5 @@ public class LoginRequest {
 
     @NotBlank(message = "Password is required")
     private String password;
+    private com.platform.recruitment.user.Role expectedRole;
 }

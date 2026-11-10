@@ -88,7 +88,7 @@ class MatchingFactorAndPolicyTest {
                 .build();
         testCandidate.setId(candidateId);
 
-        testApp = Application.builder()
+        testApp = Application.builder().aiAnalysisConsent(true)
                 .job(testJob)
                 .candidate(testCandidate)
                 .build();

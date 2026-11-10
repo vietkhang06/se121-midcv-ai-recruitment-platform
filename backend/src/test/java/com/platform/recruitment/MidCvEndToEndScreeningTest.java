@@ -400,7 +400,7 @@ public class MidCvEndToEndScreeningTest {
         CV cv1 = CV.builder().candidate(candidateProfile1).rawText(cvRawText).build();
         when(cvRepository.findByCandidateId(candidateProfile1.getId())).thenReturn(List.of(cv1));
 
-        Application app1 = Application.builder().job(jobA).candidate(candidateProfile1).build();
+        Application app1 = Application.builder().aiAnalysisConsent(true).job(jobA).candidate(candidateProfile1).build();
         app1.setId(UUID.randomUUID());
         when(applicationRepository.findByJobIdAndCandidateId(jobA.getId(), candidateProfile1.getId())).thenReturn(Optional.of(app1));
         when(matchResultRepository.findByApplicationId(app1.getId())).thenReturn(Optional.empty());
@@ -469,9 +469,9 @@ public class MidCvEndToEndScreeningTest {
         CandidateProfile cB = CandidateProfile.builder().fullName("Candidate B").build(); cB.setId(candIdB);
         CandidateProfile cC = CandidateProfile.builder().fullName("Candidate C").build(); cC.setId(candIdC);
 
-        Application appA = Application.builder().job(jobA).candidate(cA).build(); appA.setId(UUID.randomUUID());
-        Application appB = Application.builder().job(jobA).candidate(cB).build(); appB.setId(UUID.randomUUID());
-        Application appC = Application.builder().job(jobA).candidate(cC).build(); appC.setId(UUID.randomUUID());
+        Application appA = Application.builder().aiAnalysisConsent(true).job(jobA).candidate(cA).build(); appA.setId(UUID.randomUUID());
+        Application appB = Application.builder().aiAnalysisConsent(true).job(jobA).candidate(cB).build(); appB.setId(UUID.randomUUID());
+        Application appC = Application.builder().aiAnalysisConsent(true).job(jobA).candidate(cC).build(); appC.setId(UUID.randomUUID());
 
         // Candidate C has 0 missing required skills, overall 85
         MatchResult mrC = MatchResult.builder()
@@ -528,7 +528,7 @@ public class MidCvEndToEndScreeningTest {
         CV cv = CV.builder().candidate(candidateProfile1).rawText(rawCv).build();
         when(cvRepository.findByCandidateId(candidateProfile1.getId())).thenReturn(List.of(cv));
 
-        Application app = Application.builder().job(jobA).candidate(candidateProfile1).build();
+        Application app = Application.builder().aiAnalysisConsent(true).job(jobA).candidate(candidateProfile1).build();
         app.setId(UUID.randomUUID());
         when(applicationRepository.findById(app.getId())).thenReturn(Optional.of(app));
 
@@ -642,7 +642,7 @@ public class MidCvEndToEndScreeningTest {
         assertTrue(exCandRank.getMessage().contains("Ứng viên không có quyền"));
 
         // Test C: Candidate 2 attempting to inspect Candidate 1's application -> 403 Forbidden
-        Application appCand1 = Application.builder().job(jobA).candidate(candidateProfile1).build();
+        Application appCand1 = Application.builder().aiAnalysisConsent(true).job(jobA).candidate(candidateProfile1).build();
         appCand1.setId(UUID.randomUUID());
         when(applicationRepository.findById(appCand1.getId())).thenReturn(Optional.of(appCand1));
 
@@ -674,7 +674,7 @@ public class MidCvEndToEndScreeningTest {
     @Test
     @DisplayName("7. Idempotency & Safe Retries on Match Execution")
     void testIdempotentMatchingCalculation() {
-        Application app = Application.builder().job(jobA).candidate(candidateProfile1).build();
+        Application app = Application.builder().aiAnalysisConsent(true).job(jobA).candidate(candidateProfile1).build();
         app.setId(UUID.randomUUID());
         when(applicationRepository.findByJobIdAndCandidateId(jobA.getId(), candidateProfile1.getId())).thenReturn(Optional.of(app));
 

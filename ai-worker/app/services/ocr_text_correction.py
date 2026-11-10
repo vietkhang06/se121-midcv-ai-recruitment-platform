@@ -2,14 +2,16 @@
 
 The OCR output is immutable. This service only proposes edits against exact source
 spans and applies a deliberately narrow subset of high-confidence common-word edits.
-Technical terms and address components remain suggestions for human confirmation.
+Address components and proper nouns remain suggestions for human confirmation.
 """
 from __future__ import annotations
 
 import json
 import logging
 import re
+import unicodedata
 from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 from typing import Any, Optional
 
 from app.services.llm.types import sanitize_sensitive_string
@@ -58,7 +60,7 @@ class OcrTextCorrectionService:
     MAX_INPUT_CHARS = 40_000
     MAX_SUGGESTIONS = 20
     MIN_CONFIDENCE = 0.92
-    AUTO_APPLY_CATEGORIES = {"COMMON_WORD"}
+    AUTO_APPLY_CATEGORIES = {"COMMON_WORD", "TECHNICAL_TERM"}
     ALLOWED_CATEGORIES = {"COMMON_WORD", "TECHNICAL_TERM", "ADDRESS_COMPONENT"}
 
     def __init__(
@@ -137,7 +139,7 @@ class OcrTextCorrectionService:
         parsed = self._parse_json(content.strip())
         suggestions = self._validate_suggestions(raw_text, parsed.get("suggestions", []))
         corrected_text, applied_count = self._apply_safe_suggestions(raw_text, suggestions)
-        status = "APPLIED" if applied_count else ("SUGGESTIONS_ONLY" if suggestions else "NO_CHANGES")
+        status = "APPLIED_SAFE" if applied_count else ("SUGGESTIONS_ONLY" if suggestions else "NO_CHANGES")
         return OcrCorrectionResult(
             raw_text=raw_text,
             corrected_text=corrected_text,
@@ -197,7 +199,6 @@ class OcrTextCorrectionService:
                 continue
             if len(corrected) > max(120, len(original) * 3):
                 continue
-            # COMMON_WORD is the only category eligible for auto-application.
             # Reject likely proper nouns/acronyms even if the model mislabels them.
             if category == "COMMON_WORD":
                 if re.search(r"\b[A-Z0-9]{2,}\b", original):
@@ -206,18 +207,14 @@ class OcrTextCorrectionService:
                     continue
                 if re.search(r"\b[A-Z][a-z]+[A-Z][A-Za-z]*\b", original):
                     continue
-            # A visible OCR corruption marker is required before any automatic edit.
-            # Diacritic-only changes remain review suggestions to protect proper nouns.
-            auto_apply_allowed = (
-                category == "COMMON_WORD"
-                and bool(re.search(r"[?\ufffd|]", original))
-                and len(original.split()) <= 2
+            auto_apply_allowed = self._can_auto_apply(
+                original, corrected, category, confidence
             )
             key = (original, corrected, category)
             if key in seen:
                 continue
             seen.add(key)
-            requires_review = category != "COMMON_WORD"
+            requires_review = not auto_apply_allowed
             valid.append({
                 "original": original,
                 "corrected": corrected,
@@ -226,11 +223,50 @@ class OcrTextCorrectionService:
                 "reason": reason,
                 "applied": False,
                 "auto_apply_allowed": auto_apply_allowed,
-                "requires_human_review": requires_review or not auto_apply_allowed,
+                "requires_human_review": requires_review,
             })
             if len(valid) >= self.MAX_SUGGESTIONS:
                 break
         return valid
+
+    @staticmethod
+    def _ascii_fold(value: str) -> str:
+        decomposed = unicodedata.normalize("NFD", value.casefold())
+        return "".join(
+            char for char in decomposed if not unicodedata.combining(char)
+        )
+
+    def _can_auto_apply(
+        self,
+        original: str,
+        corrected: str,
+        category: str,
+        confidence: float,
+    ) -> bool:
+        if category == "ADDRESS_COMPONENT":
+            return False
+        if len(original) > 160 or len(original.split()) > 8:
+            return False
+        similarity = SequenceMatcher(
+            None, self._ascii_fold(original), self._ascii_fold(corrected)
+        ).ratio()
+        has_visible_corruption = bool(re.search(r"[?\ufffd|]", original))
+
+        if category == "COMMON_WORD":
+            # Lower-case local phrases are not person/company names. This admits
+            # high-confidence Vietnamese diacritic repairs such as phat -> phát,
+            # while title-cased names such as Le Minh remain review-only.
+            is_lowercase_phrase = original == original.lower() and bool(
+                re.search(r"[a-zà-ỹ]", original, re.I)
+            )
+            is_labeled_field = ":" in original and len(original.split()) >= 3
+            return similarity >= 0.78 and (
+                has_visible_corruption or is_lowercase_phrase or is_labeled_field
+            )
+
+        # Technical corrections need higher confidence and a small edit so an OCR
+        # typo is repaired without manufacturing a skill that is absent from text.
+        return confidence >= 0.97 and similarity >= 0.78
 
     def _apply_safe_suggestions(
         self,
@@ -239,7 +275,7 @@ class OcrTextCorrectionService:
     ) -> tuple[str, int]:
         corrected_text = raw_text
         applied_count = 0
-        # COMMON_WORD edits only. Technical terms and addresses remain review-only.
+        # Only suggestions that pass the deterministic local safety gate are used.
         for suggestion in suggestions:
             if (
                 suggestion["category"] not in self.AUTO_APPLY_CATEGORIES

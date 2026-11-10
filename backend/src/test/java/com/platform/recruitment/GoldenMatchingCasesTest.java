@@ -72,7 +72,7 @@ class GoldenMatchingCasesTest {
         candidateJava = CandidateProfile.builder().fullName("Nguyen Van Java").githubUrl("https://github.com/candidate-java").build();
         candidateJava.setId(UUID.randomUUID());
 
-        application = Application.builder().job(javaJob).candidate(candidateJava).build();
+        application = Application.builder().aiAnalysisConsent(true).job(javaJob).candidate(candidateJava).build();
         application.setId(UUID.randomUUID());
 
         lenient().when(applicationRepository.findByJobIdAndCandidateId(any(), any())).thenReturn(Optional.of(application));

@@ -626,3 +626,8 @@ The authenticated `/api/v1/inbox` extension, ownership rules, transactional noti
 - Chat retry cùng clientId nhưng khác body trả 409; same-body retry giữ message ID cũ.
 
 Ma trận quyền và nghiệm thu thật: [BUSINESS_TASKS_20261031.md](BUSINESS_TASKS_20261031.md).
+
+
+## Bổ sung nâng cấp sản phẩm — 04/11/2026
+
+Phạm vi, API và bằng chứng kiểm thử của nâng cấp giao diện/nghiệp vụ được ghi tại [product-upgrade/IMPLEMENTATION_AND_ACCEPTANCE.md](product-upgrade/IMPLEMENTATION_AND_ACCEPTANCE.md) và [product-upgrade/API_ADDITIONS.md](product-upgrade/API_ADDITIONS.md). Bằng chứng này không thay thế nghiệm thu chất lượng LLM/OCR/GitHub của các phase trước.

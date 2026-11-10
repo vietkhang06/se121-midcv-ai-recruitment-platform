@@ -142,7 +142,7 @@ class BusinessTaskRegressionTest {
     @Test void staleDecisionIsConflictAndDoesNotWriteAudit() {
         var apps=mock(ApplicationRepository.class);var recruiters=mock(RecruiterProfileRepository.class);var audit=mock(ApplicationAuditLogRepository.class);var snaps=mock(ApplicationCVSnapshotRepository.class);
         User hr=user(Role.HR);Company c=company();var job=Job.builder().company(c).build();job.setId(UUID.randomUUID());
-        var a=Application.builder().candidate(candidate).job(job).status(ApplicationStatus.SHORTLISTED).build();a.setId(UUID.randomUUID());
+        var a=Application.builder().aiAnalysisConsent(true).candidate(candidate).job(job).status(ApplicationStatus.SHORTLISTED).build();a.setId(UUID.randomUUID());
         when(apps.findByIdForUpdate(a.getId())).thenReturn(Optional.of(a));when(recruiters.findByUserId(hr.getId())).thenReturn(Optional.of(RecruiterProfile.builder().user(hr).company(c).build()));
         var s=new ApplicationService(apps,snaps,mock(JobRepository.class),candidates,recruiters,cvs,versions,mock(MatchingEngineService.class),null,null,audit,null);
         var request=UpdateApplicationStatusRequest.builder().status(ApplicationStatus.REJECTED).expectedStatus(ApplicationStatus.SUBMITTED).build();

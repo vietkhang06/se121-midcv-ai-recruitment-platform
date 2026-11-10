@@ -208,7 +208,7 @@ public class VersionedEmbeddingLifecycle {
         List<Map<String, Object>> apps = jdbc.queryForList(
                 "SELECT DISTINCT a.id AS id,cp.user_id AS owner FROM applications a "
                 + "JOIN candidate_profiles cp ON cp.id=a.candidate_id "
-                + "WHERE (a.applied_cv_version_id=? OR a.applied_jd_version_id=?) AND a.status<>'WITHDRAWN'",
+                + "WHERE (a.applied_cv_version_id=? OR a.applied_jd_version_id=?) AND a.status<>'WITHDRAWN' AND a.ai_analysis_consent=true",
                 versionId, versionId);
         for (Map<String, Object> app : apps) {
             queue.enqueue((UUID) app.get("owner"), "MATCH", (UUID) app.get("id"));

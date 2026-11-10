@@ -20,6 +20,13 @@ public class CompanyResponse {
     private String size;
     private String industry;
     private String description;
+    private String address;
+    private String contactPhone;
+    private String descriptionHtml;
+    private int verificationLevel;
+    private String businessLicenseName;
+    private ZonedDateTime licenseSubmittedAt;
+
     private CompanyVerification verificationStatus;
     private String verificationReason;
     private String reviewNotes;
@@ -38,6 +45,12 @@ public class CompanyResponse {
                 .size(company.getSize())
                 .industry(company.getIndustry())
                 .description(company.getDescription())
+                .address(company.getAddress())
+                .contactPhone(company.getContactPhone())
+                .descriptionHtml(company.getDescriptionHtml())
+                .businessLicenseName(company.getBusinessLicenseName())
+                .licenseSubmittedAt(company.getLicenseSubmittedAt())
+                .verificationLevel(company.getVerificationStatus() == CompanyVerification.VERIFIED ? (company.getTrustLevel() == null ? 2 : company.getTrustLevel()) : 1)
                 .verificationStatus(company.getVerificationStatus())
                 .verificationReason(company.getReviewNotes())
                 .reviewNotes(company.getReviewNotes())

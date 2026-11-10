@@ -75,6 +75,9 @@ public class MatchingEngineService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.platform.recruitment.product.AiScreeningAccessService aiScreeningAccess;
+
     @Transactional
     public MatchResult calculateAndPersistMatchResult(UUID jobId, UUID candidateId) {
         Application application = applicationRepository.findByJobIdAndCandidateId(jobId, candidateId)
@@ -100,6 +103,12 @@ public class MatchingEngineService {
     }
 
     private MatchResult calculate(Application application, CVVersion inputVersion, boolean persist) {
+        if (persist && aiScreeningAccess != null) aiScreeningAccess.requireScoring(application);
+        if (persist && !Boolean.TRUE.equals(application.getAiAnalysisConsent())) {
+            throw new com.platform.recruitment.common.CustomException(
+                com.platform.recruitment.common.ErrorCode.ACCESS_DENIED,
+                "Chưa khả dụng: ứng viên chưa đồng ý phân tích CV cho đơn ứng tuyển này.");
+        }
         Job job = application.getJob();
         CandidateProfile candidate = application.getCandidate();
         UUID jobId = job.getId(), candidateId = candidate.getId();
@@ -529,6 +538,12 @@ public class MatchingEngineService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Application", "id", applicationId));
 
+        if (!Boolean.TRUE.equals(application.getAiAnalysisConsent())) {
+            throw new com.platform.recruitment.common.CustomException(
+                com.platform.recruitment.common.ErrorCode.ACCESS_DENIED,
+                "Chưa khả dụng: ứng viên chưa đồng ý phân tích CV cho đơn ứng tuyển này.");
+        }
+        if (aiScreeningAccess != null) aiScreeningAccess.requireScoring(application);
         UUID jobId = application.getJob().getId();
         UUID candidateId = application.getCandidate().getId();
 
@@ -701,6 +716,9 @@ public class MatchingEngineService {
                 .applicationId(applicationId)
                 .jobTitle(job.getTitle())
                 .candidateName(candidate.getFullName())
+                .matchClassification(aiScreeningAccess == null
+                        ? "PHU_HOP" : aiScreeningAccess.classify(result.getOverallScore()))
+                .detailAccess(true)
                 .algorithmVersion(result.getMatchingAlgorithmVersion() != null ? result.getMatchingAlgorithmVersion() : "v2.0")
                 .calculationStatus(result.getStatus())
                 .overallScore(result.getOverallScore())

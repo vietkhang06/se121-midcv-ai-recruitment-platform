@@ -156,7 +156,7 @@ class ProductionReadinessAndLegacyAuditTest {
                 .build();
         candidate.setId(UUID.randomUUID());
 
-        application = Application.builder().job(jobA).candidate(candidate).build();
+        application = Application.builder().aiAnalysisConsent(true).job(jobA).candidate(candidate).build();
         application.setId(UUID.randomUUID());
     }
 

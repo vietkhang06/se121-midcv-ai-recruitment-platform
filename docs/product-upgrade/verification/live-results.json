@@ -1,0 +1,178 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "case": "Unverified email cannot log in; SMTP response hides token",
+      "status": "PASS"
+    },
+    {
+      "case": "Real Mailpit message activates account; token is single-use",
+      "status": "PASS"
+    },
+    {
+      "case": "Candidate account rejected by employer login portal",
+      "status": "PASS"
+    },
+    {
+      "case": "Verified candidate tier is derived from persisted account",
+      "status": "PASS"
+    },
+    {
+      "case": "Admin plan upgrade changes candidate tier to PRO",
+      "status": "PASS"
+    },
+    {
+      "case": "HR registration persists representative phone, tax code and address",
+      "status": "PASS"
+    },
+    {
+      "case": "Company introduction is independent of verification notes",
+      "status": "PASS"
+    },
+    {
+      "case": "Company cannot request approval without business license",
+      "status": "PASS"
+    },
+    {
+      "case": "License content verified, stored, downloaded and approved",
+      "status": "PASS"
+    },
+    {
+      "case": "Candidate cannot access private business license",
+      "status": "PASS"
+    },
+    {
+      "case": "Server rejects occupation codes outside sourced catalog",
+      "status": "PASS"
+    },
+    {
+      "case": "JD rich sections, occupations, company introduction round-trip",
+      "status": "PASS"
+    },
+    {
+      "case": "Level 2 enforces five active postings on backend",
+      "status": "PASS"
+    },
+    {
+      "case": "Campaign create/update/list persists owned job links",
+      "status": "PASS"
+    },
+    {
+      "case": "Campaign links and updates enforce company ownership",
+      "status": "PASS"
+    },
+    {
+      "case": "CV template/photo/font/order persist on exact draft",
+      "status": "PASS"
+    },
+    {
+      "case": "Server rejects SVG or invalid CV photo data",
+      "status": "PASS"
+    },
+    {
+      "case": "Opt-out application succeeds without any match score",
+      "status": "PASS"
+    },
+    {
+      "case": "HR inspection and manual recalculation cannot bypass AI opt-out",
+      "status": "PASS"
+    },
+    {
+      "case": "HR can inspect consent-free CV snapshot and cover letter",
+      "status": "PASS"
+    },
+    {
+      "case": "Repeated view does not spend a second CV view",
+      "status": "PASS"
+    },
+    {
+      "case": "Explicit opt-in records consent and invokes real scoring engine",
+      "status": "PASS"
+    },
+    {
+      "case": "List API does not leak full CV snapshot around view quota",
+      "status": "PASS"
+    },
+    {
+      "case": "HR from another company cannot read CV snapshot",
+      "status": "PASS"
+    },
+    {
+      "case": "New wallet starts at zero with actual service catalog",
+      "status": "PASS"
+    },
+    {
+      "case": "Credit top-up and purchase are atomic and idempotent",
+      "status": "PASS"
+    },
+    {
+      "case": "Purchased package adds CV views and real promotion expiry",
+      "status": "PASS"
+    },
+    {
+      "case": "Only admin can approve level 3; sixth posting then succeeds",
+      "status": "PASS"
+    },
+    {
+      "case": "Campaign application count comes from persisted applications",
+      "status": "PASS"
+    },
+    {
+      "case": "Deleting campaign preserves jobs and applications",
+      "status": "PASS"
+    },
+    {
+      "case": "Database has zero match_results for opted-out applications",
+      "status": "PASS"
+    },
+    {
+      "case": "Production Next.js serves employer portal",
+      "status": "PASS"
+    },
+    {
+      "case": "UI employer portal links to dedicated account flow",
+      "status": "PASS"
+    },
+    {
+      "case": "UI gallery displays four official templates; category filter and selection work",
+      "status": "PASS"
+    },
+    {
+      "case": "UI saves CV design through real API and reloads persisted font",
+      "status": "PASS"
+    },
+    {
+      "case": "UI three-column occupation catalog searches and applies actual code filter",
+      "status": "PASS"
+    },
+    {
+      "case": "UI application selects a confirmed CV and submits with AI consent unchecked",
+      "status": "PASS"
+    },
+    {
+      "case": "UI rich JD save preserves bold formatting and benefit content in database",
+      "status": "PASS"
+    },
+    {
+      "case": "UI recruiter workspace renders consent status; rich JD editor is interactive",
+      "status": "PASS"
+    },
+    {
+      "case": "UI immutable CV detail displays opted-out state and persisted snapshot",
+      "status": "PASS"
+    },
+    {
+      "case": "Identity change revokes company verification and hides existing public postings",
+      "status": "PASS"
+    }
+  ],
+  "environment": {
+    "postgres": "16.15",
+    "pgvector": "0.6.0",
+    "mailpit": "1.30.4",
+    "backend": "Spring Boot 3.3.2 / Java 21",
+    "frontend": "Next.js 16.3.3 production"
+  },
+  "ai_provider_live": false,
+  "limits": "No configured LLM or embedding endpoint; no live OCR/upload quality evaluation."
+}

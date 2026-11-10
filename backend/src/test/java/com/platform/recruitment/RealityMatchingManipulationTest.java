@@ -74,7 +74,7 @@ class RealityMatchingManipulationTest {
         candidate = CandidateProfile.builder().fullName("Nguyen Van Thuc Te").githubUrl("https://github.com/candidate-test").build();
         candidate.setId(UUID.randomUUID());
 
-        application = Application.builder().job(javaJob).candidate(candidate).build();
+        application = Application.builder().aiAnalysisConsent(true).job(javaJob).candidate(candidate).build();
         application.setId(UUID.randomUUID());
 
         lenient().when(applicationRepository.findByJobIdAndCandidateId(any(), any())).thenReturn(Optional.of(application));

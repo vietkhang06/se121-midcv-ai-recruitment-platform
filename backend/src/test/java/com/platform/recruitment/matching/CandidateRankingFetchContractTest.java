@@ -22,7 +22,7 @@ class CandidateRankingFetchContractTest {
         User user = User.builder().email("synthetic@example.test").role(Role.CANDIDATE).build();
         CandidateProfile candidate = CandidateProfile.builder().fullName("Synthetic Candidate").user(user).build();
         candidate.setId(UUID.randomUUID());
-        Application application = Application.builder().candidate(candidate).build();
+        Application application = Application.builder().aiAnalysisConsent(true).candidate(candidate).build();
         application.setId(UUID.randomUUID());
         MatchResult result = MatchResult.builder()
                 .application(application)

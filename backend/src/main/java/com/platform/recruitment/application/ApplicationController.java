@@ -39,6 +39,16 @@ public class ApplicationController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PutMapping("/candidate/applications/{applicationId}")
+    public ResponseEntity<ApiResponse<ApplicationResponse>> updateMyApplication(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID applicationId,
+            @Valid @RequestBody UpdateCandidateApplicationRequest request) {
+        ApplicationResponse response = applicationService.updateCandidateApplication(
+                currentUser, applicationId, request);
+        return ResponseEntity.ok(ApiResponse.success("Đã cập nhật đơn ứng tuyển.", response));
+    }
+
     @GetMapping("/recruiter/jobs/{jobId}/applications")
     public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<ApplicationResponse>>> getJobApplications(
             @AuthenticationPrincipal User currentUser,

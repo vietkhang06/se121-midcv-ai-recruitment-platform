@@ -105,7 +105,7 @@ public class CandidateRankingAndRecruiterDecisionIntegrationTest {
         CV cv1 = CV.builder().candidate(cand1).title("Alice CV").build();
         cv1.setId(UUID.randomUUID());
 
-        app1 = Application.builder()
+        app1 = Application.builder().aiAnalysisConsent(true)
                 .job(job)
                 .candidate(cand1)
                 .appliedCv(cv1)
@@ -127,7 +127,7 @@ public class CandidateRankingAndRecruiterDecisionIntegrationTest {
         CV cv2 = CV.builder().candidate(cand2).title("Bob CV").build();
         cv2.setId(UUID.randomUUID());
 
-        app2 = Application.builder()
+        app2 = Application.builder().aiAnalysisConsent(true)
                 .job(job)
                 .candidate(cand2)
                 .appliedCv(cv2)

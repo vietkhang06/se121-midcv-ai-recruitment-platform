@@ -59,7 +59,7 @@ jwt:
 
 app:
 
-  email-mode: ${EMAIL_MODE:MOCK}
+  email-mode: ${EMAIL_MODE:SMTP}
   mail-from: ${MAIL_FROM:noreply@midcv.local}
   public-base-url: ${BACKEND_PUBLIC_URL:http://localhost:8080}
   frontend-url: ${FRONTEND_PUBLIC_URL:http://localhost:3000}

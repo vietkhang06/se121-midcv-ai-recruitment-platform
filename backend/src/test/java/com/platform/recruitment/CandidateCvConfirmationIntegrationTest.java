@@ -283,6 +283,7 @@ public class CandidateCvConfirmationIntegrationTest {
         SubmitApplicationRequest appReq = new SubmitApplicationRequest();
         appReq.setJobId(publishedJob.getId());
         appReq.setCvId(testCv.getId());
+        appReq.setAiAnalysisConsent(true);
         when(jobRepository.findByIdForApply(publishedJob.getId())).thenReturn(Optional.of(publishedJob));
         when(candidateProfileRepository.findByUserIdForUpdate(candidateUserA.getId())).thenReturn(Optional.of(profileA));
         when(cvRepository.findByIdForUpdate(testCv.getId())).thenReturn(Optional.of(testCv));

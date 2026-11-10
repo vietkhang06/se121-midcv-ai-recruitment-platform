@@ -1,0 +1,45 @@
+READY | PostgreSQL 16 + pgvector, disposable database
+READY | Mailpit real SMTP
+READY | Spring Boot, migrations V1–V35 validated
+PASS | Unverified email cannot log in; SMTP response hides token
+PASS | Real Mailpit message activates account; token is single-use
+PASS | Candidate account rejected by employer login portal
+PASS | Verified candidate tier is derived from persisted account
+PASS | Admin plan upgrade changes candidate tier to PRO
+PASS | HR registration persists representative phone, tax code and address
+PASS | Company introduction is independent of verification notes
+PASS | Company cannot request approval without business license
+PASS | License content verified, stored, downloaded and approved
+PASS | Candidate cannot access private business license
+PASS | Server rejects occupation codes outside sourced catalog
+PASS | JD rich sections, occupations, company introduction round-trip
+PASS | Level 2 enforces five active postings on backend
+PASS | Campaign create/update/list persists owned job links
+PASS | Campaign links and updates enforce company ownership
+PASS | CV template/photo/font/order persist on exact draft
+PASS | Server rejects SVG or invalid CV photo data
+PASS | Opt-out application succeeds without any match score
+PASS | HR inspection and manual recalculation cannot bypass AI opt-out
+PASS | HR can inspect consent-free CV snapshot and cover letter
+PASS | Repeated view does not spend a second CV view
+PASS | Explicit opt-in records consent and invokes real scoring engine
+PASS | List API does not leak full CV snapshot around view quota
+PASS | HR from another company cannot read CV snapshot
+PASS | New wallet starts at zero with actual service catalog
+PASS | Credit top-up and purchase are atomic and idempotent
+PASS | Purchased package adds CV views and real promotion expiry
+PASS | Only admin can approve level 3; sixth posting then succeeds
+PASS | Campaign application count comes from persisted applications
+PASS | Deleting campaign preserves jobs and applications
+PASS | Database has zero match_results for opted-out applications
+PASS | Production Next.js serves employer portal
+PASS | UI employer portal links to dedicated account flow
+PASS | UI gallery displays four official templates; category filter and selection work
+PASS | UI saves CV design through real API and reloads persisted font
+PASS | UI three-column occupation catalog searches and applies actual code filter
+PASS | UI application selects a confirmed CV and submits with AI consent unchecked
+PASS | UI rich JD save preserves bold formatting and benefit content in database
+PASS | UI recruiter workspace renders consent status; rich JD editor is interactive
+PASS | UI immutable CV detail displays opted-out state and persisted snapshot
+
+PASS | Identity change revokes company verification and hides existing public postings

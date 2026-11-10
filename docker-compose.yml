@@ -1,4 +1,15 @@
 services:
+  mailpit:
+    image: axllent/mailpit:v1.30.4
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: 1000
+    volumes:
+      - mailpit_data:/data
   postgres:
     image: pgvector/pgvector:pg16
     container_name: airecruit-postgres-pgvector
@@ -18,5 +29,6 @@ services:
       retries: 5
 
 volumes:
+  mailpit_data:
   postgres_data:
     driver: local

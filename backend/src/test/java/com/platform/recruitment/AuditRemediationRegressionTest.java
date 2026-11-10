@@ -38,7 +38,7 @@ class AuditRemediationRegressionTest {
                 .structuredJsonContent("{\"skills\":[{\"name\":{\"value\":\"Python\",\"origin\":\"USER_ADDED\"}}]}").build();
         version.setId(UUID.randomUUID());
         job=Job.builder().title("Python engineer").description("Python backend engineer").industry("IT").status(JobStatus.PUBLISHED).build();job.setId(UUID.randomUUID());
-        application=Application.builder().job(job).candidate(candidate).appliedCv(cv).appliedCvVersion(version).build();application.setId(UUID.randomUUID());
+        application=Application.builder().aiAnalysisConsent(true).job(job).candidate(candidate).appliedCv(cv).appliedCvVersion(version).build();application.setId(UUID.randomUUID());
         engine=new MatchingEngineService(jobs,requirements,candidates,applications,cvs,results,factors,
                 new RequiredSkillMatcher(),new PreferredSkillMatcher(),new ExperienceMatcher(),new EducationMatcher(),new ProjectRelevanceMatcher(),github);
         engine.setCvVersionRepository(versions);
@@ -107,6 +107,7 @@ class AuditRemediationRegressionTest {
         var svc=new ApplicationService(applications,snapshots,jobs,candidates,
                 mock(com.platform.recruitment.company.RecruiterProfileRepository.class),cvs,versions,scorer);
         var request=new SubmitApplicationRequest();request.setJobId(job.getId());request.setCvId(cv.getId());
+        request.setAiAnalysisConsent(true);
         ApplicationResponse response=svc.submitApplication(actor,request);
         var captured=org.mockito.ArgumentCaptor.forClass(ApplicationCVSnapshot.class);
         verify(snapshots).save(captured.capture());
@@ -126,6 +127,7 @@ class AuditRemediationRegressionTest {
         var svc=new ApplicationService(applications,mock(ApplicationCVSnapshotRepository.class),jobs,candidates,
                 mock(com.platform.recruitment.company.RecruiterProfileRepository.class),cvs,versions,scorer);
         var request=new SubmitApplicationRequest();request.setJobId(job.getId());request.setCvId(cv.getId());
+        request.setAiAnalysisConsent(true);
         assertThrows(CustomException.class,()->svc.submitApplication(actor,request));
         // This unit test proves propagation, not database rollback. Transaction acceptance is separate.
     }

@@ -27,6 +27,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 @RequestMapping("/api/v1/matching")
 public class MatchingController {
 
+    @Autowired(required=false)
+    private com.platform.recruitment.product.RecruiterEntitlements entitlements;
+    @Autowired(required=false)
+    private com.platform.recruitment.product.AiScreeningAccessService aiScreeningAccess;
     private final MatchingEngineService matchingEngineService;
     private final CandidateRankingService candidateRankingService;
     private final JobRepository jobRepository;
@@ -65,7 +69,16 @@ public class MatchingController {
             @PathVariable UUID candidateId) {
         validateRecruiterJobAccess(currentUser, jobId);
         MatchResult result = matchingEngineService.calculateAndPersistMatchResult(jobId, candidateId);
-        return ResponseEntity.ok(ApiResponse.success("Match score calculated successfully", MatchScoreResponse.fromEntity(result)));
+        MatchScoreResponse response = MatchScoreResponse.fromEntity(result);
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
+        if (currentUser.getRole() == Role.HR && aiScreeningAccess != null
+                && !aiScreeningAccess.hasActivePro(job.getCompany())) {
+            response.redactForStandardPlan(aiScreeningAccess);
+        } else if (aiScreeningAccess != null) {
+            response.setMatchClassification(aiScreeningAccess.classify(response.getOverallScore()));
+        }
+        return ResponseEntity.ok(ApiResponse.success("Match score calculated successfully", response));
     }
 
     @GetMapping("/jobs/{jobId}/rankings")
@@ -78,8 +91,19 @@ public class MatchingController {
             @RequestParam(defaultValue = "overallScore") String sort,
             @RequestParam(defaultValue = "desc") String direction) {
         validateRecruiterJobAccess(currentUser, jobId);
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
+        boolean standardPlan = currentUser.getRole() == Role.HR && aiScreeningAccess != null
+                && !aiScreeningAccess.hasActivePro(job.getCompany());
         com.platform.recruitment.common.PageResponse<CandidateRankingResponse> ranked =
-                candidateRankingService.getRankedCandidatesPage(jobId, minScore, page, size, sort, direction);
+                candidateRankingService.getRankedCandidatesPage(
+                        jobId, standardPlan ? null : minScore, page, size,
+                        standardPlan ? "createdAt" : sort, direction);
+        if (currentUser.getRole() == Role.HR && aiScreeningAccess != null) {
+            if (standardPlan) {
+                ranked.getContent().forEach(item -> item.redactForStandardPlan(aiScreeningAccess));
+            }
+        }
         return ResponseEntity.ok(ApiResponse.success("Candidate rankings retrieved successfully", ranked));
     }
 
@@ -96,7 +120,13 @@ public class MatchingController {
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID id) {
         validateApplicationAccess(currentUser, id);
+        if (currentUser.getRole() == Role.HR && entitlements != null) entitlements.view(currentUser,id);
         MatchInspectionResponse response = matchingEngineService.getMatchInspection(id);
+        if (currentUser.getRole() == Role.HR && aiScreeningAccess != null) {
+            Application application = applicationRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Application", "id", id));
+            if (!aiScreeningAccess.evaluate(application).proDetail()) response.redactForStandardPlan();
+        }
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

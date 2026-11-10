@@ -102,6 +102,12 @@ public class CompanyVerificationService {
                     "Hồ sơ doanh nghiệp đã được cập nhật bởi một quản trị viên khác. Vui lòng làm mới dữ liệu.");
         }
 
+        if (targetStatus == CompanyVerification.VERIFIED && (company.getBusinessLicense() == null
+                || company.getContactPhone() == null || company.getContactPhone().isBlank()
+                || company.getTaxCode() == null || company.getTaxCode().isBlank()
+                || company.getAddress() == null || company.getAddress().isBlank())) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Kiểm tra số điện thoại, mã số thuế, địa chỉ và giấy phép trước khi duyệt.");
+        }
         CompanyVerification currentStatus = company.getVerificationStatus();
         validateCompanyStateTransition(currentStatus, targetStatus);
 
@@ -306,6 +312,11 @@ public class CompanyVerificationService {
                 .size(company.getSize())
                 .industry(company.getIndustry())
                 .description(company.getDescription())
+                .address(company.getAddress())
+                .contactPhone(company.getContactPhone())
+                .businessLicenseName(company.getBusinessLicenseName())
+                .licenseSubmittedAt(company.getLicenseSubmittedAt())
+                .verificationLevel(company.getVerificationStatus() == CompanyVerification.VERIFIED ? company.getTrustLevel() : 1)
                 .verificationStatus(company.getVerificationStatus())
                 .operationalStatus(company.getOperationalStatus())
                 .reviewedById(company.getReviewedBy() != null ? company.getReviewedBy().getId() : null)

@@ -142,6 +142,7 @@ public class EndToEndCoreProductFlowIntegrationTest {
         SubmitApplicationRequest submitReq = new SubmitApplicationRequest();
         submitReq.setJobId(backendJob.getId());
         submitReq.setCvId(candidateCv.getId());
+        submitReq.setAiAnalysisConsent(true);
 
         ApplicationResponse appResp = applicationService.submitApplication(candidateUser, submitReq);
 
@@ -155,7 +156,7 @@ public class EndToEndCoreProductFlowIntegrationTest {
         // Step 2: Recruiter retrieves ranked applications
         when(recruiterProfileRepository.findByUserId(recruiterUser.getId())).thenReturn(Optional.of(recruiterProfile));
 
-        Application submittedApp = Application.builder()
+        Application submittedApp = Application.builder().aiAnalysisConsent(true)
                 .job(backendJob)
                 .candidate(candidateProfile)
                 .appliedCv(candidateCv)
@@ -225,6 +226,7 @@ public class EndToEndCoreProductFlowIntegrationTest {
         SubmitApplicationRequest submitReq = new SubmitApplicationRequest();
         submitReq.setJobId(backendJob.getId());
         submitReq.setCvId(draftCv.getId());
+        submitReq.setAiAnalysisConsent(true);
 
         CustomException ex = assertThrows(CustomException.class, () ->
                 applicationService.submitApplication(candidateUser, submitReq)

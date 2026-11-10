@@ -5,7 +5,7 @@ import logging
 import subprocess
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
-from PIL import Image
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
 from app.config import settings
 from app.services.ocr_exceptions import (
@@ -339,7 +339,14 @@ class TesseractRuntime:
                 timeout=timeout,
                 output_type=pytesseract.Output.DICT
             )
-            confidences = [int(c) for c in data.get("conf", []) if str(c).isdigit() and int(c) >= 0]
+            confidences = []
+            for value in data.get("conf", []):
+                try:
+                    confidence = float(value)
+                except (TypeError, ValueError):
+                    continue
+                if confidence >= 0:
+                    confidences.append(confidence)
             if confidences:
                 avg_conf = round(sum(confidences) / len(confidences), 1)
         except pytesseract.TesseractNotFoundError:
@@ -400,6 +407,93 @@ class TesseractRuntime:
                 )
 
         return raw_text.strip() if raw_text else "", avg_conf
+
+    def ocr_document_image(
+        self,
+        image: Image.Image,
+        psm: Optional[int] = None,
+        timeout_seconds: Optional[int] = None,
+        correlation_id: Optional[str] = None,
+    ) -> Tuple[str, Optional[float]]:
+        """OCR a CV image with resolution recovery and layout-aware pass selection.
+
+        Mobile screenshots are commonly only 500–800 px wide. Tesseract loses
+        Vietnamese diacritics at that size, so the image is upscaled before OCR.
+        Two real Tesseract layout passes are evaluated; no synthetic text is
+        merged into the source evidence.
+        """
+        if image.mode not in ("L", "1"):
+            base = image.convert("L")
+        else:
+            base = image.convert("L")
+
+        # Aim for readable 10–12 px glyphs while bounding CPU/memory use.
+        target_width = 1800
+        scale = max(1.0, target_width / max(1, base.width))
+        max_scale_by_pixels = (
+            16_000_000 / max(1, base.width * base.height)
+        ) ** 0.5
+        scale = min(scale, 4.0, max(1.0, max_scale_by_pixels))
+        if scale > 1.05:
+            base = base.resize(
+                (round(base.width * scale), round(base.height * scale)),
+                Image.Resampling.LANCZOS,
+            )
+
+        enhanced = ImageOps.autocontrast(base, cutoff=1)
+        enhanced = enhanced.filter(ImageFilter.MedianFilter(size=3))
+        enhanced = ImageEnhance.Contrast(enhanced).enhance(1.25)
+        enhanced = enhanced.filter(
+            ImageFilter.UnsharpMask(radius=1.2, percent=160, threshold=2)
+        )
+
+        configured_psm = psm if psm is not None else settings.OCR_PSM
+        pass_modes = [configured_psm]
+        # PSM 3 preserves automatic multi-column layout; PSM 4 recovers text in
+        # CVs with a narrow sidebar. Do not run a duplicate pass.
+        alternate_psm = 4 if configured_psm != 4 else 3
+        pass_modes.append(alternate_psm)
+
+        candidates: list[tuple[float, str, Optional[float], int]] = []
+        first_error: Optional[Exception] = None
+        for mode in pass_modes:
+            try:
+                text, confidence = self.ocr_image(
+                    enhanced,
+                    psm=mode,
+                    timeout_seconds=timeout_seconds,
+                    correlation_id=correlation_id,
+                )
+                if not text.strip():
+                    continue
+                visible_chars = sum(1 for char in text if char.isalnum())
+                replacement_penalty = text.count("�") * 2 + text.count("?")
+                quality = (confidence or 0.0) + min(10.0, visible_chars / 300.0)
+                quality -= min(10.0, replacement_penalty * 0.5)
+                candidates.append((quality, text, confidence, mode))
+            except Exception as exc:
+                if first_error is None:
+                    first_error = exc
+                logger.warning(
+                    "OCR layout pass failed [correlation_id=%s, psm=%s, error=%s]",
+                    correlation_id,
+                    mode,
+                    type(exc).__name__,
+                )
+
+        if not candidates:
+            if first_error is not None:
+                raise first_error
+            return "", None
+        _, best_text, best_confidence, best_mode = max(candidates, key=lambda item: item[0])
+        logger.info(
+            "OCR layout pass selected [correlation_id=%s, psm=%s, confidence=%s, chars=%s]",
+            correlation_id,
+            best_mode,
+            best_confidence,
+            len(best_text),
+        )
+        return best_text, best_confidence
 
 
 # Singleton runtime instance

@@ -39,7 +39,7 @@ class ApplicationSnapshotVersionTest {
                 .build();
         version1.setId(UUID.randomUUID());
 
-        application = Application.builder()
+        application = Application.builder().aiAnalysisConsent(true)
                 .appliedCv(cvHeader)
                 .appliedCvVersion(version1)
                 .build();

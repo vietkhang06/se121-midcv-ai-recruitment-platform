@@ -25,6 +25,14 @@ public class ApplicationResponse {
     private ApplicationStatus status;
     private java.math.BigDecimal matchScore;
     private String matchStatus;
+    private boolean aiScoringAvailable;
+    private String aiScoringReasonCode;
+    private String aiScoringReason;
+    private String matchClassification;
+    private boolean proDetailAvailable;
+    private String recruiterPlan;
+    private boolean aiAnalysisConsent;
+    private String coverLetter;
     private ZonedDateTime appliedAt;
     private String candidateEmail;
     private String candidatePhone;
@@ -39,6 +47,7 @@ public class ApplicationResponse {
     public static class SnapshotInfo {
         private String cvTitle;
         private String rawTextSnapshot;
+        private String structuredJsonSnapshot;
         private ZonedDateTime snapshotCreatedAt;
     }
 }

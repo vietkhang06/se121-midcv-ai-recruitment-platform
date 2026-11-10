@@ -192,6 +192,11 @@ public class AiWorkerClient {
         }
     }
 
+    public Map<String,Object> draftJd(Map<String,Object> request) {
+        try { return restClient.post().uri("/draft-jd").contentType(MediaType.APPLICATION_JSON).body(request).retrieve().body(Map.class); }
+        catch(Exception ex) { throw workerFailure("/draft-jd",UUID.randomUUID().toString(),ex); }
+    }
+
     public Map<String, Object> runtimeConfiguration() {
         try {
             return restClient.get().uri("/runtime-config").retrieve().body(Map.class);

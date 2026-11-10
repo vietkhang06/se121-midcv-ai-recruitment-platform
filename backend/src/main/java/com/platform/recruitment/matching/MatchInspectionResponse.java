@@ -18,6 +18,8 @@ public class MatchInspectionResponse {
     private UUID applicationId;
     private String jobTitle;
     private String candidateName;
+    private String matchClassification;
+    private boolean detailAccess;
     private String algorithmVersion;
     private String calculationStatus;
     private BigDecimal overallScore;
@@ -35,6 +37,20 @@ public class MatchInspectionResponse {
     private String humanReadableExplanation;
     private GitHubAssessmentInfo githubAssessment;
     private List<EvidenceItem> evidences;
+
+    public void redactForStandardPlan() {
+        this.detailAccess = false;
+        this.overallScore = null;
+        this.coreScore = null;
+        this.githubScore = null;
+        this.requiredSkillsStatus = java.util.List.of();
+        this.preferredSkillsStatus = java.util.List.of();
+        this.matchFactors = java.util.List.of();
+        this.evidences = java.util.List.of();
+        this.githubAssessment = null;
+        this.humanReadableExplanation =
+                "Tài khoản thường được xem phân loại tổng quan. Nâng cấp Pro để xem điểm thành phần, nhận xét và minh chứng chi tiết.";
+    }
 
     @Data
     @Builder

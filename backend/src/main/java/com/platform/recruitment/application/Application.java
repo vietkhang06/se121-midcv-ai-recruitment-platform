@@ -23,6 +23,17 @@ public class Application extends BaseEntity {
     @JoinColumn(name = "job_id", nullable = false)
     private Job job;
 
+    @Builder.Default
+    @Column(name = "ai_analysis_consent", nullable = false)
+    private Boolean aiAnalysisConsent = false;
+    @Column(name = "ai_consent_at")
+    private ZonedDateTime aiConsentAt;
+    @Column(name = "ai_consent_version", length = 32)
+    private String aiConsentVersion;
+    @Column(name = "cover_letter", columnDefinition = "TEXT")
+    private String coverLetter;
+
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "candidate_id", nullable = false)
     private CandidateProfile candidate;

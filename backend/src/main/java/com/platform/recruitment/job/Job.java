@@ -25,6 +25,18 @@ public class Job extends BaseEntity {
 
     @Column(name = "title", nullable = false)
     private String title;
+    @Column(name = "promoted_until")
+    private java.time.ZonedDateTime promotedUntil;
+
+    @Column(name = "ai_screening_policy_version")
+    private Integer aiScreeningPolicyVersion;
+
+    @Column(name = "ai_screening_package_code", length = 40)
+    private String aiScreeningPackageCode;
+    @Builder.Default
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "occupation_codes", nullable = false, columnDefinition = "jsonb")
+    private List<String> occupationCodes = new ArrayList<>();
 
     @Column(name = "industry", nullable = false)
     private String industry;
@@ -68,6 +80,28 @@ public class Job extends BaseEntity {
 
     @Column(name = "description", nullable = false, columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "description_html", columnDefinition = "TEXT")
+    private String descriptionHtml;
+
+    @Column(name = "candidate_requirements", columnDefinition = "TEXT")
+    private String candidateRequirements;
+
+    @Column(name = "benefits_content", columnDefinition = "TEXT")
+    private String benefitsContent;
+
+    @Column(name = "work_address", columnDefinition = "TEXT")
+    private String workAddress;
+
+    @Column(name = "working_time", columnDefinition = "TEXT")
+    private String workingTime;
+
+    @Column(name = "application_instructions", columnDefinition = "TEXT")
+    private String applicationInstructions;
+
+    @Column(name = "application_deadline")
+    private java.time.LocalDate applicationDeadline;
+
 
     @Builder.Default
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)

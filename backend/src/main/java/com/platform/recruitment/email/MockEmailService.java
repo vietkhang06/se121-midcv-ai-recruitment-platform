@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
-@ConditionalOnProperty(name = "app.email-mode", havingValue = "MOCK", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.email-mode", havingValue = "MOCK")
 public class MockEmailService implements EmailService {
 
     private final Map<String, String> devTokenStore = new ConcurrentHashMap<>();

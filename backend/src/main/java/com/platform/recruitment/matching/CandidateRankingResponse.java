@@ -34,4 +34,20 @@ public class CandidateRankingResponse {
     private String matchingAlgorithmVersion;
     private String aiSummary;
     private ZonedDateTime appliedAt;
+
+    public void redactForStandardPlan(com.platform.recruitment.product.AiScreeningAccessService policy) {
+        this.status = policy.classify(this.overallScore);
+        this.overallScore = null;
+        this.coreScore = null;
+        this.githubScore = null;
+        this.requiredSkillsMatched = null;
+        this.requiredSkillsTotal = null;
+        this.requiredSkillsMissing = null;
+        this.preferredSkillsMatched = null;
+        this.preferredSkillsTotal = null;
+        this.isGithubActive = null;
+        this.githubFallbackApplied = null;
+        this.matchingAlgorithmVersion = null;
+        this.aiSummary = "Tài khoản thường được xem phân loại tổng quan. Nâng cấp Pro để xem điểm và phân tích chi tiết.";
+    }
 }

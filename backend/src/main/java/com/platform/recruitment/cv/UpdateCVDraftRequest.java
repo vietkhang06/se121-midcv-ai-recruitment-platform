@@ -14,6 +14,7 @@ import java.util.Map;
 public class UpdateCVDraftRequest {
 
     private String title;
+    private Map<String, Object> presentation;
 
     @JsonProperty("personal_info")
     private Map<String, Object> personalInfo;

@@ -1,8 +1,17 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Industry, AuthState } from '@/types';
-import { loginAccount, registerCandidateAccount, registerRecruiterAccount, isJwtExpired, ensureAuthToken, saveAuthTokens, clearAuthSession, apiRequest } from '@/lib/api';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { User, Industry, AuthState } from "@/types";
+import {
+  loginAccount,
+  registerCandidateAccount,
+  registerRecruiterAccount,
+  isJwtExpired,
+  ensureAuthToken,
+  saveAuthTokens,
+  clearAuthSession,
+  apiRequest,
+} from "@/lib/api";
 
 interface QuickOnboardingData {
   age?: number;
@@ -10,9 +19,9 @@ interface QuickOnboardingData {
 }
 
 export interface IntendedAction {
-  type: 'APPLY' | 'NAVIGATE';
+  type: "APPLY" | "NAVIGATE";
   target?: string;
-  data?: any;
+  data?: unknown;
 }
 
 interface AuthContextType {
@@ -20,73 +29,112 @@ interface AuthContextType {
   authState: AuthState;
   isAuthenticated: boolean;
   hasSeenFirstVisit: boolean;
-  firstVisitChoice: 'CANDIDATE' | 'RECRUITER' | 'SKIP' | null;
+  firstVisitChoice: "CANDIDATE" | "RECRUITER" | "SKIP" | null;
   quickOnboardingData: QuickOnboardingData | null;
   isAuthModalOpen: boolean;
-  authModalMode: 'LOGIN' | 'REGISTER';
+  authModalMode: "LOGIN" | "REGISTER";
   intendedAction: IntendedAction | null;
-  setFirstVisitChoice: (choice: 'CANDIDATE' | 'RECRUITER' | 'SKIP', data?: QuickOnboardingData) => void;
-  openAuthModal: (mode?: 'LOGIN' | 'REGISTER', intended?: IntendedAction) => void;
+  setFirstVisitChoice: (
+    choice: "CANDIDATE" | "RECRUITER" | "SKIP",
+    data?: QuickOnboardingData,
+  ) => void;
+  openAuthModal: (
+    mode?: "LOGIN" | "REGISTER",
+    intended?: IntendedAction,
+  ) => void;
   closeAuthModal: () => void;
-  login: (email: string, password: string) => Promise<void>;
+  login: (
+    email: string,
+    password: string,
+    expectedRole?: User["role"],
+  ) => Promise<void>;
   logout: () => void;
   clearIntendedAction: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
-  const [authState, setAuthState] = useState<AuthState>('INITIALIZING');
+  const [authState, setAuthState] = useState<AuthState>("INITIALIZING");
   const [hasSeenFirstVisit, setHasSeenFirstVisit] = useState<boolean>(true); // default true for SSR safety
-  const [firstVisitChoice, setChoice] = useState<'CANDIDATE' | 'RECRUITER' | 'SKIP' | null>(null);
-  const [quickOnboardingData, setQuickOnboardingData] = useState<QuickOnboardingData | null>(null);
-  
+  const [firstVisitChoice, setChoice] = useState<
+    "CANDIDATE" | "RECRUITER" | "SKIP" | null
+  >(null);
+  const [quickOnboardingData, setQuickOnboardingData] =
+    useState<QuickOnboardingData | null>(null);
+
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
-  const [authModalMode, setAuthModalMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
-  const [intendedAction, setIntendedAction] = useState<IntendedAction | null>(null);
+  const [authModalMode, setAuthModalMode] = useState<"LOGIN" | "REGISTER">(
+    "LOGIN",
+  );
+  const [intendedAction, setIntendedAction] = useState<IntendedAction | null>(
+    null,
+  );
 
   useEffect(() => {
     // 1. Mark first visit as seen so user always sees the public home page on initial visit
-    localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-    setHasSeenFirstVisit(true);
+    localStorage.setItem("hasSeenFirstVisitOnboarding", "true");
 
     let active = true;
-    void ensureAuthToken().then(token => {
-      if (!active) return;
-      const storedUser = localStorage.getItem('auth_user');
-      if (storedUser && token) {
-        try { setUser(JSON.parse(storedUser)); setAuthState('AUTHENTICATED'); return; }
-        catch { clearAuthSession(); }
-      }
-      setUser(null); setAuthState('ANONYMOUS');
-    }).catch(() => { if (active) { setUser(null); setAuthState('ANONYMOUS'); } });
+    void ensureAuthToken()
+      .then((token) => {
+        if (!active) return;
+        const storedUser = localStorage.getItem("auth_user");
+        if (storedUser && token) {
+          try {
+            setUser(JSON.parse(storedUser));
+            setAuthState("AUTHENTICATED");
+            return;
+          } catch {
+            clearAuthSession();
+          }
+        }
+        setUser(null);
+        setAuthState("ANONYMOUS");
+      })
+      .catch(() => {
+        if (active) {
+          setUser(null);
+          setAuthState("ANONYMOUS");
+        }
+      });
 
     // 3. Listen for session expired events
     const handleSessionExpired = () => {
-      localStorage.removeItem('auth_user');
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem("auth_user");
+      localStorage.removeItem("auth_token");
       setUser(null);
-      setAuthState('ANONYMOUS');
+      setAuthState("ANONYMOUS");
     };
-    window.addEventListener('midcv:session_expired', handleSessionExpired);
-    return () => { active = false; window.removeEventListener('midcv:session_expired', handleSessionExpired); };
+    window.addEventListener("midcv:session_expired", handleSessionExpired);
+    return () => {
+      active = false;
+      window.removeEventListener("midcv:session_expired", handleSessionExpired);
+    };
   }, []);
 
-  const setFirstVisitChoice = (choice: 'CANDIDATE' | 'RECRUITER' | 'SKIP', data?: QuickOnboardingData) => {
+  const setFirstVisitChoice = (
+    choice: "CANDIDATE" | "RECRUITER" | "SKIP",
+    data?: QuickOnboardingData,
+  ) => {
     setChoice(choice);
     if (data) {
       setQuickOnboardingData(data);
     }
-    localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-    setHasSeenFirstVisit(true);
+    localStorage.setItem("hasSeenFirstVisitOnboarding", "true");
 
-    if (choice === 'CANDIDATE') {
-      openAuthModal('REGISTER');
+    if (choice === "CANDIDATE") {
+      openAuthModal("REGISTER");
     }
   };
 
-  const openAuthModal = (mode: 'LOGIN' | 'REGISTER' = 'LOGIN', intended?: IntendedAction) => {
+  const openAuthModal = (
+    mode: "LOGIN" | "REGISTER" = "LOGIN",
+    intended?: IntendedAction,
+  ) => {
     setAuthModalMode(mode);
     if (intended) {
       setIntendedAction(intended);
@@ -102,32 +150,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIntendedAction(null);
   };
 
-  const login = async (email: string, password: string) => {
-    const result = await loginAccount(email, password);
+  const login = async (
+    email: string,
+    password: string,
+    expectedRole?: User["role"],
+  ) => {
+    const result = await loginAccount(email, password, expectedRole);
     setUser(result.user);
-    setAuthState('AUTHENTICATED');
-    localStorage.setItem('auth_user', JSON.stringify(result.user));
+    setAuthState("AUTHENTICATED");
+    localStorage.setItem("auth_user", JSON.stringify(result.user));
     saveAuthTokens(result);
     closeAuthModal();
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const currentPath = window.location.pathname;
 
       // 1. If an intended navigation target was specified, check role compatibility
-      if (intendedAction?.type === 'NAVIGATE' && intendedAction.target) {
+      if (intendedAction?.type === "NAVIGATE" && intendedAction.target) {
         const target = intendedAction.target;
         setIntendedAction(null);
 
-        if (result.user.role === 'ADMIN') {
-          window.location.href = target.startsWith('/admin') ? target : '/admin';
+        if (result.user.role === "ADMIN") {
+          window.location.href = target.startsWith("/admin")
+            ? target
+            : "/admin";
           return;
         }
-        if (result.user.role === 'RECRUITER') {
-          window.location.href = (target.startsWith('/candidate') || target.startsWith('/admin')) ? '/recruiter' : target;
+        if (result.user.role === "RECRUITER") {
+          window.location.href =
+            target.startsWith("/candidate") || target.startsWith("/admin")
+              ? "/recruiter"
+              : target;
           return;
         }
-        if (result.user.role === 'CANDIDATE') {
-          window.location.href = (target.startsWith('/recruiter') || target.startsWith('/admin')) ? '/candidate' : target;
+        if (result.user.role === "CANDIDATE") {
+          window.location.href =
+            target.startsWith("/recruiter") || target.startsWith("/admin")
+              ? "/candidate"
+              : target;
           return;
         }
         window.location.href = target;
@@ -135,27 +195,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // 2. Default landing page redirection by role
-      if (result.user.role === 'ADMIN') {
-        window.location.href = '/admin';
-      } else if (result.user.role === 'RECRUITER') {
-        window.location.href = '/recruiter';
+      if (result.user.role === "ADMIN") {
+        window.location.href = "/admin";
+      } else if (result.user.role === "RECRUITER") {
+        window.location.href = "/recruiter";
       } else {
         // If candidate logged in from an HR route, Admin route or auth route, redirect to candidate portal
-        if (currentPath.startsWith('/recruiter') || currentPath.startsWith('/admin') || currentPath === '/login' || currentPath === '/register') {
-          window.location.href = '/candidate';
+        if (
+          currentPath.startsWith("/recruiter") ||
+          currentPath.startsWith("/admin") ||
+          currentPath === "/login" ||
+          currentPath === "/register"
+        ) {
+          window.location.href = "/candidate";
         }
       }
     }
   };
 
   const logout = async () => {
-    try { if (getAuthTokenForLogout()) await apiRequest('/api/v1/auth/logout', { method: 'POST' }); }
-    finally {
-      clearAuthSession(); setUser(null); setAuthState('ANONYMOUS');
-      window.location.href = '/';
+    try {
+      if (getAuthTokenForLogout())
+        await apiRequest("/api/v1/auth/logout", { method: "POST" });
+    } finally {
+      clearAuthSession();
+      setUser(null);
+      setAuthState("ANONYMOUS");
+      window.location.href = "/";
     }
   };
-  function getAuthTokenForLogout() { return localStorage.getItem('auth_token'); }
+  function getAuthTokenForLogout() {
+    return localStorage.getItem("auth_token");
+  }
 
   return (
     <AuthContext.Provider
@@ -174,7 +245,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         closeAuthModal,
         login,
         logout,
-        clearIntendedAction
+        clearIntendedAction,
       }}
     >
       {children}
@@ -185,7 +256,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

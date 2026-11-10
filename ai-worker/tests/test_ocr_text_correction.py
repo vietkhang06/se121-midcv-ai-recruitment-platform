@@ -37,7 +37,7 @@ def test_applies_only_high_confidence_common_word_correction_and_keeps_raw_text(
     assert result.suggestions[0]["requires_human_review"] is False
 
 
-def test_technical_term_and_address_are_suggestions_not_auto_applied():
+def test_high_confidence_technical_typo_is_applied_but_address_requires_review():
     raw = "Ky nang: Sprlng Boot. Dia chi: Q. 1, TP H0 Chi Minh."
     orchestrator = FakeOrchestrator({
         "suggestions": [
@@ -59,10 +59,11 @@ def test_technical_term_and_address_are_suggestions_not_auto_applied():
     })
     result = OcrTextCorrectionService(orchestrator).correct(raw, "corr-2")
 
-    assert result.corrected_text == raw
-    assert result.applied_count == 0
+    assert result.corrected_text == "Ky nang: Spring Boot. Dia chi: Q. 1, TP H0 Chi Minh."
+    assert result.applied_count == 1
     assert len(result.suggestions) == 2
-    assert all(item["requires_human_review"] for item in result.suggestions)
+    assert result.suggestions[0]["applied"] is True
+    assert result.suggestions[1]["requires_human_review"] is True
 
 
 def test_rejects_unverified_or_unsafe_suggestions():
@@ -132,3 +133,30 @@ def test_diacritic_only_suggestions_are_review_only_without_ocr_corruption_marke
     assert len(result.suggestions) == 1
     assert result.suggestions[0]["requires_human_review"] is True
     assert result.suggestions[0]["auto_apply_allowed"] is False
+
+
+def test_lowercase_vietnamese_ocr_repairs_are_applied_without_overwriting_raw_evidence():
+    raw = "Tôi mong muốn phat triển và cỏ thể van dụng kỹ năng."
+    orchestrator = FakeOrchestrator({
+        "suggestions": [
+            {
+                "original": "phat triển",
+                "corrected": "phát triển",
+                "category": "COMMON_WORD",
+                "confidence": 0.98,
+            },
+            {
+                "original": "cỏ thể van dụng",
+                "corrected": "có thể vận dụng",
+                "category": "COMMON_WORD",
+                "confidence": 0.95,
+            },
+        ]
+    })
+
+    result = OcrTextCorrectionService(orchestrator).correct(raw, "corr-sample")
+
+    assert result.raw_text == raw
+    assert result.corrected_text == "Tôi mong muốn phát triển và có thể vận dụng kỹ năng."
+    assert result.status == "APPLIED_SAFE"
+    assert result.applied_count == 2

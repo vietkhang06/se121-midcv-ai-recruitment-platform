@@ -33,7 +33,7 @@ class MatchingPersistenceTest {
 
     @BeforeEach
     void setUp() {
-        application = Application.builder().build();
+        application = Application.builder().aiAnalysisConsent(true).build();
         application.setId(UUID.randomUUID());
 
         matchResult = MatchResult.builder()

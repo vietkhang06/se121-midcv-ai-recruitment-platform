@@ -122,6 +122,7 @@ public class JobMatchingPolicyService {
         int recalculatedCount = 0;
 
         for (Application app : applications) {
+            if (!Boolean.TRUE.equals(app.getAiAnalysisConsent())) continue;
             // Same synchronous/atomic failure policy as submit; never return a partial success count.
             matchingEngineService.calculateAndPersistMatchResult(jobId, app.getCandidate().getId());
             recalculatedCount++;

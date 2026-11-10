@@ -78,7 +78,7 @@ class ExplainableMatchingIntegrityTest {
                 .build();
         testCandidate.setId(UUID.randomUUID());
 
-        testApp = Application.builder().job(testJob).candidate(testCandidate).build();
+        testApp = Application.builder().aiAnalysisConsent(true).job(testJob).candidate(testCandidate).build();
         testApp.setId(UUID.randomUUID());
 
         lenient().when(jobRepository.findById(testJob.getId())).thenReturn(Optional.of(testJob));

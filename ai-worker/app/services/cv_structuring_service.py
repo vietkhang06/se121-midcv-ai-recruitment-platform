@@ -224,7 +224,9 @@ Target JSON schema structure:
         llm_resp = exec_res.response
 
         # 3. Parse and validate JSON
-        json_valid, schema_valid, parsed_data, err_msg = self.validator.validate(llm_resp.content, raw_text=cleaned_text)
+        json_valid, schema_valid, parsed_data, err_msg = self.validator.validate(
+            llm_resp.content, raw_text=llm_input_text
+        )
 
         # 4. If JSON syntax or schema is invalid, attempt at most 1 bounded repair
         if not (json_valid and schema_valid):
@@ -236,7 +238,9 @@ Target JSON schema structure:
             ]
             try:
                 repair_res = await self.orchestrator.execute(repair_messages, correlation_id=f"{cid}-repair")
-                r_json_valid, r_schema_valid, r_data, r_err = self.validator.validate(repair_res.response.content, raw_text=cleaned_text)
+                r_json_valid, r_schema_valid, r_data, r_err = self.validator.validate(
+                    repair_res.response.content, raw_text=llm_input_text
+                )
                 if r_json_valid and r_schema_valid and r_data:
                     json_valid = True
                     schema_valid = True
@@ -255,7 +259,9 @@ Target JSON schema structure:
                 logger.warning(f"[{cid}] Primary output unrecoverable after repair attempt. Engaging fallback Ollama client...")
                 try:
                     fb_resp = await self.orchestrator.fallback_client.chat(messages, correlation_id=f"{cid}-json-fallback")
-                    fb_json_valid, fb_schema_valid, fb_data, fb_err = self.validator.validate(fb_resp.content, raw_text=cleaned_text)
+                    fb_json_valid, fb_schema_valid, fb_data, fb_err = self.validator.validate(
+                        fb_resp.content, raw_text=llm_input_text
+                    )
                     if fb_json_valid and fb_schema_valid and fb_data:
                         json_valid = True
                         schema_valid = True

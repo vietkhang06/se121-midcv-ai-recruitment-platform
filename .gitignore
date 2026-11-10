@@ -77,3 +77,10 @@ frontend/tsconfig.tsbuildinfo
 
 # Production backup artifacts and recovery evidence (may contain private CV files)
 backups/
+
+# Local overlay rollback copies
+.midcv-upgrade-backups/
+
+# Local generated test and benchmark outputs
+artifacts/
+benchmark-real.json

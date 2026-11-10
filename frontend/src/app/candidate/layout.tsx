@@ -1,5 +1,6 @@
-import React from 'react';
-import { RoleGuard } from '@/components/auth/RoleGuard';
+import { CandidateTier } from "@/components/cv/CandidateTier";
+import React from "react";
+import { RoleGuard } from "@/components/auth/RoleGuard";
 
 export default function CandidateLayout({
   children,
@@ -7,7 +8,8 @@ export default function CandidateLayout({
   children: React.ReactNode;
 }) {
   return (
-    <RoleGuard allowedRoles={['CANDIDATE']}>
+    <RoleGuard allowedRoles={["CANDIDATE"]}>
+      <CandidateTier />
       {children}
     </RoleGuard>
   );

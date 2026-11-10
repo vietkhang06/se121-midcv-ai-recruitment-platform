@@ -167,6 +167,8 @@ public class AuthService {
         Company company = Company.builder()
                 .name(request.getCompanyName())
                 .taxCode(request.getCompanyTaxCode())
+                .address(request.getCompanyAddress())
+                .contactPhone(request.getPhone())
                 .website(request.getCompanyWebsite())
                 .industry(request.getCompanyIndustry())
                 .verificationStatus(CompanyVerification.PENDING)
@@ -186,6 +188,7 @@ public class AuthService {
                         .user(savedUser)
                         .company(savedCompany)
                         .fullName(request.getFullName())
+                        .phone(request.getPhone())
                         .build();
 
         recruiterProfileRepository.save(recruiterProfile);
@@ -342,6 +345,9 @@ public class AuthService {
             );
         }
 
+        if (request.getExpectedRole() != null && request.getExpectedRole() != user.getRole()) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED, "Tài khoản không thuộc cổng đăng nhập đã chọn. Vui lòng dùng cổng ứng viên / nhà tuyển dụng phù hợp.");
+        }
         return buildJwtResponse(user);
     }
 

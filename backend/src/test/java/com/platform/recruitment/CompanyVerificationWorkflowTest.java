@@ -41,7 +41,7 @@ public class CompanyVerificationWorkflowTest {
         recruiterUser = User.builder().email("hr@fintech.vn").role(Role.HR).isActive(true).build();
         recruiterUser.setId(UUID.randomUUID());
 
-        company = Company.builder()
+        company = Company.builder().address("Live test office").contactPhone("0901234567").businessLicense(new byte[]{1})
                 .name("FinTech Innovations Vietnam")
                 .taxCode("0108877665")
                 .website("https://fintech.vn")

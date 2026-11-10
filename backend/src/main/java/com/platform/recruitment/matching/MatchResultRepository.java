@@ -12,6 +12,7 @@ import java.util.UUID;
 @Repository
 public interface MatchResultRepository extends JpaRepository<MatchResult, UUID> {
     Optional<MatchResult> findByApplicationId(UUID applicationId);
+    void deleteByApplicationId(UUID applicationId);
     Optional<MatchResult> findByApplicationJobIdAndApplicationCandidateId(UUID jobId, UUID candidateId);
 
     @Query("SELECT m FROM MatchResult m JOIN FETCH m.application a JOIN FETCH a.candidate c JOIN FETCH c.user u WHERE a.job.id = :jobId")

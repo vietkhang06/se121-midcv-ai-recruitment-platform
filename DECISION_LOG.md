@@ -24,3 +24,12 @@ Tài liệu ghi nhận: **25/09/2026**
 Project Owner approved implementation of the audit plan in this conversation. Source baseline is the supplied ZIP (no .git metadata); no commit/push/deploy is implied. Changes are prepared in a separate copy.
 
 Implementation choices within recommended option A: enforce actor ownership in legacy processing; require explicit CONFIRMED CVVersion in candidate matching; bind application scores/snapshots to appliedCvVersion; candidate self-match is a side-effect-free preview; synchronous application scoring propagates failures atomically. Keep candidate MatchingEngineService and existing HR Scoring as separately versioned purposes rather than invent a new formula. HR screening retains its existing r
+
+## 04/11/2026 — Nâng cấp trải nghiệm midCV theo yêu cầu và ảnh 1–25
+
+- Yêu cầu người dùng ủy quyền mở rộng CV Builder, HR onboarding, SMTP/Mailpit, JD, ứng tuyển, taxonomy và các màn hình trong danh sách task.
+- Ưu tiên đề cương: đối sánh đa ngành, không khóa scoring theo Pro hoặc chỉ IT; GitHub vẫn chỉ bổ trợ phù hợp.
+- Bổ sung sự đồng ý AI theo từng đơn, mặc định false; không suy diễn đồng ý cho hồ sơ cũ. Chặn scoring/inspection/batch/worker khi thiếu đồng ý.
+- Xác minh doanh nghiệp do admin thực hiện, không tự duyệt sau hai ngày. Cấp 2 mặc định 5 tin đang hoạt động/100 CV riêng; cấp 3 do admin thẩm định uy tín.
+- Gói dịch vụ dùng ví credit được cấp qua admin và lịch sử giao dịch, chưa tích hợp thanh toán ngân hàng. Giá là cấu hình nội bộ midCV.
+- Thêm V35, không sửa migration cũ, không đổi phiên bản thư viện. Mọi trạng thái nghiệm thu được giới hạn bởi báo cáo bằng chứng thật trong docs/product-upgrade.

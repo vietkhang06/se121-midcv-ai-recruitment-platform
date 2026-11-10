@@ -110,6 +110,7 @@ public class ApplicationDuplicateProtectionTest {
         request1 = new SubmitApplicationRequest();
         request1.setJobId(job1Id);
         request1.setCvId(cvId);
+        request1.setAiAnalysisConsent(true);
 
         CVVersion version = CVVersion.builder()
                 .cv(cv)
@@ -128,7 +129,7 @@ public class ApplicationDuplicateProtectionTest {
         when(cvRepository.findByIdForUpdate(cv.getId())).thenReturn(Optional.of(cv));
         when(applicationRepository.existsByJobIdAndCandidateId(job1.getId(), candidate.getId())).thenReturn(false);
 
-        Application mockApp = Application.builder().job(job1).candidate(candidate).appliedCv(cv)
+        Application mockApp = Application.builder().aiAnalysisConsent(true).job(job1).candidate(candidate).appliedCv(cv)
                 .status(ApplicationStatus.SUBMITTED).build();
         mockApp.setId(UUID.randomUUID());
         when(applicationRepository.save(any(Application.class))).thenReturn(mockApp);
@@ -165,13 +166,14 @@ public class ApplicationDuplicateProtectionTest {
         SubmitApplicationRequest request2 = new SubmitApplicationRequest();
         request2.setJobId(job2.getId());
         request2.setCvId(cv.getId());
+        request2.setAiAnalysisConsent(true);
 
         when(candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())).thenReturn(Optional.of(candidate));
         when(jobRepository.findByIdForApply(job2.getId())).thenReturn(Optional.of(job2));
         when(cvRepository.findByIdForUpdate(cv.getId())).thenReturn(Optional.of(cv));
         when(applicationRepository.existsByJobIdAndCandidateId(job2.getId(), candidate.getId())).thenReturn(false);
 
-        Application mockApp2 = Application.builder().job(job2).candidate(candidate).appliedCv(cv)
+        Application mockApp2 = Application.builder().aiAnalysisConsent(true).job(job2).candidate(candidate).appliedCv(cv)
                 .status(ApplicationStatus.SUBMITTED).build();
         mockApp2.setId(UUID.randomUUID());
         when(applicationRepository.save(any(Application.class))).thenReturn(mockApp2);

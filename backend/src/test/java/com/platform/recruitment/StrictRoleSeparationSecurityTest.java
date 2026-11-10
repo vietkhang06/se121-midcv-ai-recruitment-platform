@@ -96,7 +96,7 @@ public class StrictRoleSeparationSecurityTest {
                 .build();
         candProfile1.setId(UUID.randomUUID());
 
-        appCand1JobA = Application.builder().candidate(candProfile1).job(jobA).build();
+        appCand1JobA = Application.builder().aiAnalysisConsent(true).candidate(candProfile1).job(jobA).build();
         appCand1JobA.setId(UUID.randomUUID());
     }
 
