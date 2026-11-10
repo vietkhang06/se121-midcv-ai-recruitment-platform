@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
+from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -25,10 +26,11 @@ class TestPhase7GitHubVerificationAcceptance:
         Candidate claim (e.g. CV_EXTRACTED 'Python') is distinguished from objective GITHUB_VERIFIED evidence.
         """
         mock_gh = MagicMock(spec=GitHubClient)
+        recent_push = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
         mock_gh.fetch_user_repositories.return_value = {
             "status": "SYNCED",
             "public_repos_count": 3,
-            "latest_activity_at": "2026-09-15T10:00:00Z",
+            "latest_activity_at": recent_push,
             "repositories": [
                 {
                     "name": "fastapi-service",
@@ -38,7 +40,7 @@ class TestPhase7GitHubVerificationAcceptance:
                     "stars_count": 0,  # Zero stars
                     "forks_count": 0,
                     "is_archived": False,
-                    "updated_at_github": "2026-09-15T10:00:00Z",
+                    "updated_at_github": recent_push,
                     "languages": [
                         {"language_name": "Python", "bytes_count": 80000, "percentage_ratio": 80.0},
                         {"language_name": "Dockerfile", "bytes_count": 20000, "percentage_ratio": 20.0}
@@ -78,7 +80,7 @@ class TestPhase7GitHubVerificationAcceptance:
         analyzer = GitHubAnalyzer(github_client=mock_gh)
         req = GitHubAnalyzeRequest(
             candidate_id="cand-no-gh",
-            github_url="https://github.com/nonexistent_user_9999"
+            github_url="https://github.com/nonexistent-user-9999"
         )
         res = analyzer.analyze_candidate_github(req)
 
@@ -102,7 +104,7 @@ class TestPhase7GitHubVerificationAcceptance:
         analyzer = GitHubAnalyzer(github_client=mock_gh)
         req = GitHubAnalyzeRequest(
             candidate_id="cand-priv",
-            github_url="https://github.com/private_dev"
+            github_url="https://github.com/private-dev"
         )
         res = analyzer.analyze_candidate_github(req)
 

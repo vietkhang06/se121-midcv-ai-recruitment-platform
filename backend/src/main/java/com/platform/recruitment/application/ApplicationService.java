@@ -38,6 +38,9 @@ public class ApplicationService {
 
     private com.platform.recruitment.communication.InboxService inbox;
     @Autowired public void setInbox(com.platform.recruitment.communication.InboxService inbox) { this.inbox=inbox; }
+    @Autowired(required = false)
+    private com.platform.recruitment.embedding.VersionedEmbeddingLifecycle vectorLifecycle;
+
     private final ApplicationRepository applicationRepository;
     private final ApplicationCVSnapshotRepository snapshotRepository;
     private final JobRepository jobRepository;
@@ -133,6 +136,12 @@ public class ApplicationService {
         List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cv.getId());
         CVVersion appliedVersion = versions.isEmpty() ? null : versions.get(0);
         com.platform.recruitment.cv.ConfirmedCvInput.requireConfirmed(appliedVersion, candidate.getId());
+        // Lazy backfill for CVs confirmed before this migration: every normal Quick Apply
+        // must trigger a real vector job for its exact pinned CV version.
+        if (vectorLifecycle != null) vectorLifecycle.prepareConfirmedCv(appliedVersion, candidateUser.getId());
+
+        // Pin the exact JD version used at application time. Legacy jobs are lazily prepared.
+        UUID appliedJdVersionId = vectorLifecycle != null ? vectorLifecycle.prepareJob(job) : null;
 
         // Atomic Transaction: Create Application + Immutable ApplicationCVSnapshot
         Application application = Application.builder()
@@ -140,6 +149,7 @@ public class ApplicationService {
                 .candidate(candidate)
                 .appliedCv(cv)
                 .appliedCvVersion(appliedVersion)
+                .appliedJdVersionId(appliedJdVersionId)
                 .status(ApplicationStatus.SUBMITTED)
                 .build();
         Application savedApplication = applicationRepository.save(application);
@@ -158,6 +168,8 @@ public class ApplicationService {
         // Immediate matching persistence (match_results, match_factors, evidences)
         // Matching failure propagates: the transaction rolls back application and snapshot together.
         matchingEngineService.calculateAndPersistMatchResult(job.getId(), candidate.getId());
+        // Once the true CV/JD vectors exist, recalculate using actual Pgvector; no mock.
+        if (vectorLifecycle != null) vectorLifecycle.enqueueMatchAfterCommit(candidateUser.getId(), savedApplication.getId());
 
         if(inbox!=null) inbox.applicationEvent(savedApplication,false);
         return mapToResponse(savedApplication, snapshot);

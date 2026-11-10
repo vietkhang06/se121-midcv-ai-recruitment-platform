@@ -1,3 +1,4 @@
+
 package com.platform.recruitment.cv;
 
 import com.platform.recruitment.common.ApiResponse;
@@ -84,12 +85,15 @@ public class CVController {
                     com.platform.recruitment.common.ErrorCode.AUTHENTICATION_FAILED,
                     "Authorization header phải sử dụng Bearer token.");
         }
+
         String token = authorization.substring(7).trim();
+
         if (token.isEmpty() || token.chars().anyMatch(Character::isWhitespace)) {
             throw new com.platform.recruitment.common.CustomException(
                     com.platform.recruitment.common.ErrorCode.AUTHENTICATION_FAILED,
                     "Bearer token không hợp lệ.");
         }
+
         return token;
     }
 
@@ -97,20 +101,30 @@ public class CVController {
     public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamJobEvents(
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID jobId,
-            @RequestHeader(value="Last-Event-ID", required=false) String lastId,
+            @RequestHeader(value = "Last-Event-ID", required = false) String lastId,
             @RequestHeader("Authorization") String authorization) {
-        return cvProcessingSseService.subscribe(jobId, currentUser, lastId, requireBearerToken(authorization));
-        return cvProcessingSseService.subscribe(jobId, currentUser, lastId, authorization.substring(7));
+
+        return cvProcessingSseService.subscribe(
+                jobId,
+                currentUser,
+                lastId,
+                requireBearerToken(authorization)
+        );
     }
 
     @GetMapping(value = "/{id}/events", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
     public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamCvEvents(
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID id,
-            @RequestHeader(value="Last-Event-ID", required=false) String lastId,
+            @RequestHeader(value = "Last-Event-ID", required = false) String lastId,
             @RequestHeader("Authorization") String authorization) {
-        return cvProcessingSseService.subscribeByCvId(id, currentUser, lastId, requireBearerToken(authorization));
-        return cvProcessingSseService.subscribeByCvId(id, currentUser, lastId, authorization.substring(7));
+
+        return cvProcessingSseService.subscribeByCvId(
+                id,
+                currentUser,
+                lastId,
+                requireBearerToken(authorization)
+        );
     }
 
     @GetMapping("/{id}")
@@ -144,8 +158,10 @@ public class CVController {
             @PathVariable UUID id,
             @PathVariable String format) {
         DownloadResult result = cvService.downloadCV(currentUser, id, format);
+
         return ResponseEntity.ok()
-                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + result.filename() + "\"")
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + result.filename() + "\"")
                 .contentType(org.springframework.http.MediaType.parseMediaType(result.contentType()))
                 .body(result.data());
     }
@@ -206,8 +222,13 @@ public class CVController {
             @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
             @RequestParam("itemType") String itemType,
             @RequestParam("itemId") String itemId) {
-        CVEvidenceAttachmentResponse response = cvService.uploadEvidenceAttachment(currentUser, id, file, itemType, itemId);
-        return new ResponseEntity<>(ApiResponse.success("Evidence attachment uploaded successfully", response), HttpStatus.CREATED);
+        CVEvidenceAttachmentResponse response =
+                cvService.uploadEvidenceAttachment(currentUser, id, file, itemType, itemId);
+
+        return new ResponseEntity<>(
+                ApiResponse.success("Evidence attachment uploaded successfully", response),
+                HttpStatus.CREATED
+        );
     }
 
     @GetMapping("/{id}/attachments/{attachmentId}")
@@ -216,10 +237,13 @@ public class CVController {
             @PathVariable UUID id,
             @PathVariable UUID attachmentId) {
         DownloadResult result = cvService.getEvidenceAttachmentFile(currentUser, id, attachmentId);
+
         return ResponseEntity.ok()
                 .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
                         org.springframework.http.ContentDisposition.inline()
-                                .filename(result.filename(), java.nio.charset.StandardCharsets.UTF_8).build().toString())
+                                .filename(result.filename(), java.nio.charset.StandardCharsets.UTF_8)
+                                .build()
+                                .toString())
                 .header("X-Content-Type-Options", "nosniff")
                 .header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "private, no-store")
                 .contentLength(result.data().length)
@@ -236,4 +260,3 @@ public class CVController {
         return ResponseEntity.ok(ApiResponse.success("Evidence attachment deleted successfully", null));
     }
 }
-

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -8,7 +9,9 @@ interface ThemeSwitchProps {
   className?: string;
 }
 
-export const ThemeSwitch: React.FC<ThemeSwitchProps> = ({ className = '' }) => {
+export const ThemeSwitch: React.FC<ThemeSwitchProps> = ({
+  className = '',
+}) => {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -19,17 +22,29 @@ export const ThemeSwitch: React.FC<ThemeSwitchProps> = ({ className = '' }) => {
       aria-checked={isDark}
       onClick={toggleTheme}
       className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer items-center rounded-xl p-0.5 transition-colors duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border)] select-none ${
-        isDark 
+        isDark
           ? 'bg-[var(--retro-deep)] border border-[var(--border)]'
           : 'bg-blue-100/90 border border-blue-200'
       } ${className}`}
-      title={isDark ? 'Chuyển sang chế độ Sáng (Light Mode)' : 'Chuyển sang chế độ Tối (Dark Mode)'}
+      title={
+        isDark
+          ? 'Chuyển sang chế độ Sáng (Light Mode)'
+          : 'Chuyển sang chế độ Tối (Dark Mode)'
+      }
       aria-label="Toggle Dark/Light Mode"
     >
       {/* Background Track Icons */}
       <span className="absolute inset-0 flex items-center justify-between px-1.5 pointer-events-none">
-        <Sun className={`w-3.5 h-3.5 transition-opacity duration-200 ${isDark ? 'opacity-40 text-slate-500' : 'opacity-0'}`} />
-        <Moon className={`w-3 h-3 transition-opacity duration-200 ${isDark ? 'opacity-0' : 'opacity-40 text-slate-400'}`} />
+        <Sun
+          className={`w-3.5 h-3.5 transition-opacity duration-200 ${
+            isDark ? 'opacity-40 text-slate-500' : 'opacity-0'
+          }`}
+        />
+        <Moon
+          className={`w-3 h-3 transition-opacity duration-200 ${
+            isDark ? 'opacity-0' : 'opacity-40 text-slate-400'
+          }`}
+        />
       </span>
 
       {/* Sliding Thumb Knob */}

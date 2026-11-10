@@ -10,6 +10,7 @@ from app.services.jd_parser import JDParser
 from app.services.github_analyzer import GitHubAnalyzer
 from app.services.cache_service import MemoryCacheService
 from app.services.normalizer import normalize_skill_name
+from datetime import datetime, timedelta, timezone
 
 def test_manipulation_cv_content_changes_extracted_skills():
     parser = CVParser()
@@ -95,7 +96,7 @@ def test_manipulation_github_5_branches():
                     "username": username,
                     "status": "SYNCED",
                     "public_repos_count": 1,
-                    "latest_activity_at": "2026-09-01T10:00:00Z",
+                    "latest_activity_at": (datetime.now(timezone.utc) - timedelta(days=5)).isoformat(),
                     "repositories": [{"name": "backend", "repo_url": "https://github.com/candidate-java/backend", "languages": [{"language_name": "Java", "bytes_count": 100, "percentage_ratio": 100.0}], "primary_language": "Java"}]
                 }
             elif username == "candidate-private":

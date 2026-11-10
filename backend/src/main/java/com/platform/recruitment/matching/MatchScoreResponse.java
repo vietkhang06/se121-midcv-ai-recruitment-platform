@@ -21,6 +21,11 @@ public class MatchScoreResponse {
     private BigDecimal overallScore;
     private BigDecimal coreScore;
     private BigDecimal githubScore;
+    private UUID cvVersionId;
+    private UUID jdVersionId;
+    private String semanticMethod;
+    private String embeddingModel;
+    private Integer scoringPolicyVersion;
     private String status;
     private String algorithmVersion;
     private ZonedDateTime createdAt;
@@ -47,6 +52,11 @@ public class MatchScoreResponse {
                 .overallScore(entity.getOverallScore())
                 .coreScore(entity.getCoreScore())
                 .githubScore(entity.getGithubScore())
+                .cvVersionId(entity.getCvVersionId())
+                .jdVersionId(entity.getJdVersionId())
+                .semanticMethod(entity.getSemanticMethod())
+                .embeddingModel(entity.getEmbeddingModel())
+                .scoringPolicyVersion(entity.getPolicyVersion())
                 .status(entity.getStatus())
                 .algorithmVersion(entity.getMatchingAlgorithmVersion())
                 .createdAt(entity.getCreatedAt())

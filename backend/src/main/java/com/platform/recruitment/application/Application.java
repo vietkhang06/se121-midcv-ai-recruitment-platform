@@ -35,6 +35,10 @@ public class Application extends BaseEntity {
     @JoinColumn(name = "applied_cv_version_id")
     private CVVersion appliedCvVersion;
 
+    /** JD snapshot selected when the application is submitted; never rewrite for old applications. */
+    @Column(name = "applied_jd_version_id")
+    private java.util.UUID appliedJdVersionId;
+
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "status")

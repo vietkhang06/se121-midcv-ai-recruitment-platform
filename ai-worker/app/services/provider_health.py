@@ -94,8 +94,9 @@ def check_primary_provider(timeout: float = 1.0) -> Dict[str, Any]:
                 # Check whether configured model is resolved
                 target_model = settings.LLM_PRIMARY_MODEL
                 if not model_ids:
-                    # Some proxies return empty data array on 200; consider reachable if 200 OK
-                    model_resolved = True
+                    # HTTP 200 only proves the endpoint responded; it does not prove that
+                    # the configured model exists. Do not report an unverified model READY.
+                    model_resolved = False
                 else:
                     model_resolved = any(
                         m == target_model or m.endswith(f"/{target_model}") or target_model.endswith(f"/{m}")

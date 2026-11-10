@@ -48,6 +48,8 @@ public class PipelineWorker {
   private final CVRepository cvRepository;
   private final CVVersionRepository cvVersionRepository;
   private final CVSectionRepository cvSectionRepository;
+  @org.springframework.beans.factory.annotation.Autowired(required = false)
+  private com.platform.recruitment.embedding.VersionedEmbeddingLifecycle versionedEmbeddingLifecycle;
 
   @org.springframework.beans.factory.annotation.Autowired
   private com.platform.recruitment.matching.MatchingEngineService applicationMatching;
@@ -124,6 +126,7 @@ public class PipelineWorker {
       if (kind.equals("EXTRACT")) extract(id, owner, entity);
       else if (kind.equals("GITHUB_ANALYSIS")) processGithub(id, owner, entity);
       else if (kind.equals("MATCH")) processApplicationMatch(id, entity);
+      else if (kind.equals("EMBED")) processVersionEmbedding(id, owner, entity);
       else if (kind.equals("SCREEN_MATCH")) { if (!match(id, owner, entity, true)) return; }
       else throw new CustomException(ErrorCode.VALIDATION_ERROR, "Unsupported processing job kind");
       events.emit(
@@ -580,6 +583,16 @@ public class PipelineWorker {
               vec);
           queue.complete(job, worker);
         });
+  }
+
+  private void processVersionEmbedding(UUID processingJob, UUID owner, UUID versionId) {
+    if (versionedEmbeddingLifecycle == null)
+      throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE, "Version-bound embedding lifecycle unavailable");
+    queue.progress(processingJob, worker, owner, "EMBEDDING", 30, "Generating verified source-bound dense vector.");
+    versionedEmbeddingLifecycle.generate(versionId);
+    queue.progress(processingJob, worker, owner, "PGVECTOR_READY", 95, "Canonical pgvector stored.");
+    queue.complete(processingJob, worker);
+    versionedEmbeddingLifecycle.enqueueAffectedMatches(versionId);
   }
 
   private void processApplicationMatch(UUID processingJob, UUID applicationId) {

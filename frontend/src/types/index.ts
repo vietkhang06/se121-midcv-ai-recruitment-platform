@@ -284,6 +284,11 @@ export interface MatchInspectionData {
   coreScore: number | null;
   githubScore?: number | null;
   githubScoreActive: boolean;
+  cvVersionId?: string;
+  jdVersionId?: string;
+  semanticMethod?: 'PGVECTOR_COSINE_SIMILARITY' | 'TF_CONCEPT_COSINE_SIMILARITY' | string;
+  embeddingModel?: string;
+  scoringPolicyVersion?: number;
   requiredSkillsStatus: SkillMatchResultItem[];
   preferredSkillsStatus: SkillMatchResultItem[];
   matchFactors: MatchFactorItem[];

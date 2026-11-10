@@ -13,7 +13,11 @@ def test_health_endpoint_contract():
     data = res.json()
 
     # Section 19 health response structure assertions
-    assert data["status"] == "UP"
+    # An offline environment must legitimately report DEGRADED, not fake UP.
+    assert data["status"] in ("UP", "DEGRADED")
+    llm_ok = data["llm"]["primary"]["reachable"] or data["llm"]["fallback"]["reachable"]
+    expected = "UP" if data["ocr"]["status"] == "READY" and llm_ok else "DEGRADED"
+    assert data["status"] == expected
     assert data["documentExtraction"]["status"] == "UP"
     assert "llm" in data
     assert "primary" in data["llm"]

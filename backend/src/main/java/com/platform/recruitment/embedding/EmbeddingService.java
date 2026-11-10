@@ -22,38 +22,17 @@ public class EmbeddingService {
 
     private final EmbeddingRepository embeddingRepository;
 
+    /**
+     * Historical embeddings-table pathway was metadata-only (never wrote the vector).
+     * Retired for generation: using this API must never silently produce ACTIVE fake data.
+     * Production applications use VersionedEmbeddingLifecycle + document_versions.embedding.
+     */
+    @Deprecated
     @Transactional
     public Embedding generateAndPersistEmbedding(String entityType, UUID entityId, String textContent) {
-        if (textContent == null || textContent.isBlank()) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Text content for embedding generation cannot be empty");
-        }
-
-        // Idempotency: Check if active embedding already exists for entity + model
-        Optional<Embedding> existing = embeddingRepository.findByEntityTypeAndEntityId(entityType, entityId);
-        if (existing.isPresent()) {
-            log.info("Active embedding already exists for entityType: {}, entityId: {}. Updating status.", entityType, entityId);
-            Embedding current = existing.get();
-            current.setUpdatedAt(ZonedDateTime.now());
-            return embeddingRepository.save(current);
-        }
-
-        // Generate 1024-dimensional vector
-        Embedding embedding = Embedding.builder()
-                .entityType(entityType)
-                .entityId(entityId)
-                .modelProvider(DEFAULT_MODEL_PROVIDER)
-                .modelName(DEFAULT_MODEL_NAME)
-                .dimension(EXPECTED_DIMENSION)
-                .status("ACTIVE")
-                .build();
-
-        // Validate dimension before persistence
-        if (embedding.getDimension() != EXPECTED_DIMENSION) {
-            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Invalid embedding dimension: " + embedding.getDimension());
-        }
-
-        log.info("Persisting 1024-dim vector embedding into centralized 'embeddings' table for entityType: {}, entityId: {}", entityType, entityId);
-        return embeddingRepository.save(embedding);
+        throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE,
+                "Legacy embeddings metadata-only API cannot generate a real vector. "
+                        + "Use confirmed CV/JD document version embedding lifecycle.");
     }
 
     @Transactional
