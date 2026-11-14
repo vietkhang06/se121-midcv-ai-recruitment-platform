@@ -2,6 +2,7 @@ import json
 import logging
 from typing import Optional, Dict, Any, Tuple, List
 from pydantic import BaseModel, Field, ConfigDict, AliasChoices
+from app.services.llm.types import safe_error_category, sanitize_sensitive_string
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +139,7 @@ class StructuredCVValidator:
             if not isinstance(parsed_dict, dict):
                 return False, False, None, "Parsed JSON is not a dictionary"
         except Exception as e:
-            return False, False, None, f"JSON syntax error: {str(e)}"
+            return False, False, None, f"JSON syntax error: {sanitize_sensitive_string(str(e))}"
 
         # 2. Validate Pydantic schema
         try:
@@ -147,8 +148,8 @@ class StructuredCVValidator:
                 model = self.ground_with_raw_text(model, raw_text)
             return True, True, model, None
         except Exception as e:
-            logger.warning(f"Schema validation error: {e}")
-            return True, False, None, f"Schema validation error: {str(e)}"
+            logger.warning("Schema validation error [category=%s]", safe_error_category(e))
+            return True, False, None, "Schema validation error: invalid structured output"
 
     def ground_with_raw_text(self, model: StructuredCVData, raw_text: str) -> StructuredCVData:
         """Fail closed for unsupported extracted skills/GPA; never applies to user review edits.

@@ -424,7 +424,7 @@ class InboxIntegrationTest {
   }
 
   @Test
-  void upgradeFromV27AndFreshReachV30() {
+  void upgradeFromV27ReachesCurrentSchema() {
     String schema = "inbox_upgrade_" + UUID.randomUUID().toString().replace("-", "");
 
     Flyway.configure()
@@ -444,8 +444,11 @@ class InboxIntegrationTest {
             .defaultSchema(schema)
             .load();
 
-    assertEquals(3, f.migrate().migrationsExecuted);
-    assertEquals("30", f.info().current().getVersion().toString());
+    var pending = f.info().pending();
+    assertTrue(pending.length > 0, "The V27 upgrade fixture must exercise later migrations");
+    var expectedCurrentVersion = pending[pending.length - 1].getVersion();
+    assertEquals(pending.length, f.migrate().migrationsExecuted);
+    assertEquals(expectedCurrentVersion, f.info().current().getVersion());
   }
 
   @Test

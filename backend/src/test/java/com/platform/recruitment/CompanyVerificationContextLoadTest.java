@@ -69,6 +69,9 @@ public class CompanyVerificationContextLoadTest {
     private UserRepository userRepository;
 
     @MockBean
+    private AuthSessionService authSessionService;
+
+    @MockBean
     private CompanyVerificationService companyVerificationService;
 
     @MockBean

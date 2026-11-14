@@ -82,7 +82,10 @@ def test_check_primary_provider_model_resolution(monkeypatch):
             assert info3["model_resolved"] is False
 
 
-def test_check_ollama_provider_model_resolution():
+def test_check_ollama_provider_model_resolution(monkeypatch):
+    # Keep this unit test deterministic when CI intentionally disables every
+    # external provider for the offline pipeline.
+    monkeypatch.setattr(settings, "LLM_FALLBACK_ENABLED", True)
     with patch("app.services.provider_health.is_tcp_reachable", return_value=True):
         # Case 1: Model present in tags
         mock_resp = Mock()

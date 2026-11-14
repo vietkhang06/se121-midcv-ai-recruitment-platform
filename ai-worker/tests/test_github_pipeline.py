@@ -12,6 +12,7 @@ from app.schemas.github import GitHubAnalyzeRequest
 # MIDCV COMPREHENSIVE GITHUB SCANNING & EVIDENCE PIPELINE TEST SUITE (GH-01 -> GH-08)
 # ==============================================================================
 
+@pytest.mark.live
 def test_gh01_valid_real_public_github_account():
     """TEST GH-01: Valid real public GitHub account (octocat)"""
     client = GitHubClient()
@@ -31,6 +32,7 @@ def test_gh01_valid_real_public_github_account():
     assert sample_lang["bytes_count"] > 0
     assert sample_lang["percentage_ratio"] > 0.0
 
+@pytest.mark.live
 def test_gh02_repository_with_multiple_languages():
     """TEST GH-02: Repository with multiple languages (e.g. Spoon-Knife has HTML and CSS)"""
     client = GitHubClient()
@@ -77,20 +79,34 @@ def test_gh03_repository_with_one_language():
 
 def test_gh04_invalid_github_username():
     """TEST GH-04: Invalid GitHub username returns NOT_FOUND with zero fake repos"""
-    client = GitHubClient()
-    data = client.fetch_user_repositories("nonexistent-github-user-midcv-404-xyz123")
-    assert data["status"] == "NOT_FOUND"
-    assert data.get("repositories") is None
+    class NotFoundClient(GitHubClient):
+        def fetch_user_repositories(self, username: str):
+            return {"username": username, "status": "NOT_FOUND", "error": "NOT_FOUND"}
 
-    analyzer = GitHubAnalyzer(github_client=client)
+    analyzer = GitHubAnalyzer(github_client=NotFoundClient())
     res = analyzer.analyze_candidate_github(GitHubAnalyzeRequest(
         candidate_id="cand-invalid",
-        github_url="https://github.com/nonexistent-github-user-midcv-404-xyz123"
+        github_url="https://github.com/midcv-not-found-fixture"
     ))
     assert res.status == "NOT_FOUND"
     assert res.public_repos_count == 0
     assert len(res.repositories) == 0
     assert res.overall_supporting_rating == "UNAVAILABLE"
+
+def test_gh04_rejects_invalid_or_non_github_identity_without_network():
+    analyzer = GitHubAnalyzer()
+
+    for value in (
+        "https://evil.example/octocat",
+        "nonexistent-github-user-midcv-404-xyz123",
+    ):
+        response = analyzer.analyze_candidate_github(GitHubAnalyzeRequest(
+            candidate_id="candidate-unverified",
+            github_url=value,
+        ))
+        assert response.status == "NOT_CONNECTED"
+        assert response.repositories == []
+        assert response.overall_supporting_rating == "UNAVAILABLE"
 
 def test_gh05_github_api_failure():
     """TEST GH-05: GitHub API failure returns API_UNAVAILABLE without fake success or mock fallback"""

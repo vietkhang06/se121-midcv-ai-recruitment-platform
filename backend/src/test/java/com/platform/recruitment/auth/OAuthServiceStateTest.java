@@ -3,6 +3,7 @@ package com.platform.recruitment.auth;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.platform.recruitment.candidate.CandidateProfileRepository;
 import com.platform.recruitment.user.UserRepository;
+import com.platform.recruitment.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,10 +19,12 @@ import static org.mockito.Mockito.*;
 
 class OAuthServiceStateTest {
     private OAuthLoginStateRepository states;
+    private OAuthAccountRepository accounts;
     private OAuthService service;
     @BeforeEach void setup() {
         states = mock(OAuthLoginStateRepository.class);
-        service = new OAuthService(mock(OAuthAccountRepository.class), states, mock(OAuthLoginTicketRepository.class), mock(OAuthPendingRegistrationRepository.class), mock(UserRepository.class), mock(CandidateProfileRepository.class), mock(AuthService.class), mock(PasswordEncoder.class), new ObjectMapper(), new OAuthStateConsumer(states));
+        accounts = mock(OAuthAccountRepository.class);
+        service = new OAuthService(accounts, states, mock(OAuthLoginTicketRepository.class), mock(OAuthPendingRegistrationRepository.class), mock(UserRepository.class), mock(CandidateProfileRepository.class), mock(AuthService.class), mock(PasswordEncoder.class), new ObjectMapper(), new OAuthStateConsumer(states));
         ReflectionTestUtils.setField(service, "googleClientId", "test-client");
         ReflectionTestUtils.setField(service, "googleClientSecret", "server-only-secret");
         ReflectionTestUtils.setField(service, "backendBaseUrl", "http://localhost:8080");
@@ -57,5 +60,20 @@ class OAuthServiceStateTest {
 
     @Test void onlySupportedProvidersCanStart() {
         assertEquals("unsupported_provider", assertThrows(OAuthFlowException.class, () -> service.authorizationUrl("linkedin", null, null)).getReason());
+    }
+
+    @Test void githubOwnershipIsBoundToTheLinkedUserAndExactProviderLogin() {
+        var ownerId = java.util.UUID.randomUUID();
+        var attackerId = java.util.UUID.randomUUID();
+        var owner = new User(); owner.setId(ownerId);
+        var account = new OAuthAccount();
+        account.setProvider("github"); account.setProviderSubject("provider-subject");
+        account.setProviderLogin("real-owner"); account.setUser(owner);
+        when(accounts.findByProviderAndUserId("github", ownerId)).thenReturn(java.util.Optional.of(account));
+        when(accounts.findByProviderAndUserId("github", attackerId)).thenReturn(java.util.Optional.empty());
+
+        assertTrue(service.isGithubOwned(ownerId, "REAL-OWNER"));
+        assertFalse(service.isGithubOwned(ownerId, "different-owner"));
+        assertFalse(service.isGithubOwned(attackerId, "real-owner"));
     }
 }

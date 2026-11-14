@@ -33,14 +33,25 @@ class LLMClientProtocol(Protocol):
 
 
 def sanitize_sensitive_string(text: str) -> str:
-    """Masks API keys, tokens, and Authorization headers in logs and exception messages."""
+    """Redact credentials and common personal data before diagnostics leave the worker."""
     if not text:
         return ""
-    # Mask any patterns looking like API keys / bearer tokens
-    masked = re.sub(r"(sk-[a-zA-Z0-9_\-]{6})[a-zA-Z0-9_\-]+", r"\1***[MASKED]", text)
-    masked = re.sub(r"(Bearer\s+)[a-zA-Z0-9_\.\-]+", r"\1***[MASKED]", masked, flags=re.IGNORECASE)
-    masked = re.sub(r"([a-f0-9]{32,})", r"***[MASKED_HASH]***", masked, flags=re.IGNORECASE)
-    return masked
+    masked = re.sub(r"sk-[a-zA-Z0-9_\-]{6,}", "[MASKED_SECRET]", text, flags=re.IGNORECASE)
+    masked = re.sub(r"Bearer\s+[a-zA-Z0-9_\.\-]+", "Bearer [MASKED_SECRET]", masked, flags=re.IGNORECASE)
+    masked = re.sub(
+        r"(?i)((?:api[_-]?key|access[_-]?token|refresh[_-]?token|password|secret)\s*[:=]\s*)[^\s,;]+",
+        r"\1[MASKED_SECRET]",
+        masked,
+    )
+    masked = re.sub(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", "[REDACTED_EMAIL]", masked)
+    masked = re.sub(r"(?<!\w)(?:\+?\d[\d .()\-]{7,}\d)(?!\w)", "[REDACTED_PHONE]", masked)
+    masked = re.sub(r"(?<![a-zA-Z0-9])[a-f0-9]{32,}(?![a-zA-Z0-9])", "[REDACTED_HASH]", masked, flags=re.IGNORECASE)
+    return masked[:800]
+
+
+def safe_error_category(error: BaseException) -> str:
+    """Return a stable diagnostic category without serializing attacker-controlled text."""
+    return type(error).__name__ or "Exception"
 
 
 class LLMError(Exception):
@@ -57,8 +68,9 @@ class LLMError(Exception):
         self.status_code = status_code
         self.error_code = error_code or "llm_error"
         self.is_transient = is_transient
-        self.raw_message = message
         sanitized = sanitize_sensitive_string(message)
+        # Kept for compatibility with diagnostics, but never retain the provider's raw body.
+        self.raw_message = sanitized
         super().__init__(f"[{provider.upper()}] {sanitized}")
 
 

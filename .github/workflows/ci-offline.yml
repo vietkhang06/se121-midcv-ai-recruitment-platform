@@ -1,0 +1,220 @@
+name: Offline CI
+
+on:
+  pull_request:
+    branches: [master, main, develop]
+  push:
+    branches: [master, main, develop, "feature/**", "feat/**", "codex/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: offline-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  EVIDENCE_CLASSIFICATION: OFFLINE_DETERMINISTIC
+
+jobs:
+  backend:
+    name: Backend / PostgreSQL tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: airecruit_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres_secure_pass
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d airecruit_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: jdbc:postgresql://localhost:5432/airecruit_db
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres_secure_pass
+      WORKER_ENABLED: "false"
+      EMAIL_MODE: MOCK
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+      - name: Run backend tests
+        id: tests
+        working-directory: backend
+        shell: bash
+        run: |
+          set +e
+          mvn -B test 2>&1 | tee ../backend-test.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          cd ..
+          python scripts/ci/verify_debt_baseline.py backend backend-test.log
+      - name: Run scoped acceptance tests
+        working-directory: backend
+        run: >-
+          mvn -B
+          -Dtest=OAuthServiceStateTest,TaskHttpAcceptanceTest,InboxIntegrationTest,InboxOutboxTransactionTest,SpringSecurityRbacAndMultiTenantIntegrationTest,CompanyVerificationContextLoadTest,PaginationApiIntegrationTest
+          test
+      - name: Build backend evidence
+        if: always()
+        shell: bash
+        run: |
+          python scripts/ci/sanitize_log.py backend-test.log evidence/backend-test.log
+          reports=$(find backend/target/surefire-reports -name 'TEST-*.xml' 2>/dev/null | wc -l)
+          cat > evidence/backend-summary.md <<EOF
+          # Backend offline result
+
+          - Classification: ${EVIDENCE_CLASSIFICATION}
+          - Commit: ${GITHUB_SHA}
+          - Command: \`cd backend && mvn -B test\`
+          - Exit code: ${{ steps.tests.outputs.exit_code || 'NOT_RUN' }}
+          - JUnit report files: ${reports}
+          - PostgreSQL: pgvector/pgvector:pg16 service
+          - External AI/GitHub providers: not configured
+          EOF
+          cat evidence/backend-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload backend evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-backend-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            evidence/backend-summary.md
+            evidence/backend-test.log
+            backend/target/surefire-reports/TEST-*.xml
+
+  worker:
+    name: AI worker / deterministic tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      LLM_PRIMARY_ENABLED: "false"
+      LLM_FALLBACK_ENABLED: "false"
+      USE_MOCK_LLM: "false"
+      ENABLE_DEV_AI_TEST_ENDPOINTS: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: ai-worker/requirements.txt
+      - name: Install native OCR
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-eng tesseract-ocr-vie
+          tesseract --list-langs | grep -Fx eng
+          tesseract --list-langs | grep -Fx vie
+      - name: Install worker dependencies
+        working-directory: ai-worker
+        run: python -m pip install -r requirements.txt pytest
+      - name: Run worker and evidence tests
+        id: tests
+        shell: bash
+        run: |
+          set +e
+          python -m pytest ai-worker/tests scripts/tests -m "not live" --junitxml=evidence/worker-junit.xml 2>&1 | tee worker-test.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit "$code"
+      - name: Build worker evidence
+        if: always()
+        shell: bash
+        run: |
+          python scripts/ci/sanitize_log.py worker-test.log evidence/worker-test.log
+          cat > evidence/worker-summary.md <<EOF
+          # AI worker offline result
+
+          - Classification: ${EVIDENCE_CLASSIFICATION}
+          - Commit: ${GITHUB_SHA}
+          - Command: \`python -m pytest ai-worker/tests scripts/tests -m "not live" --junitxml=evidence/worker-junit.xml\`
+          - Exit code: ${{ steps.tests.outputs.exit_code || 'NOT_RUN' }}
+          - OCR: native Tesseract with eng+vie
+          - External provider: disabled; no paid API calls
+          EOF
+          cat evidence/worker-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload worker evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-worker-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            evidence/worker-summary.md
+            evidence/worker-test.log
+            evidence/worker-junit.xml
+
+  frontend:
+    name: Frontend / lint contracts build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Run frontend gates
+        id: tests
+        working-directory: frontend
+        shell: bash
+        run: |
+          set +e
+          npm run lint 2>&1 | tee ../frontend-test.log
+          lint_code=${PIPESTATUS[0]}
+          npm run test:contracts 2>&1 | tee -a ../frontend-test.log
+          contract_code=${PIPESTATUS[0]}
+          npm run build 2>&1 | tee -a ../frontend-test.log
+          build_code=${PIPESTATUS[0]}
+          {
+            echo "lint_code=$lint_code"
+            echo "contract_code=$contract_code"
+            echo "build_code=$build_code"
+          } >> "$GITHUB_OUTPUT"
+          cd ..
+          python scripts/ci/verify_debt_baseline.py frontend frontend-test.log
+          baseline_code=$?
+          exit $((baseline_code || contract_code || build_code))
+      - name: Build frontend evidence
+        if: always()
+        shell: bash
+        run: |
+          python scripts/ci/sanitize_log.py frontend-test.log evidence/frontend-test.log
+          cat > evidence/frontend-summary.md <<EOF
+          # Frontend offline result
+
+          - Classification: ${EVIDENCE_CLASSIFICATION}
+          - Commit: ${GITHUB_SHA}
+          - Lint exit code: ${{ steps.tests.outputs.lint_code || 'NOT_RUN' }}
+          - Contract exit code: ${{ steps.tests.outputs.contract_code || 'NOT_RUN' }}
+          - Build exit code: ${{ steps.tests.outputs.build_code || 'NOT_RUN' }}
+          - Browser/API runtime: not part of this offline job
+          EOF
+          cat evidence/frontend-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload frontend evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-frontend-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            evidence/frontend-summary.md
+            evidence/frontend-test.log

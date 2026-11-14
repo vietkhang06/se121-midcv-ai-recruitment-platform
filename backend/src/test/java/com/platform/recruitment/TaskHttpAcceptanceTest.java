@@ -70,6 +70,38 @@ class TaskHttpAcceptanceTest {
         assertEquals(200,response.getStatusCode().value());return data(response);
     }
     String access() throws Exception { return login(user).path("accessToken").asText(); }
+    @Test void accountWorkspacePersistsThroughRealHttpAndEnforcesOwnership() throws Exception {
+        String token=access();
+        var account=call(HttpMethod.GET,"/api/v1/inbox/account",null,token);
+        assertEquals(200,account.getStatusCode().value());
+        assertEquals(user.getEmail(),data(account).path("email").asText());
+        assertEquals(401,call(HttpMethod.GET,"/api/v1/inbox/account",null,null).getStatusCode().value());
+
+        var preferences=Map.of(
+            "application_alerts",true,"message_alerts",false,"profile_alerts",true,
+            "job_alerts",true,"email_alerts",false,"job_keyword","Java",
+            "job_location","Ho Chi Minh City");
+        assertEquals(200,call(HttpMethod.PUT,"/api/v1/inbox/preferences",preferences,token).getStatusCode().value());
+        var loadedPreferences=data(call(HttpMethod.GET,"/api/v1/inbox/preferences",null,token));
+        assertEquals("Java",loadedPreferences.path("job_keyword").asText());
+        assertTrue(loadedPreferences.path("job_alerts").asBoolean());
+
+        var created=call(HttpMethod.POST,"/api/v1/inbox/letters",Map.of("title","Backend Engineer","body","A persisted cover letter body."),token);
+        assertEquals(200,created.getStatusCode().value());
+        String letterId=data(created).path("id").asText(); assertFalse(letterId.isBlank());
+        assertTrue(data(call(HttpMethod.GET,"/api/v1/inbox/letters",null,token)).toString().contains("persisted cover letter"));
+
+        User other=users.saveAndFlush(User.builder().email("other-"+UUID.randomUUID()+"@example.invalid").passwordHash(passwords.encode(password)).role(Role.CANDIDATE).emailVerified(true).build());
+        candidates.saveAndFlush(CandidateProfile.builder().user(other).fullName("Other candidate").build());
+        String otherToken=login(other).path("accessToken").asText();
+        assertEquals(404,call(HttpMethod.PUT,"/api/v1/inbox/letters/"+letterId,Map.of("title","Stolen","body","Must not update"),otherToken).getStatusCode().value());
+        assertEquals(200,call(HttpMethod.DELETE,"/api/v1/inbox/letters/"+letterId,null,token).getStatusCode().value());
+
+        assertFalse(data(call(HttpMethod.GET,"/api/v1/inbox/upgrade-request",null,token)).path("requested").asBoolean());
+        assertEquals(200,call(HttpMethod.POST,"/api/v1/inbox/upgrade-request",null,token).getStatusCode().value());
+        assertTrue(data(call(HttpMethod.GET,"/api/v1/inbox/upgrade-request",null,token)).path("requested").asBoolean());
+        assertEquals("STANDARD",data(call(HttpMethod.GET,"/api/v1/inbox/account",null,token)).path("account_plan").asText());
+    }
     @Test void tokenSeparationRotationReplayRevocationAndSessionPrivacy() throws Exception {
         JsonNode first=login(user); String access=first.path("accessToken").asText(); String refresh=first.path("refreshToken").asText();
         assertEquals(401,call(HttpMethod.GET,"/api/v1/candidate/profile",null,refresh).getStatusCode().value());

@@ -1,0 +1,28 @@
+
+[WebServer] (node:24932) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+
+Running 15 tests using 1 worker
+
+
+(node:25160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/15] [chromium-desktop] › e2e\paper-studio-acceptance.spec.ts:24:13 › U02 Paper Studio acceptance › mobile vi light: public surface is responsive and keyboard reachable
+[2/15] [chromium-desktop] › e2e\paper-studio-acceptance.spec.ts:24:13 › U02 Paper Studio acceptance › mobile vi dark: public surface is responsive and keyboard reachable
+[3/15] [chromium-desktop] › e2e\paper-studio-acceptance.spec.ts:24:13 › U02 Paper Studio acceptance › mobile en light: public surface is responsive and keyboard reachable
+[4/15] [chromium-desktop] › e2e\paper-studio-acceptance.spec.ts:24:13 › U02 Paper Studio acceptance › mobile en dark: public surface is responsive and keyboard reachable
+[5/15] [chromium-desktop] › e2e\paper-studio-acceptance.spec.ts:24:13 › U02 Paper Studio acceptance › tablet vi light: public surface is responsive and keyboard reachable
+[6/15] [chromium-desktop] › e2e\paper-studio-acceptance.spec.ts:24:13 › U02 Paper Studio acceptance › tablet vi dark: public surface is responsive and keyboard reachable
+[7/15] [chromium-desktop] › e2e\paper-studio-acceptance.spec.ts:24:13 › U02 Paper Studio acceptance › tablet en light: public surface is responsive and keyboard reachable
+[8/15] [chromium-desktop] › e2e\paper-studio-acceptance.spec.ts:24:13 › U02 Paper Studio acceptance › tablet en dark: public surface is responsive and keyboard reachable
+[9/15] [chromium-desktop] › e2e\paper-studio-acceptance.spec.ts:24:13 › U02 Paper Studio acceptance › desktop vi light: public surface is responsive and keyboard reachable
+[10/15] [chromium-desktop] › e2e\paper-studio-acceptance.spec.ts:24:13 › U02 Paper Studio acceptance › desktop vi dark: public surface is responsive and keyboard reachable
+[11/15] [chromium-desktop] › e2e\paper-studio-acceptance.spec.ts:24:13 › U02 Paper Studio acceptance › desktop en light: public surface is responsive and keyboard reachable
+[12/15] [chromium-desktop] › e2e\paper-studio-acceptance.spec.ts:24:13 › U02 Paper Studio acceptance › desktop en dark: public surface is responsive and keyboard reachable
+[13/15] [chromium-desktop] › e2e\paper-studio-acceptance.spec.ts:46:9 › U02 Paper Studio acceptance › CANDIDATE: role shell preserves Paper Studio behavior
+[14/15] [chromium-desktop] › e2e\paper-studio-acceptance.spec.ts:46:9 › U02 Paper Studio acceptance › RECRUITER: role shell preserves Paper Studio behavior
+[15/15] [chromium-desktop] › e2e\paper-studio-acceptance.spec.ts:46:9 › U02 Paper Studio acceptance › ADMIN: role shell preserves Paper Studio behavior
+  15 passed (28.3s)

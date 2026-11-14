@@ -39,6 +39,9 @@ public class PaginationApiIntegrationTest {
     private JobService jobService;
 
     @MockBean
+    private JobMatchingPolicyService jobMatchingPolicyService;
+
+    @MockBean
     private JwtTokenProvider tokenProvider;
 
     @MockBean
@@ -46,9 +49,6 @@ public class PaginationApiIntegrationTest {
 
     @MockBean
     private UserRepository userRepository;
-
-    @MockBean
-    private JobMatchingPolicyService jobMatchingPolicyService;
 
     @Test
     @DisplayName("GET /api/v1/jobs trả định dạng PageResponse chuẩn")
