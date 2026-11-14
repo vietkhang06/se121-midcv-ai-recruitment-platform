@@ -71,6 +71,7 @@ frontend/tsconfig.tsbuildinfo
 
 # Reviewed task verification logs
 !docs/task-evidence/20261030/*.log
+!docs/task-evidence/gia-khang-acceptance/artifacts/*.log
 
 # Safe production environment template (contains placeholders only)
 !.env.production.example

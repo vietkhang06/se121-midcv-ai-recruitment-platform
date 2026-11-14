@@ -1,0 +1,243 @@
+name: Live infrastructure CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_external_provider:
+        description: Run one bounded real-provider smoke call (requires configured secret)
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  live-infrastructure:
+    name: Real DB + worker + backend + frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: airecruit_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres_live_ci_only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d airecruit_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: jdbc:postgresql://localhost:5432/airecruit_db
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres_live_ci_only
+      MIDCV_INBOX_TEST_URL: jdbc:postgresql://localhost:5432/midcv_inbox_test
+      MIDCV_INBOX_TEST_USER: postgres
+      MIDCV_INBOX_TEST_PASSWORD: postgres_live_ci_only
+      WORKER_ENABLED: "true"
+      APP_AI_WORKER_URL: http://127.0.0.1:8000/internal/ai
+      EMAIL_MODE: MOCK
+      LLM_PRIMARY_ENABLED: "false"
+      LLM_FALLBACK_ENABLED: "false"
+      USE_MOCK_LLM: "false"
+      ENABLE_DEV_AI_TEST_ENDPOINTS: "false"
+      EVIDENCE_CLASSIFICATION: LIVE_INFRA
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: ai-worker/requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client tesseract-ocr tesseract-ocr-eng tesseract-ocr-vie
+          python -m pip install -r ai-worker/requirements.txt
+          npm ci --prefix frontend
+      - name: Start real FastAPI worker
+        shell: bash
+        run: |
+          (cd ai-worker && nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > ../worker-live.log 2>&1 &)
+          for _ in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:8000/internal/ai/runtime-config > evidence-worker-runtime.json; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat worker-live.log
+          exit 1
+      - name: Verify real worker contract through backend client
+        id: worker_contract
+        working-directory: backend
+        shell: bash
+        run: |
+          set +e
+          mvn -B -Dtest=RealAiWorkerLiveIntegrationTest#testLiveAiWorker_ExtractDocumentContract test 2>&1 | tee ../worker-contract.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit "$code"
+      - name: Verify public GitHub evidence with the real API
+        id: github_live
+        env:
+          GITHUB_TOKEN: ${{ secrets.MIDCV_GITHUB_READ_TOKEN || github.token }}
+        shell: bash
+        run: |
+          set +e
+          python -m pytest ai-worker/tests/test_github_pipeline.py -m live -q 2>&1 | tee github-live.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit "$code"
+      - name: Start real Spring backend
+        shell: bash
+        run: |
+          (cd backend && nohup mvn -B spring-boot:run > ../backend-live.log 2>&1 &)
+          for _ in {1..90}; do
+            if curl --fail --silent http://127.0.0.1:8080/actuator/health/readiness > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat backend-live.log
+          exit 1
+      - name: Verify persistence against real PostgreSQL
+        id: persistence
+        working-directory: backend
+        shell: bash
+        run: |
+          PGPASSWORD="$MIDCV_INBOX_TEST_PASSWORD" psql -h 127.0.0.1 -U "$MIDCV_INBOX_TEST_USER" -d postgres \
+            -c "CREATE DATABASE midcv_inbox_test" 2>&1 | tee ../persistence-live.log
+          create_code=${PIPESTATUS[0]}
+          if [[ "$create_code" != "0" ]]; then exit "$create_code"; fi
+          PGPASSWORD="$MIDCV_INBOX_TEST_PASSWORD" psql -h 127.0.0.1 -U "$MIDCV_INBOX_TEST_USER" -d postgres \
+            -c "CREATE DATABASE midcv_task_cafe2026" 2>&1 | tee -a ../persistence-live.log
+          create_code=${PIPESTATUS[0]}
+          if [[ "$create_code" != "0" ]]; then exit "$create_code"; fi
+          set +e
+          mvn -B -Dtest=InboxIntegrationTest,InboxOutboxTransactionTest test 2>&1 | tee -a ../persistence-live.log
+          inbox_code=${PIPESTATUS[0]}
+          DATABASE_URL=jdbc:postgresql://127.0.0.1:5432/midcv_task_cafe2026 \
+            DATABASE_USERNAME=postgres DATABASE_PASSWORD="$MIDCV_INBOX_TEST_PASSWORD" MIDCV_TASK_HTTP=true \
+            mvn -B -Dtest=TaskHttpAcceptanceTest#accountWorkspacePersistsThroughRealHttpAndEnforcesOwnership test \
+            2>&1 | tee -a ../persistence-live.log
+          http_code=${PIPESTATUS[0]}
+          code=$((inbox_code || http_code))
+          {
+            echo "inbox_exit_code=$inbox_code"
+            echo "http_exit_code=$http_code"
+            echo "exit_code=$code"
+          } >> "$GITHUB_OUTPUT"
+          exit "$code"
+      - name: Build and start real frontend
+        shell: bash
+        run: |
+          npm run build --prefix frontend
+          mkdir -p frontend/.next/standalone/.next
+          cp -R frontend/.next/static frontend/.next/standalone/.next/static
+          cp -R frontend/public frontend/.next/standalone/public
+          (cd frontend/.next/standalone && HOSTNAME=127.0.0.1 PORT=3000 nohup node server.js > ../../../frontend-live.log 2>&1 &)
+          for _ in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:3000/ > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat frontend-live.log
+          exit 1
+      - name: Verify Paper Studio in a real browser
+        id: browser
+        working-directory: frontend
+        env:
+          MIDCV_E2E_WEB_URL: http://127.0.0.1:3000
+        shell: bash
+        run: |
+          npx playwright install --with-deps chrome
+          set +e
+          npx playwright test e2e/paper-studio-acceptance.spec.ts --project=chromium-desktop 2>&1 | tee ../browser-live.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit "$code"
+      - name: Classify external provider
+        id: external
+        env:
+          REQUESTED: ${{ inputs.run_external_provider }}
+          LLM_PRIMARY_API_KEY: ${{ secrets.LLM_PRIMARY_API_KEY }}
+          LLM_PRIMARY_BASE_URL: ${{ vars.LLM_PRIMARY_BASE_URL }}
+          LLM_PRIMARY_MODEL: ${{ vars.LLM_PRIMARY_MODEL }}
+        shell: bash
+        run: |
+          if [[ "$REQUESTED" != "true" ]]; then
+            echo "classification=LIVE_NOT_REQUESTED" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ -z "$LLM_PRIMARY_API_KEY" || -z "$LLM_PRIMARY_MODEL" ]]; then
+            echo "classification=LIVE_NOT_CONFIGURED" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          set +e
+          python scripts/check_primary_llm.py > provider-smoke.log 2>&1
+          code=$?
+          if [[ "$code" == "0" ]]; then
+            echo "classification=REAL_EXTERNAL_PROVIDER_PASS" >> "$GITHUB_OUTPUT"
+          else
+            echo "classification=REAL_EXTERNAL_PROVIDER_FAIL" >> "$GITHUB_OUTPUT"
+          fi
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit "$code"
+      - name: Build live evidence
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p evidence/live
+          for file in worker-live.log worker-contract.log github-live.log backend-live.log persistence-live.log frontend-live.log browser-live.log provider-smoke.log; do
+            if [[ -f "$file" ]]; then
+              python scripts/ci/sanitize_log.py "$file" "evidence/live/$file"
+            fi
+          done
+          if [[ -f evidence-worker-runtime.json ]]; then
+            python scripts/ci/sanitize_log.py evidence-worker-runtime.json evidence/live/worker-runtime.json
+          fi
+          cat > evidence/live/summary.md <<EOF
+          # Live infrastructure result
+
+          - Classification: LIVE_INFRA_PASS only when this job succeeds
+          - Commit: ${GITHUB_SHA}
+          - Database: real pgvector PostgreSQL service
+          - AI worker: real FastAPI process; mock LLM disabled
+          - Backend: real Spring Boot process with WORKER_ENABLED=true
+          - Frontend: real Next.js production process
+          - Worker contract exit code: ${{ steps.worker_contract.outputs.exit_code || 'NOT_RUN' }}
+          - Public GitHub API exit code: ${{ steps.github_live.outputs.exit_code || 'NOT_RUN' }}
+          - Persistence exit code: ${{ steps.persistence.outputs.exit_code || 'NOT_RUN' }}
+          - U01 service/DB exit code: ${{ steps.persistence.outputs.inbox_exit_code || 'NOT_RUN' }}
+          - U01 real HTTP exit code: ${{ steps.persistence.outputs.http_exit_code || 'NOT_RUN' }}
+          - Real browser exit code: ${{ steps.browser.outputs.exit_code || 'NOT_RUN' }}
+          - External provider: ${{ steps.external.outputs.classification || 'NOT_RUN' }}
+          - External provider exit code: ${{ steps.external.outputs.exit_code || 'NOT_RUN' }}
+          EOF
+          cat evidence/live/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload live evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-infrastructure-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: evidence/live
