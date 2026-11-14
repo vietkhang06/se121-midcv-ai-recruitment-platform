@@ -698,7 +698,7 @@ export function searchTaxonomyCatalog(
   const normQ = normalizeTaxonomyKey(query);
   const normalizedExcludes = new Set(excludeSkillNames.map((s) => normalizeTaxonomyKey(s)));
 
-  let filtered = TAXONOMY_SKILLS.filter((skill) => {
+  const filtered = TAXONOMY_SKILLS.filter((skill) => {
     // 1. Exclude already chosen skills
     if (normalizedExcludes.has(skill.normalizedKey)) {
       return false;

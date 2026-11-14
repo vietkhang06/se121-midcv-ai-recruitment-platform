@@ -2,13 +2,16 @@ package com.platform.recruitment;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.platform.recruitment.admin.AdminController;
+import com.platform.recruitment.admin.service.AdminAuditLogService;
 import com.platform.recruitment.ai.AiClient;
+import com.platform.recruitment.ai.AiWorkerClient;
 import com.platform.recruitment.application.Application;
 import com.platform.recruitment.application.ApplicationController;
 import com.platform.recruitment.application.ApplicationRepository;
 import com.platform.recruitment.application.ApplicationResponse;
 import com.platform.recruitment.application.ApplicationService;
 import com.platform.recruitment.auth.JwtTokenProvider;
+import com.platform.recruitment.auth.AuthSessionService;
 import com.platform.recruitment.candidate.CandidateProfile;
 import com.platform.recruitment.candidate.CandidateProfileRepository;
 import com.platform.recruitment.common.GlobalExceptionHandler;
@@ -73,9 +76,18 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     @MockBean
     private UserRepository userRepository;
 
+    @MockBean
+    private AuthSessionService authSessionService;
+
     // AdminController dependencies
     @MockBean
     private AiClient aiClient;
+
+    @MockBean
+    private AiWorkerClient aiWorkerClient;
+
+    @MockBean
+    private AdminAuditLogService adminAuditLogService;
 
     @MockBean
     private Events events;
@@ -199,8 +211,11 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
 
     private void setupTokenMock(String token, UUID userId, String tokenRole, User userInDb) {
         when(tokenProvider.validateToken(token)).thenReturn(true);
+        when(tokenProvider.isAccessToken(token)).thenReturn(true);
         when(tokenProvider.getUserIdFromToken(token)).thenReturn(userId);
         when(tokenProvider.getRoleFromToken(token)).thenReturn(tokenRole);
+        when(tokenProvider.getSessionId(token)).thenReturn(null);
+        when(tokenProvider.getIssuedAtMillis(token)).thenReturn(System.currentTimeMillis());
         when(userRepository.findById(userId)).thenReturn(Optional.ofNullable(userInDb));
     }
 
@@ -273,7 +288,7 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     void testAdminEndpoint_Unauthenticated_Blocked() throws Exception {
         mockMvc.perform(get("/api/v1/admin/ai-settings")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -312,7 +327,7 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
         mockMvc.perform(get("/api/v1/admin/ai-settings")
                         .header("Authorization", "Bearer " + spoofedAdminToken)
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
 
         verifyNoInteractions(aiClient);
     }
@@ -330,7 +345,7 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
         mockMvc.perform(get("/api/v1/admin/ai-settings")
                         .header("Authorization", "Bearer " + inactiveAdminToken)
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
 
         verifyNoInteractions(aiClient);
     }

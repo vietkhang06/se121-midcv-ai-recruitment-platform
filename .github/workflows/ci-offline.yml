@@ -28,7 +28,7 @@ jobs:
         env:
           POSTGRES_DB: airecruit_db
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres_ci_only
+          POSTGRES_PASSWORD: postgres_secure_pass
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U postgres -d airecruit_db"
@@ -38,7 +38,7 @@ jobs:
     env:
       DATABASE_URL: jdbc:postgresql://localhost:5432/airecruit_db
       DATABASE_USERNAME: postgres
-      DATABASE_PASSWORD: postgres_ci_only
+      DATABASE_PASSWORD: postgres_secure_pass
       WORKER_ENABLED: "false"
       EMAIL_MODE: MOCK
     steps:
