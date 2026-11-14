@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useSyncExternalStore } from 'react';
 
 type Theme = 'light' | 'dark';
 
@@ -11,59 +11,46 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const themeChangeEvent = 'midcv:theme-change';
+
+function readTheme(): Theme {
+  if (typeof window === 'undefined') return 'light';
+  const stored = localStorage.getItem('midcv_theme')
+    || localStorage.getItem('matchjd_theme')
+    || localStorage.getItem('matchproof_theme');
+  if (stored === 'light' || stored === 'dark') return stored;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function subscribeTheme(callback: () => void): () => void {
+  if (typeof window === 'undefined') return () => undefined;
+  const media = window.matchMedia('(prefers-color-scheme: dark)');
+  window.addEventListener(themeChangeEvent, callback);
+  window.addEventListener('storage', callback);
+  media.addEventListener('change', callback);
+  return () => {
+    window.removeEventListener(themeChangeEvent, callback);
+    window.removeEventListener('storage', callback);
+    media.removeEventListener('change', callback);
+  };
+}
+
+function persistTheme(theme: Theme): void {
+  localStorage.setItem('midcv_theme', theme);
+  window.dispatchEvent(new Event(themeChangeEvent));
+}
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<Theme>('light');
-  const [mounted, setMounted] = useState<boolean>(false);
+  const theme = useSyncExternalStore<Theme>(subscribeTheme, readTheme, () => 'light');
 
   useEffect(() => {
-    setMounted(true);
-    const stored = (localStorage.getItem('midcv_theme') || localStorage.getItem('matchjd_theme') || localStorage.getItem('matchproof_theme')) as Theme | null;
-    if (stored === 'light' || stored === 'dark') {
-      setThemeState(stored);
-      if (stored === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    } else {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const initial = prefersDark ? 'dark' : 'light';
-      setThemeState(initial);
-      if (initial === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    }
-  }, []);
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+  }, [theme]);
 
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
-    localStorage.setItem('midcv_theme', newTheme);
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-      document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.setAttribute('data-theme', 'light');
-    }
-  };
-
-  const toggleTheme = () => {
-    setThemeState((prev) => {
-      const next = prev === 'light' ? 'dark' : 'light';
-      localStorage.setItem('midcv_theme', next);
-      if (next === 'dark') {
-        document.documentElement.classList.add('dark');
-        document.documentElement.setAttribute('data-theme', 'dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-        document.documentElement.setAttribute('data-theme', 'light');
-      }
-      return next;
-    });
-  };
+  const setTheme = (newTheme: Theme) => persistTheme(newTheme);
+  const toggleTheme = () => persistTheme(readTheme() === 'light' ? 'dark' : 'light');
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
@@ -74,8 +61,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
 export const useTheme = () => {
   const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
+  if (!context) throw new Error('useTheme must be used within a ThemeProvider');
   return context;
 };
