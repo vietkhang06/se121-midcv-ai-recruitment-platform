@@ -284,6 +284,3 @@ def analyze_skill_gap_and_roadmap(request: SkillGapAnalysisRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Skill gap analysis failed"
         )
-
-
-

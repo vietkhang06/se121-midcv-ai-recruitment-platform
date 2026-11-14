@@ -58,6 +58,8 @@ jwt:
   refresh-expiration-ms: ${JWT_REFRESH_TOKEN_EXPIRATION_MS:604800000}
 
 app:
+  testing:
+    standard-recruiter-full-access: ${MIDCV_DEV_STANDARD_PRO_ACCESS:false}
 
   email-mode: ${EMAIL_MODE:MOCK}
   mail-from: ${MAIL_FROM:noreply@midcv.local}
@@ -98,3 +100,6 @@ management:
       probes:
         enabled: true
       show-details: never
+  health:
+    mail:
+      enabled: ${MAIL_HEALTH_ENABLED:false}

@@ -63,6 +63,9 @@ public class CompanyVerificationContextLoadTest {
     private JwtTokenProvider tokenProvider;
 
     @MockBean
+    private AuthSessionService authSessionService;
+
+    @MockBean
     private UserRepository userRepository;
 
     @MockBean

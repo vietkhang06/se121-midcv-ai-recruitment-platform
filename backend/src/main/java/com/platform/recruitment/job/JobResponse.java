@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,6 +35,8 @@ public class JobResponse {
     private String employmentType;
     private String employmentTypeOther;
     private String description;
+    private LocalDate applicationDeadline;
+    private List<String> occupationCodes;
     private List<String> responsibilities;
     private List<RequirementResponse> requirements;
     private ZonedDateTime createdAt;

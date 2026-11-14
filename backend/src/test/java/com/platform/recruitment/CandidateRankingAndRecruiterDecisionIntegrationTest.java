@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -75,7 +76,8 @@ public class CandidateRankingAndRecruiterDecisionIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        myCompany = Company.builder().name("TechCorp").build();
+        myCompany = Company.builder().name("TechCorp").recruiterPlan("PRO")
+                .recruiterProUntil(ZonedDateTime.now().plusDays(1)).build();
         myCompany.setId(UUID.randomUUID());
 
         otherCompany = Company.builder().name("OtherCorp").build();
@@ -150,6 +152,8 @@ public class CandidateRankingAndRecruiterDecisionIntegrationTest {
         when(recruiterProfileRepository.findByUserId(recruiterUser.getId())).thenReturn(Optional.of(recruiter));
         when(jobRepository.findById(job.getId())).thenReturn(Optional.of(job));
         when(candidateRankingService.getRankedCandidatesForJob(job.getId(), null)).thenReturn(List.of(mr1, mr2));
+        when(matchResultRepository.findByApplicationId(app1.getId())).thenReturn(Optional.of(mr1));
+        when(matchResultRepository.findByApplicationId(app2.getId())).thenReturn(Optional.of(mr2));
         when(snapshotRepository.findByApplicationId(app1.getId())).thenReturn(Optional.empty());
         when(snapshotRepository.findByApplicationId(app2.getId())).thenReturn(Optional.empty());
 
@@ -167,6 +171,20 @@ public class CandidateRankingAndRecruiterDecisionIntegrationTest {
         assertEquals(app2.getId(), ranked.get(1).getId());
         assertEquals(new BigDecimal("78.00"), ranked.get(1).getMatchScore());
         assertEquals("MEDIUM", ranked.get(1).getMatchStatus());
+    }
+
+    @Test
+    void standardRecruiterRankingDoesNotLeakScores() {
+        myCompany.setRecruiterPlan("STANDARD");
+        when(recruiterProfileRepository.findByUserId(recruiterUser.getId())).thenReturn(Optional.of(recruiter));
+        when(jobRepository.findById(job.getId())).thenReturn(Optional.of(job));
+        when(candidateRankingService.getRankedCandidatesForJob(job.getId(), null)).thenReturn(List.of(mr1));
+        when(snapshotRepository.findByApplicationId(app1.getId())).thenReturn(Optional.empty());
+        when(matchResultRepository.findByApplicationId(app1.getId())).thenReturn(Optional.of(mr1));
+
+        ApplicationResponse response = applicationService.getRankedApplicationsForJob(recruiterUser, job.getId(), null).get(0);
+        assertNull(response.getMatchScore());
+        assertEquals("PHU_HOP", response.getMatchClassification());
     }
 
     @Test

@@ -1,0 +1,59 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> frontend@0.1.0 test:contracts
+> node --test tests/*.test.mjs
+
+✔ recalculation accepts numeric count 0 (6.04039ms)
+✔ recalculation accepts numeric count 2 (0.45176ms)
+✔ recalculation rejects invalid count null (1.079785ms)
+✔ recalculation rejects invalid count -1 (0.540994ms)
+✔ recalculation rejects invalid count 1.5 (5.074966ms)
+✔ recalculation rejects invalid count "2" (0.799733ms)
+✔ recalculation rejects invalid count {} (0.680063ms)
+✔ application mapper preserves actual or unknown version 1 (1.39533ms)
+✔ application mapper preserves actual or unknown version 2 (0.621125ms)
+✔ application mapper preserves actual or unknown version 3 (0.470869ms)
+✔ application mapper preserves actual or unknown version null (0.400192ms)
+✔ catalog filters receive every page rather than only the first twenty jobs (1.524744ms)
+✔ job mapper preserves moderation state and stored responsibilities (0.118468ms)
+✔ editing an existing job uses PUT and retains its published status (0.568525ms)
+✔ recruiter job list reads every advertised page (0.745462ms)
+✔ admin users use one server page and preserve deactivated status (0.725792ms)
+✔ ten concurrent calls rotate a refresh token once (5.240546ms)
+✔ a rejected refresh clears access, refresh and user together (0.896249ms)
+✔ transient refresh failure preserves credentials for retry (0.459211ms)
+✔ an in-flight refresh cannot restore a logged-out session (0.555456ms)
+✔ /api/v1/auth/login remains available when an old session cannot refresh (0.726233ms)
+✔ /api/v1/auth/verify-email remains available when an old session cannot refresh (0.309306ms)
+✔ /api/v1/auth/resend-verification remains available when an old session cannot refresh (0.419591ms)
+✔ /api/v1/auth/check-email?email=fixture remains available when an old session cannot refresh (0.679863ms)
+✔ /api/v1/auth/forgot-password remains available when an old session cannot refresh (0.486392ms)
+✔ an authenticated request renews after 401 and retries once (1.546687ms)
+✔ public catalog skips refresh and ignores a stale Bearer token (4.236585ms)
+✔ public job detail does not depend on refresh token (0.449336ms)
+✔ two private calls share a single refresh and both use rotated token (2.101312ms)
+✔ revoked refresh rejects with HTTP 401 and clears old session (1.009249ms)
+✔ refresh HTTP 503 preserves stored credentials (0.682828ms)
+✔ late rejected refresh from old session cannot log out a newer login (0.362816ms)
+✔ public GET returning 401 does not clear unrelated stored auth (0.49129ms)
+✔ processing survives more than 60 polls and a disconnected SSE stream (87.156512ms)
+✔ closing the UI aborts in-flight polling and stops stream updates (1.725817ms)
+✔ server failure remains failure and auth errors stop waiting (0.468845ms)
+✔ abortable delay releases a waiting UI immediately (0.437669ms)
+✔ polling completes when SSE setup or cleanup throws (1.692146ms)
+✔ permanent polling failures stop after the configured bound while a success resets it (12.483159ms)
+✔ localized whole VND inputs parse without scaling (1.296992ms)
+✔ empty, malformed, negative, fractional and unsafe values stay invalid (0.340873ms)
+✔ formatting preserves zero and treats empty as unknown (17.300423ms)
+✔ CRLF split between reads delivers one complete terminal event (7.70865ms)
+✔ disconnect reconnects with durable cursor and suppresses replay duplicates (1003.021958ms)
+✔ unsubscribe aborts the active transport (0.556537ms)
+✔ forbidden stream reports an error without retrying (26.093199ms)
+ℹ tests 46
+ℹ suites 0
+ℹ pass 46
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1543.744693

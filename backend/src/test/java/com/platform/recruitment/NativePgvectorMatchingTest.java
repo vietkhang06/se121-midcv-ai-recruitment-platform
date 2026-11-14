@@ -6,6 +6,7 @@ import com.platform.recruitment.candidate.CandidateProfile;
 import com.platform.recruitment.candidate.CandidateProfileRepository;
 import com.platform.recruitment.cv.CV;
 import com.platform.recruitment.cv.CVRepository;
+import com.platform.recruitment.cv.CVVersion;
 import com.platform.recruitment.embedding.PgvectorCosineSimilarity;
 import com.platform.recruitment.github.GitHubAssessmentRepository;
 import com.platform.recruitment.github.GitHubProfileRepository;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -183,13 +185,13 @@ public class NativePgvectorMatchingTest {
                 skill, "k8s", TaxonomyService.MatchType.EXACT_ALIAS
         );
 
-        when(taxonomyService.lookup("k8s")).thenReturn(Optional.of(match));
+        when(taxonomyService.lookup("container orchestrator")).thenReturn(Optional.of(match));
 
-        String canonical = skillNormalizer.getCanonicalName("k8s");
+        String canonical = skillNormalizer.getCanonicalName("container orchestrator");
         assertEquals("kubernetes", canonical);
 
-        boolean matched = skillNormalizer.matchesSkill("Kubernetes", "Hands-on experience deploying microservices with k8s.");
-        assertTrue(matched, "k8s alias should match Kubernetes requirement via taxonomy");
+        boolean matched = skillNormalizer.matchesSkill("container orchestrator", "Hands-on experience deploying microservices with Kubernetes.");
+        assertTrue(matched, "Taxonomy canonicalization should match an unfamiliar requirement label");
     }
 
     @Test
@@ -200,8 +202,8 @@ public class NativePgvectorMatchingTest {
     }
 
     @Test
-    @DisplayName("MatchingEngine 1: Uses real pgvector when document_versions have embeddings")
-    void testMatchingEngineService_UsesRealPgvectorWhenAvailable() {
+    @DisplayName("MatchingEngine: missing verified CV/JD vectors must remain provisional")
+    void testMatchingEngineService_MissingVerifiedVectorsAreProvisional() {
         when(jobRepository.findById(job.getId())).thenReturn(Optional.of(job));
         when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
 
@@ -209,47 +211,29 @@ public class NativePgvectorMatchingTest {
                 .candidate(candidate)
                 .rawText("5 years Java Spring Boot and React developer with PostgreSQL database experience.")
                 .build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(application, cv, cv.getRawText());
 
         JobRequirement req1 = JobRequirement.builder().job(job).skillName("Java").requirementType(RequirementType.REQUIRED).build();
         when(jobRequirementRepository.findByJobId(job.getId())).thenReturn(List.of(req1));
 
-        UUID cvDocVersionId = UUID.randomUUID();
-        UUID jdDocVersionId = UUID.randomUUID();
-
-        // Mock document_versions resolution
-        when(jdbcTemplate.query(
-                contains("SELECT v.id FROM document_versions v JOIN documents d"),
-                any(RowMapper.class),
-                eq(candidate.getUser().getId())
-        )).thenReturn(List.of(cvDocVersionId));
-
-        when(jdbcTemplate.query(
-                contains("WHERE (d.id=? OR v.id IN (SELECT jd_version_id FROM screening_runs"),
-                any(RowMapper.class),
-                eq(job.getId()),
-                eq(job.getId())
-        )).thenReturn(List.of(jdDocVersionId));
-
-        // Mock pgvector score = 92.50
-        when(jdbcTemplate.queryForList(
-                contains("cv.embedding <=> jd.embedding"),
-                eq(cvDocVersionId),
-                eq(jdDocVersionId)
-        )).thenReturn(List.of(Map.of("score", 92.50)));
-
         MatchResult result = matchingEngineService.calculateAndPersistMatchResult(job.getId(), candidate.getId());
 
         assertNotNull(result);
-        assertEquals("COMPLETED", result.getStatus());
+        assertEquals("PENDING_VECTOR", result.getStatus());
+        assertEquals("TF_CONCEPT_COSINE_SIMILARITY", result.getSemanticMethod());
+        assertNull(result.getEmbeddingModel());
         assertTrue(result.getCoreScore().doubleValue() > 0);
 
-        // Verify match factors contain SEMANTIC factor
-        verify(matchFactorRepository).save(argThat(factor ->
-                "SEMANTIC".equals(factor.getFactorType()) &&
-                factor.getScore().compareTo(BigDecimal.valueOf(92.50)) == 0 &&
-                factor.getWeight().compareTo(BigDecimal.valueOf(0.15)) == 0
-        ));
+        // Effective semantic weight is the residual after applicable core weights are normalized.
+        ArgumentCaptor<MatchFactor> factorCaptor = ArgumentCaptor.forClass(MatchFactor.class);
+        verify(matchFactorRepository, atLeastOnce()).save(factorCaptor.capture());
+        MatchFactor semanticFactor = factorCaptor.getAllValues().stream()
+                .filter(factor -> "SEMANTIC".equals(factor.getFactorType()))
+                .findFirst().orElseThrow();
+        assertEquals("TF_CONCEPT_COSINE_SIMILARITY", semanticFactor.getCalculationMethod());
+        assertEquals(0, semanticFactor.getConfiguredWeight().compareTo(BigDecimal.valueOf(0.15)));
+        assertEquals(0, semanticFactor.getWeight().compareTo(semanticFactor.getEffectiveWeight()));
+        assertTrue(semanticFactor.getEffectiveWeight().compareTo(BigDecimal.ZERO) > 0);
     }
 
     @Test
@@ -260,7 +244,7 @@ public class NativePgvectorMatchingTest {
 
         String rawCv = "Senior Software Engineer. Core competencies include Java microservice architecture, Spring Boot, and PostgreSQL.";
         CV cv = CV.builder().candidate(candidate).rawText(rawCv).build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(application, cv, rawCv);
 
         JobRequirement reqJava = JobRequirement.builder().job(job).skillName("Java").requirementType(RequirementType.REQUIRED).build();
         when(jobRequirementRepository.findByJobId(job.getId())).thenReturn(List.of(reqJava));

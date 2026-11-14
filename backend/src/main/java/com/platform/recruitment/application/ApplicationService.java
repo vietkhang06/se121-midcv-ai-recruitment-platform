@@ -29,12 +29,36 @@ import com.platform.recruitment.matching.CandidateRankingService;
 import com.platform.recruitment.matching.MatchResult;
 import com.platform.recruitment.matching.MatchResultRepository;
 import com.platform.recruitment.matching.MatchingEngineService;
+import com.platform.recruitment.matching.MatchScoreResponse;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 
 @Service
 public class ApplicationService {
+
+    private com.platform.recruitment.product.RecruiterEntitlements entitlements;
+    @Autowired(required = false)
+    public void setEntitlements(com.platform.recruitment.product.RecruiterEntitlements entitlements) {
+        this.entitlements = entitlements;
+    }
+
+    private com.platform.recruitment.product.AiScreeningAccessService aiScreeningAccess;
+    @Autowired(required = false)
+    public void setAiScreeningAccess(com.platform.recruitment.product.AiScreeningAccessService access) {
+        this.aiScreeningAccess = access;
+    }
+
+    private com.platform.recruitment.product.RecruiterFeatureAccess featureAccess;
+    @Autowired(required = false)
+    public void setFeatureAccess(com.platform.recruitment.product.RecruiterFeatureAccess featureAccess) {
+        this.featureAccess = featureAccess;
+    }
+
+    private boolean hasProFeatures(com.platform.recruitment.company.Company company) {
+        return featureAccess != null ? featureAccess.hasProFeatures(company)
+                : company != null && company.hasActiveRecruiterPro();
+    }
 
     private com.platform.recruitment.communication.InboxService inbox;
     @Autowired public void setInbox(com.platform.recruitment.communication.InboxService inbox) { this.inbox=inbox; }
@@ -119,6 +143,11 @@ public class ApplicationService {
                             "Cannot submit application for job '%s' with status '%s'. Only PUBLISHED jobs accept applications.",
                             job.getTitle(), job.getStatus()));
         }
+        if (job.getApplicationDeadline() != null
+                && job.getApplicationDeadline().isBefore(java.time.LocalDate.now())) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                    "Đã hết hạn nhận hồ sơ cho tin tuyển dụng này.");
+        }
 
         CV cv = cvRepository.findByIdForUpdate(request.getCvId())
                 .orElseThrow(() -> new ResourceNotFoundException("CV", "id", request.getCvId()));
@@ -138,10 +167,13 @@ public class ApplicationService {
         com.platform.recruitment.cv.ConfirmedCvInput.requireConfirmed(appliedVersion, candidate.getId());
         // Lazy backfill for CVs confirmed before this migration: every normal Quick Apply
         // must trigger a real vector job for its exact pinned CV version.
-        if (vectorLifecycle != null) vectorLifecycle.prepareConfirmedCv(appliedVersion, candidateUser.getId());
+        boolean aiConsent = Boolean.TRUE.equals(request.getAiAnalysisConsent());
+        boolean scoringEligible = aiConsent
+                && (aiScreeningAccess == null || aiScreeningAccess.evaluate(job, true).available());
+        if (scoringEligible && vectorLifecycle != null) vectorLifecycle.prepareConfirmedCv(appliedVersion, candidateUser.getId());
 
         // Pin the exact JD version used at application time. Legacy jobs are lazily prepared.
-        UUID appliedJdVersionId = vectorLifecycle != null ? vectorLifecycle.prepareJob(job) : null;
+        UUID appliedJdVersionId = scoringEligible && vectorLifecycle != null ? vectorLifecycle.prepareJob(job) : null;
 
         // Atomic Transaction: Create Application + Immutable ApplicationCVSnapshot
         Application application = Application.builder()
@@ -150,6 +182,9 @@ public class ApplicationService {
                 .appliedCv(cv)
                 .appliedCvVersion(appliedVersion)
                 .appliedJdVersionId(appliedJdVersionId)
+                .aiAnalysisConsent(aiConsent)
+                .aiConsentAt(aiConsent ? java.time.ZonedDateTime.now() : null)
+                .aiConsentVersion("quick-apply-v1")
                 .status(ApplicationStatus.SUBMITTED)
                 .build();
         Application savedApplication = applicationRepository.save(application);
@@ -167,12 +202,42 @@ public class ApplicationService {
 
         // Immediate matching persistence (match_results, match_factors, evidences)
         // Matching failure propagates: the transaction rolls back application and snapshot together.
-        matchingEngineService.calculateAndPersistMatchResult(job.getId(), candidate.getId());
+        if (scoringEligible) matchingEngineService.calculateAndPersistMatchResult(job.getId(), candidate.getId());
         // Once the true CV/JD vectors exist, recalculate using actual Pgvector; no mock.
-        if (vectorLifecycle != null) vectorLifecycle.enqueueMatchAfterCommit(candidateUser.getId(), savedApplication.getId());
+        if (scoringEligible && vectorLifecycle != null) vectorLifecycle.enqueueMatchAfterCommit(candidateUser.getId(), savedApplication.getId());
 
         if(inbox!=null) inbox.applicationEvent(savedApplication,false);
         return mapToResponse(savedApplication, snapshot);
+    }
+
+    /** Read-only preview for the selected confirmed CV; does not create an application. */
+    @Transactional(readOnly = true)
+    public MatchScoreResponse previewApplication(User candidateUser, SubmitApplicationRequest request) {
+        if (!Boolean.TRUE.equals(request.getAiAnalysisConsent())) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Cần đồng ý phân tích CV trước khi xem đối sánh.");
+        }
+        if (suspensionGuard != null) suspensionGuard.checkCandidateOperationAllowed(candidateUser);
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+        Job job = jobRepository.findById(request.getJobId())
+                .orElseThrow(() -> new ResourceNotFoundException("Job", "id", request.getJobId()));
+        if (job.getStatus() != JobStatus.PUBLISHED) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Chỉ có thể xem đối sánh cho tin đang đăng.");
+        }
+        if (job.getApplicationDeadline() != null
+                && job.getApplicationDeadline().isBefore(java.time.LocalDate.now())) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Đã hết hạn nhận hồ sơ cho tin tuyển dụng này.");
+        }
+        CV cv = cvRepository.findById(request.getCvId())
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", request.getCvId()));
+        if (!cv.getCandidate().getId().equals(candidate.getId())) {
+            throw new UnauthorizedAccessException("Candidate does not own the selected CV");
+        }
+        List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cv.getId());
+        CVVersion version = versions.isEmpty() ? null : versions.get(0);
+        com.platform.recruitment.cv.ConfirmedCvInput.requireConfirmed(version, candidate.getId());
+        return MatchScoreResponse.fromEntity(
+                matchingEngineService.previewMatch(job.getId(), candidate.getId(), version.getId()));
     }
 
     public static final java.util.Set<String> ALLOWED_APPLICATION_SORT_FIELDS = java.util.Set.of(
@@ -210,7 +275,7 @@ public class ApplicationService {
         List<ApplicationResponse> content = appList.stream()
                 .map(app -> {
                     ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(app.getId()).orElse(null);
-                    return mapToResponse(app, snap);
+                    return recruiterResponse(recruiterUser, app, snap);
                 })
                 .toList();
         long total = (appPage != null) ? appPage.getTotalElements() : content.size();
@@ -298,7 +363,7 @@ public class ApplicationService {
                     "Trạng thái đơn đã thay đổi; hãy tải lại trước khi ra quyết định.");
         }
         if (previousStatus == request.getStatus()) {
-            return mapToResponse(application,
+            return recruiterResponse(recruiterUser, application,
                     snapshotRepository.findByApplicationId(applicationId).orElse(null));
         }
         application.setStatus(request.getStatus());
@@ -316,7 +381,7 @@ public class ApplicationService {
 
         ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(savedApplication.getId()).orElse(null);
         if(inbox!=null && previousStatus!=savedApplication.getStatus()) inbox.applicationEvent(savedApplication,true);
-        return mapToResponse(savedApplication, snap);
+        return recruiterResponse(recruiterUser, savedApplication, snap);
     }
 
     @Transactional(readOnly = true)
@@ -344,9 +409,7 @@ public class ApplicationService {
         for (MatchResult mr : rankedResults) {
             Application app = mr.getApplication();
             ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(app.getId()).orElse(null);
-            ApplicationResponse resp = mapToResponse(app, snap);
-            resp.setMatchScore(mr.getOverallScore());
-            resp.setMatchStatus(mr.getStatus());
+            ApplicationResponse resp = recruiterResponse(recruiterUser, app, snap);
             responses.add(resp);
         }
 
@@ -356,7 +419,7 @@ public class ApplicationService {
             for (Application app : allApps) {
                 if (!rankedAppIds.contains(app.getId())) {
                     ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(app.getId()).orElse(null);
-                    responses.add(mapToResponse(app, snap));
+                    responses.add(recruiterResponse(recruiterUser, app, snap));
                 }
             }
         }
@@ -460,11 +523,39 @@ public class ApplicationService {
         }
 
         ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(application.getId()).orElse(null);
+        if (entitlements != null) entitlements.view(recruiterUser, applicationId);
         if(inbox!=null) inbox.view(application,recruiterUser);
-        return mapToResponse(application, snap);
+        return recruiterResponse(recruiterUser, application, snap);
+    }
+
+    private ApplicationResponse recruiterResponse(
+            User recruiterUser, Application application, ApplicationCVSnapshot snapshot) {
+        ApplicationResponse response = mapToResponse(application, snapshot);
+        var company = application.getJob() == null ? null : application.getJob().getCompany();
+        boolean proAccess = hasProFeatures(company);
+        var access = aiScreeningAccess == null ? null : aiScreeningAccess.evaluate(application);
+        boolean scoringAvailable = access == null
+                ? Boolean.TRUE.equals(application.getAiAnalysisConsent())
+                : access.available();
+        response.setAiScoringAvailable(scoringAvailable);
+        response.setAiScoringReasonCode(access == null
+                ? (scoringAvailable ? "AVAILABLE" : "CONSENT_NOT_GIVEN") : access.code());
+        response.setAiScoringReason(access == null ? null : access.message());
+        response.setMatchClassification(com.platform.recruitment.product.AiScreeningAccessService
+                .classifyScore(scoringAvailable ? response.getMatchScore() : null));
+        response.setProDetailAvailable(proAccess && scoringAvailable
+                && response.getMatchScore() != null);
+        response.setRecruiterPlan(company != null && company.hasActiveRecruiterPro() ? "PRO" : "STANDARD");
+        response.setDevelopmentProAccess(featureAccess != null && featureAccess.isDevelopmentOverride(company));
+        if (!scoringAvailable || (recruiterUser != null
+                && recruiterUser.getRole() == com.platform.recruitment.user.Role.HR && !proAccess)) {
+            response.redactMatchForStandardPlan();
+        }
+        return response;
     }
 
     public ApplicationResponse mapToResponse(Application app, ApplicationCVSnapshot snap) {
+        AppliedCvIdentity cvIdentity = AppliedCvIdentity.fromSnapshot(snap);
         ApplicationResponse.SnapshotInfo snapshotInfo = null;
         if (snap != null) {
             snapshotInfo = ApplicationResponse.SnapshotInfo.builder()
@@ -475,8 +566,8 @@ public class ApplicationService {
         }
 
         BigDecimal matchScore = null;
-        String matchStatus = null;
-        if (matchResultRepository != null) {
+        String matchStatus = Boolean.FALSE.equals(app.getAiAnalysisConsent()) ? "CONSENT_NOT_GIVEN" : null;
+        if (matchResultRepository != null && !"CONSENT_NOT_GIVEN".equals(matchStatus)) {
             var matchOpt = matchResultRepository.findByApplicationId(app.getId());
             if (matchOpt.isPresent()) {
                 matchScore = matchOpt.get().getOverallScore();
@@ -507,12 +598,18 @@ public class ApplicationService {
                 .candidatePhone(candidatePhone)
                 .candidateHeadline(candidateHeadline)
                 .candidateGithubUrl(candidateGithubUrl)
+                .appliedCvFullName(cvIdentity.fullName)
+                .appliedCvEmail(cvIdentity.email)
+                .appliedCvPhone(cvIdentity.phone)
+                .appliedCvHeadline(cvIdentity.headline)
+                .appliedCvGithubUrl(cvIdentity.githubUrl)
                 .appliedCvId(app.getAppliedCv() != null ? app.getAppliedCv().getId() : null)
                 .appliedCvVersionId(app.getAppliedCvVersion() != null ? app.getAppliedCvVersion().getId() : null)
                 .appliedCvVersionNumber(app.getAppliedCvVersion() != null ? app.getAppliedCvVersion().getVersionNumber() : null)
                 .status(app.getStatus())
                 .matchScore(matchScore)
                 .matchStatus(matchStatus)
+                .aiAnalysisConsent(app.getAiAnalysisConsent())
                 .appliedAt(app.getAppliedAt())
                 .snapshot(snapshotInfo)
                 .build();

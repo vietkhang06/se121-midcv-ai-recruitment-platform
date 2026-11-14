@@ -26,8 +26,8 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
             {data.algorithmVersion || 'v2.0 Grounded'}
           </span>
           {data.calculationStatus && (
-            <span className="font-sans px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-semibold text-[10px]">
-              {data.calculationStatus}
+            <span className={`font-sans px-2 py-0.5 rounded font-semibold text-[10px] ${data.calculationStatus === 'PGVECTOR_READY' ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300'}`}>
+              {data.calculationStatus === 'PGVECTOR_READY' ? (locale === 'vi' ? 'Pgvector đã xác thực' : 'Pgvector verified') : data.calculationStatus === 'PENDING_VECTOR' ? (locale === 'vi' ? 'Đang chờ vector · điểm tạm tính' : 'Waiting for vectors · provisional score') : data.calculationStatus === 'FALLBACK_USED' ? (locale === 'vi' ? 'Phương pháp dự phòng · điểm tạm tính' : 'Fallback · provisional score') : data.calculationStatus}
             </span>
           )}
         </div>
@@ -41,11 +41,11 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
       <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl px-4 py-3 text-xs space-y-1">
         <p className="font-semibold text-slate-800 dark:text-slate-200">
           {locale === 'vi' ? 'Phương pháp so khớp ngữ nghĩa thực tế: ' : 'Actual semantic matching method: '}
-          <span className={data.semanticMethod === 'PGVECTOR_COSINE_SIMILARITY' ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}>
+          <span className={data.calculationStatus === 'PGVECTOR_READY' && data.semanticMethod === 'PGVECTOR_COSINE_SIMILARITY' ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}>
             {data.semanticMethod || 'NOT_REPORTED'}
           </span>
         </p>
-        {data.semanticMethod !== 'PGVECTOR_COSINE_SIMILARITY' && (
+        {data.calculationStatus !== 'PGVECTOR_READY' && (
           <p className="text-amber-700 dark:text-amber-300">
             {locale === 'vi'
               ? 'Chưa xác thực Pgvector cho kết quả này; đang dùng phương pháp dự phòng được ghi rõ.'

@@ -17,8 +17,7 @@ public class MockEmailService implements EmailService {
     @Override
     public void sendVerificationEmail(String recipientEmail, String verificationToken) {
         devTokenStore.put(recipientEmail, verificationToken);
-        String verificationUrl = "http://localhost:3000/verify-email?token=" + verificationToken;
-        log.info("[MOCK EMAIL SERVICE] Verification email sent to: {} | Verification URL: {}", recipientEmail, verificationUrl);
+        log.info("[MOCK EMAIL SERVICE] Verification email simulated; development token is available only in the registration response.");
     }
 
     @Override public void sendPasswordResetEmail(String recipientEmail, String token) {

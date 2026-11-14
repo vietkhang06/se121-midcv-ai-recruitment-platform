@@ -91,8 +91,8 @@ public class SkillNormalizer {
         terms.addAll(SYNONYMS_MAP.getOrDefault(canonical, Set.of()));
         for (String term : terms) {
             // Unicode-aware boundaries prevent C/C++, Java/JavaScript, React/ReactNative etc.
-            String pattern = "(?<![\\p{L}\\p{N}_+.#])" + Pattern.quote(term)
-                    + "(?![\\p{L}\\p{N}_+.#])";
+            String pattern = "(?<![\\p{L}\\p{N}_+#])" + Pattern.quote(term)
+                    + "(?!(?:[\\p{L}\\p{N}_+#]|\\.[\\p{L}\\p{N}_+#]))";
             if (canonical.equals("react") && term.equals("react")) {
                 // A bare React requirement is not proven by mentioning React Native alone.
                 pattern += "(?!\\s+[Nn]ative\\b)";

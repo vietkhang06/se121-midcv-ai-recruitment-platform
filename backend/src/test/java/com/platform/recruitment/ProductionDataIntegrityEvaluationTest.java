@@ -180,21 +180,17 @@ class ProductionDataIntegrityEvaluationTest {
     // 2. CV version change
     // =========================================================================
     @Test
-    @DisplayName("2. CV version change: Matching picks latest READY version and grounds evidence on it")
-    void test02_CvVersionChange_PicksLatestReadyVersion() {
+    @DisplayName("2. CV version change: Matching remains pinned to the confirmed application version")
+    void test02_CvVersionChange_UsesPinnedConfirmedVersionForEvidence() {
         UUID oldCvVersion = UUID.randomUUID();
         UUID newCvVersion = UUID.randomUUID();
-
-        when(jobRepository.findById(jobA.getId())).thenReturn(Optional.of(jobA));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
         when(applicationRepository.findByJobIdAndCandidateId(jobA.getId(), candidate.getId())).thenReturn(Optional.of(application));
 
         CV latestCv = CV.builder().candidate(candidate).rawText("Expert in Java, Spring Boot, and PostgreSQL.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(latestCv));
-
-        // Mock document_versions query returning latest READY version (newCvVersion)
-        when(jdbcTemplate.query(contains("owner_id=? AND d.kind='CV'"), any(RowMapper.class), eq(candidate.getUser().getId())))
-                .thenReturn(List.of(newCvVersion));
+        var confirmedVersion = ConfirmedCvFixture.version(latestCv, latestCv.getRawText());
+        confirmedVersion.setId(newCvVersion);
+        application.setAppliedCv(latestCv);
+        application.setAppliedCvVersion(confirmedVersion);
 
         JobRequirement req = JobRequirement.builder().job(jobA).skillName("Java").requirementType(RequirementType.REQUIRED).build();
         when(jobRequirementRepository.findByJobId(jobA.getId())).thenReturn(List.of(req));
@@ -222,12 +218,10 @@ class ProductionDataIntegrityEvaluationTest {
     @Test
     @DisplayName("3. JD version change: Recruiter updates criteria, recalculation updates factor evaluations")
     void test03_JdVersionChange_SupersedesStaleRequirements() {
-        when(jobRepository.findById(jobA.getId())).thenReturn(Optional.of(jobA));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
         when(applicationRepository.findByJobIdAndCandidateId(jobA.getId(), candidate.getId())).thenReturn(Optional.of(application));
 
         CV cv = CV.builder().candidate(candidate).rawText("Python, Django, PostgreSQL expert.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(application, cv, cv.getRawText());
 
         // When JD initially required Java, missing = 1
         JobRequirement oldReq = JobRequirement.builder().job(jobA).skillName("Java").requirementType(RequirementType.REQUIRED).build();
@@ -254,12 +248,10 @@ class ProductionDataIntegrityEvaluationTest {
     @Test
     @DisplayName("4. Duplicate match prevention: Multiple matching calls purge previous factors and evidences cleanly")
     void test04_DuplicateMatchPrevention_IdempotentRecalculation() {
-        when(jobRepository.findById(jobA.getId())).thenReturn(Optional.of(jobA));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
         when(applicationRepository.findByJobIdAndCandidateId(jobA.getId(), candidate.getId())).thenReturn(Optional.of(application));
 
         CV cv = CV.builder().candidate(candidate).rawText("Java and Spring Boot developer.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(application, cv, cv.getRawText());
 
         JobRequirement req = JobRequirement.builder().job(jobA).skillName("Java").requirementType(RequirementType.REQUIRED).build();
         when(jobRequirementRepository.findByJobId(jobA.getId())).thenReturn(List.of(req));
@@ -334,12 +326,10 @@ class ProductionDataIntegrityEvaluationTest {
     @Test
     @DisplayName("7. GitHub evidence consistency: Supplementary signal without penalty when absent")
     void test07_GitHubEvidenceConsistency_NoPenaltyWhenAbsent() {
-        when(jobRepository.findById(jobA.getId())).thenReturn(Optional.of(jobA));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
         when(applicationRepository.findByJobIdAndCandidateId(jobA.getId(), candidate.getId())).thenReturn(Optional.of(application));
 
         CV cv = CV.builder().candidate(candidate).rawText("Java developer.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(application, cv, cv.getRawText());
         when(jobRequirementRepository.findByJobId(jobA.getId())).thenReturn(Collections.emptyList());
 
         // No GitHub Profile
@@ -536,12 +526,10 @@ class ProductionDataIntegrityEvaluationTest {
     @Test
     @DisplayName("15. Rematch behavior: Rematch purges existing factors and updates result without duplicates")
     void test15_RematchBehavior_PurgesPreviousFactorsAndUpdatesScores() {
-        when(jobRepository.findById(jobA.getId())).thenReturn(Optional.of(jobA));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
         when(applicationRepository.findByJobIdAndCandidateId(jobA.getId(), candidate.getId())).thenReturn(Optional.of(application));
 
         CV cv = CV.builder().candidate(candidate).rawText("Java and Spring Boot developer.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(application, cv, cv.getRawText());
 
         JobRequirement req = JobRequirement.builder().job(jobA).skillName("Java").requirementType(RequirementType.REQUIRED).build();
         when(jobRequirementRepository.findByJobId(jobA.getId())).thenReturn(List.of(req));

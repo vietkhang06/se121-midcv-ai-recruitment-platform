@@ -13,4 +13,7 @@ public class SubmitApplicationRequest {
 
     @NotNull(message = "CV ID is required")
     private UUID cvId;
+
+    /** Missing means no consent. The frontend requires an explicit choice. */
+    private Boolean aiAnalysisConsent;
 }

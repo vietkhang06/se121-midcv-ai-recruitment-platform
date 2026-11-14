@@ -59,9 +59,17 @@ class AuditRemediationRegressionTest {
     }
     @Test void previewDoesNotWriteApplicationResultOrFactors() {
         MatchResult r=engine.previewMatch(job.getId(),candidate.getId(),version.getId());
-        assertEquals("COMPLETED",r.getStatus());assertNull(r.getId());
+        assertEquals("PENDING_VECTOR",r.getStatus());assertNull(r.getId());
         verifyNoInteractions(applications,results,factors);
         MatchScoreResponse dto=MatchScoreResponse.fromEntity(r);assertNull(dto.getApplicationId());assertEquals(job.getId(),dto.getJobId());
+    }
+    @Test void explicitDeclineCannotBeRecalculatedByAnyEntryPoint() {
+        application.setAiConsentVersion("quick-apply-v1");
+        application.setAiAnalysisConsent(false);
+        assertThrows(CustomException.class, () -> engine.calculateAndPersistMatchResult(job.getId(), candidate.getId()));
+        when(applications.findById(application.getId())).thenReturn(Optional.of(application));
+        assertThrows(CustomException.class, () -> engine.getMatchInspection(application.getId()));
+        verifyNoInteractions(results, factors);
     }
     @Test void missingApplicationCannotBeCreatedByRecalculation() {
         when(applications.findByJobIdAndCandidateId(any(),any())).thenReturn(Optional.empty());
@@ -106,7 +114,7 @@ class AuditRemediationRegressionTest {
         var scorer=mock(MatchingEngineService.class);
         var svc=new ApplicationService(applications,snapshots,jobs,candidates,
                 mock(com.platform.recruitment.company.RecruiterProfileRepository.class),cvs,versions,scorer);
-        var request=new SubmitApplicationRequest();request.setJobId(job.getId());request.setCvId(cv.getId());
+        var request=new SubmitApplicationRequest();request.setJobId(job.getId());request.setCvId(cv.getId());request.setAiAnalysisConsent(true);
         ApplicationResponse response=svc.submitApplication(actor,request);
         var captured=org.mockito.ArgumentCaptor.forClass(ApplicationCVSnapshot.class);
         verify(snapshots).save(captured.capture());
@@ -114,18 +122,20 @@ class AuditRemediationRegressionTest {
         assertEquals(version.getRawTextContent(),captured.getValue().getRawTextSnapshot());
         assertEquals(version.getId(),response.getAppliedCvVersionId());
         assertEquals(2,response.getAppliedCvVersionNumber());
+        verify(scorer).calculateAndPersistMatchResult(job.getId(),candidate.getId());
     }
     @Test void submitDoesNotHideMatchingFailure() {
         var actor=com.platform.recruitment.user.User.builder().role(com.platform.recruitment.user.Role.CANDIDATE).build();actor.setId(UUID.randomUUID());
-        when(candidates.findByUserId(actor.getId())).thenReturn(Optional.of(candidate));
-        when(cvs.findById(cv.getId())).thenReturn(Optional.of(cv));
+        when(candidates.findByUserIdForUpdate(actor.getId())).thenReturn(Optional.of(candidate));
+        when(jobs.findByIdForApply(job.getId())).thenReturn(Optional.of(job));
+        when(cvs.findByIdForUpdate(cv.getId())).thenReturn(Optional.of(cv));
         when(versions.findByCvIdOrderByVersionNumberDesc(cv.getId())).thenReturn(List.of(version));
         when(applications.save(any())).thenReturn(application);
         var scorer=mock(MatchingEngineService.class);
         when(scorer.calculateAndPersistMatchResult(any(),any())).thenThrow(new CustomException(ErrorCode.SERVICE_UNAVAILABLE,"Synthetic failure"));
         var svc=new ApplicationService(applications,mock(ApplicationCVSnapshotRepository.class),jobs,candidates,
                 mock(com.platform.recruitment.company.RecruiterProfileRepository.class),cvs,versions,scorer);
-        var request=new SubmitApplicationRequest();request.setJobId(job.getId());request.setCvId(cv.getId());
+        var request=new SubmitApplicationRequest();request.setJobId(job.getId());request.setCvId(cv.getId());request.setAiAnalysisConsent(true);
         assertThrows(CustomException.class,()->svc.submitApplication(actor,request));
         // This unit test proves propagation, not database rollback. Transaction acceptance is separate.
     }

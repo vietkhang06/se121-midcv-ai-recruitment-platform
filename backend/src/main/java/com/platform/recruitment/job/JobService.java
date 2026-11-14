@@ -73,6 +73,9 @@ public class JobService {
                 .seniority(request.getSeniority())
                 .seniorityOther(trimToNull(request.getSeniorityOther()))
                 .status(JobStatus.DRAFT)
+                .aiScreeningPolicyVersion(1)
+                .occupationCodes(request.getOccupationCodes() == null
+                        ? List.of() : List.copyOf(request.getOccupationCodes()))
                 .minSalary(Boolean.TRUE.equals(request.getSalaryNegotiable())
                         ? null : request.getMinSalary())
                 .maxSalary(Boolean.TRUE.equals(request.getSalaryNegotiable())
@@ -84,6 +87,7 @@ public class JobService {
                 .employmentType(request.getEmploymentType())
                 .employmentTypeOther(trimToNull(request.getEmploymentTypeOther()))
                 .description(request.getDescription())
+                .applicationDeadline(request.getApplicationDeadline())
                 .responsibilities(request.getResponsibilities() == null
                         ? List.of() : List.copyOf(request.getResponsibilities()))
                 .build();
@@ -248,6 +252,10 @@ public class JobService {
         job.setEmploymentType(request.getEmploymentType());
         job.setEmploymentTypeOther(trimToNull(request.getEmploymentTypeOther()));
         job.setDescription(request.getDescription());
+        job.setApplicationDeadline(request.getApplicationDeadline());
+        if (request.getOccupationCodes() != null) {
+            job.setOccupationCodes(List.copyOf(request.getOccupationCodes()));
+        }
         job.setResponsibilities(request.getResponsibilities() == null
                 ? List.of() : List.copyOf(request.getResponsibilities()));
 
@@ -504,6 +512,7 @@ public class JobService {
                 .employmentType(job.getEmploymentType())
                 .employmentTypeOther(job.getEmploymentTypeOther())
                 .description(job.getDescription())
+                .applicationDeadline(job.getApplicationDeadline())
                 .responsibilities(job.getResponsibilities())
                 .requirements(reqResponses)
                 .createdAt(job.getCreatedAt())

@@ -177,7 +177,11 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
         candToken2 = "cand-token-2";
 
         // Setup companies and jobs
-        companyA = Company.builder().name("Company Alpha").build();
+        companyA = Company.builder()
+                .name("Company Alpha")
+                .recruiterPlan("PRO")
+                .recruiterProUntil(java.time.ZonedDateTime.now().plusDays(1))
+                .build();
         companyA.setId(UUID.randomUUID());
 
         companyB = Company.builder().name("Company Beta").build();
@@ -284,7 +288,7 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     }
 
     @Test
-    @DisplayName("Filter Chain: Unauthenticated request to /api/v1/admin/ai-settings is blocked (HTTP 403)")
+    @DisplayName("Filter Chain: Unauthenticated request to /api/v1/admin/ai-settings is unauthorized (HTTP 401)")
     void testAdminEndpoint_Unauthenticated_Blocked() throws Exception {
         mockMvc.perform(get("/api/v1/admin/ai-settings")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -315,7 +319,7 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     }
 
     @Test
-    @DisplayName("Filter Chain: User in DB has null role -> Never fallback to token role -> HTTP 403")
+    @DisplayName("Filter Chain: User in DB has null role -> Never fallback to token role -> HTTP 401")
     void testUserWithNullRoleInDatabase_AuthenticationRejected() throws Exception {
         UUID nullRoleUserId = UUID.randomUUID();
         User nullRoleUser = User.builder().email("nullrole@test.com").role(null).isActive(true).build();
@@ -333,7 +337,7 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     }
 
     @Test
-    @DisplayName("Filter Chain: User in DB is inactive (isActive=false) -> Authentication rejected -> HTTP 403")
+    @DisplayName("Filter Chain: User in DB is inactive (isActive=false) -> Authentication rejected -> HTTP 401")
     void testInactiveUser_AuthenticationRejected() throws Exception {
         UUID inactiveUserId = UUID.randomUUID();
         User inactiveUser = User.builder().email("inactive@test.com").role(Role.ADMIN).isActive(false).build();
@@ -425,6 +429,7 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     @Test
     @DisplayName("Multi-Tenant: HR Company A CAN access Company A's match inspection (HTTP 200)")
     void testMultiTenant_HrCompanyA_CanAccess_CompanyA_MatchInspection() throws Exception {
+        appCand1JobA.setAiAnalysisConsent(true);
         when(applicationRepository.findById(appCand1JobA.getId())).thenReturn(Optional.of(appCand1JobA));
         when(recruiterProfileRepository.findByUserId(hrUserAId)).thenReturn(Optional.of(recruiterA));
         when(matchingEngineService.getMatchInspection(appCand1JobA.getId()))
@@ -435,7 +440,8 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.applicationId").value(appCand1JobA.getId().toString()))
-                .andExpect(jsonPath("$.data.overallScore").value(88.5));
+                .andExpect(jsonPath("$.data.overallScore").value(88.5))
+                .andExpect(jsonPath("$.data.detailAccess").value(true));
     }
 
     @Test

@@ -178,7 +178,7 @@ class ProductionReadinessAndLegacyAuditTest {
             return v;
         });
 
-        processingLifecycleService.processCvDocument(cvId);
+        processingLifecycleService.processCvDocument(candidateUser, cvId);
 
         // Invariant: AiWorkerClient must NEVER be called for candidate CV processing
         verifyNoInteractions(aiWorkerClient);
@@ -201,7 +201,7 @@ class ProductionReadinessAndLegacyAuditTest {
                         "preferred_skills", List.of(Map.of("normalized_name", "Docker", "min_years_exp", 1))
                 ));
 
-        processingLifecycleService.processJobDescription(jobA.getId());
+        processingLifecycleService.processJobDescription(User.builder().role(Role.ADMIN).build(), jobA.getId());
         verify(aiWorkerClient, times(1)).extractJd(eq(jobA.getId()), eq("Staff Java Engineer"), eq("Technology"), anyString());
         verify(jobRequirementRepository, times(2)).save(any(JobRequirement.class));
 
@@ -290,12 +290,10 @@ class ProductionReadinessAndLegacyAuditTest {
     @Test
     @DisplayName("6. Duplicate Prevention: Recalculation purges existing factors and evidences via deleteByMatchResultId")
     void test06_DuplicatePrevention_IdempotencyUnderRetries() {
-        when(jobRepository.findById(jobA.getId())).thenReturn(Optional.of(jobA));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
         when(applicationRepository.findByJobIdAndCandidateId(jobA.getId(), candidate.getId())).thenReturn(Optional.of(application));
 
         CV cv = CV.builder().candidate(candidate).rawText("Java Spring Boot PostgreSQL.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(application, cv, cv.getRawText());
 
         JobRequirement req = JobRequirement.builder().job(jobA).skillName("Java").requirementType(RequirementType.REQUIRED).build();
         when(jobRequirementRepository.findByJobId(jobA.getId())).thenReturn(List.of(req));
@@ -317,24 +315,14 @@ class ProductionReadinessAndLegacyAuditTest {
     // 7. Failure mode: AI provider unavailable
     // =========================================================================
     @Test
-    @DisplayName("7. Failure Mode: Insufficient CV data / missing content prevents false matches and returns INSUFFICIENT_DATA")
-    void test07_FailureMode_AiProviderUnavailableGracefulHandling() {
-        when(jobRepository.findById(jobA.getId())).thenReturn(Optional.of(jobA));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
+    @DisplayName("7. Matching without a confirmed CV is rejected before scoring")
+    void test07_MatchingWithoutConfirmedCvIsRejected() {
         when(applicationRepository.findByJobIdAndCandidateId(jobA.getId(), candidate.getId())).thenReturn(Optional.of(application));
 
-        // Empty CV text
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(Collections.emptyList());
-        when(matchResultRepository.findByApplicationId(application.getId())).thenReturn(Optional.empty());
-        when(matchResultRepository.save(any(MatchResult.class))).thenAnswer(i -> i.getArgument(0));
-
-        MatchResult result = matchingEngineService.calculateAndPersistMatchResult(jobA.getId(), candidate.getId());
-
-        assertNotNull(result);
-        assertEquals("INSUFFICIENT_DATA", result.getStatus());
-        assertEquals(BigDecimal.ZERO, result.getOverallScore());
-        assertEquals(BigDecimal.ZERO, result.getCoreScore());
-        assertNull(result.getGithubScore());
+        com.platform.recruitment.common.CustomException failure = assertThrows(
+                com.platform.recruitment.common.CustomException.class,
+                () -> matchingEngineService.calculateAndPersistMatchResult(jobA.getId(), candidate.getId()));
+        assertEquals(com.platform.recruitment.common.ErrorCode.VALIDATION_ERROR, failure.getErrorCode());
     }
 
     // =========================================================================
@@ -343,12 +331,10 @@ class ProductionReadinessAndLegacyAuditTest {
     @Test
     @DisplayName("8. Failure Mode: Candidate with no GitHub profile receives 0-penalty fallback (S_overall = S_core)")
     void test08_FailureMode_GithubUnavailableZeroPenalty() {
-        when(jobRepository.findById(jobA.getId())).thenReturn(Optional.of(jobA));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
         when(applicationRepository.findByJobIdAndCandidateId(jobA.getId(), candidate.getId())).thenReturn(Optional.of(application));
 
         CV cv = CV.builder().candidate(candidate).rawText("Java Engineer with 4 years experience.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(application, cv, cv.getRawText());
         when(jobRequirementRepository.findByJobId(jobA.getId())).thenReturn(Collections.emptyList());
 
         // GitHub profile absent

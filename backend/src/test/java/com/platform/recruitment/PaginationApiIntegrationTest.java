@@ -45,10 +45,10 @@ public class PaginationApiIntegrationTest {
     private JwtTokenProvider tokenProvider;
 
     @MockBean
-    private UserRepository userRepository;
+    private AuthSessionService authSessionService;
 
     @MockBean
-    private AuthSessionService authSessionService;
+    private UserRepository userRepository;
 
     @Test
     @DisplayName("GET /api/v1/jobs trả định dạng PageResponse chuẩn")

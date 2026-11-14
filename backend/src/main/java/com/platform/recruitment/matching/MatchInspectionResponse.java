@@ -35,6 +35,53 @@ public class MatchInspectionResponse {
     private String humanReadableExplanation;
     private GitHubAssessmentInfo githubAssessment;
     private List<EvidenceItem> evidences;
+    private String matchClassification;
+    private Boolean detailAccess;
+
+    public void redactForStandardPlan() {
+        detailAccess = false;
+        if (overallScore != null) matchClassification =
+                com.platform.recruitment.product.AiScreeningAccessService.classifyScore(overallScore);
+        overallScore = null;
+        coreScore = null;
+        githubScore = null;
+        githubScoreActive = null;
+        algorithmVersion = null;
+        calculationStatus = matchClassification;
+        cvVersionId = null;
+        jdVersionId = null;
+        semanticMethod = null;
+        embeddingModel = null;
+        scoringPolicyVersion = null;
+        requiredSkillsStatus = null;
+        preferredSkillsStatus = null;
+        matchFactors = null;
+        humanReadableExplanation = null;
+        githubAssessment = null;
+        evidences = null;
+    }
+
+    public void redactForNoConsent() {
+        detailAccess = false;
+        overallScore = null;
+        coreScore = null;
+        githubScore = null;
+        githubScoreActive = null;
+        algorithmVersion = null;
+        calculationStatus = "CONSENT_NOT_GIVEN";
+        cvVersionId = null;
+        jdVersionId = null;
+        semanticMethod = null;
+        embeddingModel = null;
+        scoringPolicyVersion = null;
+        requiredSkillsStatus = null;
+        preferredSkillsStatus = null;
+        matchFactors = null;
+        humanReadableExplanation = null;
+        githubAssessment = null;
+        evidences = null;
+        matchClassification = "CHUA_KHA_DUNG";
+    }
 
     @Data
     @Builder

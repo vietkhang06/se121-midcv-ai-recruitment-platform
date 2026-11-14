@@ -77,6 +77,7 @@ public class GitHubDeepVerificationTest {
         GitHubProfile profile = GitHubProfile.builder()
                 .candidate(candidate)
                 .status("SYNCED")
+                .ownershipStatus("OWNED")
                 .activitySignal(GitHubActivitySignal.HIGH)
                 .build();
         profile.setId(UUID.randomUUID());
@@ -132,6 +133,7 @@ public class GitHubDeepVerificationTest {
         GitHubProfile profile = GitHubProfile.builder()
                 .candidate(candidate)
                 .status("SYNCED")
+                .ownershipStatus("OWNED")
                 .activitySignal(GitHubActivitySignal.HIGH)
                 .build();
         profile.setId(UUID.randomUUID());
@@ -163,6 +165,7 @@ public class GitHubDeepVerificationTest {
         GitHubProfile profileJava = GitHubProfile.builder()
                 .candidate(candidate)
                 .status("SYNCED")
+                .ownershipStatus("OWNED")
                 .activitySignal(GitHubActivitySignal.HIGH)
                 .build();
         profileJava.setId(UUID.randomUUID());
@@ -185,6 +188,7 @@ public class GitHubDeepVerificationTest {
         GitHubProfile profilePython = GitHubProfile.builder()
                 .candidate(candidate)
                 .status("SYNCED")
+                .ownershipStatus("OWNED")
                 .activitySignal(GitHubActivitySignal.HIGH)
                 .build();
         profilePython.setId(UUID.randomUUID());
@@ -215,6 +219,7 @@ public class GitHubDeepVerificationTest {
         GitHubProfile profile = GitHubProfile.builder()
                 .candidate(candidate)
                 .status("SYNCED")
+                .ownershipStatus("OWNED")
                 .activitySignal(GitHubActivitySignal.HIGH)
                 .build();
         profile.setId(UUID.randomUUID());
@@ -274,6 +279,7 @@ public class GitHubDeepVerificationTest {
         GitHubProfile profile = GitHubProfile.builder()
                 .candidate(candidate)
                 .status("SYNCED")
+                .ownershipStatus("OWNED")
                 .activitySignal(GitHubActivitySignal.MODERATE)
                 .build();
         profile.setId(UUID.randomUUID());
@@ -317,6 +323,7 @@ public class GitHubDeepVerificationTest {
         GitHubProfile profile = GitHubProfile.builder()
                 .candidate(candidate)
                 .status("SYNCED")
+                .ownershipStatus("OWNED")
                 .activitySignal(GitHubActivitySignal.HIGH)
                 .build();
         profile.setId(UUID.randomUUID());

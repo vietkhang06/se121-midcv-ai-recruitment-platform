@@ -7,6 +7,7 @@ import jakarta.validation.constraints.AssertTrue;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @Data
@@ -68,6 +69,11 @@ public class CreateJobRequest {
 
     @NotBlank(message = "Job description is required")
     private String description;
+
+    private LocalDate applicationDeadline;
+
+    @jakarta.validation.constraints.Size(max = 30)
+    private List<@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 80) String> occupationCodes;
 
     @jakarta.validation.constraints.Size(max = 100)
     private List<@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 2000) String> responsibilities;
