@@ -648,12 +648,20 @@ class DocumentExtractor:
         except Exception as exif_err:
             logger.debug(f"EXIF orientation skip: {exif_err}")
 
+        # Optional upscale for low-res images
+        if image.width < 600 or image.height < 600:
+            scale_factor = 2
+            image = image.resize((image.width * scale_factor, image.height * scale_factor), Image.Resampling.LANCZOS)
+
+        # Grayscale conversion
+        gray = image.convert("L")
+
         logger.info(f"OCR_PAGE_STARTED [correlation_id={correlation_id}, page=1]")
         ocr_start = time.time()
         warnings = []
         try:
-            raw_text, avg_conf = tesseract_runtime.ocr_document_image(
-                image,
+            raw_text, avg_conf = tesseract_runtime.ocr_image(
+                gray,
                 psm=settings.OCR_PSM,
                 timeout_seconds=settings.OCR_TIMEOUT_SECONDS,
                 correlation_id=correlation_id
