@@ -182,9 +182,7 @@ function RegisterFormContent({ audience }: { audience?: AuthRole }) {
           ? await registerRecruiterAccount({
               ...payload,
               companyName: trimmedCompanyName,
-              phone: phone.trim(),
               companyTaxCode: companyTaxCode.trim(),
-              companyAddress: companyAddress.trim(),
             })
           : await registerCandidateAccount(payload);
 

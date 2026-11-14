@@ -1,20 +1,18 @@
-"use client";
+'use client';
 
-import { CVUploadModal } from "@/components/cv/CVUploadModal";
-import { CVExtractionReviewModal } from "@/components/cv/CVExtractionReviewModal";
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { Job, CV, Application } from "@/types";
-import { useAuth } from "@/context/AuthContext";
-import { useLanguage } from "@/context/LanguageContext";
-import { fetchCandidateCVs, submitApplication } from "@/lib/api";
+import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { Job, CV, Application } from '@/types';
+import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { fetchCandidateCVs, submitApplication, previewQuickApply, QuickApplyPreview } from '@/lib/api';
 import {
   X,
   ShieldAlert,
   CheckCircle2,
   AlertCircle,
-  ArrowRight,
-} from "lucide-react";
+  ArrowRight
+} from 'lucide-react';
 
 interface QuickApplyModalProps {
   job: Job | null;
@@ -33,59 +31,50 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
 }) => {
   const { isAuthenticated, openAuthModal } = useAuth();
   const { t, locale } = useLanguage();
-  const isVi = locale === "vi";
+  const isVi = locale === 'vi';
 
   // Step 1: Select CV, Step 2: Review Match Grid (Figma 07), Step 3: Confirm & Send
-  const [aiConsent, setAiConsent] = useState(false);
-  const [coverLetter, setCoverLetter] = useState("");
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [reviewCvId, setReviewCvId] = useState("");
-  const [source, setSource] = useState<"library" | "upload">("library");
   const [candidateCVs, setCandidateCVs] = useState<CV[] | null>(null);
-  const [selectedCvId, setSelectedCvId] = useState<string>("");
+  const [selectedCvId, setSelectedCvId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [cvLoadError, setCvLoadError] = useState<string | null>(null);
+  const [aiAnalysisConsent, setAiAnalysisConsent] = useState(false);
+  const [preview, setPreview] = useState<QuickApplyPreview | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const previewRequestRef = useRef(0);
 
   const closeModal = () => {
-    setAiConsent(false);
-    setCoverLetter("");
-    setSource("library");
+    previewRequestRef.current += 1;
     setIsSubmitted(false);
     setSubmitError(null);
     setCvLoadError(null);
     setCandidateCVs(null);
-    setSelectedCvId("");
+    setSelectedCvId('');
+    setAiAnalysisConsent(false);
+    setPreview(null);
+    setPreviewError(null);
+    setIsPreviewing(false);
     onClose();
   };
 
   useEffect(() => {
-    if (!isOpen || !isAuthenticated) return;
+    if (!isOpen) return;
     let active = true;
-    void fetchCandidateCVs()
-      .then((cvs) => {
+    void fetchCandidateCVs().then((cvs) => {
         if (!active) return;
-        const eligibleCvs = cvs.filter(
-          (cv) => cv.status?.toUpperCase() === "CONFIRMED",
-        );
+        const eligibleCvs = cvs.filter((cv) => cv.status?.toUpperCase() === 'CONFIRMED');
         setCandidateCVs(eligibleCvs);
         if (eligibleCvs.length > 0) {
           setSelectedCvId(eligibleCvs[0].id);
         }
-      })
-      .catch((error: unknown) => {
-        if (active)
-          setCvLoadError(
-            error instanceof Error
-              ? error.message
-              : "Could not load your CVs. / Không tải được CV.",
-          );
+      }).catch((error: unknown) => {
+        if (active) setCvLoadError(error instanceof Error ? error.message : 'Could not load your CVs. / Không tải được CV.');
       });
-    return () => {
-      active = false;
-    };
-  }, [isOpen, isAuthenticated]);
+    return () => { active = false; };
+  }, [isOpen]);
 
   if (!isOpen || !job) return null;
 
@@ -95,33 +84,26 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
         <div className="w-full max-w-md bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 text-slate-900 dark:text-slate-100 text-center space-y-4 shadow-2xl">
           <ShieldAlert className="w-12 h-12 mx-auto text-amber-500" />
           <h2 className="text-lg font-bold font-editorial text-slate-900 dark:text-white">
-            {isVi
-              ? "Yêu cầu Đăng nhập để Ứng tuyển"
-              : "Sign In Required to Apply"}
+            {isVi ? 'Yêu cầu Đăng nhập để Ứng tuyển' : 'Sign In Required to Apply'}
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-            {isVi
-              ? "Đăng nhập tài khoản ứng viên để tiếp tục nộp hồ sơ."
-              : "Sign in with a candidate account to continue your application."}
+              {isVi ? 'Đăng nhập tài khoản ứng viên để tiếp tục nộp hồ sơ.' : 'Sign in with a candidate account to continue your application.'}
           </p>
           <div className="flex justify-center gap-3 pt-2">
             <button
               onClick={closeModal}
               className="px-4 py-2 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
             >
-              {t("common.cancel", isVi ? "Hủy" : "Cancel")}
+              {t('common.cancel', isVi ? 'Hủy' : 'Cancel')}
             </button>
             <button
               onClick={() => {
                 closeModal();
-                openAuthModal("LOGIN", {
-                  type: "NAVIGATE",
-                  target: `/jobs/${job.id}`,
-                });
+                openAuthModal('LOGIN', { type: 'NAVIGATE', target: `/jobs/${job.id}` });
               }}
               className="px-4 py-2 text-xs font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary)] dark:bg-[var(--primary)] dark:hover:bg-[var(--primary)] rounded-xl transition"
             >
-              {isVi ? "Đăng nhập ngay" : "Sign In Now"}
+              {isVi ? 'Đăng nhập ngay' : 'Sign In Now'}
             </button>
           </div>
         </div>
@@ -129,35 +111,42 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
     );
   }
 
-  const selectedCv =
-    candidateCVs?.find((c) => c.id === selectedCvId) || candidateCVs?.[0];
+  const selectedCv = candidateCVs?.find((c) => c.id === selectedCvId) || candidateCVs?.[0];
 
   const retryLoadCandidateCvs = () => {
     setCandidateCVs(null);
     setCvLoadError(null);
-    void fetchCandidateCVs()
-      .then((cvs) => {
-        const eligibleCvs = cvs.filter(
-          (cv) => cv.status?.toUpperCase() === "CONFIRMED",
-        );
-        setCandidateCVs(eligibleCvs);
-        setSelectedCvId(eligibleCvs[0]?.id || "");
-      })
-      .catch((error: unknown) => {
-        setCvLoadError(
-          error instanceof Error
-            ? error.message
-            : "Could not load your CVs. / Không tải được CV.",
-        );
-        setCandidateCVs([]);
-      });
+    void fetchCandidateCVs().then((cvs) => {
+      const eligibleCvs = cvs.filter((cv) => cv.status?.toUpperCase() === 'CONFIRMED');
+      setCandidateCVs(eligibleCvs);
+      setSelectedCvId(eligibleCvs[0]?.id || '');
+    }).catch((error: unknown) => {
+      setCvLoadError(error instanceof Error ? error.message : 'Could not load your CVs. / Không tải được CV.');
+      setCandidateCVs([]);
+    });
+  };
+
+  const handlePreview = async () => {
+    if (!selectedCv || !aiAnalysisConsent) return;
+    const requestId = ++previewRequestRef.current;
+    setIsPreviewing(true);
+    setPreview(null);
+    setPreviewError(null);
+    try {
+      const result = await previewQuickApply(job.id, selectedCv.id);
+      if (requestId === previewRequestRef.current) setPreview(result);
+    } catch (err: unknown) {
+      if (requestId === previewRequestRef.current) {
+        setPreviewError(err instanceof Error ? err.message : 'Không thể xem đối sánh lúc này.');
+      }
+    } finally {
+      if (requestId === previewRequestRef.current) setIsPreviewing(false);
+    }
   };
 
   const handleConfirmApplication = async () => {
     if (!selectedCv) {
-      setSubmitError(
-        "Bạn chưa có CV nào trong tài khoản. Vui lòng tải lên hoặc tạo CV trước.",
-      );
+      setSubmitError('Bạn chưa có CV nào trong tài khoản. Vui lòng tải lên hoặc tạo CV trước.');
       return;
     }
     setIsSubmitting(true);
@@ -167,36 +156,28 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
         id: `app-${Date.now()}`,
         job: job,
         appliedCvId: selectedCv.id,
-        aiAnalysisConsent: aiConsent,
-        coverLetter,
         appliedCvTitle: selectedCv.title,
         appliedCvVersion: null,
-        status: "SUBMITTED",
-        appliedDate: "",
+        aiAnalysisConsent,
+        status: 'SUBMITTED',
+        appliedDate: '',
       });
       setIsSubmitted(true);
       if (onApplySubmitted) onApplySubmitted(newApp);
       if (onSuccess) onSuccess();
     } catch (err: unknown) {
-      setSubmitError(
-        err instanceof Error
-          ? err.message
-          : "Nộp hồ sơ thất bại. Vui lòng thử lại.",
-      );
+      setSubmitError(err instanceof Error ? err.message : 'Nộp hồ sơ thất bại. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Ứng tuyển công việc"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md overflow-y-auto"
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md overflow-y-auto">
+
       {/* 07 — Modal Card (Figma Screen 07: 1440x1332 node container) */}
       <div className="w-full max-w-2xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl shadow-2xl text-[var(--heading)] dark:text-[var(--retro-cream)] relative overflow-hidden my-8">
+
         {/* Modal Header */}
         <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-[var(--border)] relative">
           <button
@@ -208,7 +189,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
 
           <div className="space-y-1">
             <span className="text-[10px] font-sans font-bold text-[var(--primary)] dark:text-[var(--retro-sky)] uppercase tracking-widest">
-              {isVi ? "Ứng tuyển" : "Application"}
+              {isVi ? 'Ứng tuyển' : 'Application'}
             </span>
             <h2 className="text-2xl font-editorial font-bold text-[var(--heading)] dark:text-[var(--retro-cream)]">
               {job.title}
@@ -217,158 +198,96 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
               {job.companyName} — {job.location}
             </div>
           </div>
+
         </div>
 
         {/* Modal Body */}
         <div className="p-6 sm:p-8 space-y-6">
+
           {isSubmitted ? (
             <div className="text-center py-8 space-y-3">
               <CheckCircle2 className="w-12 h-12 text-[var(--success)] mx-auto" />
-              <h3 className="text-xl font-editorial font-bold text-[var(--heading)] dark:text-[var(--retro-cream)]">
-                {t("quickApply.successTitle", "Nộp Hồ Sơ Thành Công!")}
-              </h3>
+              <h3 className="text-xl font-editorial font-bold text-[var(--heading)] dark:text-[var(--retro-cream)]">{t('quickApply.successTitle', 'Nộp Hồ Sơ Thành Công!')}</h3>
               <p className="text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)] max-w-md mx-auto">
-                {isVi
-                  ? "Đơn ứng tuyển và phiên bản CV đã chọn đã được lưu."
-                  : "Your application and selected CV version have been saved."}
+                {aiAnalysisConsent
+                  ? (isVi ? 'Đã lưu đơn và CV đã chọn. Điểm đối sánh sẽ cập nhật khi vector sẵn sàng.' : 'Application and CV saved. The match may update when vectors become ready.')
+                  : (isVi ? 'Đã lưu đơn và CV đã chọn; bạn chưa cho phép phân tích AI.' : 'Application and CV saved without AI analysis consent.')}
               </p>
+              <Link href="/candidate/applications" onClick={closeModal} className="inline-block text-sm font-semibold text-blue-700 underline">
+                {isVi ? 'Xem đơn và báo cáo' : 'View application and report'}
+              </Link>
               <div className="pt-4">
                 <button
                   onClick={closeModal}
                   className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-[var(--primary)] text-white hover:bg-[var(--primary)] transition shadow-xs"
                 >
-                  {t("common.close", "Đóng cửa sổ")}
+                  {t('common.close', 'Đóng cửa sổ')}
                 </button>
               </div>
             </div>
           ) : (
             <>
-              <div
-                className="flex gap-2"
-                role="group"
-                aria-label="Nguồn CV ứng tuyển"
-              >
-                <button
-                  type="button"
-                  onClick={() => setSource("library")}
-                  aria-pressed={source === "library"}
-                  className={`flex-1 rounded-xl border p-3 text-sm font-semibold ${source === "library" ? "border-emerald-600 bg-emerald-50 text-emerald-900" : ""}`}
-                >
-                  Chọn từ kho CV
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSource("upload");
-                    setUploadOpen(true);
-                  }}
-                  aria-pressed={source === "upload"}
-                  className={`flex-1 rounded-xl border p-3 text-sm font-semibold ${source === "upload" ? "border-emerald-600 bg-emerald-50 text-emerald-900" : ""}`}
-                >
-                  ↑ Tải CV từ máy tính
-                </button>
-              </div>
-              <p className="text-xs leading-5 text-[var(--text-secondary)]">
-                CV tải lên sẽ được trích xuất theo quy trình hiện có. Bạn cần rà
-                soát và xác nhận dữ liệu trước khi nộp; hệ thống chỉ đối sánh
-                với JD này khi bạn đồng ý phân tích AI.
-              </p>
               {/* CV Selection */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-[var(--heading)] dark:text-[var(--retro-cream)] flex items-center justify-between">
-                  <span>{isVi ? "Bản CV ứng tuyển:" : "Application CV:"}</span>
+                  <span>{isVi ? 'Bản CV ứng tuyển:' : 'Application CV:'}</span>
                   {candidateCVs?.length === 0 && !cvLoadError && (
                     <span className="text-rose-500 text-[11px]">
-                      {isVi
-                        ? "Cần CV đã xác nhận"
-                        : "A confirmed CV is required"}
+                      {isVi ? 'Cần CV đã xác nhận' : 'A confirmed CV is required'}
                     </span>
                   )}
                 </label>
                 {candidateCVs === null ? (
-                  <p role="status" className="text-xs text-slate-500">
-                    {isVi ? "Đang tải danh sách CV…" : "Loading your CVs…"}
-                  </p>
+                  <p role="status" className="text-xs text-slate-500">{isVi ? 'Đang tải danh sách CV…' : 'Loading your CVs…'}</p>
                 ) : cvLoadError ? (
-                  <div className="space-y-2 text-xs text-rose-700 dark:text-rose-300">
-                    <p role="alert">{cvLoadError}</p>
-                    <button
-                      type="button"
-                      onClick={retryLoadCandidateCvs}
-                      className="font-semibold underline"
-                    >
-                      {isVi ? "Thử tải lại" : "Retry"}
-                    </button>
-                  </div>
+                  <div className="space-y-2 text-xs text-rose-700 dark:text-rose-300"><p role="alert">{cvLoadError}</p><button type="button" onClick={retryLoadCandidateCvs} className="font-semibold underline">{isVi ? 'Thử tải lại' : 'Retry'}</button></div>
                 ) : candidateCVs.length > 0 ? (
                   <select
                     value={selectedCvId}
-                    onChange={(e) => setSelectedCvId(e.target.value)}
+                    onChange={(e) => { previewRequestRef.current += 1; setIsPreviewing(false); setSelectedCvId(e.target.value); setPreview(null); setPreviewError(null); }}
                     className="w-full text-xs bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl px-3.5 py-2.5 text-[var(--heading)] dark:text-[var(--retro-cream)] focus:outline-none focus:border-[var(--border)]"
                   >
                     {candidateCVs.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.title} (
-                        {c.creationPath === "UPLOAD"
-                          ? isVi
-                            ? "File tải lên"
-                            : "Uploaded file"
-                          : isVi
-                            ? "Tạo từ Builder"
-                            : "CV Builder"}
-                        ){" "}
-                        {c.isDefault ? (isVi ? "— Mặc định" : "— Default") : ""}
+                        {c.title} ({c.creationPath === 'UPLOAD' ? (isVi ? 'File tải lên' : 'Uploaded file') : (isVi ? 'Tạo từ Builder' : 'CV Builder')}) {c.isDefault ? (isVi ? '— Mặc định' : '— Default') : ''}
                       </option>
                     ))}
                   </select>
                 ) : (
                   <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 rounded-xl text-xs text-rose-700 dark:text-rose-300">
-                    {isVi
-                      ? "Bạn chưa có CV ở trạng thái đã xác nhận. Hãy hoàn tất rà soát và xác nhận CV trước khi ứng tuyển."
-                      : "You do not have a confirmed CV yet. Review and confirm a CV before applying."}
+                      {isVi
+                        ? 'Bạn chưa có CV ở trạng thái đã xác nhận. Hãy hoàn tất rà soát và xác nhận CV trước khi ứng tuyển.'
+                        : 'You do not have a confirmed CV yet. Review and confirm a CV before applying.'}
                   </div>
                 )}
-                {candidateCVs?.length === 0 && !cvLoadError && (
-                  <Link
-                    href={`/candidate/cvs/builder?returnTo=${encodeURIComponent(`/jobs/${job.id}`)}`}
-                    onClick={closeModal}
-                    className="mt-2 inline-flex text-xs font-semibold text-blue-700 underline dark:text-blue-300"
-                  >
-                    {isVi ? "Tạo hoặc xác nhận CV" : "Create or confirm a CV"}
-                  </Link>
-                )}
+                {candidateCVs?.length === 0 && !cvLoadError && <Link href={`/candidate/cvs/builder?returnTo=${encodeURIComponent(`/jobs/${job.id}`)}`} onClick={closeModal} className="mt-2 inline-flex text-xs font-semibold text-blue-700 underline dark:text-blue-300">{isVi ? 'Tạo hoặc xác nhận CV' : 'Create or confirm a CV'}</Link>}
               </div>
 
-              <label className="block space-y-2 text-sm font-semibold">
-                Thư giới thiệu (không bắt buộc)
-                <textarea
-                  value={coverLetter}
-                  onChange={(e) => setCoverLetter(e.target.value)}
-                  maxLength={5000}
-                  rows={4}
-                  placeholder="Chia sẻ lý do bạn phù hợp với vị trí này…"
-                  className="w-full rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-900"
-                />
-              </label>
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
-                <label className="flex cursor-pointer items-start gap-3 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={aiConsent}
-                    onChange={(e) => setAiConsent(e.target.checked)}
-                    className="mt-1 h-4 w-4 shrink-0 accent-emerald-700"
-                  />
-                  <span>
-                    Cho phép midCV sử dụng công nghệ AI để phân tích độ phù hợp
-                    CV của bạn.
-                  </span>
+              <div className="rounded-xl border border-slate-200 dark:border-[var(--border)] p-4 space-y-3 text-xs">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input type="checkbox" checked={aiAnalysisConsent} onChange={(e) => {
+                    previewRequestRef.current += 1; setIsPreviewing(false); setAiAnalysisConsent(e.target.checked); setPreview(null); setPreviewError(null);
+                  }} className="mt-0.5" />
+                  <span>{isVi
+                    ? 'Tôi đồng ý cho midCV phân tích CV đã chọn và JD này bằng AI để tạo báo cáo đối sánh. Tôi vẫn có thể nộp đơn nếu không đồng ý.'
+                    : 'I agree to AI analysis of this CV against this job. I can still apply without consent.'}</span>
                 </label>
-                <p className="mt-2 pl-7 text-xs leading-5">
-                  {aiConsent
-                    ? "Kết quả đối sánh và minh chứng sẽ được hiển thị cho nhà tuyển dụng của tin này."
-                    : "Bạn vẫn có thể ứng tuyển. Hệ thống sẽ không chấm điểm CV cho đơn này; HR thấy trạng thái “Chưa khả dụng”."}
-                </p>
+                {aiAnalysisConsent && selectedCv && (
+                  <button type="button" disabled={isPreviewing} onClick={handlePreview}
+                    className="rounded-lg border border-blue-300 px-3 py-2 font-semibold text-blue-700 disabled:opacity-50">
+                    {isPreviewing ? (isVi ? 'Đang đối sánh...' : 'Matching...') : (isVi ? 'Xem đối sánh tạm trước khi nộp' : 'Preview match before applying')}
+                  </button>
+                )}
+                {previewError && <p role="alert" className="text-rose-700">{previewError}</p>}
+                {preview && <div role="status" className="space-y-1 text-slate-700 dark:text-slate-200">
+                  <p>{isVi ? 'Điểm tạm tính: ' : 'Provisional score: '}
+                    <strong>{preview.overallScore != null ? `${Number(preview.overallScore).toFixed(1)}%` : 'N/A'}</strong></p>
+                  <p>{isVi ? 'Trạng thái: ' : 'Status: '}{preview.status}</p>
+                  <p>{isVi ? 'Phương pháp: ' : 'Method: '}{preview.semanticMethod || 'N/A'}</p>
+                  <p>{isVi ? 'Bản xem trước không tạo đơn; điểm cuối có thể đổi khi vector CV/JD sẵn sàng.' : 'Preview does not submit an application; the final score may change when CV/JD vectors are ready.'}</p>
+                </div>}
               </div>
+
               {submitError && (
                 <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
@@ -383,52 +302,26 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
                   onClick={closeModal}
                   className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[var(--border)] text-[var(--heading)] dark:text-[var(--text-secondary)] hover:bg-slate-50 dark:hover:bg-[var(--surface)] transition"
                 >
-                  {t("quickApply.back", "Quay lại")}
+                  {t('quickApply.back', 'Quay lại')}
                 </button>
 
                 <button
                   type="button"
-                  disabled={
-                    isSubmitting || !candidateCVs?.length || !selectedCv
-                  }
+                  disabled={isSubmitting || !candidateCVs?.length || !selectedCv}
                   onClick={handleConfirmApplication}
                   className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary)] transition shadow-xs flex items-center gap-1.5 active:scale-[0.99] cursor-pointer"
                 >
-                  <span>
-                    {isSubmitting
-                      ? t("quickApply.submitting", "Đang nộp hồ sơ...")
-                      : t(
-                          "quickApply.submitApplication",
-                          "Xác nhận & Nộp hồ sơ",
-                        )}
-                  </span>
+                  <span>{isSubmitting ? t('quickApply.submitting', 'Đang nộp hồ sơ...') : t('quickApply.submitApplication', 'Xác nhận & Nộp hồ sơ')}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </>
           )}
+
         </div>
+
       </div>
 
-      <CVUploadModal
-        isOpen={uploadOpen}
-        onClose={() => setUploadOpen(false)}
-        onUploadSuccess={(cv) => {
-          setReviewCvId(cv.id);
-          setUploadOpen(false);
-        }}
-      />
-      {reviewCvId && (
-        <CVExtractionReviewModal
-          cvId={reviewCvId}
-          isOpen={true}
-          onClose={() => {
-            setReviewCvId("");
-            retryLoadCandidateCvs();
-          }}
-          onCvUpdated={retryLoadCandidateCvs}
-        />
-      )}
     </div>
   );
 };

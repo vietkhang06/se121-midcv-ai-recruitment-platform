@@ -18,8 +18,6 @@ public class MatchInspectionResponse {
     private UUID applicationId;
     private String jobTitle;
     private String candidateName;
-    private String matchClassification;
-    private boolean detailAccess;
     private String algorithmVersion;
     private String calculationStatus;
     private BigDecimal overallScore;
@@ -37,19 +35,52 @@ public class MatchInspectionResponse {
     private String humanReadableExplanation;
     private GitHubAssessmentInfo githubAssessment;
     private List<EvidenceItem> evidences;
+    private String matchClassification;
+    private Boolean detailAccess;
 
     public void redactForStandardPlan() {
-        this.detailAccess = false;
-        this.overallScore = null;
-        this.coreScore = null;
-        this.githubScore = null;
-        this.requiredSkillsStatus = java.util.List.of();
-        this.preferredSkillsStatus = java.util.List.of();
-        this.matchFactors = java.util.List.of();
-        this.evidences = java.util.List.of();
-        this.githubAssessment = null;
-        this.humanReadableExplanation =
-                "Tài khoản thường được xem phân loại tổng quan. Nâng cấp Pro để xem điểm thành phần, nhận xét và minh chứng chi tiết.";
+        detailAccess = false;
+        if (overallScore != null) matchClassification =
+                com.platform.recruitment.product.AiScreeningAccessService.classifyScore(overallScore);
+        overallScore = null;
+        coreScore = null;
+        githubScore = null;
+        githubScoreActive = null;
+        algorithmVersion = null;
+        calculationStatus = matchClassification;
+        cvVersionId = null;
+        jdVersionId = null;
+        semanticMethod = null;
+        embeddingModel = null;
+        scoringPolicyVersion = null;
+        requiredSkillsStatus = null;
+        preferredSkillsStatus = null;
+        matchFactors = null;
+        humanReadableExplanation = null;
+        githubAssessment = null;
+        evidences = null;
+    }
+
+    public void redactForNoConsent() {
+        detailAccess = false;
+        overallScore = null;
+        coreScore = null;
+        githubScore = null;
+        githubScoreActive = null;
+        algorithmVersion = null;
+        calculationStatus = "CONSENT_NOT_GIVEN";
+        cvVersionId = null;
+        jdVersionId = null;
+        semanticMethod = null;
+        embeddingModel = null;
+        scoringPolicyVersion = null;
+        requiredSkillsStatus = null;
+        preferredSkillsStatus = null;
+        matchFactors = null;
+        humanReadableExplanation = null;
+        githubAssessment = null;
+        evidences = null;
+        matchClassification = "CHUA_KHA_DUNG";
     }
 
     @Data

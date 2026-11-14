@@ -69,7 +69,7 @@ class ProcessingIdempotencyTest {
                 .thenReturn(aiWorkerResponse);
 
         // Run process job description
-        lifecycleService.processJobDescription(job.getId());
+        lifecycleService.processJobDescription(com.platform.recruitment.user.User.builder().role(com.platform.recruitment.user.Role.ADMIN).build(), job.getId());
 
         // Verify old requirements were deleted before saving new ones
         verify(jobRequirementRepository, times(1)).deleteAll(List.of(oldReq));

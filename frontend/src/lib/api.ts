@@ -1,4 +1,4 @@
-import { subscribeProgress } from "./sse";
+import { subscribeProgress } from './sse';
 import {
   Job,
   CV,
@@ -33,25 +33,14 @@ import {
   CreateCVRequest,
   CVVersion,
   CVDraftData,
-  TaxonomySkillItem,
-} from "@/types";
+  TaxonomySkillItem
+} from '@/types';
 
-export const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 type JsonRecord = Record<string, unknown>;
-interface ApiEnvelope<T> {
-  data: T;
-  message?: string;
-  success?: boolean;
-}
-interface ApiPage<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  page?: number;
-  size?: number;
-}
+interface ApiEnvelope<T> { data: T; message?: string; success?: boolean; }
+interface ApiPage<T> { content: T[]; totalElements: number; totalPages: number; page?: number; size?: number; }
 
 interface CandidateProfileApiDto {
   id?: string;
@@ -68,14 +57,6 @@ interface CandidateProfileApiDto {
 }
 
 interface BackendApplicationDto {
-  aiAnalysisConsent?: boolean;
-  aiScoringAvailable?: boolean;
-  aiScoringReasonCode?: string;
-  aiScoringReason?: string;
-  matchClassification?: string;
-  proDetailAvailable?: boolean;
-  recruiterPlan?: string;
-  coverLetter?: string;
   id: string | number;
   jobId: string | number;
   jobTitle?: string | null;
@@ -89,33 +70,35 @@ interface BackendApplicationDto {
   candidatePhone?: string | null;
   candidateHeadline?: string | null;
   candidateGithubUrl?: string | null;
+  appliedCvFullName?: string | null;
+  appliedCvEmail?: string | null;
+  appliedCvPhone?: string | null;
+  appliedCvHeadline?: string | null;
+  appliedCvGithubUrl?: string | null;
   status?: string | null;
   matchScore?: number | null;
   matchStatus?: string | null;
+  matchClassification?: string | null;
+  aiAnalysisConsent?: boolean | null;
+  proDetailAvailable?: boolean | null;
+  recruiterPlan?: 'STANDARD' | 'PRO' | null;
+  developmentProAccess?: boolean | null;
   appliedAt?: string | null;
   snapshot?: {
     cvTitle?: string | null;
     rawTextSnapshot?: string | null;
-    structuredJsonSnapshot?: string | null;
     snapshotCreatedAt?: string | null;
   } | null;
 }
 
 interface CompanyApiDto {
-  description?: string;
-  descriptionHtml?: string;
-  address?: string;
-  contactPhone?: string;
-  verificationLevel?: number;
-  businessLicenseName?: string;
-  licenseSubmittedAt?: string;
   id?: string | number | null;
   name?: string | null;
   taxCode?: string | null;
   industry?: string | null;
   website?: string | null;
   size?: string | null;
-  verificationStatus?: Company["verificationStatus"] | null;
+  verificationStatus?: Company['verificationStatus'] | null;
   verificationReason?: string | null;
   reviewNotes?: string | null;
 }
@@ -148,51 +131,14 @@ declare global {
 }
 
 function isBackendApplication(value: unknown): value is BackendApplicationDto {
-  return (
-    isRecord(value) &&
-    (typeof value.id === "string" || typeof value.id === "number") &&
-    (typeof value.jobId === "string" || typeof value.jobId === "number")
-  );
+  return isRecord(value)
+    && (typeof value.id === 'string' || typeof value.id === 'number')
+    && (typeof value.jobId === 'string' || typeof value.jobId === 'number');
 }
 
-function applicationScreeningFields(app: BackendApplicationDto) {
-  return {
-    aiScoringAvailable: app.aiScoringAvailable === true,
-    aiScoringReasonCode: app.aiScoringReasonCode || undefined,
-    aiScoringReason: app.aiScoringReason || undefined,
-    matchClassification: ([
-      "PHU_HOP",
-      "CAN_NHAC",
-      "KHONG_PHU_HOP",
-      "CHUA_KHA_DUNG",
-    ].includes(app.matchClassification || "")
-      ? app.matchClassification
-      : "CHUA_KHA_DUNG") as Application["matchClassification"],
-    proDetailAvailable: app.proDetailAvailable === true,
-    recruiterPlan: (app.recruiterPlan === "PRO" ? "PRO" : "STANDARD") as
-      | "STANDARD"
-      | "PRO",
-  };
-}
-
-function toApplicationStatus(
-  value: unknown,
-  fallback: ApplicationStatus = "SUBMITTED",
-): ApplicationStatus {
-  const statuses: ApplicationStatus[] = [
-    "SUBMITTED",
-    "REVIEWED",
-    "MATCHED",
-    "SHORTLISTED",
-    "INTERVIEWING",
-    "HIRED",
-    "REJECTED",
-    "UNDER_REVIEW",
-  ];
-  return typeof value === "string" &&
-    statuses.includes(value as ApplicationStatus)
-    ? (value as ApplicationStatus)
-    : fallback;
+function toApplicationStatus(value: unknown, fallback: ApplicationStatus = 'SUBMITTED'): ApplicationStatus {
+  const statuses: ApplicationStatus[] = ['SUBMITTED', 'REVIEWED', 'MATCHED', 'SHORTLISTED', 'INTERVIEWING', 'HIRED', 'REJECTED', 'UNDER_REVIEW'];
+  return typeof value === 'string' && statuses.includes(value as ApplicationStatus) ? value as ApplicationStatus : fallback;
 }
 
 function getObjectRows(value: unknown): JsonRecord[] {
@@ -200,42 +146,22 @@ function getObjectRows(value: unknown): JsonRecord[] {
 }
 
 function toRequirementType(value: unknown): RequirementType {
-  return value === "PREFERRED" ? "PREFERRED" : "REQUIRED";
+  return value === 'PREFERRED' ? 'PREFERRED' : 'REQUIRED';
 }
 
-function toRequirementMatchStatus(
-  value: unknown,
-): "MATCH" | "PARTIAL" | "MISSING" {
-  return value === "MATCH" || value === "PARTIAL" ? value : "MISSING";
+function toRequirementMatchStatus(value: unknown): 'MATCH' | 'PARTIAL' | 'MISSING' {
+  return value === 'MATCH' || value === 'PARTIAL' ? value : 'MISSING';
 }
 
-function toGitHubStatus(
-  value: unknown,
-):
-  | "SYNCED"
-  | "NOT_CONNECTED"
-  | "PUBLIC_ONLY"
-  | "PRIVATE_ONLY"
-  | "API_UNAVAILABLE"
-  | "NOT_APPLICABLE" {
-  const statuses = [
-    "SYNCED",
-    "NOT_CONNECTED",
-    "PUBLIC_ONLY",
-    "PRIVATE_ONLY",
-    "API_UNAVAILABLE",
-    "NOT_APPLICABLE",
-  ] as const;
-  return typeof value === "string" &&
-    statuses.includes(value as (typeof statuses)[number])
-    ? (value as (typeof statuses)[number])
-    : "NOT_CONNECTED";
+function toGitHubStatus(value: unknown): 'SYNCED' | 'NOT_CONNECTED' | 'PUBLIC_ONLY' | 'PRIVATE_ONLY' | 'API_UNAVAILABLE' | 'NOT_APPLICABLE' {
+  const statuses = ['SYNCED', 'NOT_CONNECTED', 'PUBLIC_ONLY', 'PRIVATE_ONLY', 'API_UNAVAILABLE', 'NOT_APPLICABLE'] as const;
+  return typeof value === 'string' && statuses.includes(value as typeof statuses[number]) ? value as typeof statuses[number] : 'NOT_CONNECTED';
 }
 
 interface UploadedEvidenceResponse {
   attachment_id: string;
   cv_id: string;
-  item_type: "CERTIFICATION" | "LANGUAGE";
+  item_type: 'CERTIFICATION' | 'LANGUAGE';
   item_id: string;
   file_name: string;
   file_size: number;
@@ -247,11 +173,11 @@ interface UploadedEvidenceResponse {
 }
 
 function isRecord(value: unknown): value is JsonRecord {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function getApiData(value: unknown): unknown {
-  return isRecord(value) && "data" in value ? value.data : value;
+  return isRecord(value) && 'data' in value ? value.data : value;
 }
 
 function getApiRows(value: unknown): unknown[] {
@@ -266,91 +192,51 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 function isCVQuota(value: unknown): value is CVQuota {
   if (!isRecord(value)) return false;
-  return (
-    (value.plan === "STANDARD" || value.plan === "PRO") &&
-    typeof value.currentCount === "number" &&
-    typeof value.maxLimit === "number" &&
-    typeof value.remainingSlots === "number" &&
-    typeof value.canUpload === "boolean"
-  );
+  return (value.plan === 'STANDARD' || value.plan === 'PRO')
+    && typeof value.currentCount === 'number'
+    && typeof value.maxLimit === 'number'
+    && typeof value.remainingSlots === 'number'
+    && typeof value.canUpload === 'boolean';
 }
 
 function toIndustry(value: unknown): Industry {
-  const valid: Industry[] = [
-    "Technology",
-    "Marketing",
-    "Design",
-    "Finance",
-    "HR",
-    "Sales",
-    "OTHER",
-  ];
-  return typeof value === "string" && valid.includes(value as Industry)
-    ? (value as Industry)
-    : "Technology";
+  const valid: Industry[] = ['Technology', 'Marketing', 'Design', 'Finance', 'HR', 'Sales', 'OTHER'];
+  return typeof value === 'string' && valid.includes(value as Industry) ? value as Industry : 'Technology';
 }
 
-function readString(value: unknown, fallback = ""): string {
-  return typeof value === "string" ? value : fallback;
+function readString(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
 }
 
 function readNumber(value: unknown): number | null {
-  if (typeof value !== "string" && typeof value !== "number") return null;
+  if (typeof value !== 'string' && typeof value !== 'number') return null;
   const result = Number(value);
   return Number.isFinite(result) ? result : null;
 }
 
 function isApiEnvelope<T>(value: ApiEnvelope<T> | T): value is ApiEnvelope<T> {
-  return isRecord(value) && "data" in value;
+  return isRecord(value) && 'data' in value;
 }
 
 function unwrapApiData<T>(value: ApiEnvelope<T> | T): T {
   return isApiEnvelope(value) ? value.data : value;
 }
 
-export async function beginOAuthLink(
-  provider: "google" | "github",
-): Promise<string> {
+export async function beginOAuthLink(provider: 'google' | 'github'): Promise<string> {
   const token = getAuthToken();
-  if (!token)
-    throw new Error("Vui lòng đăng nhập lại trước khi liên kết tài khoản.");
-  const response = await authorizedFetch(
-    `${BASE_URL}/api/v1/auth/oauth/${provider}/link`,
-    {
-      method: "POST",
-      credentials: "include",
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    },
-  );
+  if (!token) throw new Error('Vui lòng đăng nhập lại trước khi liên kết tài khoản.');
+  const response = await authorizedFetch(`${BASE_URL}/api/v1/auth/oauth/${provider}/link`, { method: 'POST', credentials: 'include', headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
   const body = await response.json();
-  if (!response.ok || !body?.data?.authorizationUrl)
-    throw new Error(body?.message || "Không thể bắt đầu liên kết tài khoản.");
+  if (!response.ok || !body?.data?.authorizationUrl) throw new Error(body?.message || 'Không thể bắt đầu liên kết tài khoản.');
   return body.data.authorizationUrl;
 }
 
-export async function fetchGithubConnection(): Promise<{
-  connected: boolean;
-  login?: string;
-  ownershipVerified: boolean;
-  scanScope: string;
-}> {
+export async function fetchGithubConnection(): Promise<{ connected: boolean; login?: string; ownershipVerified: boolean; scanScope: string }> {
   const token = getAuthToken();
-  if (!token)
-    return {
-      connected: false,
-      ownershipVerified: false,
-      scanScope: "PUBLIC_PROFILE_ONLY",
-    };
-  const response = await authorizedFetch(
-    `${BASE_URL}/api/v1/auth/oauth/github/connection`,
-    { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
-  );
+  if (!token) return { connected: false, ownershipVerified: false, scanScope: 'PUBLIC_PROFILE_ONLY' };
+  const response = await authorizedFetch(`${BASE_URL}/api/v1/auth/oauth/github/connection`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
   const body = await response.json();
-  if (!response.ok)
-    throw new Error(
-      body?.message || "Không thể tải trạng thái liên kết GitHub.",
-    );
+  if (!response.ok) throw new Error(body?.message || 'Không thể tải trạng thái liên kết GitHub.');
   return body.data;
 }
 
@@ -367,16 +253,9 @@ export interface CVProcessingEvent {
 }
 
 function isCVProcessingEvent(value: unknown): value is CVProcessingEvent {
-  if (typeof value !== "object" || value === null) return false;
+  if (typeof value !== 'object' || value === null) return false;
   const event = value as Record<string, unknown>;
-  return (
-    typeof event.eventId === "string" &&
-    typeof event.jobId === "string" &&
-    typeof event.step === "string" &&
-    typeof event.code === "string" &&
-    typeof event.progress === "number" &&
-    Number.isFinite(event.progress)
-  );
+  return typeof event.eventId === 'string' && typeof event.jobId === 'string' && typeof event.step === 'string' && typeof event.code === 'string' && typeof event.progress === 'number' && Number.isFinite(event.progress);
 }
 
 // ============================================================
@@ -389,90 +268,45 @@ export class ApiError extends Error {
   url: string;
   method: string;
   responseBody?: unknown;
-  technicalMessage: string;
 
-  constructor(
-    method: string,
-    url: string,
-    status: number,
-    statusText: string,
-    message: string,
-    responseBody?: unknown,
-  ) {
-    const fallback =
-      status === 0
-        ? "Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng và thử lại."
-        : status >= 500
-          ? "Máy chủ đang gặp sự cố. Vui lòng thử lại sau."
-          : "Yêu cầu chưa thể thực hiện. Vui lòng kiểm tra thông tin đã nhập.";
-    super(message?.trim() || fallback);
-    this.name = "ApiError";
+  constructor(method: string, url: string, status: number, statusText: string, message: string, responseBody?: unknown) {
+    super(`[API ERROR] ${method} ${url} - Status ${status} (${statusText}): ${message}`);
+    this.name = 'ApiError';
     this.status = status;
     this.statusText = statusText;
     this.url = url;
     this.method = method;
     this.responseBody = responseBody;
-    this.technicalMessage = `[API ERROR] ${method} ${url} - Status ${status} (${statusText}): ${this.message}`;
   }
-}
-
-/** Returns backend field constraints without exposing transport/debug prefixes. */
-export function getApiValidationMessages(error: unknown): string[] {
-  if (!(error instanceof ApiError) || !isRecord(error.responseBody)) return [];
-  const errorBlock = isRecord(error.responseBody.error)
-    ? error.responseBody.error
-    : null;
-  const details = errorBlock?.details;
-  const messages: string[] = [];
-  const append = (value: unknown) => {
-    if (typeof value === "string" && value.trim()) messages.push(value.trim());
-    else if (Array.isArray(value)) value.forEach(append);
-    else if (isRecord(value)) Object.values(value).forEach(append);
-  };
-  append(details);
-  return [...new Set(messages)];
-}
-
-export function getUserErrorMessage(
-  error: unknown,
-  fallback = "Yêu cầu chưa thể thực hiện. Vui lòng thử lại.",
-): string {
-  if (error instanceof Error && error.message.trim()) return error.message.trim();
-  return fallback;
 }
 
 export function isJwtExpired(token: string | null): boolean {
   if (!token) return true;
-  if (
-    token.startsWith("jwt-test-token") ||
-    token.startsWith("mock-") ||
-    token.startsWith("e2e-")
-  )
-    return false;
+  if (token.startsWith('jwt-test-token') || token.startsWith('mock-') || token.startsWith('e2e-')) return false;
   try {
-    const parts = token.split(".");
+    const parts = token.split('.');
     if (parts.length !== 3) return true;
     const base64Url = parts[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
     const jsonPayload = decodeURIComponent(
       atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join(""),
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
     );
     const payload = JSON.parse(jsonPayload);
     if (!payload.exp) return false;
     // 10 second clock skew buffer
-    return Date.now() >= payload.exp * 1000 - 10000;
+    return Date.now() >= (payload.exp * 1000 - 10000);
   } catch {
     return true;
   }
 }
 
 export function getAuthUser(): User | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem("auth_user");
+    const raw = localStorage.getItem('auth_user');
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -480,113 +314,77 @@ export function getAuthUser(): User | null {
 }
 
 export function getAuthToken(): string | null {
-  return typeof window === "undefined"
-    ? null
-    : localStorage.getItem("auth_token");
+  return typeof window === 'undefined' ? null : localStorage.getItem('auth_token');
 }
 
 export function clearAuthSession(): void {
-  if (typeof window === "undefined") return;
-  for (const key of [
-    "auth_user",
-    "auth_token",
-    "auth_refresh_token",
-    "auth_session",
-  ])
-    localStorage.removeItem(key);
-  window.dispatchEvent(new CustomEvent("midcv:session_expired"));
+  if (typeof window === 'undefined') return;
+  for (const key of ['auth_user', 'auth_token', 'auth_refresh_token', 'auth_session']) localStorage.removeItem(key);
+  window.dispatchEvent(new CustomEvent('midcv:session_expired'));
 }
 
-export function saveAuthTokens(auth: {
-  accessToken: string;
-  refreshToken?: string;
-}): void {
-  localStorage.setItem("auth_token", auth.accessToken);
-  if (auth.refreshToken)
-    localStorage.setItem("auth_refresh_token", auth.refreshToken);
+export function saveAuthTokens(auth: { accessToken: string; refreshToken?: string }): void {
+  localStorage.setItem('auth_token', auth.accessToken);
+  if (auth.refreshToken) localStorage.setItem('auth_refresh_token', auth.refreshToken);
 }
 
 class AuthRefreshError extends Error {
   constructor(readonly status: number) {
-    super(
-      "Phiên đăng nhập đã hết hạn hoặc bị thu hồi. Vui lòng đăng nhập lại.",
-    );
-    this.name = "AuthRefreshError";
+    super('Phiên đăng nhập đã hết hạn hoặc bị thu hồi. Vui lòng đăng nhập lại.');
+    this.name = 'AuthRefreshError';
   }
 }
 
 let refreshPromise: Promise<string | null> | null = null;
-export async function ensureAuthToken(
-  rejectedToken?: string,
-): Promise<string | null> {
-  if (typeof window === "undefined") return null;
+export async function ensureAuthToken(rejectedToken?: string): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
   const refresh = async () => {
     const current = getAuthToken();
-    if (current && !isJwtExpired(current) && current !== rejectedToken)
-      return current;
-    const refreshToken = localStorage.getItem("auth_refresh_token");
-    if (!refreshToken) {
-      if (current) clearAuthSession();
-      return null;
-    }
+    if (current && !isJwtExpired(current) && current !== rejectedToken) return current;
+    const refreshToken = localStorage.getItem('auth_refresh_token');
+    if (!refreshToken) { if (current) clearAuthSession(); return null; }
     const response = await fetch(`${BASE_URL}/api/v1/auth/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
-      cache: "no-store",
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }), cache: 'no-store'
     });
     if (!response.ok) {
       // Invalid/revoked refresh token: end only the session that initiated this request.
       // Another tab may have logged in while the HTTP request was in flight.
       if (response.status === 400 || response.status === 401) {
-        if (localStorage.getItem("auth_refresh_token") === refreshToken) {
+        if (localStorage.getItem('auth_refresh_token') === refreshToken) {
           clearAuthSession();
           throw new AuthRefreshError(response.status);
         }
         return getAuthToken();
       }
       // 5xx/429 are temporary failures, not grounds for deleting a valid session.
-      throw new Error(
-        `Máy chủ xác thực tạm thời không thể gia hạn phiên (HTTP ${response.status}).`,
-      );
+      throw new Error(`Máy chủ xác thực tạm thời không thể gia hạn phiên (HTTP ${response.status}).`);
     }
     const body = await response.json();
-    if (!body?.data?.accessToken || !body?.data?.refreshToken)
-      throw new Error("Phản hồi gia hạn phiên không hợp lệ.");
+    if (!body?.data?.accessToken || !body?.data?.refreshToken) throw new Error('Phản hồi gia hạn phiên không hợp lệ.');
     // A logout or a newer login may have happened while the refresh was in flight.
-    if (localStorage.getItem("auth_refresh_token") !== refreshToken)
-      return getAuthToken();
+    if (localStorage.getItem('auth_refresh_token') !== refreshToken) return getAuthToken();
     saveAuthTokens(body.data);
     return body.data.accessToken as string;
   };
   if (!refreshPromise) {
     // Serialize rotation across tabs as well as concurrent requests in this tab.
-    refreshPromise = (
-      typeof navigator !== "undefined" && navigator.locks
-        ? navigator.locks
-            .request("midcv-token-refresh", async () => refresh())
-            .then((value) => value)
-        : refresh()
-    ).finally(() => {
-      refreshPromise = null;
-    });
+    refreshPromise = (typeof navigator !== 'undefined' && navigator.locks
+      ? navigator.locks.request('midcv-token-refresh', async () => refresh()).then(value => value) : refresh()).finally(() => { refreshPromise = null; });
   }
   return refreshPromise;
 }
 
-export async function authorizedFetch(
-  url: string,
-  options: RequestInit = {},
-): Promise<Response> {
+export async function authorizedFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const headers = new Headers(options.headers);
   const token = await ensureAuthToken();
-  if (token) headers.set("Authorization", `Bearer ${token}`);
-  else headers.delete("Authorization");
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  else headers.delete('Authorization');
   let response = await fetch(url, { ...options, headers });
   if (response.status === 401 && token && !options.signal?.aborted) {
     const renewed = await ensureAuthToken(token);
     if (renewed) {
-      headers.set("Authorization", `Bearer ${renewed}`);
+      headers.set('Authorization', `Bearer ${renewed}`);
       response = await fetch(url, { ...options, headers });
     }
   }
@@ -596,71 +394,43 @@ export async function authorizedFetch(
 // These routes are explicitly public in SecurityConfig. Do not attach stale
 // credentials or refresh the session before requesting their content.
 function isPublicRead(endpoint: string, method: string): boolean {
-  if (method.toUpperCase() !== "GET") return false;
-  const path = endpoint.split("?")[0];
-  return path === "/api/v1/jobs" || /^\/api\/v1\/jobs\/[^/]+$/.test(path);
+  if (method.toUpperCase() !== 'GET') return false;
+  const path = endpoint.split('?')[0];
+  return path === '/api/v1/jobs' || /^\/api\/v1\/jobs\/[^/]+$/.test(path);
 }
 
 export async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {},
+  options: RequestInit = {}
 ): Promise<T> {
-  const method = options.method || "GET";
+  const method = options.method || 'GET';
   const url = `${BASE_URL}${endpoint}`;
   const isPublic = isPublicRead(endpoint, method);
 
   const headers = new Headers(options.headers || {});
   if (isPublic) {
-    headers.delete("Authorization");
+    headers.delete('Authorization');
   } else {
     const token = getAuthToken();
-    if (token && !headers.has("Authorization")) {
-      headers.set("Authorization", `Bearer ${token}`);
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
     }
   }
-  if (
-    options.body &&
-    !(options.body instanceof FormData) &&
-    !headers.has("Content-Type")
-  ) {
-    headers.set("Content-Type", "application/json");
+  if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
   }
 
   let res: Response;
   try {
-    res = await (
-      isPublic ||
-        [
-          "/api/v1/auth/login",
-          "/api/v1/auth/verify-email",
-          "/api/v1/auth/resend-verification",
-          "/api/v1/auth/check-email",
-          "/api/v1/auth/forgot-password",
-          "/api/v1/auth/reset-password",
-        ].includes(endpoint.split("?")[0]) ||
-        endpoint.startsWith("/api/v1/auth/register")
-        ? fetch
-        : authorizedFetch
-    )(url, { ...options, headers });
+    res = await (isPublic || ['/api/v1/auth/login', '/api/v1/auth/verify-email', '/api/v1/auth/resend-verification', '/api/v1/auth/check-email', '/api/v1/auth/forgot-password', '/api/v1/auth/reset-password'].includes(endpoint.split('?')[0])
+      || endpoint.startsWith('/api/v1/auth/register') ? fetch : authorizedFetch)(url, { ...options, headers });
   } catch (netErr: unknown) {
     if (netErr instanceof AuthRefreshError) {
-      throw new ApiError(
-        method,
-        url,
-        netErr.status,
-        "AUTH_REFRESH_REJECTED",
-        netErr.message,
-      );
+      throw new ApiError(method, url, netErr.status, 'AUTH_REFRESH_REJECTED', netErr.message);
     }
-    const errMsg =
-      netErr instanceof Error
-        ? netErr.message
-        : "Lỗi kết nối mạng đến máy chủ backend.";
-    console.error(
-      `[API ERROR] Network failure: method=${method} url=${url}`,
-      netErr,
-    );
-    throw new ApiError(method, url, 0, "NETWORK_ERROR", errMsg);
+    const errMsg = netErr instanceof Error ? netErr.message : 'Lỗi kết nối mạng đến máy chủ backend.';
+    console.error(`[API ERROR] Network failure: method=${method} url=${url}`, netErr);
+    throw new ApiError(method, url, 0, 'NETWORK_ERROR', errMsg);
   }
 
   if (!res.ok) {
@@ -672,34 +442,31 @@ export async function apiRequest<T>(
     }
 
     const errMsg =
-      (isRecord(errBody) && typeof errBody.message === "string"
-        ? errBody.message
-        : "") ||
+      (isRecord(errBody) && typeof errBody.message === 'string' ? errBody.message : '') ||
       res.statusText ||
       `Request failed with status ${res.status}`;
 
-    const isExpiredSessionResponse =
-      !isPublic &&
-      (res.status === 401 ||
-        (res.status === 403 &&
-          /yêu cầu xác thực tài khoản|phiên làm việc đã hết hạn/i.test(
-            errMsg,
-          )));
+    const isExpiredSessionResponse = !isPublic && (
+      res.status === 401 ||
+      (res.status === 403 &&
+        /yêu cầu xác thực tài khoản|phiên làm việc đã hết hạn/i.test(
+          errMsg
+        )));
 
-    if (typeof window !== "undefined" && isExpiredSessionResponse) {
+    if (typeof window !== 'undefined' && isExpiredSessionResponse) {
       clearAuthSession();
 
       window.dispatchEvent(
-        new CustomEvent("midcv:session_expired", {
+        new CustomEvent('midcv:session_expired', {
           detail: { message: errMsg },
-        }),
+        })
       );
     }
 
     // Lỗi xác thực là tình huống cần xử lý phiên đăng nhập,
     // không phải lúc nào cũng là lỗi lập trình.
     const logMessage =
-      `[API ${isExpiredSessionResponse ? "AUTH" : "ERROR"}] ` +
+      `[API ${isExpiredSessionResponse ? 'AUTH' : 'ERROR'}] ` +
       `method=${method} url=${url} status=${res.status} ` +
       `statusText=${res.statusText} message=${errMsg}`;
 
@@ -715,8 +482,9 @@ export async function apiRequest<T>(
       res.status,
       res.statusText,
       errMsg,
-      errBody,
+      errBody
     );
+
   }
 
   const json = await res.json();
@@ -730,115 +498,72 @@ export async function apiRequest<T>(
 export function mapBackendJobToFrontend(value: unknown): Job {
   const raw = isRecord(value) ? value : null;
   if (!raw || raw.id == null) {
-    throw new Error("Dữ liệu bài đăng tuyển dụng không hợp lệ: thiếu id");
+    throw new Error('Dữ liệu bài đăng tuyển dụng không hợp lệ: thiếu id');
   }
   const company = isRecord(raw.company) ? raw.company : {};
-  const rawRequirements = Array.isArray(raw.requirements)
-    ? raw.requirements
-    : [];
+  const rawRequirements = Array.isArray(raw.requirements) ? raw.requirements : [];
   return {
     id: String(raw.id),
     title: readString(raw.title),
     companyName: readString(raw.companyName, readString(company.name)),
-    companyVerified:
-      typeof raw.companyVerified === "boolean"
-        ? raw.companyVerified
-        : company.verificationStatus === "VERIFIED",
-    industry: (raw.industry === "OTHER" && typeof raw.industryOther === "string"
-      ? raw.industryOther
-      : readString(raw.industry)) as Industry,
+    companyVerified: typeof raw.companyVerified === 'boolean' ? raw.companyVerified : company.verificationStatus === 'VERIFIED',
+    industry: (raw.industry === 'OTHER' && typeof raw.industryOther === 'string' ? raw.industryOther : readString(raw.industry)) as Industry,
     industryOther: readString(raw.industryOther) || undefined,
-    employmentType:
-      raw.employmentType === "OTHER" &&
-      typeof raw.employmentTypeOther === "string"
-        ? (raw.employmentTypeOther as EmploymentType)
-        : (readString(raw.employmentType) as EmploymentType),
+    employmentType: raw.employmentType === 'OTHER' && typeof raw.employmentTypeOther === 'string' ? raw.employmentTypeOther as EmploymentType : (readString(raw.employmentType) as EmploymentType),
     employmentTypeOther: readString(raw.employmentTypeOther) || undefined,
-    seniority:
-      raw.seniority === "OTHER" && typeof raw.seniorityOther === "string"
-        ? raw.seniorityOther
-        : readString(raw.seniority),
+    seniority: raw.seniority === 'OTHER' && typeof raw.seniorityOther === 'string' ? raw.seniorityOther : readString(raw.seniority),
     seniorityOther: readString(raw.seniorityOther) || undefined,
     location: readString(raw.location),
     salaryMin: raw.minSalary != null ? readNumber(raw.minSalary) : null,
     salaryMax: raw.maxSalary != null ? readNumber(raw.maxSalary) : null,
     salaryNegotiable: raw.salaryNegotiable === true,
-    salaryCurrency: readString(raw.salaryCurrency, "VND") as NonNullable<
-      Job["salaryCurrency"]
-    >,
-    salaryPeriod: "MONTH",
-    publishedDate: readString(raw.createdAt).split("T")[0],
-    promotedUntil: readString(raw.promotedUntil),
-    aiScreeningPolicyVersion:
-      raw.aiScreeningPolicyVersion != null
-        ? (readNumber(raw.aiScreeningPolicyVersion) ?? undefined)
-        : undefined,
-    aiScreeningPackageCode:
-      readString(raw.aiScreeningPackageCode) || undefined,
+    salaryCurrency: readString(raw.salaryCurrency, 'VND') as NonNullable<Job['salaryCurrency']>,
+    salaryPeriod: 'MONTH',
+    publishedDate: readString(raw.createdAt).split('T')[0],
     description: readString(raw.description),
-    occupationCodes: Array.isArray(raw.occupationCodes)
-      ? raw.occupationCodes.filter((v): v is string => typeof v === "string")
-      : [],
-    descriptionHtml: readString(raw.descriptionHtml),
-    candidateRequirements: readString(raw.candidateRequirements),
-    benefitsContent: readString(raw.benefitsContent),
-    workAddress: readString(raw.workAddress),
-    workingTime: readString(raw.workingTime),
-    applicationInstructions: readString(raw.applicationInstructions),
-    applicationDeadline: readString(raw.applicationDeadline),
-    companyDescription: readString(raw.companyDescription),
-    companyDescriptionHtml: readString(raw.companyDescriptionHtml),
-    responsibilities: Array.isArray(raw.responsibilities)
-      ? raw.responsibilities.filter(
-          (value): value is string => typeof value === "string",
-        )
-      : [],
+    responsibilities: Array.isArray(raw.responsibilities) ? raw.responsibilities.filter((value): value is string => typeof value === 'string') : [],
     requirements: rawRequirements.filter(isRecord).map((req) => ({
       id: readString(req.id),
       skillName: readString(req.skillName),
       requirementType: readString(req.requirementType) as RequirementType,
       minYearsExperience: readNumber(req.minYearsExp) ?? undefined,
-      minExperienceYears: readNumber(req.minYearsExp) ?? undefined,
+      minExperienceYears: readNumber(req.minYearsExp) ?? undefined
     })),
-    status: (["DRAFT", "PUBLISHED", "CLOSED", "SUSPENDED"].includes(
-      readString(raw.status),
-    )
-      ? readString(raw.status)
-      : "DRAFT") as Job["status"],
+    status: (['DRAFT', 'PUBLISHED', 'CLOSED', 'SUSPENDED'].includes(readString(raw.status)) ? readString(raw.status) : 'DRAFT') as Job['status']
   };
 }
 
 export function mapBackendCVToFrontend(value: unknown): CV {
   const raw = isRecord(value) ? value : null;
   if (!raw || raw.id == null) {
-    throw new Error("Dữ liệu CV không hợp lệ: thiếu id");
+    throw new Error('Dữ liệu CV không hợp lệ: thiếu id');
   }
   return {
     id: String(raw.id),
     title: readString(raw.title),
-    targetIndustry: readString(raw.targetIndustry, "Technology") as Industry,
-    creationPath: raw.creationPath === "BUILDER" ? "BUILDER" : "UPLOAD",
+    targetIndustry: readString(raw.targetIndustry, 'Technology') as Industry,
+    creationPath: raw.creationPath === 'BUILDER' ? 'BUILDER' : 'UPLOAD',
     isDefault: !!raw.isDefault,
-    status: readString(raw.status, "DRAFT"),
+    status: readString(raw.status, 'DRAFT'),
     currentVersionNumber: 1,
     rawText: readString(raw.rawText),
-    updatedAt: readString(raw.createdAt).split("T")[0],
+    updatedAt: readString(raw.createdAt).split('T')[0],
     versions: [
       {
         id: `v-${raw.id}`,
         versionNumber: 1,
         title: readString(raw.title),
-        createdAt: raw.createdAt ? String(raw.createdAt).split("T")[0] : "",
+        createdAt: raw.createdAt ? String(raw.createdAt).split('T')[0] : '',
         sections: [
           {
             id: `sec-${raw.id}`,
-            sectionType: "SUMMARY",
-            title: "Nội dung CV",
-            content: readString(raw.rawText),
-          },
-        ],
-      },
-    ],
+            sectionType: 'SUMMARY',
+            title: 'Nội dung CV',
+            content: readString(raw.rawText)
+          }
+        ]
+      }
+    ]
   };
 }
 
@@ -861,8 +586,6 @@ export interface RegisterRecruiterPayload {
   fullName: string;
   companyName: string;
   companyTaxCode?: string;
-  companyAddress?: string;
-  phone?: string;
   companyIndustry?: Industry;
   companyWebsite?: string;
 }
@@ -894,83 +617,35 @@ export interface ApiClient {
   fetchCVQuota(): Promise<CVQuota>;
   saveCandidateCV(cv: CreateCVRequest): Promise<CV>;
   updateCVMetadata(cvId: string, metadata: { title: string }): Promise<CV>;
-  uploadCandidateCV(
-    file: File,
-    title?: string,
-    targetIndustry?: string,
-    isDefault?: boolean,
-    signal?: AbortSignal,
-  ): Promise<CV>;
+  uploadCandidateCV(file: File, title?: string, targetIndustry?: string, isDefault?: boolean, signal?: AbortSignal): Promise<CV>;
   deleteCandidateCV(cvId: string): Promise<void>;
   fetchCVReview(cvId: string, signal?: AbortSignal): Promise<CVReviewData>;
-  fetchCVProcessingStatus(
-    cvId: string,
-    signal?: AbortSignal,
-  ): Promise<CVProcessingStatus>;
+  fetchCVProcessingStatus(cvId: string, signal?: AbortSignal): Promise<CVProcessingStatus>;
   subscribeCVProcessingEvents?(
     identifier: { cvId?: string; jobId?: string },
     onEvent: (event: CVProcessingEvent) => void,
-    onError?: (err: Error) => void,
+    onError?: (err: Error) => void
   ): () => void;
-  downloadCVFile(
-    cvId: string,
-    format: string,
-    defaultFilename: string,
-  ): Promise<void>;
+  downloadCVFile(cvId: string, format: string, defaultFilename: string): Promise<void>;
   retryCVExtraction(cvId: string, signal?: AbortSignal): Promise<CVReviewData>;
   fetchCVDraft(cvId: string): Promise<CVDraftData>;
-  updateCVDraft(
-    cvId: string,
-    draftData: Record<string, unknown>,
-  ): Promise<CVDraftData>;
-  confirmCandidateCV(
-    cvId: string,
-    revision?: { version_id?: string; expected_revision?: string },
-  ): Promise<{
-    cv_id: string;
-    profile_id: string;
-    status: string;
-    confirmed_at: string;
-  }>;
+  updateCVDraft(cvId: string, draftData: Record<string, unknown>): Promise<CVDraftData>;
+  confirmCandidateCV(cvId: string, revision?: { version_id?: string; expected_revision?: string }): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }>;
   fetchCVVersions(cvId: string): Promise<CVVersion[]>;
-  searchTaxonomySkills(
-    query: string,
-    limit?: number,
-    category?: string,
-  ): Promise<TaxonomySkillItem[]>;
+  searchTaxonomySkills(query: string, limit?: number, category?: string): Promise<TaxonomySkillItem[]>;
   fetchFavoriteSkills(): Promise<TaxonomySkillItem[]>;
   addFavoriteSkill(skillId: string): Promise<TaxonomySkillItem>;
   removeFavoriteSkill(skillId: string): Promise<TaxonomySkillItem>;
-  uploadCVEvidence(
-    cvId: string,
-    file: File,
-    itemType: "CERTIFICATION" | "LANGUAGE",
-    itemId: string,
-  ): Promise<UploadedEvidenceResponse>;
+  uploadCVEvidence(cvId: string, file: File, itemType: 'CERTIFICATION' | 'LANGUAGE', itemId: string): Promise<UploadedEvidenceResponse>;
   deleteCVEvidence(cvId: string, attachmentId: string): Promise<void>;
-  downloadCVEvidence(
-    cvId: string,
-    attachmentId: string,
-    fileName: string,
-  ): Promise<void>;
+  downloadCVEvidence(cvId: string, attachmentId: string, fileName: string): Promise<void>;
   fetchCVEvidenceBlob(cvId: string, attachmentId: string): Promise<Blob>;
   fetchCandidateApplications(): Promise<Application[]>;
   submitApplication(app: Application): Promise<Application>;
-  updateCandidateApplication(
-    app: Application,
-    update: { aiAnalysisConsent: boolean; coverLetter: string },
-  ): Promise<Application>;
   fetchJobApplications(jobId: string): Promise<Application[]>;
   fetchApplicationById(applicationId: string): Promise<Application | null>;
-  updateApplicationStatus(
-    applicationId: string,
-    status: ApplicationStatus,
-    decisionNote?: string,
-    expectedStatus?: ApplicationStatus,
-  ): Promise<Application>;
-  fetchApplicationAuditLogs(
-    applicationId: string,
-  ): Promise<ApplicationAuditLogItem[]>;
+  updateApplicationStatus(applicationId: string, status: ApplicationStatus, decisionNote?: string, expectedStatus?: ApplicationStatus): Promise<Application>;
+  fetchApplicationAuditLogs(applicationId: string): Promise<ApplicationAuditLogItem[]>;
   fetchRecruiterProfile(): Promise<RecruiterProfile>;
   fetchRecruiterCompany(): Promise<Company>;
   saveCompanyProfile(company: Company): Promise<Company>;
@@ -980,33 +655,13 @@ export interface ApiClient {
   publishJob(jobId: string): Promise<Job | null>;
   closeJob(jobId: string): Promise<Job | null>;
   fetchCandidateRankings(jobId: string): Promise<CandidateRankingItem[]>;
-  fetchMatchInspection(
-    applicationId: string,
-  ): Promise<MatchInspectionData | null>;
-  checkEmailAvailability(
-    email: string,
-  ): Promise<{ exists: boolean; status: "AVAILABLE" | "ALREADY_EXISTS" }>;
-  registerCandidateAccount(
-    payload: RegisterCandidatePayload,
-  ): Promise<AuthResponse>;
-  registerRecruiterAccount(
-    payload: RegisterRecruiterPayload,
-  ): Promise<AuthResponse>;
-  verifyEmailToken(
-    token: string,
-  ): Promise<{ success: boolean; message: string }>;
-  resendVerificationToken(
-    email: string,
-  ): Promise<{
-    success: boolean;
-    message: string;
-    devVerificationToken?: string;
-  }>;
-  loginAccount(
-    email: string,
-    password: string,
-    expectedRole?: User["role"],
-  ): Promise<LoginResponse>;
+  fetchMatchInspection(applicationId: string): Promise<MatchInspectionData | null>;
+  checkEmailAvailability(email: string): Promise<{ exists: boolean; status: 'AVAILABLE' | 'ALREADY_EXISTS' }>;
+  registerCandidateAccount(payload: RegisterCandidatePayload): Promise<AuthResponse>;
+  registerRecruiterAccount(payload: RegisterRecruiterPayload): Promise<AuthResponse>;
+  verifyEmailToken(token: string): Promise<{ success: boolean; message: string }>;
+  resendVerificationToken(email: string): Promise<{ success: boolean; message: string; devVerificationToken?: string }>;
+  loginAccount(email: string, password: string): Promise<LoginResponse>;
 }
 
 // ============================================================
@@ -1031,22 +686,13 @@ async function fetchAllApiRows(path: string): Promise<unknown[]> {
   const rows: unknown[] = [];
   let pages = 1;
   for (let page = 0; page < pages; page++) {
-    const separator = path.includes("?") ? "&" : "?";
-    const response = await apiRequest<unknown>(
-      `${path}${separator}page=${page}&size=100`,
-    );
+    const separator = path.includes('?') ? '&' : '?';
+    const response = await apiRequest<unknown>(`${path}${separator}page=${page}&size=100`);
     rows.push(...getApiRows(response));
     const data = getApiData(response);
     if (isRecord(data) && data.totalPages != null) {
-      if (
-        typeof data.totalPages !== "number" ||
-        !Number.isInteger(data.totalPages) ||
-        data.totalPages < 0 ||
-        data.totalPages > 200
-      )
-        throw new Error(
-          "Không thể tải đầy đủ danh sách: thông tin phân trang không hợp lệ hoặc vượt giới hạn.",
-        );
+      if (typeof data.totalPages !== 'number' || !Number.isInteger(data.totalPages) || data.totalPages < 0 || data.totalPages > 200)
+        throw new Error('Không thể tải đầy đủ danh sách: thông tin phân trang không hợp lệ hoặc vượt giới hạn.');
       if (page === 0) pages = data.totalPages;
     }
   }
@@ -1054,47 +700,32 @@ async function fetchAllApiRows(path: string): Promise<unknown[]> {
 }
 
 export class RealApiClient implements ApiClient {
-  async fetchJobs(
-    industry?: string,
-    page = 0,
-    size = 20,
-    sort = "createdAt",
-    direction = "desc",
-  ): Promise<Job[]> {
+
+  async fetchJobs(industry?: string, page = 0, size = 20, sort = 'createdAt', direction = 'desc'): Promise<Job[]> {
     const queryParts: string[] = [];
     if (industry) queryParts.push(`industry=${encodeURIComponent(industry)}`);
     if (page != null) queryParts.push(`page=${page}`);
     if (size != null) queryParts.push(`size=${size}`);
     if (sort) queryParts.push(`sort=${sort}`);
     if (direction) queryParts.push(`direction=${direction}`);
-    const qs = queryParts.length ? `?${queryParts.join("&")}` : "";
+    const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
     const json = await apiRequest<unknown>(`/api/v1/jobs${qs}`);
     return getApiRows(json).map(mapBackendJobToFrontend);
   }
 
-  async fetchJobCatalog(query = "", location = ""): Promise<Job[]> {
+  async fetchJobCatalog(query = '', location = ''): Promise<Job[]> {
     const result: Job[] = [];
     let totalPages = 1;
     for (let page = 0; page < totalPages; page++) {
-      const response = await apiRequest<{ data: ApiPage<JsonRecord> }>(
-        `/api/v1/jobs?page=${page}&size=100&sort=createdAt&direction=desc&query=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}`,
-      );
+      const response = await apiRequest<{ data: ApiPage<JsonRecord> }>(`/api/v1/jobs?page=${page}&size=100&sort=createdAt&direction=desc&query=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}`);
       const data = response.data;
-      if (
-        !data ||
-        !Array.isArray(data.content) ||
-        !Number.isInteger(data.totalPages) ||
-        data.totalPages < 0 ||
-        data.totalPages > 200
-      ) {
-        throw new Error(
-          "Không thể tải đầy đủ danh mục việc làm. Phản hồi phân trang không hợp lệ hoặc vượt giới hạn.",
-        );
+      if (!data || !Array.isArray(data.content) || !Number.isInteger(data.totalPages) || data.totalPages < 0 || data.totalPages > 200) {
+        throw new Error('Không thể tải đầy đủ danh mục việc làm. Phản hồi phân trang không hợp lệ hoặc vượt giới hạn.');
       }
       if (page === 0) totalPages = data.totalPages;
       result.push(...data.content.map(mapBackendJobToFrontend));
     }
-    return [...new Map(result.map((job) => [job.id, job])).values()];
+    return [...new Map(result.map(job => [job.id, job])).values()];
   }
 
   async fetchJobById(id: string): Promise<Job | null> {
@@ -1102,30 +733,16 @@ export class RealApiClient implements ApiClient {
     let res: Response;
     try {
       // This controller endpoint is public; token refresh must not block Job Detail.
-      res = await fetch(url, { cache: "no-store" });
+      res = await fetch(url, { cache: 'no-store' });
     } catch (netErr: unknown) {
       console.error(`[API ERROR] Network failure: GET ${url}`, netErr);
-      throw new ApiError(
-        "GET",
-        url,
-        0,
-        "NETWORK_ERROR",
-        getErrorMessage(netErr, "Lỗi kết nối mạng."),
-      );
+      throw new ApiError('GET', url, 0, 'NETWORK_ERROR', getErrorMessage(netErr, 'Lỗi kết nối mạng.'));
     }
 
     if (!res.ok) {
       if (res.status === 404) return null;
-      console.error(
-        `[API ERROR] method=GET url=${url} status=${res.status} statusText=${res.statusText}`,
-      );
-      throw new ApiError(
-        "GET",
-        url,
-        res.status,
-        res.statusText,
-        `GET /jobs/${id} thất bại`,
-      );
+      console.error(`[API ERROR] method=GET url=${url} status=${res.status} statusText=${res.statusText}`);
+      throw new ApiError('GET', url, res.status, res.statusText, `GET /jobs/${id} thất bại`);
     }
 
     const json = await res.json();
@@ -1136,86 +753,60 @@ export class RealApiClient implements ApiClient {
   async fetchCandidateProfile(): Promise<CandidateProfile> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "GET",
-        "/api/v1/candidate/profile",
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('GET', '/api/v1/candidate/profile', 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
 
-    const json = await apiRequest<ApiEnvelope<CandidateProfileApiDto>>(
-      "/api/v1/candidate/profile",
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    const json = await apiRequest<ApiEnvelope<CandidateProfileApiDto>>('/api/v1/candidate/profile', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
     const p = json.data;
     if (!p) {
-      throw new ApiError(
-        "GET",
-        "/api/v1/candidate/profile",
-        404,
-        "NOT_FOUND",
-        "Không tìm thấy dữ liệu hồ sơ ứng viên.",
-      );
+      throw new ApiError('GET', '/api/v1/candidate/profile', 404, 'NOT_FOUND', 'Không tìm thấy dữ liệu hồ sơ ứng viên.');
     }
 
     const user = getAuthUser();
     return {
-      id: String(p.id || user?.id || ""),
-      fullName: p.fullName || user?.fullName || "",
-      email: user?.email || "",
-      phone: p.phone || "",
+      id: String(p.id || user?.id || ''),
+      fullName: p.fullName || user?.fullName || '',
+      email: user?.email || '',
+      phone: p.phone || '',
       age: p.age,
-      headline: p.headline || "",
-      bio: p.bio || "",
+      headline: p.headline || '',
+      bio: p.bio || '',
       primaryIndustry: toIndustry(p.targetIndustry || user?.targetIndustry),
       targetIndustry: toIndustry(p.targetIndustry || user?.targetIndustry),
       targetIndustries: p.targetIndustries || [toIndustry(p.targetIndustry)],
       skills: p.skills || [],
-      githubUrl: p.githubUrl || "",
-      portfolioUrl: p.portfolioUrl || "",
+      githubUrl: p.githubUrl || '',
+      portfolioUrl: p.portfolioUrl || ''
     };
   }
 
-  async saveCandidateProfile(
-    profile: CandidateProfile,
-  ): Promise<CandidateProfile> {
+  async saveCandidateProfile(profile: CandidateProfile): Promise<CandidateProfile> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "PUT",
-        "/api/v1/candidate/profile",
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('PUT', '/api/v1/candidate/profile', 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
 
-    const json = await apiRequest<ApiEnvelope<CandidateProfileApiDto>>(
-      "/api/v1/candidate/profile",
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          fullName: profile.fullName,
-          headline: profile.headline,
-          phone: profile.phone,
-          age: profile.age,
-          bio: profile.bio,
-          targetIndustry: profile.primaryIndustry || profile.targetIndustry,
-          targetIndustries: profile.targetIndustries,
-          githubUrl: profile.githubUrl,
-          portfolioUrl: profile.portfolioUrl,
-        }),
+    const json = await apiRequest<ApiEnvelope<CandidateProfileApiDto>>('/api/v1/candidate/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
       },
-    );
+      body: JSON.stringify({
+        fullName: profile.fullName,
+        headline: profile.headline,
+        phone: profile.phone,
+        age: profile.age,
+        bio: profile.bio,
+        targetIndustry: profile.primaryIndustry || profile.targetIndustry,
+        targetIndustries: profile.targetIndustries,
+        githubUrl: profile.githubUrl,
+        portfolioUrl: profile.portfolioUrl
+      })
+    });
 
     const p = json.data;
     return {
@@ -1224,24 +815,18 @@ export class RealApiClient implements ApiClient {
       fullName: p?.fullName || profile.fullName,
       headline: p?.headline || profile.headline,
       phone: p?.phone || profile.phone,
-      bio: p?.bio || profile.bio,
+      bio: p?.bio || profile.bio
     };
   }
 
   async fetchCandidateCVs(): Promise<CV[]> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "GET",
-        "/api/v1/candidate/cvs",
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('GET', '/api/v1/candidate/cvs', 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
 
-    const json = await apiRequest<unknown>("/api/v1/candidate/cvs", {
-      headers: { Authorization: `Bearer ${token}` },
+    const json = await apiRequest<unknown>('/api/v1/candidate/cvs', {
+      headers: { Authorization: `Bearer ${token}` }
     });
 
     return getApiRows(json).map(mapBackendCVToFrontend);
@@ -1250,131 +835,80 @@ export class RealApiClient implements ApiClient {
   async fetchCVQuota(): Promise<CVQuota> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "GET",
-        "/api/v1/candidate/cvs/quota",
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('GET', '/api/v1/candidate/cvs/quota', 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
 
-    const json = await apiRequest<ApiEnvelope<unknown>>(
-      "/api/v1/candidate/cvs/quota",
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    const json = await apiRequest<ApiEnvelope<unknown>>('/api/v1/candidate/cvs/quota', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
-    if (!isCVQuota(json.data))
-      throw new Error("Phản hồi hạn mức CV không hợp lệ.");
+    if (!isCVQuota(json.data)) throw new Error('Phản hồi hạn mức CV không hợp lệ.');
     return json.data;
   }
 
   async saveCandidateCV(cv: CreateCVRequest): Promise<CV> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "POST",
-        "/api/v1/candidate/cvs",
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('POST', '/api/v1/candidate/cvs', 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
 
-    const rawText =
-      cv.rawText ||
-      (cv.versions && cv.versions[0]?.sections
-        ? cv.versions[0].sections.map((s) => s.content).join("\n")
-        : cv.title);
+    const rawText = cv.rawText || (cv.versions && cv.versions[0]?.sections ? cv.versions[0].sections.map(s => s.content).join('\n') : cv.title);
 
-    const json = await apiRequest<ApiEnvelope<unknown>>(
-      "/api/v1/candidate/cvs",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: cv.title,
-          creationPath: cv.creationPath || "BUILDER",
-          targetIndustry: cv.targetIndustry || "Technology",
-          rawText: rawText,
-          isDefault: cv.isDefault || false,
-        }),
+    const json = await apiRequest<ApiEnvelope<unknown>>('/api/v1/candidate/cvs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
       },
-    );
+      body: JSON.stringify({
+        title: cv.title,
+        creationPath: cv.creationPath || 'BUILDER',
+        targetIndustry: cv.targetIndustry || 'Technology',
+        rawText: rawText,
+        isDefault: cv.isDefault || false
+      })
+    });
 
     return mapBackendCVToFrontend(json.data);
   }
 
-  async updateCVMetadata(
-    cvId: string,
-    metadata: { title: string },
-  ): Promise<CV> {
+  async updateCVMetadata(cvId: string, metadata: { title: string }): Promise<CV> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "PATCH",
-        `/api/v1/candidate/cvs/${cvId}/metadata`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('PATCH', `/api/v1/candidate/cvs/${cvId}/metadata`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
 
-    const json = await apiRequest<ApiEnvelope<unknown>>(
-      `/api/v1/candidate/cvs/${cvId}/metadata`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title: metadata.title }),
+    const json = await apiRequest<ApiEnvelope<unknown>>(`/api/v1/candidate/cvs/${cvId}/metadata`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
       },
-    );
+      body: JSON.stringify({ title: metadata.title })
+    });
 
     return mapBackendCVToFrontend(json.data);
   }
 
-  async uploadCandidateCV(
-    file: File,
-    title?: string,
-    targetIndustry?: string,
-    isDefault?: boolean,
-    signal?: AbortSignal,
-  ): Promise<CV> {
+  async uploadCandidateCV(file: File, title?: string, targetIndustry?: string, isDefault?: boolean, signal?: AbortSignal): Promise<CV> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "POST",
-        "/api/v1/candidate/cvs/upload",
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('POST', '/api/v1/candidate/cvs/upload', 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
 
     const formData = new FormData();
-    formData.append("file", file);
-    if (title) formData.append("title", title);
-    if (targetIndustry) formData.append("targetIndustry", targetIndustry);
-    if (isDefault != null) formData.append("isDefault", String(isDefault));
+    formData.append('file', file);
+    if (title) formData.append('title', title);
+    if (targetIndustry) formData.append('targetIndustry', targetIndustry);
+    if (isDefault != null) formData.append('isDefault', String(isDefault));
 
-    const json = await apiRequest<ApiEnvelope<unknown>>(
-      "/api/v1/candidate/cvs/upload",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-        signal,
+    const json = await apiRequest<ApiEnvelope<unknown>>('/api/v1/candidate/cvs/upload', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
       },
-    );
+      body: formData, signal
+    });
 
     return mapBackendCVToFrontend(json.data);
   }
@@ -1382,117 +916,75 @@ export class RealApiClient implements ApiClient {
   async deleteCandidateCV(cvId: string): Promise<void> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "DELETE",
-        `/api/v1/candidate/cvs/${cvId}`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('DELETE', `/api/v1/candidate/cvs/${cvId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
 
     await apiRequest(`/api/v1/candidate/cvs/${cvId}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
     });
   }
 
-  async fetchCVReview(
-    cvId: string,
-    signal?: AbortSignal,
-  ): Promise<CVReviewData> {
+  async fetchCVReview(cvId: string, signal?: AbortSignal): Promise<CVReviewData> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "GET",
-        `/api/v1/candidate/cvs/${cvId}/review`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/review`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
-    const json = await apiRequest<{ data: CVReviewData }>(
-      `/api/v1/candidate/cvs/${cvId}/review`,
-      {
-        signal,
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    const json = await apiRequest<{ data: CVReviewData }>(`/api/v1/candidate/cvs/${cvId}/review`, {
+      signal,
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return json.data;
   }
 
-  async fetchCVProcessingStatus(
-    cvId: string,
-    signal?: AbortSignal,
-  ): Promise<CVProcessingStatus> {
+  async fetchCVProcessingStatus(cvId: string, signal?: AbortSignal): Promise<CVProcessingStatus> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "GET",
-        `/api/v1/candidate/cvs/${cvId}/processing-status`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/processing-status`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
-    const json = await apiRequest<{ data: CVProcessingStatus }>(
-      `/api/v1/candidate/cvs/${cvId}/processing-status`,
-      {
-        signal: signal
-          ? AbortSignal.any([signal, AbortSignal.timeout(30000)])
-          : AbortSignal.timeout(30000),
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    const json = await apiRequest<{ data: CVProcessingStatus }>(`/api/v1/candidate/cvs/${cvId}/processing-status`, {
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(30000)]) : AbortSignal.timeout(30000),
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return json.data;
   }
 
   subscribeCVProcessingEvents(
     identifier: { cvId?: string; jobId?: string },
     onEvent: (event: CVProcessingEvent) => void,
-    onError?: (err: Error) => void,
+    onError?: (err: Error) => void
   ): () => void {
     const endpoint = identifier.jobId
       ? `/api/v1/candidate/cvs/processing/${identifier.jobId}/events`
       : `/api/v1/candidate/cvs/${identifier.cvId}/events`;
     return subscribeProgress(
-      (lastId, signal) =>
-        authorizedFetch(`${BASE_URL}${endpoint}`, {
-          headers: {
-            Accept: "text/event-stream",
-            ...(lastId ? { "Last-Event-ID": lastId } : {}),
-          },
-          cache: "no-store",
-          signal,
-        }),
-      isCVProcessingEvent,
-      onEvent,
-      onError,
+      (lastId, signal) => authorizedFetch(`${BASE_URL}${endpoint}`, {
+        headers: { Accept: 'text/event-stream', ...(lastId ? { 'Last-Event-ID': lastId } : {}) },
+        cache: 'no-store', signal
+      }),
+      isCVProcessingEvent, onEvent, onError
     );
   }
 
-  async downloadCVFile(
-    cvId: string,
-    format: string,
-    defaultFilename: string,
-  ): Promise<void> {
+
+  async downloadCVFile(cvId: string, format: string, defaultFilename: string): Promise<void> {
     const token = getAuthToken();
     const url = `${BASE_URL}/api/v1/candidate/cvs/${cvId}/download/${format}`;
     const res = await authorizedFetch(url, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
     });
     if (!res.ok) {
       throw new Error(`Tải tập tin thất bại: ${res.statusText}`);
     }
     const blob = await res.blob();
-    const disposition = res.headers.get("Content-Disposition");
+    const disposition = res.headers.get('Content-Disposition');
     let filename = defaultFilename;
-    if (disposition && disposition.includes("filename=")) {
+    if (disposition && disposition.includes('filename=')) {
       const match = disposition.match(/filename="?([^"]+)"?/);
       if (match && match[1]) filename = match[1];
     }
     const downloadUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = downloadUrl;
     a.download = filename;
     document.body.appendChild(a);
@@ -1501,106 +993,52 @@ export class RealApiClient implements ApiClient {
     window.URL.revokeObjectURL(downloadUrl);
   }
 
-  async retryCVExtraction(
-    cvId: string,
-    signal?: AbortSignal,
-  ): Promise<CVReviewData> {
+  async retryCVExtraction(cvId: string, signal?: AbortSignal): Promise<CVReviewData> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "POST",
-        `/api/v1/candidate/cvs/${cvId}/retry`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('POST', `/api/v1/candidate/cvs/${cvId}/retry`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
-    const json = await apiRequest<ApiEnvelope<CVReviewData>>(
-      `/api/v1/candidate/cvs/${cvId}/retry`,
-      {
-        signal,
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    const json = await apiRequest<ApiEnvelope<CVReviewData>>(`/api/v1/candidate/cvs/${cvId}/retry`, {
+      signal,
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return json.data;
   }
 
   async fetchCVDraft(cvId: string): Promise<CVDraftData> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "GET",
-        `/api/v1/candidate/cvs/${cvId}/draft`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/draft`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
-    const json = await apiRequest<ApiEnvelope<CVDraftData>>(
-      `/api/v1/candidate/cvs/${cvId}/draft`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    const json = await apiRequest<ApiEnvelope<CVDraftData>>(`/api/v1/candidate/cvs/${cvId}/draft`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return json.data;
   }
 
-  async updateCVDraft(
-    cvId: string,
-    draftData: Record<string, unknown>,
-  ): Promise<CVDraftData> {
+  async updateCVDraft(cvId: string, draftData: Record<string, unknown>): Promise<CVDraftData> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "PUT",
-        `/api/v1/candidate/cvs/${cvId}/draft`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('PUT', `/api/v1/candidate/cvs/${cvId}/draft`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
-    const json = await apiRequest<ApiEnvelope<CVDraftData>>(
-      `/api/v1/candidate/cvs/${cvId}/draft`,
-      {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
-        body: JSON.stringify(draftData),
-      },
-    );
-    return json.data;
-  }
-
-  async confirmCandidateCV(
-    cvId: string,
-    revision?: { version_id?: string; expected_revision?: string },
-  ): Promise<{
-    cv_id: string;
-    profile_id: string;
-    status: string;
-    confirmed_at: string;
-  }> {
-    const token = getAuthToken();
-    if (!token) {
-      throw new ApiError(
-        "POST",
-        `/api/v1/candidate/cvs/${cvId}/confirm`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
-    }
-    const json = await apiRequest<
-      ApiEnvelope<{
-        cv_id: string;
-        profile_id: string;
-        status: string;
-        confirmed_at: string;
-      }>
-    >(`/api/v1/candidate/cvs/${cvId}/confirm`, {
-      body: revision ? JSON.stringify(revision) : undefined,
-      method: "POST",
+    const json = await apiRequest<ApiEnvelope<CVDraftData>>(`/api/v1/candidate/cvs/${cvId}/draft`, {
+      method: 'PUT',
       headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(draftData)
+    });
+    return json.data;
+  }
+
+  async confirmCandidateCV(cvId: string, revision?: { version_id?: string; expected_revision?: string }): Promise<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new ApiError('POST', `/api/v1/candidate/cvs/${cvId}/confirm`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
+    }
+    const json = await apiRequest<ApiEnvelope<{ cv_id: string; profile_id: string; status: string; confirmed_at: string }>>(`/api/v1/candidate/cvs/${cvId}/confirm`, {
+      body: revision ? JSON.stringify(revision) : undefined,
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
     });
     return json.data;
   }
@@ -1608,36 +1046,17 @@ export class RealApiClient implements ApiClient {
   async fetchCVVersions(cvId: string): Promise<CVVersion[]> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "GET",
-        `/api/v1/candidate/cvs/${cvId}/versions`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/versions`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
-    const json = await apiRequest<ApiEnvelope<CVVersion[]> | CVVersion[]>(
-      `/api/v1/candidate/cvs/${cvId}/versions`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    const json = await apiRequest<ApiEnvelope<CVVersion[]> | CVVersion[]>(`/api/v1/candidate/cvs/${cvId}/versions`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return Array.isArray(json) ? json : (json?.data ?? []);
   }
 
-  async searchTaxonomySkills(
-    query: string,
-    limit = 10,
-    category?: string,
-  ): Promise<TaxonomySkillItem[]> {
-    const categoryParam = category
-      ? `&category=${encodeURIComponent(category)}`
-      : "";
-    const json = await apiRequest<
-      ApiEnvelope<{ skills?: TaxonomySkillItem[] }>
-    >(
-      `/api/v1/taxonomy/skills/search?query=${encodeURIComponent(query)}&limit=${limit}${categoryParam}`,
-    );
+  async searchTaxonomySkills(query: string, limit = 10, category?: string): Promise<TaxonomySkillItem[]> {
+    const categoryParam = category ? `&category=${encodeURIComponent(category)}` : '';
+    const json = await apiRequest<ApiEnvelope<{ skills?: TaxonomySkillItem[] }>>(`/api/v1/taxonomy/skills/search?query=${encodeURIComponent(query)}&limit=${limit}${categoryParam}`);
     return json.data.skills || [];
   }
 
@@ -1645,14 +1064,12 @@ export class RealApiClient implements ApiClient {
     const token = getAuthToken();
     if (!token) return [];
     try {
-      const json = await apiRequest<
-        ApiEnvelope<{ favorites?: TaxonomySkillItem[] }>
-      >("/api/v1/taxonomy/favorites", {
-        headers: { Authorization: `Bearer ${token}` },
+      const json = await apiRequest<ApiEnvelope<{ favorites?: TaxonomySkillItem[] }>>('/api/v1/taxonomy/favorites', {
+        headers: { Authorization: `Bearer ${token}` }
       });
       return json?.data?.favorites || [];
     } catch (err) {
-      console.warn("Failed to load user favorite skills:", err);
+      console.warn('Failed to load user favorite skills:', err);
       return [];
     }
   }
@@ -1660,81 +1077,46 @@ export class RealApiClient implements ApiClient {
   async addFavoriteSkill(skillId: string): Promise<TaxonomySkillItem> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "POST",
-        `/api/v1/taxonomy/favorites/${skillId}`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập.",
-      );
+      throw new ApiError('POST', `/api/v1/taxonomy/favorites/${skillId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập.');
     }
-    const json = await apiRequest<ApiEnvelope<TaxonomySkillItem>>(
-      `/api/v1/taxonomy/favorites/${skillId}`,
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    const json = await apiRequest<ApiEnvelope<TaxonomySkillItem>>(`/api/v1/taxonomy/favorites/${skillId}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return json?.data;
   }
 
   async removeFavoriteSkill(skillId: string): Promise<TaxonomySkillItem> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "DELETE",
-        `/api/v1/taxonomy/favorites/${skillId}`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập.",
-      );
+      throw new ApiError('DELETE', `/api/v1/taxonomy/favorites/${skillId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập.');
     }
-    const json = await apiRequest<ApiEnvelope<TaxonomySkillItem>>(
-      `/api/v1/taxonomy/favorites/${skillId}`,
-      {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    const json = await apiRequest<ApiEnvelope<TaxonomySkillItem>>(`/api/v1/taxonomy/favorites/${skillId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return json?.data;
   }
 
-  async uploadCVEvidence(
-    cvId: string,
-    file: File,
-    itemType: "CERTIFICATION" | "LANGUAGE",
-    itemId: string,
-  ): Promise<UploadedEvidenceResponse> {
+  async uploadCVEvidence(cvId: string, file: File, itemType: 'CERTIFICATION' | 'LANGUAGE', itemId: string): Promise<UploadedEvidenceResponse> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "POST",
-        `/api/v1/candidate/cvs/${cvId}/attachments`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('POST', `/api/v1/candidate/cvs/${cvId}/attachments`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
     const formData = new FormData();
-    formData.append("file", file);
-    formData.append("itemType", itemType);
-    formData.append("itemId", itemId);
+    formData.append('file', file);
+    formData.append('itemType', itemType);
+    formData.append('itemId', itemId);
 
     const url = `${BASE_URL}/api/v1/candidate/cvs/${cvId}/attachments`;
     const res = await authorizedFetch(url, {
-      method: "POST",
+      method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
-      body: formData,
+      body: formData
     });
     if (!res.ok) {
       const errJson = await res.json().catch(() => null);
-      throw new ApiError(
-        "POST",
-        url,
-        res.status,
-        res.statusText,
-        errJson?.message || "Tải minh chứng thất bại.",
-      );
+      throw new ApiError('POST', url, res.status, res.statusText, errJson?.message || 'Tải minh chứng thất bại.');
     }
     const json = await res.json();
     return json?.data;
@@ -1743,63 +1125,32 @@ export class RealApiClient implements ApiClient {
   async deleteCVEvidence(cvId: string, attachmentId: string): Promise<void> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "DELETE",
-        `/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập.",
-      );
+      throw new ApiError('DELETE', `/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập.');
     }
-    await apiRequest(
-      `/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`,
-      {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    await apiRequest(`/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    });
   }
 
-  async downloadCVEvidence(
-    cvId: string,
-    attachmentId: string,
-    fileName: string,
-  ): Promise<void> {
+  async downloadCVEvidence(cvId: string, attachmentId: string, fileName: string): Promise<void> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "GET",
-        `/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập.",
-      );
+      throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập.');
     }
     const url = `${BASE_URL}/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`;
     const res = await authorizedFetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}` }
     });
     if (!res.ok) {
-      const contentType = res.headers.get("content-type") || "";
-      const message = contentType.includes("json")
-        ? (await res.json().catch(() => null))?.message
-        : null;
-      throw new ApiError(
-        "GET",
-        url,
-        res.status,
-        res.statusText,
-        message || "Không thể tải minh chứng.",
-      );
+      const contentType = res.headers.get('content-type') || '';
+      const message = contentType.includes('json') ? (await res.json().catch(() => null))?.message : null;
+      throw new ApiError('GET', url, res.status, res.statusText, message || 'Không thể tải minh chứng.');
     }
     const blob = await res.blob();
-    if (
-      !blob.size ||
-      (res.headers.get("content-type") || "").includes("application/json")
-    )
-      throw new Error("Tệp minh chứng trống hoặc phản hồi không phải là tệp.");
+    if (!blob.size || (res.headers.get('content-type') || '').includes('application/json')) throw new Error('Tệp minh chứng trống hoặc phản hồi không phải là tệp.');
     const downloadUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = downloadUrl;
     a.download = fileName;
     document.body.appendChild(a);
@@ -1810,111 +1161,72 @@ export class RealApiClient implements ApiClient {
 
   async fetchCVEvidenceBlob(cvId: string, attachmentId: string): Promise<Blob> {
     const token = getAuthToken();
-    if (!token)
-      throw new ApiError(
-        "GET",
-        `/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập.",
-      );
+    if (!token) throw new ApiError('GET', `/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập.');
     const url = `${BASE_URL}/api/v1/candidate/cvs/${cvId}/attachments/${attachmentId}`;
-    const response = await authorizedFetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
-    if (!response.ok)
-      throw new ApiError(
-        "GET",
-        url,
-        response.status,
-        response.statusText,
-        "Không thể mở tệp minh chứng.",
-      );
+    const response = await authorizedFetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+    if (!response.ok) throw new ApiError('GET', url, response.status, response.statusText, 'Không thể mở tệp minh chứng.');
     const blob = await response.blob();
-    if (
-      !blob.size ||
-      (response.headers.get("content-type") || "").includes("application/json")
-    )
-      throw new Error("Tệp minh chứng trống hoặc phản hồi không phải là tệp.");
+    if (!blob.size || (response.headers.get('content-type') || '').includes('application/json')) throw new Error('Tệp minh chứng trống hoặc phản hồi không phải là tệp.');
     return blob;
   }
+
 
   async fetchCandidateApplications(): Promise<Application[]> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "GET",
-        "/api/v1/candidate/applications",
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('GET', '/api/v1/candidate/applications', 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
 
     const user = getAuthUser();
-    const rawList = (
-      await fetchAllApiRows("/api/v1/candidate/applications")
-    ).filter(isBackendApplication);
+    const rawList = (await fetchAllApiRows('/api/v1/candidate/applications')).filter(isBackendApplication);
     return rawList.map((app) => ({
       id: String(app.id),
-      aiAnalysisConsent: app.aiAnalysisConsent === true,
-      ...applicationScreeningFields(app),
-      coverLetter: app.coverLetter || "",
       job: {
         id: String(app.jobId),
-        title: app.jobTitle || "",
-        companyName: app.companyName || "",
+        title: app.jobTitle || '',
+        companyName: app.companyName || '',
         companyVerified: true,
-        industry: (app.industry || "Technology") as Industry,
-        employmentType: "FULL_TIME",
-        seniority: "",
-        location: "",
+        industry: (app.industry || 'Technology') as Industry,
+        employmentType: 'FULL_TIME',
+        seniority: '',
+        location: '',
         salaryMin: 0,
         salaryMax: 0,
-        publishedDate: app.appliedAt ? String(app.appliedAt).split("T")[0] : "",
-        description: "",
+        publishedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
+        description: '',
         requirements: [],
-        status: "PUBLISHED",
+        status: 'PUBLISHED'
       },
-      appliedCvId: String(app.appliedCvId || ""),
-      appliedCvTitle: app.snapshot?.cvTitle || "CV Ứng tuyển",
+      appliedCvId: String(app.appliedCvId || ''),
+      appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
       appliedCvVersion: app.appliedCvVersionNumber ?? null,
       appliedCvVersionId: app.appliedCvVersionId ?? undefined,
-      candidateName: app.candidateName || user?.fullName || "",
+      candidateName: app.candidateName || user?.fullName || '',
+      matchStatus: app.matchStatus ?? undefined,
+      aiAnalysisConsent: app.aiAnalysisConsent === true,
       status: toApplicationStatus(app.status),
-      appliedDate: app.appliedAt ? String(app.appliedAt).split("T")[0] : "",
+      appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : ''
     }));
   }
 
   async submitApplication(app: Application): Promise<Application> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "POST",
-        "/api/v1/candidate/applications",
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập hoặc token đã hết hạn.",
-      );
+      throw new ApiError('POST', '/api/v1/candidate/applications', 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
     }
 
-    const json = await apiRequest<ApiEnvelope<BackendApplicationDto>>(
-      "/api/v1/candidate/applications",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          jobId: app.job.id,
-          cvId: app.appliedCvId,
-          aiAnalysisConsent: app.aiAnalysisConsent === true,
-          coverLetter: app.coverLetter || "",
-        }),
+    const json = await apiRequest<ApiEnvelope<BackendApplicationDto>>('/api/v1/candidate/applications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
       },
-    );
+      body: JSON.stringify({
+        jobId: app.job.id,
+        cvId: app.appliedCvId,
+        aiAnalysisConsent: app.aiAnalysisConsent === true
+      })
+    });
 
     const data = json.data;
     return {
@@ -1923,236 +1235,165 @@ export class RealApiClient implements ApiClient {
       appliedCvVersion: data.appliedCvVersionNumber ?? null,
       appliedCvVersionId: data.appliedCvVersionId ?? undefined,
       status: toApplicationStatus(data.status),
-      appliedDate: data.appliedAt
-        ? String(data.appliedAt).split("T")[0]
-        : new Date().toISOString().split("T")[0],
-    };
-  }
-
-  async updateCandidateApplication(
-    app: Application,
-    update: { aiAnalysisConsent: boolean; coverLetter: string },
-  ): Promise<Application> {
-    const json = await apiRequest<ApiEnvelope<BackendApplicationDto>>(
-      `/api/v1/candidate/applications/${app.id}`,
-      {
-        method: "PUT",
-        body: JSON.stringify({
-          aiAnalysisConsent: update.aiAnalysisConsent,
-          coverLetter: update.coverLetter,
-          expectedStatus: app.status,
-        }),
-      },
-    );
-    const data = json.data;
-    return {
-      ...app,
-      aiAnalysisConsent: data.aiAnalysisConsent === true,
-      ...applicationScreeningFields(data),
-      coverLetter: data.coverLetter || "",
-      matchScore:
-        typeof data.matchScore === "number" ? data.matchScore : undefined,
-      matchStatus: data.matchStatus || undefined,
-      status: toApplicationStatus(data.status, app.status),
-      appliedDate: data.appliedAt
-        ? String(data.appliedAt).split("T")[0]
-        : app.appliedDate,
+      appliedDate: data.appliedAt ? String(data.appliedAt).split('T')[0] : new Date().toISOString().split('T')[0]
     };
   }
 
   async fetchJobApplications(jobId: string): Promise<Application[]> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "GET",
-        `/api/v1/recruiter/jobs/${jobId}/applications`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập tài khoản nhà tuyển dụng.",
-      );
+      throw new ApiError('GET', `/api/v1/recruiter/jobs/${jobId}/applications`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
     }
 
-    const rawList = (
-      await fetchAllApiRows(`/api/v1/recruiter/jobs/${jobId}/applications`)
-    ).filter(isBackendApplication);
+    const rawList = (await fetchAllApiRows(`/api/v1/recruiter/jobs/${jobId}/applications`)).filter(isBackendApplication);
     return rawList.map((app) => ({
       id: String(app.id),
-      aiAnalysisConsent: app.aiAnalysisConsent === true,
-      ...applicationScreeningFields(app),
-      coverLetter: app.coverLetter || "",
       job: {
         id: String(app.jobId),
-        title: app.jobTitle || "",
-        companyName: "",
+        title: app.jobTitle || '',
+        companyName: '',
         companyVerified: true,
-        industry: "Technology",
-        employmentType: "FULL_TIME",
-        seniority: "",
-        location: "",
+        industry: 'Technology',
+        employmentType: 'FULL_TIME',
+        seniority: '',
+        location: '',
         salaryMin: 0,
         salaryMax: 0,
-        publishedDate: app.appliedAt ? String(app.appliedAt).split("T")[0] : "",
-        description: "",
+        publishedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
+        description: '',
         requirements: [],
-        status: "PUBLISHED",
+        status: 'PUBLISHED'
       },
-      appliedCvId: String(app.appliedCvId || ""),
-      appliedCvTitle: app.snapshot?.cvTitle || "CV Ứng tuyển",
+      appliedCvId: String(app.appliedCvId || ''),
+      appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
       appliedCvVersion: app.appliedCvVersionNumber ?? null,
       appliedCvVersionId: app.appliedCvVersionId ?? undefined,
-      candidateName: app.candidateName || "",
+      candidateName: app.candidateName || '',
       candidateEmail: app.candidateEmail ?? undefined,
       candidatePhone: app.candidatePhone ?? undefined,
       candidateHeadline: app.candidateHeadline ?? undefined,
       status: toApplicationStatus(app.status),
       matchScore: app.matchScore != null ? Number(app.matchScore) : undefined,
       matchStatus: app.matchStatus ?? undefined,
-      appliedDate: app.appliedAt ? String(app.appliedAt).split("T")[0] : "",
-      snapshot: app.snapshot
-        ? {
-            cvTitle: app.snapshot.cvTitle ?? undefined,
-            rawTextSnapshot: app.snapshot.rawTextSnapshot ?? undefined,
-            structuredJsonSnapshot:
-              app.snapshot.structuredJsonSnapshot ?? undefined,
-            snapshotCreatedAt: app.snapshot.snapshotCreatedAt
-              ? String(app.snapshot.snapshotCreatedAt)
-              : undefined,
-          }
-        : undefined,
+      matchClassification: app.matchClassification ?? undefined,
+      aiAnalysisConsent: app.aiAnalysisConsent ?? undefined,
+      proDetailAvailable: app.proDetailAvailable ?? undefined,
+      recruiterPlan: app.recruiterPlan ?? undefined,
+      developmentProAccess: app.developmentProAccess ?? undefined,
+      appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
+      snapshot: app.snapshot ? {
+        cvTitle: app.snapshot.cvTitle ?? undefined,
+        rawTextSnapshot: app.snapshot.rawTextSnapshot ?? undefined,
+        snapshotCreatedAt: app.snapshot.snapshotCreatedAt ? String(app.snapshot.snapshotCreatedAt) : undefined
+      } : undefined
     }));
   }
 
-  async fetchApplicationById(
-    applicationId: string,
-  ): Promise<Application | null> {
+  async fetchApplicationById(applicationId: string): Promise<Application | null> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "GET",
-        `/api/v1/recruiter/applications/${applicationId}`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập tài khoản nhà tuyển dụng.",
-      );
+      throw new ApiError('GET', `/api/v1/recruiter/applications/${applicationId}`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
     }
 
-    const json = await apiRequest<ApiEnvelope<BackendApplicationDto | null>>(
-      `/api/v1/recruiter/applications/${applicationId}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    const json = await apiRequest<ApiEnvelope<BackendApplicationDto | null>>(`/api/v1/recruiter/applications/${applicationId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
     const app = json.data;
     if (!app) return null;
 
     return {
       id: String(app.id),
-      aiAnalysisConsent: app.aiAnalysisConsent === true,
-      ...applicationScreeningFields(app),
-      coverLetter: app.coverLetter || "",
       job: {
         id: String(app.jobId),
-        title: app.jobTitle || "",
-        companyName: "",
+        title: app.jobTitle || '',
+        companyName: '',
         companyVerified: true,
-        industry: "Technology",
-        employmentType: "FULL_TIME",
-        seniority: "",
-        location: "",
+        industry: 'Technology',
+        employmentType: 'FULL_TIME',
+        seniority: '',
+        location: '',
         salaryMin: 0,
         salaryMax: 0,
-        publishedDate: "",
-        description: "",
+        publishedDate: '',
+        description: '',
         requirements: [],
-        status: "PUBLISHED",
+        status: 'PUBLISHED'
       },
-      appliedCvId: String(app.appliedCvId || ""),
-      appliedCvTitle: app.snapshot?.cvTitle || "CV Ứng tuyển",
+      appliedCvId: String(app.appliedCvId || ''),
+      appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
       appliedCvVersion: app.appliedCvVersionNumber ?? null,
       appliedCvVersionId: app.appliedCvVersionId ?? undefined,
-      candidateName: app.candidateName || "",
+      candidateName: app.candidateName || '',
       candidateEmail: app.candidateEmail ?? undefined,
       candidatePhone: app.candidatePhone ?? undefined,
       candidateHeadline: app.candidateHeadline ?? undefined,
       githubUrl: app.candidateGithubUrl ?? undefined,
+      appliedCvFullName: app.appliedCvFullName ?? undefined,
+      appliedCvEmail: app.appliedCvEmail ?? undefined,
+      appliedCvPhone: app.appliedCvPhone ?? undefined,
+      appliedCvHeadline: app.appliedCvHeadline ?? undefined,
+      appliedCvGithubUrl: app.appliedCvGithubUrl ?? undefined,
       status: toApplicationStatus(app.status),
       matchScore: app.matchScore != null ? Number(app.matchScore) : undefined,
       matchStatus: app.matchStatus ?? undefined,
-      appliedDate: app.appliedAt ? String(app.appliedAt).split("T")[0] : "",
-      snapshot: app.snapshot
-        ? {
-            cvTitle: app.snapshot.cvTitle ?? undefined,
-            rawTextSnapshot: app.snapshot.rawTextSnapshot ?? undefined,
-            structuredJsonSnapshot:
-              app.snapshot.structuredJsonSnapshot ?? undefined,
-            snapshotCreatedAt: app.snapshot.snapshotCreatedAt
-              ? String(app.snapshot.snapshotCreatedAt)
-              : undefined,
-          }
-        : undefined,
+      matchClassification: app.matchClassification ?? undefined,
+      aiAnalysisConsent: app.aiAnalysisConsent ?? undefined,
+      proDetailAvailable: app.proDetailAvailable ?? undefined,
+      recruiterPlan: app.recruiterPlan ?? undefined,
+      developmentProAccess: app.developmentProAccess ?? undefined,
+      appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
+      snapshot: app.snapshot ? {
+        cvTitle: app.snapshot.cvTitle ?? undefined,
+        rawTextSnapshot: app.snapshot.rawTextSnapshot ?? undefined,
+        snapshotCreatedAt: app.snapshot.snapshotCreatedAt ? String(app.snapshot.snapshotCreatedAt) : undefined
+      } : undefined
     };
   }
 
-  async updateApplicationStatus(
-    applicationId: string,
-    status: ApplicationStatus,
-    decisionNote?: string,
-    expectedStatus?: ApplicationStatus,
-  ): Promise<Application> {
+  async updateApplicationStatus(applicationId: string, status: ApplicationStatus, decisionNote?: string, expectedStatus?: ApplicationStatus): Promise<Application> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "PUT",
-        `/api/v1/recruiter/applications/${applicationId}/status`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập tài khoản nhà tuyển dụng.",
-      );
+      throw new ApiError('PUT', `/api/v1/recruiter/applications/${applicationId}/status`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
     }
 
-    const json = await apiRequest<ApiEnvelope<BackendApplicationDto>>(
-      `/api/v1/recruiter/applications/${applicationId}/status`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          status,
-          decisionNote: decisionNote || "",
-          expectedStatus,
-        }),
+    const json = await apiRequest<ApiEnvelope<BackendApplicationDto>>(`/api/v1/recruiter/applications/${applicationId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
       },
-    );
+      body: JSON.stringify({
+        status,
+        decisionNote: decisionNote || '',
+        expectedStatus
+      })
+    });
 
     const app = json.data;
     return {
       id: String(app.id),
-      aiAnalysisConsent: app.aiAnalysisConsent === true,
-      coverLetter: app.coverLetter || "",
       job: {
         id: String(app.jobId),
-        title: app.jobTitle || "",
-        companyName: "",
+        title: app.jobTitle || '',
+        companyName: '',
         companyVerified: true,
-        industry: "Technology",
-        employmentType: "FULL_TIME",
-        seniority: "",
-        location: "",
+        industry: 'Technology',
+        employmentType: 'FULL_TIME',
+        seniority: '',
+        location: '',
         salaryMin: 0,
         salaryMax: 0,
-        publishedDate: "",
-        description: "",
+        publishedDate: '',
+        description: '',
         requirements: [],
-        status: "PUBLISHED",
+        status: 'PUBLISHED'
       },
-      appliedCvId: String(app.appliedCvId || ""),
-      appliedCvTitle: app.snapshot?.cvTitle || "CV Ứng tuyển",
+      appliedCvId: String(app.appliedCvId || ''),
+      appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
       appliedCvVersion: app.appliedCvVersionNumber ?? null,
       appliedCvVersionId: app.appliedCvVersionId ?? undefined,
-      candidateName: app.candidateName || "",
+      candidateName: app.candidateName || '',
       candidateEmail: app.candidateEmail ?? undefined,
       candidatePhone: app.candidatePhone ?? undefined,
       candidateHeadline: app.candidateHeadline ?? undefined,
@@ -2160,41 +1401,24 @@ export class RealApiClient implements ApiClient {
       status: toApplicationStatus(app.status, status),
       matchScore: app.matchScore != null ? Number(app.matchScore) : undefined,
       matchStatus: app.matchStatus ?? undefined,
-      appliedDate: app.appliedAt ? String(app.appliedAt).split("T")[0] : "",
-      snapshot: app.snapshot
-        ? {
-            cvTitle: app.snapshot.cvTitle ?? undefined,
-            rawTextSnapshot: app.snapshot.rawTextSnapshot ?? undefined,
-            structuredJsonSnapshot:
-              app.snapshot.structuredJsonSnapshot ?? undefined,
-            snapshotCreatedAt: app.snapshot.snapshotCreatedAt
-              ? String(app.snapshot.snapshotCreatedAt)
-              : undefined,
-          }
-        : undefined,
+      appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
+      snapshot: app.snapshot ? {
+        cvTitle: app.snapshot.cvTitle ?? undefined,
+        rawTextSnapshot: app.snapshot.rawTextSnapshot ?? undefined,
+        snapshotCreatedAt: app.snapshot.snapshotCreatedAt ? String(app.snapshot.snapshotCreatedAt) : undefined
+      } : undefined
     };
   }
 
-  async fetchApplicationAuditLogs(
-    applicationId: string,
-  ): Promise<ApplicationAuditLogItem[]> {
+  async fetchApplicationAuditLogs(applicationId: string): Promise<ApplicationAuditLogItem[]> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "GET",
-        `/api/v1/recruiter/applications/${applicationId}/audit-logs`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập tài khoản nhà tuyển dụng.",
-      );
+      throw new ApiError('GET', `/api/v1/recruiter/applications/${applicationId}/audit-logs`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
     }
 
-    const json = await apiRequest<unknown>(
-      `/api/v1/recruiter/applications/${applicationId}/audit-logs`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    const json = await apiRequest<unknown>(`/api/v1/recruiter/applications/${applicationId}/audit-logs`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
     const rawList = getApiRows(json).filter(isRecord);
     return rawList.map((item) => ({
@@ -2204,7 +1428,7 @@ export class RealApiClient implements ApiClient {
       previousStatus: toApplicationStatus(item.previousStatus),
       newStatus: toApplicationStatus(item.newStatus),
       decisionNote: readString(item.decisionNote),
-      createdAt: item.createdAt ? String(item.createdAt) : "",
+      createdAt: item.createdAt ? String(item.createdAt) : ''
     }));
   }
 
@@ -2212,113 +1436,68 @@ export class RealApiClient implements ApiClient {
     const user = getAuthUser();
     const token = getAuthToken();
     if (!token || !user) {
-      throw new ApiError(
-        "GET",
-        "/api/v1/recruiter/profile",
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập tài khoản nhà tuyển dụng.",
-      );
+      throw new ApiError('GET', '/api/v1/recruiter/profile', 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
     }
 
     const company = await this.fetchRecruiterCompany();
     return {
       id: user.id,
       userId: user.id,
-      fullName: user.fullName || "",
+      fullName: user.fullName || '',
       email: user.email,
-      company,
+      company
     };
   }
 
   async fetchRecruiterCompany(): Promise<Company> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "GET",
-        "/api/v1/recruiter/company",
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập tài khoản nhà tuyển dụng.",
-      );
+      throw new ApiError('GET', '/api/v1/recruiter/company', 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
     }
 
-    const json = await apiRequest<ApiEnvelope<CompanyApiDto>>(
-      "/api/v1/recruiter/company",
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    const json = await apiRequest<ApiEnvelope<CompanyApiDto>>('/api/v1/recruiter/company', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
     const c = json.data;
     if (!c) {
-      throw new ApiError(
-        "GET",
-        "/api/v1/recruiter/company",
-        404,
-        "NOT_FOUND",
-        "Không tìm thấy dữ liệu hồ sơ công ty.",
-      );
+      throw new ApiError('GET', '/api/v1/recruiter/company', 404, 'NOT_FOUND', 'Không tìm thấy dữ liệu hồ sơ công ty.');
     }
 
     return {
       id: String(c.id),
-      name: c.name || "",
-      taxCode: c.taxCode || "",
+      name: c.name || '',
+      taxCode: c.taxCode || '',
       industry: toIndustry(c.industry),
-      website: c.website || "",
-      companySize: c.size || "",
-      description: c.description || "",
-      descriptionHtml: c.descriptionHtml || "",
-      address: c.address || "",
-      contactPhone: c.contactPhone || "",
-      verificationLevel: c.verificationLevel,
-      businessLicenseName: c.businessLicenseName,
-      licenseSubmittedAt: c.licenseSubmittedAt,
-      contactEmail: getAuthUser()?.email || "",
-      verificationStatus: c.verificationStatus || "PENDING",
-      verificationReason:
-        c.verificationReason ||
-        c.reviewNotes ||
-        (c.verificationStatus === "VERIFIED"
-          ? "Doanh nghiệp đã được xác thực."
-          : undefined),
+      website: c.website || '',
+      companySize: c.size || '',
+      contactEmail: getAuthUser()?.email || '',
+      verificationStatus: c.verificationStatus || 'PENDING',
+      verificationReason: c.verificationReason || c.reviewNotes || (c.verificationStatus === 'VERIFIED' ? 'Doanh nghiệp đã được xác thực.' : undefined)
     };
   }
 
   async saveCompanyProfile(company: Company): Promise<Company> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "PUT",
-        "/api/v1/recruiter/company",
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập tài khoản nhà tuyển dụng.",
-      );
+      throw new ApiError('PUT', '/api/v1/recruiter/company', 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
     }
 
-    const json = await apiRequest<ApiEnvelope<CompanyApiDto>>(
-      "/api/v1/recruiter/company",
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: company.name,
-          taxCode: company.taxCode,
-          industry: company.industry,
-          website: company.website,
-          size: company.companySize,
-          description: company.description || "",
-          descriptionHtml: company.descriptionHtml || "",
-          address: company.address || "",
-          contactPhone: company.contactPhone || "",
-        }),
+    const json = await apiRequest<ApiEnvelope<CompanyApiDto>>('/api/v1/recruiter/company', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
       },
-    );
+      body: JSON.stringify({
+        name: company.name,
+        taxCode: company.taxCode,
+        industry: company.industry,
+        website: company.website,
+        size: company.companySize,
+        description: company.verificationReason || ''
+      })
+    });
 
     const c = json.data;
     return {
@@ -2327,116 +1506,82 @@ export class RealApiClient implements ApiClient {
       name: c?.name || company.name,
       taxCode: c?.taxCode || company.taxCode,
       verificationStatus: c?.verificationStatus || company.verificationStatus,
-      verificationReason:
-        c?.verificationReason || c?.reviewNotes || company.verificationReason,
+      verificationReason: c?.verificationReason || c?.reviewNotes || company.verificationReason
     };
   }
 
   async submitCompanyVerification(): Promise<Company> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "POST",
-        "/api/v1/recruiter/company/submit-verification",
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập tài khoản nhà tuyển dụng.",
-      );
+      throw new ApiError('POST', '/api/v1/recruiter/company/submit-verification', 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
     }
 
-    const json = await apiRequest<ApiEnvelope<CompanyApiDto>>(
-      "/api/v1/recruiter/company/submit-verification",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
+    const json = await apiRequest<ApiEnvelope<CompanyApiDto>>('/api/v1/recruiter/company/submit-verification', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
 
     const c = json.data;
     return {
-      id: String(c?.id || ""),
-      name: c?.name || "",
-      taxCode: c?.taxCode || "",
+      id: String(c?.id || ''),
+      name: c?.name || '',
+      taxCode: c?.taxCode || '',
       industry: toIndustry(c?.industry),
-      website: c?.website || "",
-      companySize: c?.size || "",
-      contactEmail: getAuthUser()?.email || "",
-      verificationStatus: c?.verificationStatus || "PENDING",
-      verificationReason: c?.verificationReason || c?.reviewNotes || undefined,
+      website: c?.website || '',
+      companySize: c?.size || '',
+      contactEmail: getAuthUser()?.email || '',
+      verificationStatus: c?.verificationStatus || 'PENDING',
+      verificationReason: c?.verificationReason || c?.reviewNotes || undefined
     };
   }
 
   async fetchRecruiterJobs(): Promise<Job[]> {
-    return (await fetchAllApiRows("/api/v1/recruiter/jobs")).map(
-      mapBackendJobToFrontend,
-    );
+    return (await fetchAllApiRows('/api/v1/recruiter/jobs')).map(mapBackendJobToFrontend);
   }
 
   async saveJob(job: Job): Promise<Job> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "POST",
-        "/api/v1/jobs/draft",
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập tài khoản nhà tuyển dụng.",
-      );
+      throw new ApiError('POST', '/api/v1/jobs/draft', 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
     }
 
     const reqPayload = {
       title: job.title,
-      industry: job.industryOther ? "OTHER" : job.industry,
+      industry: job.industryOther ? 'OTHER' : job.industry,
       industryOther: job.industryOther,
-      seniority: job.seniorityOther ? "OTHER" : job.seniority,
+      seniority: job.seniorityOther ? 'OTHER' : job.seniority,
       seniorityOther: job.seniorityOther,
       minSalary: job.salaryMin,
       maxSalary: job.salaryMax,
       salaryNegotiable: job.salaryNegotiable === true,
-      salaryCurrency: job.salaryCurrency || "VND",
+      salaryCurrency: job.salaryCurrency || 'VND',
       location: job.location,
-      employmentType: job.employmentTypeOther ? "OTHER" : job.employmentType,
+      employmentType: job.employmentTypeOther ? 'OTHER' : job.employmentType,
       employmentTypeOther: job.employmentTypeOther,
-      description:
-        job.description ||
-        (job.responsibilities ? job.responsibilities.join("\n") : job.title),
+      description: job.description || (job.responsibilities ? job.responsibilities.join('\n') : job.title),
       responsibilities: job.responsibilities || [],
-      occupationCodes: job.occupationCodes || [],
-      descriptionHtml: job.descriptionHtml,
-      candidateRequirements: job.candidateRequirements,
-      benefitsContent: job.benefitsContent,
-      workAddress: job.workAddress,
-      workingTime: job.workingTime,
-      applicationInstructions: job.applicationInstructions,
-      applicationDeadline: job.applicationDeadline || null,
-      requirements: (job.requirements || []).map((r) => ({
+      requirements: (job.requirements || []).map(r => ({
         skillName: r.skillName,
         type: r.requirementType,
-        minYearsExp: r.minExperienceYears || r.minYearsExperience || 0,
-      })),
+        minYearsExp: r.minExperienceYears || r.minYearsExperience || 0
+      }))
     };
 
-    const existingId =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        job.id,
-      );
-    const json = await apiRequest<ApiEnvelope<unknown>>(
-      existingId ? `/api/v1/jobs/${job.id}` : "/api/v1/jobs/draft",
-      {
-        method: existingId ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(reqPayload),
+    const existingId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(job.id);
+    const json = await apiRequest<ApiEnvelope<unknown>>(existingId ? `/api/v1/jobs/${job.id}` : '/api/v1/jobs/draft', {
+      method: existingId ? 'PUT' : 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
       },
-    );
+      body: JSON.stringify(reqPayload)
+    });
 
     const savedJob = mapBackendJobToFrontend(json.data);
 
-    if (job.status === "PUBLISHED" && savedJob.status !== "PUBLISHED") {
+    if (job.status === 'PUBLISHED' && savedJob.status !== 'PUBLISHED') {
       return (await this.publishJob(savedJob.id)) || savedJob;
     }
 
@@ -2446,24 +1591,15 @@ export class RealApiClient implements ApiClient {
   async publishJob(jobId: string): Promise<Job | null> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "POST",
-        `/api/v1/jobs/${jobId}/publish`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập tài khoản nhà tuyển dụng.",
-      );
+      throw new ApiError('POST', `/api/v1/jobs/${jobId}/publish`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
     }
 
-    const json = await apiRequest<ApiEnvelope<unknown>>(
-      `/api/v1/jobs/${jobId}/publish`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
+    const json = await apiRequest<ApiEnvelope<unknown>>(`/api/v1/jobs/${jobId}/publish`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
 
     return mapBackendJobToFrontend(json.data);
   }
@@ -2471,24 +1607,15 @@ export class RealApiClient implements ApiClient {
   async closeJob(jobId: string): Promise<Job | null> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "POST",
-        `/api/v1/jobs/${jobId}/close`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập tài khoản nhà tuyển dụng.",
-      );
+      throw new ApiError('POST', `/api/v1/jobs/${jobId}/close`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
     }
 
-    const json = await apiRequest<ApiEnvelope<unknown>>(
-      `/api/v1/jobs/${jobId}/close`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
+    const json = await apiRequest<ApiEnvelope<unknown>>(`/api/v1/jobs/${jobId}/close`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
 
     return mapBackendJobToFrontend(json.data);
   }
@@ -2496,54 +1623,34 @@ export class RealApiClient implements ApiClient {
   async fetchCandidateRankings(jobId: string): Promise<CandidateRankingItem[]> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "GET",
-        `/api/v1/matching/jobs/${jobId}/rankings`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập tài khoản nhà tuyển dụng.",
-      );
+      throw new ApiError('GET', `/api/v1/matching/jobs/${jobId}/rankings`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
     }
 
-    const json = await apiRequest<unknown>(
-      `/api/v1/matching/jobs/${jobId}/rankings`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    const json = await apiRequest<unknown>(`/api/v1/matching/jobs/${jobId}/rankings`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
     const rawList = getApiRows(json).filter(isRecord);
     return rawList.map((item, idx) => {
       const app = isRecord(item.application) ? item.application : null;
       const cand = app && isRecord(app.candidate) ? app.candidate : null;
-      const fallbackCandidate = isRecord(item.candidate)
-        ? item.candidate
-        : null;
-      const appliedAt = app ? readString(app.appliedAt) : "";
+      const fallbackCandidate = isRecord(item.candidate) ? item.candidate : null;
+      const appliedAt = app ? readString(app.appliedAt) : '';
       const requiredMissing = Array.isArray(item.requiredSkillsMissingNames)
-        ? item.requiredSkillsMissingNames.filter(
-            (name): name is string => typeof name === "string",
-          )
+        ? item.requiredSkillsMissingNames.filter((name): name is string => typeof name === 'string')
         : [];
       const rank = readNumber(item.rank);
       const overall = readNumber(item.overallMatchScore ?? item.overallScore);
       const core = readNumber(item.coreJdCvScore ?? item.coreScore);
-      const githubScore = readNumber(
-        item.githubSupportingScore ?? item.githubScore,
-      );
+      const githubScore = readNumber(item.githubSupportingScore ?? item.githubScore);
       const requiredMatched = readNumber(item.requiredSkillsMatched);
       const requiredTotal = readNumber(item.requiredSkillsTotal);
-      const experienceYears = readNumber(
-        item.relevantExperienceYears ?? cand?.yearsOfExperience,
-      );
+      const experienceYears = readNumber(item.relevantExperienceYears ?? cand?.yearsOfExperience);
       return {
         rank: rank || idx + 1,
-        applicationId: String(app?.id || item.applicationId || item.id || ""),
-        candidateId: String(cand?.id || item.candidateId || ""),
-        candidateName:
-          readString(cand?.fullName) ||
-          readString(item.candidateName) ||
-          readString(fallbackCandidate?.fullName),
+        applicationId: String(app?.id || item.applicationId || item.id || ''),
+        candidateId: String(cand?.id || item.candidateId || ''),
+        candidateName: readString(cand?.fullName) || readString(item.candidateName) || readString(fallbackCandidate?.fullName),
         headline: readString(cand?.headline) || readString(item.headline),
         overallMatchScore: overall || 0,
         coreJdCvScore: core || 0,
@@ -2552,333 +1659,210 @@ export class RealApiClient implements ApiClient {
         requiredSkillsTotal: requiredTotal || 0,
         requiredSkillsMissingNames: requiredMissing,
         relevantExperienceYears: experienceYears || 0,
-        appliedDate: appliedAt
-          ? appliedAt.split("T")[0]
-          : readString(item.appliedDate),
+        appliedDate: appliedAt ? appliedAt.split('T')[0] : readString(item.appliedDate),
         status: toApplicationStatus(app?.status || item.status),
-        gitHubConnected: !!(
-          item.gitHubConnected ??
-          (item.isGithubActive && item.githubScore != null)
-        ),
+        gitHubConnected: !!(item.gitHubConnected ?? (item.isGithubActive && item.githubScore != null))
       };
     });
   }
 
-  async fetchMatchInspection(
-    applicationId: string,
-  ): Promise<MatchInspectionData | null> {
+  async fetchMatchInspection(applicationId: string): Promise<MatchInspectionData | null> {
     const token = getAuthToken();
     if (!token) {
-      throw new ApiError(
-        "GET",
-        `/api/v1/matching/applications/${applicationId}/inspection`,
-        401,
-        "UNAUTHORIZED",
-        "Chưa đăng nhập tài khoản nhà tuyển dụng.",
-      );
+      throw new ApiError('GET', `/api/v1/matching/applications/${applicationId}/inspection`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
     }
 
     const url = `${BASE_URL}/api/v1/matching/applications/${applicationId}/inspection`;
     let res: Response;
     try {
       res = await authorizedFetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` }
       });
     } catch (netErr: unknown) {
       console.error(`[API ERROR] Network failure: GET ${url}`, netErr);
-      throw new ApiError(
-        "GET",
-        url,
-        0,
-        "NETWORK_ERROR",
-        getErrorMessage(netErr, "Lỗi kết nối mạng."),
-      );
+      throw new ApiError('GET', url, 0, 'NETWORK_ERROR', getErrorMessage(netErr, 'Lỗi kết nối mạng.'));
     }
 
     if (!res.ok) {
       if (res.status === 404) return null;
       let errBody: unknown = null;
-      try {
-        errBody = await res.json();
-      } catch {}
-      const errMsg =
-        (isRecord(errBody) ? readString(errBody.message) : "") ||
-        res.statusText ||
-        `GET /inspection thất bại: ${res.status}`;
-      console.error(
-        `[API ERROR] method=GET url=${url} status=${res.status} statusText=${res.statusText} message=${errMsg}`,
-        errBody,
-      );
-      throw new ApiError(
-        "GET",
-        url,
-        res.status,
-        res.statusText,
-        errMsg,
-        errBody,
-      );
+      try { errBody = await res.json(); } catch { }
+      const errMsg = (isRecord(errBody) ? readString(errBody.message) : '') || res.statusText || `GET /inspection thất bại: ${res.status}`;
+      console.error(`[API ERROR] method=GET url=${url} status=${res.status} statusText=${res.statusText} message=${errMsg}`, errBody);
+      throw new ApiError('GET', url, res.status, res.statusText, errMsg, errBody);
     }
 
     const json: unknown = await res.json();
     const unwrapped = getApiData(json);
-    if (!isRecord(unwrapped) || (!unwrapped.applicationId && !unwrapped.id))
-      return null;
+    if (!isRecord(unwrapped) || (!unwrapped.applicationId && !unwrapped.id)) return null;
     const data = unwrapped;
-    const github = isRecord(data.githubAssessment)
-      ? data.githubAssessment
-      : null;
-    const distribution =
-      github && isRecord(github.languageDistribution)
-        ? Object.fromEntries(
-            Object.entries(github.languageDistribution).flatMap(
-              ([language, count]) => {
-                const numericCount = readNumber(count);
-                return numericCount === null ? [] : [[language, numericCount]];
-              },
-            ),
-          )
-        : {};
+    const github = isRecord(data.githubAssessment) ? data.githubAssessment : null;
+    const distribution = github && isRecord(github.languageDistribution)
+      ? Object.fromEntries(Object.entries(github.languageDistribution).flatMap(([language, count]) => {
+        const numericCount = readNumber(count);
+        return numericCount === null ? [] : [[language, numericCount]];
+      }))
+      : {};
 
     return {
       applicationId: String(data.applicationId || data.id),
       jobTitle: readString(data.jobTitle),
       candidateName: readString(data.candidateName),
-      overallScore: Number(data.overallScore) || 0,
-      coreScore: Number(data.coreScore) || 0,
-      githubScore:
-        data.githubScore != null ? Number(data.githubScore) : undefined,
+      overallScore: readNumber(data.overallScore),
+      coreScore: readNumber(data.coreScore),
+      githubScore: data.githubScore != null ? Number(data.githubScore) : undefined,
       githubScoreActive: !!data.githubScoreActive,
       algorithmVersion: readString(data.algorithmVersion) || undefined,
       calculationStatus: readString(data.calculationStatus) || undefined,
+      matchClassification: readString(data.matchClassification) || undefined,
+      detailAccess: data.detailAccess === true,
       cvVersionId: readString(data.cvVersionId) || undefined,
       jdVersionId: readString(data.jdVersionId) || undefined,
       semanticMethod: readString(data.semanticMethod) || undefined,
       embeddingModel: readString(data.embeddingModel) || undefined,
       scoringPolicyVersion: readNumber(data.scoringPolicyVersion) ?? undefined,
-      requiredSkillsStatus: getObjectRows(data.requiredSkillsStatus).map(
-        (skill) => ({
-          skillName: readString(skill.skillName),
-          requirementType: toRequirementType(skill.requirementType),
-          status: toRequirementMatchStatus(skill.status),
-          evidenceText: readString(skill.evidenceText) || undefined,
-        }),
-      ),
-      preferredSkillsStatus: getObjectRows(data.preferredSkillsStatus).map(
-        (skill) => ({
-          skillName: readString(skill.skillName),
-          requirementType: toRequirementType(skill.requirementType),
-          status: toRequirementMatchStatus(skill.status),
-          evidenceText: readString(skill.evidenceText) || undefined,
-        }),
-      ),
+      requiredSkillsStatus: getObjectRows(data.requiredSkillsStatus).map((skill) => ({
+        skillName: readString(skill.skillName),
+        requirementType: toRequirementType(skill.requirementType),
+        status: toRequirementMatchStatus(skill.status),
+        evidenceText: readString(skill.evidenceText) || undefined
+      })),
+      preferredSkillsStatus: getObjectRows(data.preferredSkillsStatus).map((skill) => ({
+        skillName: readString(skill.skillName),
+        requirementType: toRequirementType(skill.requirementType),
+        status: toRequirementMatchStatus(skill.status),
+        evidenceText: readString(skill.evidenceText) || undefined
+      })),
       matchFactors: getObjectRows(data.matchFactors).map((factor) => ({
         factorName: readString(factor.factorName),
-        score: readNumber(factor.score) ?? 0,
+        score: readNumber(factor.score),
         weight: readNumber(factor.weight) ?? undefined,
         configuredWeight: readNumber(factor.configuredWeight) ?? undefined,
         effectiveWeight: readNumber(factor.effectiveWeight) ?? undefined,
-        weightedContribution:
-          readNumber(factor.weightedContribution) ?? undefined,
+        weightedContribution: readNumber(factor.weightedContribution) ?? undefined,
         calculationMethod: readString(factor.calculationMethod) || undefined,
         algorithmVersion: readString(factor.algorithmVersion) || undefined,
-        status: readString(factor.status) || "MODERATE",
+        status: readString(factor.status) || 'MODERATE',
         explanation: readString(factor.explanation),
-        evidence: readString(factor.evidence) || undefined,
+        evidence: readString(factor.evidence) || undefined
       })),
       humanReadableExplanation: readString(data.humanReadableExplanation),
-      githubAssessment: github
-        ? {
-            connected: github.connected === true,
-            status: toGitHubStatus(
-              github.status || (github.connected ? "SYNCED" : "NOT_CONNECTED"),
-            ),
-            username: readString(github.username) || undefined,
-            publicRepoCount: readNumber(github.publicRepoCount) ?? undefined,
-            topLanguages: Array.isArray(github.topLanguages)
-              ? github.topLanguages.filter(
-                  (language): language is string =>
-                    typeof language === "string",
-                )
-              : [],
-            languageDistribution: distribution,
-            activitySignal:
-              github.activitySignal === "HIGH" ||
-              github.activitySignal === "LOW" ||
-              github.activitySignal === "MODERATE" ||
-              github.activitySignal === "LIMITED_OBSERVABLE_ACTIVITY"
-                ? github.activitySignal
-                : github.connected
-                  ? "MODERATE"
-                  : "LIMITED_OBSERVABLE_ACTIVITY",
-            latestActivityDaysAgo:
-              readNumber(github.latestActivityDaysAgo) ?? undefined,
-            repos: getObjectRows(github.repos).map((repo) => ({
-              name: readString(repo.name),
-              description: readString(repo.description),
-              primaryLanguage: readString(repo.primaryLanguage),
-              stars: readNumber(repo.stars) ?? 0,
-              forks: readNumber(repo.forks) ?? 0,
-              updatedDaysAgo: readNumber(repo.updatedDaysAgo) ?? 0,
-              relevanceExplanation: readString(repo.relevanceExplanation),
-            })),
-            overallAssessment:
-              readString(github.overallAssessment) || undefined,
-          }
-        : {
-            connected: false,
-            status: "NOT_CONNECTED",
-          },
+      githubAssessment: github ? {
+        connected: github.connected === true,
+        status: toGitHubStatus(github.status || (github.connected ? 'SYNCED' : 'NOT_CONNECTED')),
+        username: readString(github.username) || undefined,
+        publicRepoCount: readNumber(github.publicRepoCount) ?? undefined,
+        topLanguages: Array.isArray(github.topLanguages) ? github.topLanguages.filter((language): language is string => typeof language === 'string') : [],
+        languageDistribution: distribution,
+        activitySignal: github.activitySignal === 'HIGH' || github.activitySignal === 'LOW' || github.activitySignal === 'MODERATE' || github.activitySignal === 'LIMITED_OBSERVABLE_ACTIVITY'
+          ? github.activitySignal
+          : (github.connected ? 'MODERATE' : 'LIMITED_OBSERVABLE_ACTIVITY'),
+        latestActivityDaysAgo: readNumber(github.latestActivityDaysAgo) ?? undefined,
+        repos: getObjectRows(github.repos).map((repo) => ({
+          name: readString(repo.name),
+          description: readString(repo.description),
+          primaryLanguage: readString(repo.primaryLanguage),
+          stars: readNumber(repo.stars) ?? 0,
+          forks: readNumber(repo.forks) ?? 0,
+          updatedDaysAgo: readNumber(repo.updatedDaysAgo) ?? 0,
+          relevanceExplanation: readString(repo.relevanceExplanation)
+        })),
+        overallAssessment: readString(github.overallAssessment) || undefined
+      } : {
+        connected: false,
+        status: 'NOT_CONNECTED'
+      }
     };
   }
 
-  async checkEmailAvailability(
-    email: string,
-  ): Promise<{ exists: boolean; status: "AVAILABLE" | "ALREADY_EXISTS" }> {
-    const json = await apiRequest<
-      AuthApiResponse<{ exists: boolean; status: string }>
-    >(`/api/v1/auth/check-email?email=${encodeURIComponent(email)}`, {
-      headers: { Accept: "application/json" },
+  async checkEmailAvailability(email: string): Promise<{ exists: boolean; status: 'AVAILABLE' | 'ALREADY_EXISTS' }> {
+    const json = await apiRequest<AuthApiResponse<{ exists: boolean; status: string }>>(`/api/v1/auth/check-email?email=${encodeURIComponent(email)}`, {
+      headers: { Accept: 'application/json' }
     });
     const data = json.data;
-    if (
-      !data ||
-      typeof data.exists !== "boolean" ||
-      (data.status !== "AVAILABLE" && data.status !== "ALREADY_EXISTS")
-    ) {
-      throw new Error("Phản hồi kiểm tra email không hợp lệ.");
+    if (!data || typeof data.exists !== 'boolean' || (data.status !== 'AVAILABLE' && data.status !== 'ALREADY_EXISTS')) {
+      throw new Error('Phản hồi kiểm tra email không hợp lệ.');
     }
     return { exists: data.exists, status: data.status };
   }
 
-  async registerCandidateAccount(
-    payload: RegisterCandidatePayload,
-  ): Promise<AuthResponse> {
-    const json = await apiRequest<AuthApiResponse<RegistrationApiDto>>(
-      "/api/v1/auth/register/candidate",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      },
-    );
+  async registerCandidateAccount(payload: RegisterCandidatePayload): Promise<AuthResponse> {
+    const json = await apiRequest<AuthApiResponse<RegistrationApiDto>>('/api/v1/auth/register/candidate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
 
     return {
-      message: json.message || "Đăng ký thành công. Vui lòng xác thực email.",
+      message: json.message || 'Đăng ký thành công. Vui lòng xác thực email.',
       email: json.data?.email || payload.email,
       emailVerified: false,
-      devVerificationToken: json.data?.devVerificationToken,
+      devVerificationToken: json.data?.devVerificationToken
     };
   }
 
-  async registerRecruiterAccount(
-    payload: RegisterRecruiterPayload,
-  ): Promise<AuthResponse> {
-    const json = await apiRequest<AuthApiResponse<RegistrationApiDto>>(
-      "/api/v1/auth/register/recruiter",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      },
-    );
+  async registerRecruiterAccount(payload: RegisterRecruiterPayload): Promise<AuthResponse> {
+    const json = await apiRequest<AuthApiResponse<RegistrationApiDto>>('/api/v1/auth/register/recruiter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
 
     return {
-      message: json.message || "Đăng ký thành công. Vui lòng xác thực email.",
+      message: json.message || 'Đăng ký thành công. Vui lòng xác thực email.',
       email: json.data?.email || payload.email,
       emailVerified: false,
-      devVerificationToken: json.data?.devVerificationToken,
+      devVerificationToken: json.data?.devVerificationToken
     };
   }
 
-  async verifyEmailToken(
-    token: string,
-  ): Promise<{ success: boolean; message: string }> {
-    const json = await apiRequest<AuthApiResponse<unknown>>(
-      "/api/v1/auth/verify-email",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
-      },
-    );
+  async verifyEmailToken(token: string): Promise<{ success: boolean; message: string }> {
+    const json = await apiRequest<AuthApiResponse<unknown>>('/api/v1/auth/verify-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    });
 
     return {
       success: true,
-      message:
-        json.message ||
-        "Email đã được xác thực thành công. Bạn có thể đăng nhập ngay.",
+      message: json.message || 'Email đã được xác thực thành công. Bạn có thể đăng nhập ngay.'
     };
   }
 
-  async resendVerificationToken(
-    email: string,
-  ): Promise<{
-    success: boolean;
-    message: string;
-    devVerificationToken?: string;
-  }> {
-    const json = await apiRequest<AuthApiResponse<RegistrationApiDto>>(
-      "/api/v1/auth/resend-verification",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      },
-    );
+  async resendVerificationToken(email: string): Promise<{ success: boolean; message: string; devVerificationToken?: string }> {
+    const json = await apiRequest<AuthApiResponse<RegistrationApiDto>>('/api/v1/auth/resend-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
 
     return {
       success: true,
-      message: json.message || "Email xác thực đã được gửi lại thành công.",
-      devVerificationToken: json?.data?.devVerificationToken,
+      message: json.message || 'Email xác thực đã được gửi lại thành công.',
+      devVerificationToken: json?.data?.devVerificationToken
     };
   }
 
-  async loginAccount(
-    email: string,
-    password: string,
-    expectedRole?: User["role"],
-  ): Promise<LoginResponse> {
+  async loginAccount(email: string, password: string): Promise<LoginResponse> {
     const cleanEmail = email.trim();
-    const json = await apiRequest<AuthApiResponse<LoginApiDto>>(
-      "/api/v1/auth/login",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: cleanEmail,
-          password,
-          expectedRole: expectedRole === "RECRUITER" ? "HR" : expectedRole,
-        }),
-      },
-    );
+    const json = await apiRequest<AuthApiResponse<LoginApiDto>>('/api/v1/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cleanEmail, password })
+    });
 
     const jwtData = json.data;
-    if (
-      !jwtData ||
-      !jwtData.userId ||
-      !jwtData.email ||
-      !jwtData.accessToken ||
-      !jwtData.refreshToken
-    ) {
-      throw new Error("Phản hồi đăng nhập không hợp lệ.");
+    if (!jwtData || !jwtData.userId || !jwtData.email || !jwtData.accessToken || !jwtData.refreshToken) {
+      throw new Error('Phản hồi đăng nhập không hợp lệ.');
     }
     const user: User = {
       id: jwtData.userId,
       email: jwtData.email,
-      fullName: jwtData.email.split("@")[0],
-      role:
-        jwtData.role === "HR"
-          ? "RECRUITER"
-          : jwtData.role === "ADMIN"
-            ? "ADMIN"
-            : "CANDIDATE",
-      emailVerified: true,
+      fullName: jwtData.email.split('@')[0],
+      role: jwtData.role === 'HR' ? 'RECRUITER' : (jwtData.role === 'ADMIN' ? 'ADMIN' : 'CANDIDATE'),
+      emailVerified: true
     };
-    return {
-      user,
-      accessToken: jwtData.accessToken,
-      refreshToken: jwtData.refreshToken,
-    };
+    return { user, accessToken: jwtData.accessToken, refreshToken: jwtData.refreshToken };
   }
 }
 
@@ -2902,15 +1886,15 @@ export function getActiveApiClient(): ApiClient {
 }
 
 // Global browser test harness hook (only active in non-production environments when explicitly called)
-if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
   window.__MIDCV_TEST_HARNESS__ = {
     injectBenchmarkClient: async () => {
-      const { BenchmarkFixtureClient } = await import("./benchmarkFixtures");
+      const { BenchmarkFixtureClient } = await import('./benchmarkFixtures');
       setApiClientForTesting(new BenchmarkFixtureClient());
     },
     resetApiClient: () => {
       resetApiClient();
-    },
+    }
   };
 }
 
@@ -2918,158 +1902,86 @@ if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
 // 7. EXPORTED BUSINESS FUNCTIONS (DELEGATE TO CURRENT CLIENT)
 // ============================================================
 
-export const fetchJobCatalog = (query = "", location = "") =>
-  currentApiClient.fetchJobCatalog
-    ? currentApiClient.fetchJobCatalog(query, location)
-    : currentApiClient.fetchJobs();
-export const fetchJobs = (industry?: string) =>
-  currentApiClient.fetchJobs(industry);
+export const fetchJobCatalog = (query = '', location = '') => currentApiClient.fetchJobCatalog ? currentApiClient.fetchJobCatalog(query, location) : currentApiClient.fetchJobs();
+export const fetchJobs = (industry?: string) => currentApiClient.fetchJobs(industry);
 export const fetchJobById = (id: string) => currentApiClient.fetchJobById(id);
 export async function fetchRecruiterJobById(id: string): Promise<Job> {
   const response = await apiRequest<unknown>(`/api/v1/recruiter/jobs/${id}`);
   const job = getApiData(response);
-  if (!job) throw new Error("Không tìm thấy tin tuyển dụng.");
+  if (!job) throw new Error('Không tìm thấy tin tuyển dụng.');
   return mapBackendJobToFrontend(job);
 }
-export const fetchCandidateProfile = () =>
-  currentApiClient.fetchCandidateProfile();
-export const saveCandidateProfile = (profile: CandidateProfile) =>
-  currentApiClient.saveCandidateProfile(profile);
+export const fetchCandidateProfile = () => currentApiClient.fetchCandidateProfile();
+export const saveCandidateProfile = (profile: CandidateProfile) => currentApiClient.saveCandidateProfile(profile);
 export const fetchCandidateCVs = () => currentApiClient.fetchCandidateCVs();
 export const fetchCVQuota = () => currentApiClient.fetchCVQuota();
-export const saveCandidateCV = (cv: CreateCVRequest) =>
-  currentApiClient.saveCandidateCV(cv);
-export const updateCVMetadata = (cvId: string, metadata: { title: string }) =>
-  currentApiClient.updateCVMetadata(cvId, metadata);
-export const uploadCandidateCV = (
-  file: File,
-  title?: string,
-  targetIndustry?: string,
-  isDefault?: boolean,
-  signal?: AbortSignal,
-) =>
-  currentApiClient.uploadCandidateCV(
-    file,
-    title,
-    targetIndustry,
-    isDefault,
-    signal,
-  );
-export const deleteCandidateCV = (cvId: string) =>
-  currentApiClient.deleteCandidateCV(cvId);
-export const fetchCVReview = (cvId: string, signal?: AbortSignal) =>
-  currentApiClient.fetchCVReview(cvId, signal);
-export const fetchCVProcessingStatus = (cvId: string, signal?: AbortSignal) =>
-  currentApiClient.fetchCVProcessingStatus(cvId, signal);
+export const saveCandidateCV = (cv: CreateCVRequest) => currentApiClient.saveCandidateCV(cv);
+export const updateCVMetadata = (cvId: string, metadata: { title: string }) => currentApiClient.updateCVMetadata(cvId, metadata);
+export const uploadCandidateCV = (file: File, title?: string, targetIndustry?: string, isDefault?: boolean, signal?: AbortSignal) =>
+  currentApiClient.uploadCandidateCV(file, title, targetIndustry, isDefault, signal);
+export const deleteCandidateCV = (cvId: string) => currentApiClient.deleteCandidateCV(cvId);
+export const fetchCVReview = (cvId: string, signal?: AbortSignal) => currentApiClient.fetchCVReview(cvId, signal);
+export const fetchCVProcessingStatus = (cvId: string, signal?: AbortSignal) => currentApiClient.fetchCVProcessingStatus(cvId, signal);
 export const subscribeCVProcessingEvents = (
   identifier: { cvId?: string; jobId?: string },
   onEvent: (event: CVProcessingEvent) => void,
-  onError?: (err: Error) => void,
-) =>
-  currentApiClient.subscribeCVProcessingEvents
-    ? currentApiClient.subscribeCVProcessingEvents(identifier, onEvent, onError)
-    : () => {};
-export const downloadCVFile = (
-  cvId: string,
-  format: string,
-  defaultFilename: string,
-) => currentApiClient.downloadCVFile(cvId, format, defaultFilename);
-export const retryCVExtraction = (cvId: string, signal?: AbortSignal) =>
-  currentApiClient.retryCVExtraction(cvId, signal);
-export const fetchCVDraft = (cvId: string) =>
-  currentApiClient.fetchCVDraft(cvId);
-export const updateCVDraft = (
-  cvId: string,
-  draftData: Record<string, unknown>,
-) => currentApiClient.updateCVDraft(cvId, draftData);
-export const confirmCandidateCV = (
-  cvId: string,
-  revision?: { version_id?: string; expected_revision?: string },
-) => currentApiClient.confirmCandidateCV(cvId, revision);
-export const fetchCVVersions = (cvId: string) =>
-  currentApiClient.fetchCVVersions(cvId);
-export const searchTaxonomySkills = (
-  query: string,
-  limit?: number,
-  category?: string,
-) => currentApiClient.searchTaxonomySkills(query, limit, category);
+  onError?: (err: Error) => void
+) => (currentApiClient.subscribeCVProcessingEvents ? currentApiClient.subscribeCVProcessingEvents(identifier, onEvent, onError) : () => { });
+export const downloadCVFile = (cvId: string, format: string, defaultFilename: string) => currentApiClient.downloadCVFile(cvId, format, defaultFilename);
+export const retryCVExtraction = (cvId: string, signal?: AbortSignal) => currentApiClient.retryCVExtraction(cvId, signal);
+export const fetchCVDraft = (cvId: string) => currentApiClient.fetchCVDraft(cvId);
+export const updateCVDraft = (cvId: string, draftData: Record<string, unknown>) => currentApiClient.updateCVDraft(cvId, draftData);
+export const confirmCandidateCV = (cvId: string, revision?: { version_id?: string; expected_revision?: string }) => currentApiClient.confirmCandidateCV(cvId, revision);
+export const fetchCVVersions = (cvId: string) => currentApiClient.fetchCVVersions(cvId);
+export const searchTaxonomySkills = (query: string, limit?: number, category?: string) => currentApiClient.searchTaxonomySkills(query, limit, category);
 export const fetchFavoriteSkills = () => currentApiClient.fetchFavoriteSkills();
-export const addFavoriteSkill = (skillId: string) =>
-  currentApiClient.addFavoriteSkill(skillId);
-export const removeFavoriteSkill = (skillId: string) =>
-  currentApiClient.removeFavoriteSkill(skillId);
-export const uploadCVEvidence = (
-  cvId: string,
-  file: File,
-  itemType: "CERTIFICATION" | "LANGUAGE",
-  itemId: string,
-) => currentApiClient.uploadCVEvidence(cvId, file, itemType, itemId);
-export const deleteCVEvidence = (cvId: string, attachmentId: string) =>
-  currentApiClient.deleteCVEvidence(cvId, attachmentId);
-export const downloadCVEvidence = (
-  cvId: string,
-  attachmentId: string,
-  fileName: string,
-) => currentApiClient.downloadCVEvidence(cvId, attachmentId, fileName);
-export const fetchCVEvidenceBlob = (cvId: string, attachmentId: string) =>
-  currentApiClient.fetchCVEvidenceBlob(cvId, attachmentId);
-export const fetchCandidateApplications = () =>
-  currentApiClient.fetchCandidateApplications();
-export const submitApplication = (app: Application) =>
-  currentApiClient.submitApplication(app);
-export const updateCandidateApplication = (
-  app: Application,
-  update: { aiAnalysisConsent: boolean; coverLetter: string },
-) => currentApiClient.updateCandidateApplication(app, update);
-export const fetchJobApplications = (jobId: string) =>
-  currentApiClient.fetchJobApplications(jobId);
-export const fetchRecruiterProfile = () =>
-  currentApiClient.fetchRecruiterProfile();
-export const fetchRecruiterCompany = () =>
-  currentApiClient.fetchRecruiterCompany();
-export const saveCompanyProfile = (company: Company) =>
-  currentApiClient.saveCompanyProfile(company);
-export const submitCompanyVerification = () =>
-  currentApiClient.submitCompanyVerification();
+export const addFavoriteSkill = (skillId: string) => currentApiClient.addFavoriteSkill(skillId);
+export const removeFavoriteSkill = (skillId: string) => currentApiClient.removeFavoriteSkill(skillId);
+export const uploadCVEvidence = (cvId: string, file: File, itemType: 'CERTIFICATION' | 'LANGUAGE', itemId: string) => currentApiClient.uploadCVEvidence(cvId, file, itemType, itemId);
+export const deleteCVEvidence = (cvId: string, attachmentId: string) => currentApiClient.deleteCVEvidence(cvId, attachmentId);
+export const downloadCVEvidence = (cvId: string, attachmentId: string, fileName: string) => currentApiClient.downloadCVEvidence(cvId, attachmentId, fileName);
+export const fetchCVEvidenceBlob = (cvId: string, attachmentId: string) => currentApiClient.fetchCVEvidenceBlob(cvId, attachmentId);
+export const fetchCandidateApplications = () => currentApiClient.fetchCandidateApplications();
+export const submitApplication = (app: Application) => currentApiClient.submitApplication(app);
+export interface QuickApplyPreview {
+  overallScore: number | null;
+  status: string;
+  semanticMethod: string | null;
+  cvVersionId: string | null;
+  jdVersionId: string | null;
+}
+/** Side-effect-free preview of the selected confirmed CV against a published job. */
+export async function previewQuickApply(jobId: string, cvId: string): Promise<QuickApplyPreview> {
+  const token = getAuthToken();
+  if (!token) throw new ApiError('POST', '/api/v1/candidate/applications/match-preview', 401, 'UNAUTHORIZED', 'Chưa đăng nhập.');
+  const result = await apiRequest<ApiEnvelope<QuickApplyPreview>>('/api/v1/candidate/applications/match-preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ jobId, cvId, aiAnalysisConsent: true })
+  });
+  return result.data;
+}
+export const fetchJobApplications = (jobId: string) => currentApiClient.fetchJobApplications(jobId);
+export const fetchRecruiterProfile = () => currentApiClient.fetchRecruiterProfile();
+export const fetchRecruiterCompany = () => currentApiClient.fetchRecruiterCompany();
+export const saveCompanyProfile = (company: Company) => currentApiClient.saveCompanyProfile(company);
+export const submitCompanyVerification = () => currentApiClient.submitCompanyVerification();
 export const fetchRecruiterJobs = () => currentApiClient.fetchRecruiterJobs();
 export const saveJob = (job: Job) => currentApiClient.saveJob(job);
 export const publishJob = (jobId: string) => currentApiClient.publishJob(jobId);
 export const closeJob = (jobId: string) => currentApiClient.closeJob(jobId);
-export const fetchApplicationById = (applicationId: string) =>
-  currentApiClient.fetchApplicationById(applicationId);
-export const updateApplicationStatus = (
-  applicationId: string,
-  status: ApplicationStatus,
-  decisionNote?: string,
-  expectedStatus?: ApplicationStatus,
-) =>
-  currentApiClient.updateApplicationStatus(
-    applicationId,
-    status,
-    decisionNote,
-    expectedStatus,
-  );
-export const fetchApplicationAuditLogs = (applicationId: string) =>
-  currentApiClient.fetchApplicationAuditLogs(applicationId);
-export const fetchCandidateRankings = (jobId: string) =>
-  currentApiClient.fetchCandidateRankings(jobId);
-export const fetchMatchInspection = (applicationId: string) =>
-  currentApiClient.fetchMatchInspection(applicationId);
-export const checkEmailAvailability = (email: string) =>
-  currentApiClient.checkEmailAvailability(email);
-export const registerCandidateAccount = (payload: RegisterCandidatePayload) =>
-  currentApiClient.registerCandidateAccount(payload);
-export const registerRecruiterAccount = (payload: RegisterRecruiterPayload) =>
-  currentApiClient.registerRecruiterAccount(payload);
-export const verifyEmailToken = (token: string) =>
-  currentApiClient.verifyEmailToken(token);
-export const resendVerificationToken = (email: string) =>
-  currentApiClient.resendVerificationToken(email);
-export const loginAccount = (
-  email: string,
-  password: string,
-  expectedRole?: User["role"],
-) => currentApiClient.loginAccount(email, password, expectedRole);
+export const fetchApplicationById = (applicationId: string) => currentApiClient.fetchApplicationById(applicationId);
+export const updateApplicationStatus = (applicationId: string, status: ApplicationStatus, decisionNote?: string, expectedStatus?: ApplicationStatus) =>
+  currentApiClient.updateApplicationStatus(applicationId, status, decisionNote, expectedStatus);
+export const fetchApplicationAuditLogs = (applicationId: string) => currentApiClient.fetchApplicationAuditLogs(applicationId);
+export const fetchCandidateRankings = (jobId: string) => currentApiClient.fetchCandidateRankings(jobId);
+export const fetchMatchInspection = (applicationId: string) => currentApiClient.fetchMatchInspection(applicationId);
+export const checkEmailAvailability = (email: string) => currentApiClient.checkEmailAvailability(email);
+export const registerCandidateAccount = (payload: RegisterCandidatePayload) => currentApiClient.registerCandidateAccount(payload);
+export const registerRecruiterAccount = (payload: RegisterRecruiterPayload) => currentApiClient.registerRecruiterAccount(payload);
+export const verifyEmailToken = (token: string) => currentApiClient.verifyEmailToken(token);
+export const resendVerificationToken = (email: string) => currentApiClient.resendVerificationToken(email);
+export const loginAccount = (email: string, password: string) => currentApiClient.loginAccount(email, password);
 
 // ============================================================
 // 8. MIDCV AI ENGINE & QUICK SCREENING API CLIENTS
@@ -3085,88 +1997,53 @@ export interface WorkerRuntimeConfiguration {
   mockMode?: boolean;
 }
 
-export async function fetchAiRuntime(): Promise<{
-  backend: AiSettings;
-  worker: WorkerRuntimeConfiguration;
-  lastBackendCall: Record<string, string>;
-}> {
-  return apiRequest("/api/v1/admin/ai-settings/runtime");
+export async function fetchAiRuntime(): Promise<{ backend: AiSettings; worker: WorkerRuntimeConfiguration; lastBackendCall: Record<string, string> }> {
+  return apiRequest('/api/v1/admin/ai-settings/runtime');
 }
 
 export async function fetchJobApplicationCount(jobId: string): Promise<number> {
-  const result = await apiRequest<ApiEnvelope<ApiPage<JsonRecord>>>(
-    `/api/v1/recruiter/jobs/${jobId}/applications?page=0&size=1`,
-  );
+  const result = await apiRequest<ApiEnvelope<ApiPage<JsonRecord>>>(`/api/v1/recruiter/jobs/${jobId}/applications?page=0&size=1`);
   const count = result.data?.totalElements;
-  if (typeof count !== "number" || !Number.isSafeInteger(count) || count < 0)
-    throw new Error("Không thể xác nhận số lượng đơn ứng tuyển.");
+  if (typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0)
+    throw new Error('Không thể xác nhận số lượng đơn ứng tuyển.');
   return count;
 }
 
 export async function deleteDraftJob(jobId: string): Promise<void> {
-  await apiRequest(`/api/v1/jobs/${jobId}`, { method: "DELETE" });
+  await apiRequest(`/api/v1/jobs/${jobId}`, { method: 'DELETE' });
 }
 
 export async function fetchAiSettings(): Promise<AiSettings> {
-  return apiRequest<AiSettings>("/api/v1/admin/ai-settings");
+  return apiRequest<AiSettings>('/api/v1/admin/ai-settings');
 }
 
-export async function updateAiSettings(
-  body: Partial<AiSettings> & { cloudApiKey?: string },
-): Promise<AiSettings> {
-  return apiRequest<AiSettings>("/api/v1/admin/ai-settings", {
-    method: "PUT",
-    body: JSON.stringify(body),
+export async function updateAiSettings(body: Partial<AiSettings> & { cloudApiKey?: string }): Promise<AiSettings> {
+  return apiRequest<AiSettings>('/api/v1/admin/ai-settings', {
+    method: 'PUT',
+    body: JSON.stringify(body)
   });
 }
 
-export async function testAiSettings(
-  body: Partial<AiSettings> & { cloudApiKey?: string },
-): Promise<{
-  healthy: boolean;
-  latencyMs?: number;
-  message?: string;
-  error?: string;
-}> {
-  return apiRequest<{
-    healthy: boolean;
-    latencyMs?: number;
-    message?: string;
-    error?: string;
-  }>("/api/v1/admin/ai-settings/test", {
-    method: "POST",
-    body: JSON.stringify(body),
+export async function testAiSettings(body: Partial<AiSettings> & { cloudApiKey?: string }): Promise<{ healthy: boolean; latencyMs?: number; message?: string; error?: string }> {
+  return apiRequest<{ healthy: boolean; latencyMs?: number; message?: string; error?: string }>('/api/v1/admin/ai-settings/test', {
+    method: 'POST',
+    body: JSON.stringify(body)
   });
 }
 
-export async function uploadQuickScreening(
-  jobId: string,
-  file: File,
-  githubEnabled = true,
-): Promise<{ id: string; jobId: string; document: Record<string, unknown> }> {
+export async function uploadQuickScreening(jobId: string, file: File, githubEnabled = true): Promise<{ id: string; jobId: string; document: Record<string, unknown> }> {
   const formData = new FormData();
-  formData.append("file", file);
-  formData.append("githubEnabled", String(githubEnabled));
-  return apiRequest<{
-    id: string;
-    jobId: string;
-    document: Record<string, unknown>;
-  }>(`/api/v1/hr/jobs/${jobId}/screenings`, {
-    method: "POST",
-    body: formData,
+  formData.append('file', file);
+  formData.append('githubEnabled', String(githubEnabled));
+  return apiRequest<{ id: string; jobId: string; document: Record<string, unknown> }>(`/api/v1/hr/jobs/${jobId}/screenings`, {
+    method: 'POST',
+    body: formData
   });
 }
 
-export async function fetchQuickScreenings(
-  jobId: string,
-  page = 0,
-  size = 20,
-): Promise<QuickScreeningRun[]> {
-  const response = await apiRequest<unknown>(
-    `/api/v1/hr/jobs/${jobId}/screenings?page=${page}&size=${size}`,
-  );
-  const payload =
-    isRecord(response) && "data" in response ? response.data : response;
+export async function fetchQuickScreenings(jobId: string, page = 0, size = 20): Promise<QuickScreeningRun[]> {
+  const response = await apiRequest<unknown>(`/api/v1/hr/jobs/${jobId}/screenings?page=${page}&size=${size}`);
+  const payload = isRecord(response) && 'data' in response ? response.data : response;
   const rows = Array.isArray(payload)
     ? payload
     : isRecord(payload) && Array.isArray(payload.content)
@@ -3176,31 +2053,20 @@ export async function fetchQuickScreenings(
 }
 
 function isQuickScreeningRun(value: unknown): value is QuickScreeningRun {
-  return (
-    isRecord(value) &&
-    typeof value.id === "string" &&
-    typeof value.processing_state === "string" &&
-    (value.score === null || typeof value.score === "number")
-  );
+  return isRecord(value)
+    && typeof value.id === 'string'
+    && typeof value.processing_state === 'string'
+    && (value.score === null || typeof value.score === 'number');
 }
 
-export async function fetchScreeningDetail(
-  screeningId: string,
-): Promise<QuickScreeningDetail> {
-  return apiRequest<QuickScreeningDetail>(
-    `/api/v1/hr/screenings/${screeningId}`,
-  );
+export async function fetchScreeningDetail(screeningId: string): Promise<QuickScreeningDetail> {
+  return apiRequest<QuickScreeningDetail>(`/api/v1/hr/screenings/${screeningId}`);
 }
 
-export async function rematchScreening(
-  screeningId: string,
-): Promise<{ jobId: string }> {
-  return apiRequest<{ jobId: string }>(
-    `/api/v1/hr/screenings/${screeningId}/match`,
-    {
-      method: "POST",
-    },
-  );
+export async function rematchScreening(screeningId: string): Promise<{ jobId: string }> {
+  return apiRequest<{ jobId: string }>(`/api/v1/hr/screenings/${screeningId}/match`, {
+    method: 'POST'
+  });
 }
 
 // ============================================================
@@ -3208,243 +2074,161 @@ export async function rematchScreening(
 // ============================================================
 
 export async function fetchAdminDashboardStats(): Promise<AdminDashboardStats> {
-  const res = await apiRequest<
-    ApiEnvelope<AdminDashboardStats> | AdminDashboardStats
-  >("/api/v1/admin/dashboard");
+  const res = await apiRequest<ApiEnvelope<AdminDashboardStats> | AdminDashboardStats>('/api/v1/admin/dashboard');
   return unwrapApiData(res);
 }
 
-export async function fetchAdminCompanies(
-  params: {
-    query?: string;
-    status?: string;
-    page?: number;
-    size?: number;
-  } = {},
-): Promise<{
-  content: CompanyAdminDto[];
-  totalElements: number;
-  totalPages: number;
-}> {
+export async function fetchAdminCompanies(params: {
+  query?: string;
+  status?: string;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: CompanyAdminDto[]; totalElements: number; totalPages: number }> {
   const queryParts: string[] = [];
-  if (params.query)
-    queryParts.push(`query=${encodeURIComponent(params.query)}`);
-  if (params.status && params.status !== "ALL")
-    queryParts.push(`status=${params.status}`);
+  if (params.query) queryParts.push(`query=${encodeURIComponent(params.query)}`);
+  if (params.status && params.status !== 'ALL') queryParts.push(`status=${params.status}`);
   if (params.page != null) queryParts.push(`page=${params.page}`);
   if (params.size != null) queryParts.push(`size=${params.size}`);
-  const qs = queryParts.length ? `?${queryParts.join("&")}` : "";
-  const res = await apiRequest<
-    ApiEnvelope<ApiPage<CompanyAdminDto>> | ApiPage<CompanyAdminDto>
-  >(`/api/v1/admin/companies${qs}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<ApiEnvelope<ApiPage<CompanyAdminDto>> | ApiPage<CompanyAdminDto>>(`/api/v1/admin/companies${qs}`);
   return unwrapApiData(res);
 }
 
-export async function fetchAdminCompanyDetail(
-  id: string,
-): Promise<CompanyAdminDto> {
-  const res = await apiRequest<ApiEnvelope<CompanyAdminDto> | CompanyAdminDto>(
-    `/api/v1/admin/companies/${id}`,
-  );
+export async function fetchAdminCompanyDetail(id: string): Promise<CompanyAdminDto> {
+  const res = await apiRequest<ApiEnvelope<CompanyAdminDto> | CompanyAdminDto>(`/api/v1/admin/companies/${id}`);
   return unwrapApiData(res);
 }
 
-export async function transitionCompanyVerification(
-  id: string,
-  body: {
-    status: string;
-    reason?: string;
-    version?: number;
-  },
-): Promise<CompanyAdminDto> {
-  const res = await apiRequest<ApiEnvelope<CompanyAdminDto> | CompanyAdminDto>(
-    `/api/v1/admin/companies/${id}/transition`,
-    {
-      method: "POST",
-      body: JSON.stringify(body),
-    },
-  );
+export async function transitionCompanyVerification(id: string, body: {
+  status: string;
+  reason?: string;
+  version?: number;
+}): Promise<CompanyAdminDto> {
+  const res = await apiRequest<ApiEnvelope<CompanyAdminDto> | CompanyAdminDto>(`/api/v1/admin/companies/${id}/transition`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
   return unwrapApiData(res);
 }
 
-export async function fetchAdminCandidates(
-  params: {
-    query?: string;
-    isActive?: boolean;
-    page?: number;
-    size?: number;
-  } = {},
-): Promise<{
-  content: UserAdminDto[];
-  totalElements: number;
-  totalPages: number;
-}> {
+export async function fetchAdminCandidates(params: {
+  query?: string;
+  isActive?: boolean;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: UserAdminDto[]; totalElements: number; totalPages: number }> {
   const queryParts: string[] = [];
-  if (params.query)
-    queryParts.push(`query=${encodeURIComponent(params.query)}`);
+  if (params.query) queryParts.push(`query=${encodeURIComponent(params.query)}`);
   if (params.isActive != null) queryParts.push(`isActive=${params.isActive}`);
   if (params.page != null) queryParts.push(`page=${params.page}`);
   if (params.size != null) queryParts.push(`size=${params.size}`);
-  const qs = queryParts.length ? `?${queryParts.join("&")}` : "";
-  const res = await apiRequest<
-    ApiEnvelope<ApiPage<UserAdminDto>> | ApiPage<UserAdminDto>
-  >(`/api/v1/admin/candidates${qs}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<ApiEnvelope<ApiPage<UserAdminDto>> | ApiPage<UserAdminDto>>(`/api/v1/admin/candidates${qs}`);
   return unwrapApiData(res);
 }
 
-export async function fetchAdminRecruiters(
-  params: {
-    query?: string;
-    isActive?: boolean;
-    page?: number;
-    size?: number;
-  } = {},
-): Promise<{
-  content: UserAdminDto[];
-  totalElements: number;
-  totalPages: number;
-}> {
+export async function fetchAdminRecruiters(params: {
+  query?: string;
+  isActive?: boolean;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: UserAdminDto[]; totalElements: number; totalPages: number }> {
   const queryParts: string[] = [];
-  if (params.query)
-    queryParts.push(`query=${encodeURIComponent(params.query)}`);
+  if (params.query) queryParts.push(`query=${encodeURIComponent(params.query)}`);
   if (params.isActive != null) queryParts.push(`isActive=${params.isActive}`);
   if (params.page != null) queryParts.push(`page=${params.page}`);
   if (params.size != null) queryParts.push(`size=${params.size}`);
-  const qs = queryParts.length ? `?${queryParts.join("&")}` : "";
-  const res = await apiRequest<
-    ApiEnvelope<ApiPage<UserAdminDto>> | ApiPage<UserAdminDto>
-  >(`/api/v1/admin/recruiters${qs}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<ApiEnvelope<ApiPage<UserAdminDto>> | ApiPage<UserAdminDto>>(`/api/v1/admin/recruiters${qs}`);
   return unwrapApiData(res);
 }
 
 export async function suspendUser(id: string, reason: string): Promise<void> {
   await apiRequest(`/api/v1/admin/users/${id}/suspend`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify({ reason }),
   });
 }
 
-export async function reactivateUser(
-  id: string,
-  reason?: string,
-): Promise<void> {
+export async function reactivateUser(id: string, reason?: string): Promise<void> {
   await apiRequest(`/api/v1/admin/users/${id}/reactivate`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify({ reason }),
   });
 }
 
-export async function fetchAdminJobs(
-  params: {
-    query?: string;
-    status?: string;
-    page?: number;
-    size?: number;
-  } = {},
-): Promise<{
-  content: JobAdminDto[];
-  totalElements: number;
-  totalPages: number;
-}> {
+export async function fetchAdminJobs(params: {
+  query?: string;
+  status?: string;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: JobAdminDto[]; totalElements: number; totalPages: number }> {
   const queryParts: string[] = [];
-  if (params.query)
-    queryParts.push(`query=${encodeURIComponent(params.query)}`);
-  if (params.status && params.status !== "ALL")
-    queryParts.push(`status=${params.status}`);
+  if (params.query) queryParts.push(`query=${encodeURIComponent(params.query)}`);
+  if (params.status && params.status !== 'ALL') queryParts.push(`status=${params.status}`);
   if (params.page != null) queryParts.push(`page=${params.page}`);
   if (params.size != null) queryParts.push(`size=${params.size}`);
-  const qs = queryParts.length ? `?${queryParts.join("&")}` : "";
-  const res = await apiRequest<
-    ApiEnvelope<ApiPage<JobAdminDto>> | ApiPage<JobAdminDto>
-  >(`/api/v1/admin/jobs${qs}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<ApiEnvelope<ApiPage<JobAdminDto>> | ApiPage<JobAdminDto>>(`/api/v1/admin/jobs${qs}`);
   return unwrapApiData(res);
 }
 
 export async function suspendJob(id: string, reason: string): Promise<void> {
   await apiRequest(`/api/v1/admin/jobs/${id}/suspend`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify({ reason }),
   });
 }
 
 export async function restoreJob(id: string): Promise<void> {
   await apiRequest(`/api/v1/admin/jobs/${id}/restore`, {
-    method: "POST",
+    method: 'POST',
   });
 }
 
-export async function fetchAdminReports(
-  params: {
-    status?: string;
-    targetType?: string;
-    page?: number;
-    size?: number;
-  } = {},
-): Promise<{
-  content: ReportAdminDto[];
-  totalElements: number;
-  totalPages: number;
-}> {
+export async function fetchAdminReports(params: {
+  status?: string;
+  targetType?: string;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: ReportAdminDto[]; totalElements: number; totalPages: number }> {
   const queryParts: string[] = [];
-  if (params.status && params.status !== "ALL")
-    queryParts.push(`status=${params.status}`);
-  if (params.targetType && params.targetType !== "ALL")
-    queryParts.push(`targetType=${params.targetType}`);
+  if (params.status && params.status !== 'ALL') queryParts.push(`status=${params.status}`);
+  if (params.targetType && params.targetType !== 'ALL') queryParts.push(`targetType=${params.targetType}`);
   if (params.page != null) queryParts.push(`page=${params.page}`);
   if (params.size != null) queryParts.push(`size=${params.size}`);
-  const qs = queryParts.length ? `?${queryParts.join("&")}` : "";
-  const res = await apiRequest<
-    ApiEnvelope<ApiPage<ReportAdminDto>> | ApiPage<ReportAdminDto>
-  >(`/api/v1/admin/reports${qs}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<ApiEnvelope<ApiPage<ReportAdminDto>> | ApiPage<ReportAdminDto>>(`/api/v1/admin/reports${qs}`);
   return unwrapApiData(res);
 }
 
-export async function resolveReport(
-  id: string,
-  resolutionNotes?: string,
-): Promise<void> {
+export async function resolveReport(id: string, resolutionNotes?: string): Promise<void> {
   await apiRequest(`/api/v1/admin/reports/${id}/resolve`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify({ resolutionNotes }),
   });
 }
 
-export async function dismissReport(
-  id: string,
-  resolutionNotes?: string,
-): Promise<void> {
+export async function dismissReport(id: string, resolutionNotes?: string): Promise<void> {
   await apiRequest(`/api/v1/admin/reports/${id}/dismiss`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify({ resolutionNotes }),
   });
 }
 
-export async function fetchAdminTaxonomySkills(
-  params: {
-    query?: string;
-    active?: boolean;
-    page?: number;
-    size?: number;
-  } = {},
-): Promise<{
-  content: TaxonomySkillAdminDto[];
-  totalElements: number;
-  page: number;
-  size: number;
-}> {
+export async function fetchAdminTaxonomySkills(params: {
+  query?: string;
+  active?: boolean;
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: TaxonomySkillAdminDto[]; totalElements: number; page: number; size: number }> {
   const queryParts: string[] = [];
-  if (params.query)
-    queryParts.push(`query=${encodeURIComponent(params.query)}`);
+  if (params.query) queryParts.push(`query=${encodeURIComponent(params.query)}`);
   if (params.active != null) queryParts.push(`active=${params.active}`);
   if (params.page != null) queryParts.push(`page=${params.page}`);
   if (params.size != null) queryParts.push(`size=${params.size}`);
-  const qs = queryParts.length ? `?${queryParts.join("&")}` : "";
-  const taxonomyPage = await apiRequest<
-    | ApiEnvelope<
-        ApiPage<TaxonomySkillAdminDto> & { page: number; size: number }
-      >
-    | (ApiPage<TaxonomySkillAdminDto> & { page: number; size: number })
-  >(`/api/v1/admin/taxonomy/skills${qs}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const taxonomyPage = await apiRequest<ApiEnvelope<ApiPage<TaxonomySkillAdminDto> & { page: number; size: number }> | (ApiPage<TaxonomySkillAdminDto> & { page: number; size: number })>(`/api/v1/admin/taxonomy/skills${qs}`);
   return unwrapApiData(taxonomyPage);
 }
 
@@ -3454,55 +2238,35 @@ export async function createAdminTaxonomySkill(body: {
   description?: string;
   aliases?: string[];
 }): Promise<string> {
-  const res = await apiRequest<ApiEnvelope<string> | string>(
-    "/api/v1/admin/taxonomy/skills",
-    {
-      method: "POST",
-      body: JSON.stringify(body),
-    },
-  );
+  const res = await apiRequest<ApiEnvelope<string> | string>('/api/v1/admin/taxonomy/skills', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
   return unwrapApiData(res);
 }
 
 export async function toggleAdminTaxonomySkill(id: string): Promise<boolean> {
-  const res = await apiRequest<ApiEnvelope<boolean> | boolean>(
-    `/api/v1/admin/taxonomy/skills/${id}/toggle`,
-    {
-      method: "PUT",
-    },
-  );
+  const res = await apiRequest<ApiEnvelope<boolean> | boolean>(`/api/v1/admin/taxonomy/skills/${id}/toggle`, {
+    method: 'PUT',
+  });
   return unwrapApiData(res);
 }
 
-export async function fetchAdminAuditLogs(
-  params: {
-    page?: number;
-    size?: number;
-  } = {},
-): Promise<{
-  content: AdminAuditLogDto[];
-  totalElements: number;
-  totalPages: number;
-}> {
+export async function fetchAdminAuditLogs(params: {
+  page?: number;
+  size?: number;
+} = {}): Promise<{ content: AdminAuditLogDto[]; totalElements: number; totalPages: number }> {
   const queryParts: string[] = [];
   if (params.page != null) queryParts.push(`page=${params.page}`);
   if (params.size != null) queryParts.push(`size=${params.size}`);
-  const qs = queryParts.length ? `?${queryParts.join("&")}` : "";
-  const res = await apiRequest<
-    ApiEnvelope<ApiPage<AdminAuditLogDto>> | ApiPage<AdminAuditLogDto>
-  >(`/api/v1/admin/audit-logs${qs}`);
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+  const res = await apiRequest<ApiEnvelope<ApiPage<AdminAuditLogDto>> | ApiPage<AdminAuditLogDto>>(`/api/v1/admin/audit-logs${qs}`);
   return unwrapApiData(res);
 }
 
 export const adminApi = {
   getDashboardStats: fetchAdminDashboardStats,
-  getCompanies: async (params?: {
-    query?: string;
-    search?: string;
-    status?: string;
-    page?: number;
-    size?: number;
-  }) => {
+  getCompanies: async (params?: { query?: string; search?: string; status?: string; page?: number; size?: number }) => {
     return fetchAdminCompanies({
       query: params?.query || params?.search,
       status: params?.status,
@@ -3513,36 +2277,30 @@ export const adminApi = {
   getCompanyDetail: fetchAdminCompanyDetail,
   transitionCompanyVerification: async (
     id: string,
-    data: {
-      action?: string;
-      notes?: string;
-      status?: string;
-      reason?: string;
-      version?: number;
-    },
+    data: { action?: string; notes?: string; status?: string; reason?: string; version?: number }
   ) => {
     let targetStatus = data.status;
     const targetReason = data.reason || data.notes;
 
     if (data.action) {
       switch (data.action) {
-        case "START_REVIEW":
-          targetStatus = "UNDER_REVIEW";
+        case 'START_REVIEW':
+          targetStatus = 'UNDER_REVIEW';
           break;
-        case "VERIFY":
-          targetStatus = "VERIFIED";
+        case 'VERIFY':
+          targetStatus = 'VERIFIED';
           break;
-        case "REQUEST_CHANGES":
-          targetStatus = "CHANGES_REQUESTED";
+        case 'REQUEST_CHANGES':
+          targetStatus = 'CHANGES_REQUESTED';
           break;
-        case "REJECT":
-          targetStatus = "REJECTED";
+        case 'REJECT':
+          targetStatus = 'REJECTED';
           break;
-        case "SUSPEND":
-          targetStatus = "SUSPENDED";
+        case 'SUSPEND':
+          targetStatus = 'SUSPENDED';
           break;
-        case "RESTORE":
-          targetStatus = "VERIFIED";
+        case 'RESTORE':
+          targetStatus = 'VERIFIED';
           break;
         default:
           targetStatus = data.action;
@@ -3550,7 +2308,7 @@ export const adminApi = {
     }
 
     return transitionCompanyVerification(id, {
-      status: targetStatus || "UNDER_REVIEW",
+      status: targetStatus || 'UNDER_REVIEW',
       reason: targetReason,
       version: data.version,
     });
@@ -3563,50 +2321,26 @@ export const adminApi = {
     page?: number;
     size?: number;
   }) => {
-    const query = new URLSearchParams({
-      page: String(params?.page ?? 0),
-      size: String(params?.size ?? 10),
-    });
-    const role = params?.role === "RECRUITER" ? "HR" : params?.role;
-    if (role && role !== "ALL") query.set("role", role);
-    if (params?.status && params.status !== "ALL")
-      query.set("accountStatus", params.status);
-    if (params?.query || params?.search)
-      query.set("query", params.query || params.search || "");
-    type WireUser = Omit<UserAdminDto, "role"> & {
-      role: "HR" | UserAdminDto["role"];
-    };
-    const result = await apiRequest<ApiEnvelope<ApiPage<WireUser>>>(
-      `/api/v1/admin/users?${query}`,
-    );
-    return {
-      ...result.data,
-      content: result.data.content.map((u) => ({
-        ...u,
-        role: u.role === "HR" ? ("RECRUITER" as const) : u.role,
-        accountStatus:
-          u.accountStatus ??
-          (u.isActive ? ("ACTIVE" as const) : ("DEACTIVATED" as const)),
-      })),
-    };
+    const query = new URLSearchParams({ page: String(params?.page ?? 0), size: String(params?.size ?? 10) });
+    const role = params?.role === 'RECRUITER' ? 'HR' : params?.role;
+    if (role && role !== 'ALL') query.set('role', role);
+    if (params?.status && params.status !== 'ALL') query.set('accountStatus', params.status);
+    if (params?.query || params?.search) query.set('query', params.query || params.search || '');
+    type WireUser = Omit<UserAdminDto, 'role'> & { role: 'HR' | UserAdminDto['role'] };
+    const result = await apiRequest<ApiEnvelope<ApiPage<WireUser>>>(`/api/v1/admin/users?${query}`);
+    return { ...result.data, content: result.data.content.map((u) => ({
+      ...u, role: u.role === 'HR' ? 'RECRUITER' as const : u.role,
+      accountStatus: u.accountStatus ?? (u.isActive ? 'ACTIVE' as const : 'DEACTIVATED' as const),
+    })) };
   },
-  moderateUser: async (
-    id: string,
-    data: { action: "SUSPEND" | "REACTIVATE"; reason?: string },
-  ) => {
-    if (data.action === "SUSPEND") {
-      return suspendUser(id, data.reason || "Đình chỉ bởi quản trị viên");
+  moderateUser: async (id: string, data: { action: 'SUSPEND' | 'REACTIVATE'; reason?: string }) => {
+    if (data.action === 'SUSPEND') {
+      return suspendUser(id, data.reason || 'Đình chỉ bởi quản trị viên');
     } else {
       return reactivateUser(id, data.reason);
     }
   },
-  getJobs: async (params?: {
-    query?: string;
-    search?: string;
-    status?: string;
-    page?: number;
-    size?: number;
-  }) => {
+  getJobs: async (params?: { query?: string; search?: string; status?: string; page?: number; size?: number }) => {
     return fetchAdminJobs({
       query: params?.query || params?.search,
       status: params?.status,
@@ -3614,12 +2348,9 @@ export const adminApi = {
       size: params?.size,
     });
   },
-  moderateJob: async (
-    id: string,
-    data: { action: "SUSPEND" | "RESTORE"; reason?: string },
-  ) => {
-    if (data.action === "SUSPEND") {
-      return suspendJob(id, data.reason || "Đình chỉ bởi quản trị viên");
+  moderateJob: async (id: string, data: { action: 'SUSPEND' | 'RESTORE'; reason?: string }) => {
+    if (data.action === 'SUSPEND') {
+      return suspendJob(id, data.reason || 'Đình chỉ bởi quản trị viên');
     } else {
       return restoreJob(id);
     }
@@ -3632,24 +2363,14 @@ export const adminApi = {
   }) => {
     return fetchAdminReports(params);
   },
-  resolveReport: async (
-    id: string,
-    data: { action: "RESOLVE" | "DISMISS"; resolutionNotes?: string },
-  ) => {
-    if (data.action === "RESOLVE") {
+  resolveReport: async (id: string, data: { action: 'RESOLVE' | 'DISMISS'; resolutionNotes?: string }) => {
+    if (data.action === 'RESOLVE') {
       return resolveReport(id, data.resolutionNotes);
     } else {
       return dismissReport(id, data.resolutionNotes);
     }
   },
-  getTaxonomySkills: async (params?: {
-    search?: string;
-    query?: string;
-    activeOnly?: boolean;
-    active?: boolean;
-    page?: number;
-    size?: number;
-  }) => {
+  getTaxonomySkills: async (params?: { search?: string; query?: string; activeOnly?: boolean; active?: boolean; page?: number; size?: number }) => {
     const res = await fetchAdminTaxonomySkills({
       query: params?.query || params?.search,
       active: params?.activeOnly ?? params?.active,
@@ -3666,11 +2387,7 @@ export const adminApi = {
       totalPages: Math.ceil((res.totalElements || 1) / (params?.size || 15)),
     };
   },
-  createTaxonomySkill: async (data: {
-    name: string;
-    category: string;
-    description?: string;
-  }) => {
+  createTaxonomySkill: async (data: { name: string; category: string; description?: string }) => {
     return createAdminTaxonomySkill({
       canonicalName: data.name,
       category: data.category,
@@ -3680,11 +2397,7 @@ export const adminApi = {
   toggleTaxonomySkillActive: async (id: string) => {
     return toggleAdminTaxonomySkill(id);
   },
-  getAuditLogs: async (params?: {
-    targetType?: string;
-    page?: number;
-    size?: number;
-  }) => {
+  getAuditLogs: async (params?: { targetType?: string; page?: number; size?: number }) => {
     return fetchAdminAuditLogs(params);
   },
 };
@@ -3693,76 +2406,55 @@ export const adminApi = {
 // 15. SUSPENSION APPEALS API
 // ============================================================
 
+
 export async function fetchMyAppeals(): Promise<SuspensionAppeal[]> {
-  const res = await apiRequest<
-    ApiEnvelope<SuspensionAppeal[]> | SuspensionAppeal[]
-  >("/api/v1/appeals", {
-    method: "GET",
+  const res = await apiRequest<ApiEnvelope<SuspensionAppeal[]> | SuspensionAppeal[]>('/api/v1/appeals', {
+    method: 'GET',
   });
   return unwrapApiData(res) || [];
 }
+
 
 export async function fetchAdminAppeals(params?: {
   status?: string;
   page?: number;
   size?: number;
-}): Promise<{
-  content: SuspensionAppeal[];
-  totalElements: number;
-  totalPages: number;
-}> {
+}): Promise<{ content: SuspensionAppeal[]; totalElements: number; totalPages: number }> {
   const queryParams = new URLSearchParams();
-  if (params?.status) queryParams.set("status", params.status);
-  if (params?.page !== undefined)
-    queryParams.set("page", params.page.toString());
-  if (params?.size !== undefined)
-    queryParams.set("size", params.size.toString());
+  if (params?.status) queryParams.set('status', params.status);
+  if (params?.page !== undefined) queryParams.set('page', params.page.toString());
+  if (params?.size !== undefined) queryParams.set('size', params.size.toString());
 
-  const url = `/api/v1/admin/appeals${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
-  const res = await apiRequest<
-    ApiEnvelope<ApiPage<SuspensionAppeal>> | ApiPage<SuspensionAppeal>
-  >(url, {
-    method: "GET",
+  const url = `/api/v1/admin/appeals${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  const res = await apiRequest<ApiEnvelope<ApiPage<SuspensionAppeal>> | ApiPage<SuspensionAppeal>>(url, {
+    method: 'GET',
   });
   return unwrapApiData(res);
 }
 
-export async function startReviewAdminAppeal(
-  appealId: string,
-): Promise<SuspensionAppeal> {
-  const res = await apiRequest<
-    ApiEnvelope<SuspensionAppeal> | SuspensionAppeal
-  >(`/api/v1/admin/appeals/${appealId}/review`, {
-    method: "POST",
+export async function startReviewAdminAppeal(appealId: string): Promise<SuspensionAppeal> {
+  const res = await apiRequest<ApiEnvelope<SuspensionAppeal> | SuspensionAppeal>(`/api/v1/admin/appeals/${appealId}/review`, {
+    method: 'POST',
   });
   return unwrapApiData(res);
 }
 
-export async function approveAdminAppeal(
-  appealId: string,
-  resolutionNote: string,
-): Promise<SuspensionAppeal> {
-  const res = await apiRequest<
-    ApiEnvelope<SuspensionAppeal> | SuspensionAppeal
-  >(`/api/v1/admin/appeals/${appealId}/approve`, {
-    method: "POST",
+export async function approveAdminAppeal(appealId: string, resolutionNote: string): Promise<SuspensionAppeal> {
+  const res = await apiRequest<ApiEnvelope<SuspensionAppeal> | SuspensionAppeal>(`/api/v1/admin/appeals/${appealId}/approve`, {
+    method: 'POST',
     body: JSON.stringify({ resolutionNote }),
   });
   return unwrapApiData(res);
 }
 
-export async function rejectAdminAppeal(
-  appealId: string,
-  resolutionNote: string,
-): Promise<SuspensionAppeal> {
-  const res = await apiRequest<
-    ApiEnvelope<SuspensionAppeal> | SuspensionAppeal
-  >(`/api/v1/admin/appeals/${appealId}/reject`, {
-    method: "POST",
+export async function rejectAdminAppeal(appealId: string, resolutionNote: string): Promise<SuspensionAppeal> {
+  const res = await apiRequest<ApiEnvelope<SuspensionAppeal> | SuspensionAppeal>(`/api/v1/admin/appeals/${appealId}/reject`, {
+    method: 'POST',
     body: JSON.stringify({ resolutionNote }),
   });
   return unwrapApiData(res);
 }
+
 
 export async function getMyActiveSuspension(): Promise<SuspensionNotice | null> {
   const token = getAuthToken();
@@ -3773,25 +2465,22 @@ export async function getMyActiveSuspension(): Promise<SuspensionNotice | null> 
   }
 
   try {
-    const res = await apiRequest<
-      ApiEnvelope<SuspensionNotice | null> | SuspensionNotice | null
-    >("/api/v1/suspensions/my-active", {
-      method: "GET",
+    const res = await apiRequest<ApiEnvelope<SuspensionNotice | null> | SuspensionNotice | null>('/api/v1/suspensions/my-active', {
+      method: 'GET',
     });
 
     return unwrapApiData(res) ?? null;
   } catch (err: unknown) {
     if (err instanceof ApiError) {
       const message = String(
-        (isRecord(err.responseBody) ? err.responseBody.message : undefined) ??
-          err.message,
+        (isRecord(err.responseBody) ? err.responseBody.message : undefined) ?? err.message
       );
 
       const isAuthenticationFailure =
         err.status === 401 ||
         (err.status === 403 &&
           /yêu cầu xác thực tài khoản|phiên làm việc đã hết hạn/i.test(
-            message,
+            message
           ));
 
       if (isAuthenticationFailure) {
@@ -3804,105 +2493,76 @@ export async function getMyActiveSuspension(): Promise<SuspensionNotice | null> 
   }
 }
 
+
 export async function submitSuspensionAppeal(data: {
   suspensionRecordId?: string;
-  targetType?: "USER" | "COMPANY";
+  targetType?: 'USER' | 'COMPANY';
   targetId?: string;
   subject: string;
   content: string;
   evidenceAttachmentId?: string;
 }): Promise<SuspensionAppeal> {
-  const res = await apiRequest<
-    ApiEnvelope<SuspensionAppeal> | SuspensionAppeal
-  >("/api/v1/appeals", {
-    method: "POST",
+  const res = await apiRequest<ApiEnvelope<SuspensionAppeal> | SuspensionAppeal>('/api/v1/appeals', {
+    method: 'POST',
     body: JSON.stringify(data),
   });
   return unwrapApiData(res);
 }
 
-export async function cancelSuspensionAppeal(
-  appealId: string,
-  reason?: string,
-): Promise<SuspensionAppeal> {
-  const res = await apiRequest<
-    ApiEnvelope<SuspensionAppeal> | SuspensionAppeal
-  >(`/api/v1/appeals/${appealId}/cancel`, {
-    method: "POST",
-    body: JSON.stringify({ reason: reason || "Người dùng tự hủy khiếu nại" }),
+export async function cancelSuspensionAppeal(appealId: string, reason?: string): Promise<SuspensionAppeal> {
+  const res = await apiRequest<ApiEnvelope<SuspensionAppeal> | SuspensionAppeal>(`/api/v1/appeals/${appealId}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ reason: reason || 'Người dùng tự hủy khiếu nại' }),
   });
   return unwrapApiData(res);
 }
 
-export async function deactivateAccount(
-  password: string,
-  reason?: string,
-): Promise<void> {
-  await apiRequest<void>("/api/v1/account/deactivate", {
-    method: "POST",
+export async function deactivateAccount(password: string, reason?: string): Promise<void> {
+  await apiRequest<void>('/api/v1/account/deactivate', {
+    method: 'POST',
     body: JSON.stringify({ password, reason }),
   });
 }
 
-export async function restoreUserAccount(
-  userId: string,
-  reason: string,
-): Promise<void> {
+export async function restoreUserAccount(userId: string, reason: string): Promise<void> {
   await apiRequest<void>(`/api/v1/admin/users/${userId}/restore`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify({ reason }),
   });
 }
 
-export async function getJobMatchingPolicy(
-  jobId: string,
-): Promise<JobMatchingPolicy> {
-  const res = await apiRequest<
-    ApiEnvelope<JobMatchingPolicy> | JobMatchingPolicy
-  >(`/api/v1/jobs/${jobId}/matching-policy`, {
-    method: "GET",
+export async function getJobMatchingPolicy(jobId: string): Promise<JobMatchingPolicy> {
+  const res = await apiRequest<ApiEnvelope<JobMatchingPolicy> | JobMatchingPolicy>(`/api/v1/jobs/${jobId}/matching-policy`, {
+    method: 'GET',
   });
   return unwrapApiData(res);
 }
 
 export async function updateJobMatchingPolicy(
   jobId: string,
-  policy: Partial<JobMatchingPolicy>,
+  policy: Partial<JobMatchingPolicy>
 ): Promise<JobMatchingPolicy> {
-  const res = await apiRequest<
-    ApiEnvelope<JobMatchingPolicy> | JobMatchingPolicy
-  >(`/api/v1/jobs/${jobId}/matching-policy`, {
-    method: "PUT",
+  const res = await apiRequest<ApiEnvelope<JobMatchingPolicy> | JobMatchingPolicy>(`/api/v1/jobs/${jobId}/matching-policy`, {
+    method: 'PUT',
     body: JSON.stringify(policy),
   });
   return unwrapApiData(res);
 }
 
-export async function recalculateJobMatching(
-  jobId: string,
-): Promise<{ recalculatedCount: number }> {
-  const res = await apiRequest<{ data: number }>(
-    `/api/v1/jobs/${jobId}/matching/recalculate`,
-    {
-      method: "POST",
-    },
-  );
+export async function recalculateJobMatching(jobId: string): Promise<{ recalculatedCount: number }> {
+  const res = await apiRequest<{ data: number }>(`/api/v1/jobs/${jobId}/matching/recalculate`, {
+    method: 'POST',
+  });
   const count = res.data;
   if (!Number.isInteger(count) || count < 0) {
-    throw new Error("Phản hồi số lượng hồ sơ tính lại không hợp lệ.");
+    throw new Error('Phản hồi số lượng hồ sơ tính lại không hợp lệ.');
   }
   return { recalculatedCount: count };
 }
 
-export async function triggerGithubAnalysis(): Promise<{
-  message: string;
-  status: string;
-}> {
-  const res = await apiRequest<
-    | ApiEnvelope<{ message: string; status: string }>
-    | { message: string; status: string }
-  >("/api/v1/processing/candidate/github", {
-    method: "POST",
+export async function triggerGithubAnalysis(): Promise<{ message: string; status: string }> {
+  const res = await apiRequest<ApiEnvelope<{ message: string; status: string }> | { message: string; status: string }>('/api/v1/processing/candidate/github', {
+    method: 'POST',
   });
   return unwrapApiData(res);
 }

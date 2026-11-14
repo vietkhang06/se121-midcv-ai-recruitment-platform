@@ -27,6 +27,13 @@ public class ApplicationController {
         return new ResponseEntity<>(ApiResponse.success("Application submitted successfully", response), HttpStatus.CREATED);
     }
 
+    @PostMapping("/candidate/applications/match-preview")
+    public ResponseEntity<ApiResponse<com.platform.recruitment.matching.MatchScoreResponse>> previewApplication(
+            @AuthenticationPrincipal User currentUser,
+            @Valid @RequestBody SubmitApplicationRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(applicationService.previewApplication(currentUser, request)));
+    }
+
     @GetMapping("/candidate/applications")
     public ResponseEntity<ApiResponse<com.platform.recruitment.common.PageResponse<ApplicationResponse>>> getMyApplications(
             @AuthenticationPrincipal User currentUser,
@@ -37,16 +44,6 @@ public class ApplicationController {
         com.platform.recruitment.common.PageResponse<ApplicationResponse> response =
                 applicationService.getCandidateApplications(currentUser, page, size, sort, direction);
         return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
-    @PutMapping("/candidate/applications/{applicationId}")
-    public ResponseEntity<ApiResponse<ApplicationResponse>> updateMyApplication(
-            @AuthenticationPrincipal User currentUser,
-            @PathVariable UUID applicationId,
-            @Valid @RequestBody UpdateCandidateApplicationRequest request) {
-        ApplicationResponse response = applicationService.updateCandidateApplication(
-                currentUser, applicationId, request);
-        return ResponseEntity.ok(ApiResponse.success("Đã cập nhật đơn ứng tuyển.", response));
     }
 
     @GetMapping("/recruiter/jobs/{jobId}/applications")

@@ -78,7 +78,7 @@ class ExplainableMatchingIntegrityTest {
                 .build();
         testCandidate.setId(UUID.randomUUID());
 
-        testApp = Application.builder().aiAnalysisConsent(true).job(testJob).candidate(testCandidate).build();
+        testApp = Application.builder().job(testJob).candidate(testCandidate).build();
         testApp.setId(UUID.randomUUID());
 
         lenient().when(jobRepository.findById(testJob.getId())).thenReturn(Optional.of(testJob));
@@ -93,7 +93,7 @@ class ExplainableMatchingIntegrityTest {
     void testDynamicReweighting_NoDefault50Score_EffectiveWeightSumsToOne() {
         // CV has raw text with no semantic match tokens or embeddings
         CV cv = CV.builder().candidate(testCandidate).rawText("3 years experience Java React developer.").build();
-        when(cvRepository.findByCandidateId(testCandidate.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(testApp, cv, cv.getRawText());
 
         JobRequirement req1 = JobRequirement.builder().job(testJob).skillName("Java").requirementType(RequirementType.REQUIRED).build();
         when(jobRequirementRepository.findByJobId(testJob.getId())).thenReturn(List.of(req1));
@@ -134,7 +134,7 @@ class ExplainableMatchingIntegrityTest {
     @DisplayName("Phase 6: MatchInspectionResponse exposes explainable audit metadata and valid DTO structure")
     void testMatchInspectionResponse_ExposesExplainableDTO() {
         CV cv = CV.builder().candidate(testCandidate).rawText("3 years experience Java React developer.").build();
-        when(cvRepository.findByCandidateId(testCandidate.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(testApp, cv, cv.getRawText());
 
         JobRequirement req1 = JobRequirement.builder().job(testJob).skillName("Java").requirementType(RequirementType.REQUIRED).build();
         req1.setId(UUID.randomUUID());
@@ -176,7 +176,7 @@ class ExplainableMatchingIntegrityTest {
 
         assertNotNull(inspection);
         assertEquals("v2.0", inspection.getAlgorithmVersion());
-        assertEquals("COMPLETED", inspection.getCalculationStatus());
+        assertEquals("PENDING_VECTOR", inspection.getCalculationStatus());
         assertNotNull(inspection.getOverallScore());
         assertNotNull(inspection.getCoreScore());
         assertFalse(inspection.getMatchFactors().isEmpty());

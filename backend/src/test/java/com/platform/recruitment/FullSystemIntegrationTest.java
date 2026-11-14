@@ -65,7 +65,7 @@ class FullSystemIntegrationTest {
         job = Job.builder().company(company).title("Senior Java Engineer").industry("Technology").status(JobStatus.PUBLISHED).build();
         job.setId(UUID.randomUUID());
 
-        application = Application.builder().aiAnalysisConsent(true).job(job).candidate(candidateProfile).build();
+        application = Application.builder().job(job).candidate(candidateProfile).build();
         application.setId(UUID.randomUUID());
     }
 

@@ -488,13 +488,6 @@ export class BenchmarkFixtureClient implements ApiClient {
     return { ...app, id: `app-${Date.now()}`, status: 'SUBMITTED' };
   }
 
-  async updateCandidateApplication(
-    app: Application,
-    update: { aiAnalysisConsent: boolean; coverLetter: string },
-  ): Promise<Application> {
-    return { ...app, ...update };
-  }
-
   async fetchJobApplications(jobId: string): Promise<Application[]> {
     return SEED_APPLICATIONS.filter(a => a.job?.id === jobId);
   }

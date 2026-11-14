@@ -75,13 +75,18 @@ public class MatchingEngineService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    private com.platform.recruitment.product.AiScreeningAccessService aiScreeningAccess;
-
     @Transactional
     public MatchResult calculateAndPersistMatchResult(UUID jobId, UUID candidateId) {
         Application application = applicationRepository.findByJobIdAndCandidateId(jobId, candidateId)
                 .orElseThrow(() -> new ResourceNotFoundException("Application", "job/candidate", jobId));
+        // Applications created with the explicit Quick Apply consent contract must never be
+        // scored by a manual recalculation, worker retry or policy update after consent was declined.
+        if ("quick-apply-v1".equals(application.getAiConsentVersion())
+                && !Boolean.TRUE.equals(application.getAiAnalysisConsent())) {
+            throw new com.platform.recruitment.common.CustomException(
+                    com.platform.recruitment.common.ErrorCode.ACCESS_DENIED,
+                    "Ứng viên chưa đồng ý phân tích CV bằng AI cho đơn này.");
+        }
         return calculate(application, application.getAppliedCvVersion(), true);
     }
 
@@ -103,12 +108,6 @@ public class MatchingEngineService {
     }
 
     private MatchResult calculate(Application application, CVVersion inputVersion, boolean persist) {
-        if (persist && aiScreeningAccess != null) aiScreeningAccess.requireScoring(application);
-        if (persist && !Boolean.TRUE.equals(application.getAiAnalysisConsent())) {
-            throw new com.platform.recruitment.common.CustomException(
-                com.platform.recruitment.common.ErrorCode.ACCESS_DENIED,
-                "Chưa khả dụng: ứng viên chưa đồng ý phân tích CV cho đơn ứng tuyển này.");
-        }
         Job job = application.getJob();
         CandidateProfile candidate = application.getCandidate();
         UUID jobId = job.getId(), candidateId = candidate.getId();
@@ -191,9 +190,15 @@ public class MatchingEngineService {
         UUID jdDocVersionId = findJdDocumentVersionId(job, application.getAppliedJdVersionId());
         BigDecimal semanticScore = null;
         String semanticMethod = "PGVECTOR_COSINE_SIMILARITY";
-        if (jdbcTemplate != null && confirmedEmbeddingMatches(inputVersion) && jdDocVersionId != null) {
+        boolean vectorInputsReady = jdbcTemplate != null && confirmedEmbeddingMatches(inputVersion)
+                && jdDocVersionId != null;
+        if (vectorInputsReady) {
             semanticScore = pgvectorCosineSimilarity.evaluatePgvectorSemanticSimilarity(cvDocVersionId, jdDocVersionId);
         }
+        // A score computed from text is provisional, even when both vector rows exist
+        // but the native SQL query fails. Never label it as a completed vector result.
+        String calculationStatus = semanticScore != null ? "PGVECTOR_READY"
+                : vectorInputsReady ? "FALLBACK_USED" : "PENDING_VECTOR";
         if (semanticScore == null) {
             semanticScore = pgvectorCosineSimilarity.evaluateSemanticSimilarity(jdText, cvRawText);
             semanticMethod = "TF_CONCEPT_COSINE_SIMILARITY";
@@ -402,7 +407,7 @@ public class MatchingEngineService {
         result.setPreferredSkillsTotal(prefTotal);
         result.setPreferredSkillsMatched(prefMatched);
         result.setPreferredSkillsMissing(prefMissing);
-        result.setStatus("COMPLETED");
+        result.setStatus(calculationStatus);
         result.setCvVersionId(inputVersion.getId());
         result.setJdVersionId(application.getAppliedJdVersionId() != null
                 ? application.getAppliedJdVersionId() : jdDocVersionId);
@@ -537,13 +542,13 @@ public class MatchingEngineService {
     public MatchInspectionResponse getMatchInspection(UUID applicationId) {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Application", "id", applicationId));
-
-        if (!Boolean.TRUE.equals(application.getAiAnalysisConsent())) {
+        if ("quick-apply-v1".equals(application.getAiConsentVersion())
+                && !Boolean.TRUE.equals(application.getAiAnalysisConsent())) {
             throw new com.platform.recruitment.common.CustomException(
-                com.platform.recruitment.common.ErrorCode.ACCESS_DENIED,
-                "Chưa khả dụng: ứng viên chưa đồng ý phân tích CV cho đơn ứng tuyển này.");
+                    com.platform.recruitment.common.ErrorCode.ACCESS_DENIED,
+                    "Ứng viên chưa đồng ý phân tích CV bằng AI cho đơn này.");
         }
-        if (aiScreeningAccess != null) aiScreeningAccess.requireScoring(application);
+
         UUID jobId = application.getJob().getId();
         UUID candidateId = application.getCandidate().getId();
 
@@ -716,9 +721,6 @@ public class MatchingEngineService {
                 .applicationId(applicationId)
                 .jobTitle(job.getTitle())
                 .candidateName(candidate.getFullName())
-                .matchClassification(aiScreeningAccess == null
-                        ? "PHU_HOP" : aiScreeningAccess.classify(result.getOverallScore()))
-                .detailAccess(true)
                 .algorithmVersion(result.getMatchingAlgorithmVersion() != null ? result.getMatchingAlgorithmVersion() : "v2.0")
                 .calculationStatus(result.getStatus())
                 .overallScore(result.getOverallScore())

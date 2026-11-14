@@ -28,7 +28,6 @@ public class CVDraftResponse {
     private Integer versionNumber;
 
     private String title;
-    private Map<String, Object> presentation;
 
     private String status;
 

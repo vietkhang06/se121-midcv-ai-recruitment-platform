@@ -18,10 +18,13 @@ export function AiScorePanel({ application }: { application: Application }) {
   const [loading, setLoading] = useState(false);
   const [inspection, setInspection] = useState<MatchInspectionData | null>(null);
   const [error, setError] = useState("");
-  const classification = classifications[application.matchClassification || "CHUA_KHA_DUNG"];
+  const classification = classifications[application.matchClassification as keyof typeof classifications] || classifications.CHUA_KHA_DUNG;
+  const aiScoringAvailable = application.aiAnalysisConsent !== false && application.matchStatus !== "CONSENT_NOT_GIVEN";
+  const score = application.matchScore;
+  const proDetailAvailable = application.proDetailAvailable ?? score != null;
 
   const toggle = async () => {
-    if (!application.proDetailAvailable || !application.aiScoringAvailable) return;
+    if (!proDetailAvailable || !aiScoringAvailable) return;
     setOpen((value) => !value);
     if (inspection || open) return;
     setLoading(true);
@@ -37,18 +40,18 @@ export function AiScorePanel({ application }: { application: Application }) {
     }
   };
 
-  if (!application.aiScoringAvailable) {
+  if (!aiScoringAvailable) {
     return (
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/40">
         <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
           <CircleAlert size={15} /> Chấm điểm CV: Chưa khả dụng
         </div>
-        <p className="mt-1.5 text-[11px] leading-5 text-slate-500">{application.aiScoringReason || "Hồ sơ chưa đủ điều kiện phân tích AI."}</p>
+        <p className="mt-1.5 text-[11px] leading-5 text-slate-500">Ứng viên chưa đồng ý phân tích AI cho đơn này.</p>
       </div>
     );
   }
 
-  if (application.matchScore == null) {
+  if (score == null && !application.matchClassification) {
     return (
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
         <div className="flex items-center gap-2 font-bold"><Sparkles size={15} /> Đang xử lý đối sánh</div>
@@ -57,7 +60,7 @@ export function AiScorePanel({ application }: { application: Application }) {
     );
   }
 
-  if (!application.proDetailAvailable) {
+  if (score == null) {
     return (
       <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] p-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -74,15 +77,15 @@ export function AiScorePanel({ application }: { application: Application }) {
     <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 dark:border-emerald-900 dark:bg-emerald-950/20">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-xl font-black text-emerald-700 dark:text-emerald-300">{application.matchScore.toFixed(0)}%</span>
+          <span className="text-xl font-black text-emerald-700 dark:text-emerald-300">{score.toFixed(2)}%</span>
           <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${classification.style}`}>{classification.label}</span>
-          <span className="rounded-full bg-violet-100 px-2 py-1 text-[10px] font-bold text-violet-700">Pro</span>
+          <span className="rounded-full bg-violet-100 px-2 py-1 text-[10px] font-bold text-violet-700">{application.developmentProAccess ? 'Dev access' : application.recruiterPlan === 'PRO' ? 'Pro' : 'Enabled'}</span>
         </div>
         <button type="button" onClick={() => void toggle()} className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 underline">
           {open ? "Thu gọn" : "Xem chi tiết"} {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
       </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/80"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.max(0, Math.min(100, application.matchScore))}%` }} /></div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/80"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.max(0, Math.min(100, score))}%` }} /></div>
 
       {open && (
         <div className="mt-3 border-t border-emerald-200 pt-3">

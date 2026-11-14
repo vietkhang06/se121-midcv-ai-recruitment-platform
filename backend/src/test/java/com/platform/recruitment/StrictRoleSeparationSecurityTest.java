@@ -10,8 +10,10 @@ import com.platform.recruitment.company.RecruiterProfileRepository;
 import com.platform.recruitment.job.Job;
 import com.platform.recruitment.job.JobRepository;
 import com.platform.recruitment.matching.CandidateRankingService;
+import com.platform.recruitment.matching.CandidateRankingResponse;
 import com.platform.recruitment.matching.MatchingController;
 import com.platform.recruitment.matching.MatchingEngineService;
+import com.platform.recruitment.common.PageResponse;
 import com.platform.recruitment.user.Role;
 import com.platform.recruitment.user.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -96,7 +98,7 @@ public class StrictRoleSeparationSecurityTest {
                 .build();
         candProfile1.setId(UUID.randomUUID());
 
-        appCand1JobA = Application.builder().aiAnalysisConsent(true).candidate(candProfile1).job(jobA).build();
+        appCand1JobA = Application.builder().candidate(candProfile1).job(jobA).build();
         appCand1JobA.setId(UUID.randomUUID());
     }
 
@@ -137,6 +139,10 @@ public class StrictRoleSeparationSecurityTest {
     void testAuthorizedCompanyRankingAccess_Success() {
         when(recruiterProfileRepository.findByUserId(hrUserA.getId())).thenReturn(Optional.of(recruiterProfileA));
         when(jobRepository.findById(jobA.getId())).thenReturn(Optional.of(jobA));
+        when(candidateRankingService.getRankedCandidatesPage(
+                eq(jobA.getId()), isNull(), anyInt(), anyInt(), anyString(), anyString()))
+                .thenReturn(PageResponse.<CandidateRankingResponse>builder()
+                        .content(java.util.List.of()).build());
 
         matchingController.getCandidateRankings(hrUserA, jobA.getId(), null);
         verify(candidateRankingService, times(1)).getRankedCandidatesForJob(jobA.getId(), null);

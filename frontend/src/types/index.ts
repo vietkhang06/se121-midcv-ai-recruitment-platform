@@ -1,47 +1,20 @@
-export type UserRole = "CANDIDATE" | "RECRUITER" | "ADMIN";
+export type UserRole = 'CANDIDATE' | 'RECRUITER' | 'ADMIN';
 
-export type Industry =
-  | "Technology"
-  | "Marketing"
-  | "Design"
-  | "Finance"
-  | "HR"
-  | "Sales"
-  | "OTHER";
+export type Industry = 'Technology' | 'Marketing' | 'Design' | 'Finance' | 'HR' | 'Sales' | 'OTHER';
 
-export type EmploymentType =
-  | "FULL_TIME"
-  | "PART_TIME"
-  | "REMOTE"
-  | "HYBRID"
-  | "OTHER";
+export type EmploymentType = 'FULL_TIME' | 'PART_TIME' | 'REMOTE' | 'HYBRID' | 'OTHER';
 
-export type RequirementType = "REQUIRED" | "PREFERRED";
+export type RequirementType = 'REQUIRED' | 'PREFERRED';
 
-export type CompanyVerificationState =
-  | "PENDING"
-  | "UNDER_REVIEW"
-  | "CHANGES_REQUESTED"
-  | "VERIFIED"
-  | "REJECTED"
-  | "SUSPENDED";
+export type CompanyVerificationState = 'PENDING' | 'UNDER_REVIEW' | 'CHANGES_REQUESTED' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
 
-export type GitHubActivitySignal =
-  | "HIGH"
-  | "MODERATE"
-  | "LOW"
-  | "LIMITED_OBSERVABLE_ACTIVITY";
+export type GitHubActivitySignal = 'HIGH' | 'MODERATE' | 'LOW' | 'LIMITED_OBSERVABLE_ACTIVITY';
 
-export type RequirementMatchStatus = "MATCH" | "PARTIAL" | "MISSING";
+export type RequirementMatchStatus = 'MATCH' | 'PARTIAL' | 'MISSING';
 
-export type EmailCheckStatus =
-  | "UNKNOWN"
-  | "CHECKING"
-  | "AVAILABLE"
-  | "ALREADY_EXISTS"
-  | "INVALID";
+export type EmailCheckStatus = 'UNKNOWN' | 'CHECKING' | 'AVAILABLE' | 'ALREADY_EXISTS' | 'INVALID';
 
-export type AuthState = "INITIALIZING" | "ANONYMOUS" | "AUTHENTICATED";
+export type AuthState = 'INITIALIZING' | 'ANONYMOUS' | 'AUTHENTICATED';
 
 export interface User {
   id: string;
@@ -51,7 +24,7 @@ export interface User {
   age?: number;
   targetIndustry?: Industry;
   emailVerified?: boolean;
-  accountStatus?: "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+  accountStatus?: 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
   isActive?: boolean;
 }
 
@@ -59,19 +32,13 @@ export interface Company {
   id: string;
   name: string;
   taxCode?: string;
-  description?: string;
-  descriptionHtml?: string;
-  address?: string;
-  contactPhone?: string;
-  verificationLevel?: number;
-  businessLicenseName?: string;
-  licenseSubmittedAt?: string;
   industry: Industry;
   website: string;
   companySize: string;
   contactEmail: string;
+  contactPhone?: string;
   verificationStatus: CompanyVerificationState;
-  operationalStatus?: "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+  operationalStatus?: 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
   verificationReason?: string;
 }
 
@@ -95,9 +62,6 @@ export interface JobRequirement {
 }
 
 export interface Job {
-  promotedUntil?: string;
-  aiScreeningPolicyVersion?: number;
-  aiScreeningPackageCode?: string;
   id: string;
   title: string;
   companyName: string;
@@ -112,37 +76,17 @@ export interface Job {
   salaryMin: number | null;
   salaryMax: number | null;
   salaryNegotiable?: boolean;
-  salaryCurrency?:
-    | "VND"
-    | "USD"
-    | "EUR"
-    | "GBP"
-    | "JPY"
-    | "CNY"
-    | "KRW"
-    | "SGD"
-    | "AUD"
-    | "CAD";
-  salaryPeriod?: "MONTH";
+  salaryCurrency?: 'VND' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'CNY' | 'KRW' | 'SGD' | 'AUD' | 'CAD';
+  salaryPeriod?: 'MONTH';
   salaryRange?: string;
   department?: string;
   publishedDate: string;
   description: string;
-  occupationCodes?: string[];
   responsibilities?: string[];
-  descriptionHtml?: string;
-  candidateRequirements?: string;
-  benefitsContent?: string;
-  workAddress?: string;
-  workingTime?: string;
-  applicationInstructions?: string;
-  applicationDeadline?: string;
-  companyDescription?: string;
-  companyDescriptionHtml?: string;
   requirements: JobRequirement[];
   benefits?: string[];
   applicationQuestions?: string[];
-  status: "DRAFT" | "PUBLISHED" | "CLOSED" | "SUSPENDED";
+  status: 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'SUSPENDED';
 }
 
 export interface CVSection {
@@ -168,7 +112,7 @@ export interface CV {
   title: string;
   targetIndustry: Industry;
   targetRole?: string;
-  creationPath: "UPLOAD" | "BUILDER";
+  creationPath: 'UPLOAD' | 'BUILDER';
   isDefault: boolean;
   status?: string;
   currentVersionNumber: number;
@@ -177,11 +121,8 @@ export interface CV {
   versions: CVVersion[];
 }
 
-export type CreateCVRequest = Pick<
-  CV,
-  "title" | "targetIndustry" | "creationPath" | "isDefault"
-> &
-  Partial<Pick<CV, "rawText" | "versions">>;
+export type CreateCVRequest = Pick<CV, 'title' | 'targetIndustry' | 'creationPath' | 'isDefault'> &
+  Partial<Pick<CV, 'rawText' | 'versions'>>;
 
 export interface CandidateProfile {
   id: string;
@@ -205,36 +146,18 @@ export interface CandidateProfile {
   portfolioUrl?: string;
 }
 
+
 export type ApplicationStatus =
-  | "SUBMITTED"
-  | "REVIEWED"
-  | "MATCHED"
-  | "SHORTLISTED"
-  | "INTERVIEWING"
-  | "HIRED"
-  | "REJECTED"
-  | "UNDER_REVIEW";
+  | 'SUBMITTED'
+  | 'REVIEWED'
+  | 'MATCHED'
+  | 'SHORTLISTED'
+  | 'INTERVIEWING'
+  | 'HIRED'
+  | 'REJECTED'
+  | 'UNDER_REVIEW';
 
 export interface Application {
-  aiAnalysisConsent?: boolean;
-  aiScoringAvailable?: boolean;
-  aiScoringReasonCode?:
-    | "AVAILABLE"
-    | "CONSENT_NOT_GIVEN"
-    | "POSITION_NOT_ELIGIBLE"
-    | "PACKAGE_NOT_ELIGIBLE"
-    | "JOB_NOT_ACTIVE"
-    | "PROCESSING"
-    | string;
-  aiScoringReason?: string;
-  matchClassification?:
-    | "PHU_HOP"
-    | "CAN_NHAC"
-    | "KHONG_PHU_HOP"
-    | "CHUA_KHA_DUNG";
-  proDetailAvailable?: boolean;
-  recruiterPlan?: "STANDARD" | "PRO";
-  coverLetter?: string;
   id: string;
   job: Job;
   appliedCvId: string;
@@ -245,6 +168,11 @@ export interface Application {
   candidateEmail?: string;
   candidatePhone?: string;
   candidateHeadline?: string;
+  appliedCvFullName?: string;
+  appliedCvEmail?: string;
+  appliedCvPhone?: string;
+  appliedCvHeadline?: string;
+  appliedCvGithubUrl?: string;
   status: ApplicationStatus;
   appliedDate: string;
   expectedSalary?: number;
@@ -253,10 +181,14 @@ export interface Application {
   portfolioUrl?: string;
   matchScore?: number;
   matchStatus?: string;
+  matchClassification?: string;
+  aiAnalysisConsent?: boolean;
+  proDetailAvailable?: boolean;
+  recruiterPlan?: 'STANDARD' | 'PRO';
+  developmentProAccess?: boolean;
   snapshot?: {
     cvTitle?: string;
     rawTextSnapshot?: string;
-    structuredJsonSnapshot?: string;
     snapshotCreatedAt?: string;
   };
   candidateAnswers?: Record<string, string>;
@@ -288,14 +220,7 @@ export interface MatchFactorItem {
   configuredWeight?: number;
   effectiveWeight?: number;
   weightedContribution?: number;
-  status:
-    | "AVAILABLE"
-    | "NOT_AVAILABLE"
-    | "NOT_COMPUTED"
-    | "HIGH"
-    | "MODERATE"
-    | "LOW"
-    | string;
+  status: 'AVAILABLE' | 'NOT_AVAILABLE' | 'NOT_COMPUTED' | 'HIGH' | 'MODERATE' | 'LOW' | string;
   calculationMethod?: string;
   algorithmVersion?: string;
   explanation: string;
@@ -314,19 +239,13 @@ export interface GitHubRepoItem {
 
 export interface GitHubAssessmentData {
   connected: boolean;
-  status?:
-    | "SYNCED"
-    | "NOT_CONNECTED"
-    | "PUBLIC_ONLY"
-    | "PRIVATE_ONLY"
-    | "API_UNAVAILABLE"
-    | "NOT_APPLICABLE";
+  status?: 'SYNCED' | 'NOT_CONNECTED' | 'PUBLIC_ONLY' | 'PRIVATE_ONLY' | 'API_UNAVAILABLE' | 'NOT_APPLICABLE';
   username?: string;
   publicRepoCount?: number;
   topLanguages?: string[];
   languageDistribution?: Record<string, number>;
   activitySignal?: GitHubActivitySignal;
-  ownershipStatus?: "OWNED" | "UNVERIFIED_PUBLIC";
+  ownershipStatus?: 'OWNED' | 'UNVERIFIED_PUBLIC';
   latestActivityDaysAgo?: number;
   repos?: GitHubRepoItem[];
   overallAssessment?: string;
@@ -352,7 +271,7 @@ export interface CandidateRankingItem {
 
 export interface EvidenceItem {
   id?: string;
-  sourceType: "CV" | "JD" | "GITHUB" | string;
+  sourceType: 'CV' | 'JD' | 'GITHUB' | string;
   sourceId?: string;
   section: string;
   snippet: string;
@@ -369,20 +288,17 @@ export interface MatchInspectionData {
   applicationId: string;
   jobTitle: string;
   candidateName: string;
-  matchClassification?: Application["matchClassification"];
-  detailAccess?: boolean;
   algorithmVersion?: string;
   calculationStatus?: string;
+  matchClassification?: string;
+  detailAccess?: boolean;
   overallScore: number | null;
   coreScore: number | null;
   githubScore?: number | null;
   githubScoreActive: boolean;
   cvVersionId?: string;
   jdVersionId?: string;
-  semanticMethod?:
-    | "PGVECTOR_COSINE_SIMILARITY"
-    | "TF_CONCEPT_COSINE_SIMILARITY"
-    | string;
+  semanticMethod?: 'PGVECTOR_COSINE_SIMILARITY' | 'TF_CONCEPT_COSINE_SIMILARITY' | string;
   embeddingModel?: string;
   scoringPolicyVersion?: number;
   requiredSkillsStatus: SkillMatchResultItem[];
@@ -394,7 +310,7 @@ export interface MatchInspectionData {
 }
 
 export interface AiSettings {
-  provider: "LOCAL_OLLAMA" | "CLOUD_OPENAI_COMPATIBLE";
+  provider: 'LOCAL_OLLAMA' | 'CLOUD_OPENAI_COMPATIBLE';
   ollamaUrl: string;
   ollamaModel: string;
   cloudBaseUrl: string;
@@ -555,12 +471,7 @@ export interface CVReviewData {
   rawText?: string;
   structured?: CVStructuredData;
   evidences?: CVEvidenceItem[];
-  unverifiedFacts?: Array<{
-    field_path: string;
-    quote?: string;
-    reason?: string;
-    [key: string]: unknown;
-  }>;
+  unverifiedFacts?: Array<{ field_path: string; quote?: string; reason?: string; [key: string]: unknown }>;
   warnings?: string[];
   ocrCorrectionStatus?: string;
   ocrAppliedCount?: number;
@@ -590,7 +501,7 @@ export interface TaxonomySkillItem {
 export interface CVEvidenceAttachmentItem {
   attachmentId: string;
   cvId: string;
-  itemType: "CERTIFICATION" | "LANGUAGE";
+  itemType: 'CERTIFICATION' | 'LANGUAGE';
   itemId: string;
   fileName: string;
   fileSize: number;
@@ -611,97 +522,19 @@ export interface CVDraftData {
   confirmed_at?: string;
   personal_info?: CVPersonalInfo;
   summary?: string | { content?: string; text?: string };
-  skills?: Array<{
-    name: string;
-    category?: string;
-    level?: string;
-    isCustom?: boolean;
-    verified?: boolean;
-    origin?: string;
-  }>;
-  work_experience?: Array<{
-    [key: string]: unknown;
-    id?: string;
-    company: string;
-    role?: string;
-    position?: string;
-    start_date?: string;
-    end_date?: string;
-    startDate?: string;
-    endDate?: string;
-    is_current?: boolean;
-    description?: string;
-    technologies?: CVTechnology[];
-    origin?: string;
-  }>;
-  projects?: Array<{
-    [key: string]: unknown;
-    id?: string;
-    name: string;
-    role?: string;
-    start_date?: string;
-    end_date?: string;
-    description?: string;
-    techStack?: CVTechnology[];
-    tech_stack?: CVTechnology[];
-    origin?: string;
-  }>;
-  education?: Array<{
-    [key: string]: unknown;
-    id?: string;
-    institution: string;
-    school?: string;
-    degree?: string;
-    fieldOfStudy?: string;
-    field_of_study?: string;
-    startYear?: number;
-    start_year?: string | number;
-    endYear?: number;
-    end_year?: string | number;
-    graduationYear?: string | number;
-    gpa?: number;
-    gpa_scale?: number;
-    gpaScale?: number;
-    gpa_display?: string;
-    description?: string;
-    origin?: string;
-  }>;
-  certifications?: Array<{
-    [key: string]: unknown;
-    id?: string;
-    name: string;
-    issuer?: string;
-    issueDate?: string;
-    date?: string;
-    credentialId?: string;
-    credentialUrl?: string;
-    attachment?: CVEvidenceAttachmentItem | null;
-    origin?: string;
-  }>;
-  languages?: Array<{
-    [key: string]: unknown;
-    id?: string;
-    language: string;
-    name?: string;
-    proficiency?: string;
-    proficiencyLevel?: string;
-    proficiency_level?: string;
-    score?: string;
-    attachment?: CVEvidenceAttachmentItem | null;
-    origin?: string;
-  }>;
-  links?: {
-    [key: string]: unknown;
-    github_url?: string;
-    linkedin_url?: string;
-    portfolio_url?: string;
-  };
+  skills?: Array<{ name: string; category?: string; level?: string; isCustom?: boolean; verified?: boolean; origin?: string }>;
+  work_experience?: Array<{ [key: string]: unknown; id?: string; company: string; role?: string; position?: string; start_date?: string; end_date?: string; startDate?: string; endDate?: string; is_current?: boolean; description?: string; technologies?: CVTechnology[]; origin?: string }>;
+  projects?: Array<{ [key: string]: unknown; id?: string; name: string; role?: string; start_date?: string; end_date?: string; description?: string; techStack?: CVTechnology[]; tech_stack?: CVTechnology[]; origin?: string }>;
+  education?: Array<{ [key: string]: unknown; id?: string; institution: string; school?: string; degree?: string; fieldOfStudy?: string; field_of_study?: string; startYear?: number; start_year?: string | number; endYear?: number; end_year?: string | number; graduationYear?: string | number; gpa?: number; gpa_scale?: number; gpaScale?: number; gpa_display?: string; description?: string; origin?: string }>;
+  certifications?: Array<{ [key: string]: unknown; id?: string; name: string; issuer?: string; issueDate?: string; date?: string; credentialId?: string; credentialUrl?: string; attachment?: CVEvidenceAttachmentItem | null; origin?: string }>;
+  languages?: Array<{ [key: string]: unknown; id?: string; language: string; name?: string; proficiency?: string; proficiencyLevel?: string; proficiency_level?: string; score?: string; attachment?: CVEvidenceAttachmentItem | null; origin?: string }>;
+  links?: { [key: string]: unknown; github_url?: string; linkedin_url?: string; portfolio_url?: string };
 }
 
 export interface CVProcessingStatus {
   cvId: string;
   jobId: string;
-  status: "PROCESSING" | "COMPLETED" | "FAILED" | "CONFIRMED" | string;
+  status: 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CONFIRMED' | string;
   stage: string;
   progress: number;
   message: string;
@@ -734,31 +567,19 @@ export interface AdminDashboardStats {
   };
 }
 
-export type CompanyReviewAction =
-  | "START_REVIEW"
-  | "VERIFY"
-  | "REQUEST_CHANGES"
-  | "REJECT"
-  | "SUSPEND"
-  | "RESTORE";
-export type ReportStatus = "PENDING" | "RESOLVED" | "DISMISSED";
-export type ReportTargetType = "JOB" | "COMPANY" | "CANDIDATE" | "RECRUITER";
+export type CompanyReviewAction = 'START_REVIEW' | 'VERIFY' | 'REQUEST_CHANGES' | 'REJECT' | 'SUSPEND' | 'RESTORE';
+export type ReportStatus = 'PENDING' | 'RESOLVED' | 'DISMISSED';
+export type ReportTargetType = 'JOB' | 'COMPANY' | 'CANDIDATE' | 'RECRUITER';
 
 export interface CompanyAdminDto {
   id: string;
   name: string;
   taxCode?: string;
-  description?: string;
-  descriptionHtml?: string;
-  address?: string;
-  contactPhone?: string;
-  verificationLevel?: number;
-  businessLicenseName?: string;
-  licenseSubmittedAt?: string;
   website?: string;
   size?: string;
   industry?: string;
   location?: string;
+  description?: string;
   verificationStatus: CompanyVerificationState;
   reviewedById?: string;
   reviewedByEmail?: string;
@@ -778,7 +599,7 @@ export interface UserAdminDto {
   email: string;
   role: UserRole;
   isActive: boolean;
-  accountStatus?: "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+  accountStatus?: 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
   emailVerified: boolean;
   fullName?: string;
   phone?: string;
@@ -801,7 +622,7 @@ export interface JobAdminDto {
   title: string;
   industry: string;
   seniority: string;
-  status: "DRAFT" | "PUBLISHED" | "CLOSED" | "SUSPENDED";
+  status: 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'SUSPENDED';
   minSalary?: number;
   maxSalary?: number;
   location?: string;
@@ -818,12 +639,12 @@ export interface ReportAdminDto {
   id: string;
   reporterId?: string;
   reporterEmail?: string;
-  targetType: "JOB" | "COMPANY" | "CANDIDATE" | "RECRUITER";
+  targetType: 'JOB' | 'COMPANY' | 'CANDIDATE' | 'RECRUITER';
   targetId: string;
   targetTitle?: string;
   reason: string;
   details?: string;
-  status: "PENDING" | "RESOLVED" | "DISMISSED";
+  status: 'PENDING' | 'RESOLVED' | 'DISMISSED';
   resolutionNotes?: string;
   resolvedById?: string;
   resolvedByEmail?: string;
@@ -864,11 +685,11 @@ export interface SuspensionAppeal {
   appellantUserId: string;
   appellantEmail?: string;
   suspensionId?: string;
-  targetType: "USER" | "COMPANY";
+  targetType: 'USER' | 'COMPANY';
   targetId: string;
   subject: string;
   content: string;
-  status: "SUBMITTED" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "CANCELLED";
+  status: 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
   evidenceAttachmentId?: string;
   submittedAt: string;
   reviewerEmail?: string;
@@ -885,13 +706,7 @@ export interface SuspensionNotice {
   reason?: string;
   startsAt?: string;
   expiresAt?: string;
-  appealStatus?:
-    | "NONE"
-    | "SUBMITTED"
-    | "UNDER_REVIEW"
-    | "APPROVED"
-    | "REJECTED"
-    | "CANCELLED";
+  appealStatus?: 'NONE' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
   appealId?: string;
   appealSubmittedAt?: string;
   appealResolutionNotes?: string;
@@ -913,20 +728,14 @@ export interface JobMatchingPolicy {
 }
 
 export interface CVQuota {
-  plan: "STANDARD" | "PRO";
+  plan: 'STANDARD' | 'PRO';
   currentCount: number;
   maxLimit: number;
   remainingSlots: number;
   canUpload: boolean;
 }
 
-export type SkillType =
-  | "TECHNICAL"
-  | "SOFT_SKILL"
-  | "TOOL_PLATFORM"
-  | "DOMAIN_KNOWLEDGE"
-  | "LANGUAGE"
-  | "CERTIFICATION";
+export type SkillType = 'TECHNICAL' | 'SOFT_SKILL' | 'TOOL_PLATFORM' | 'DOMAIN_KNOWLEDGE' | 'LANGUAGE' | 'CERTIFICATION';
 
 export interface TaxonomyCatalogSkill {
   id: string;

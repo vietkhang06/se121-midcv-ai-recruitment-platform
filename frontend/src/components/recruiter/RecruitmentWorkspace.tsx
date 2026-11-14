@@ -44,6 +44,7 @@ type Limits = {
   jobLimit: number;
   cvViewLimit: number;
   recruiterPlan: "STANDARD" | "PRO";
+  developmentProAccess?: boolean;
   proUntil?: string;
 };
 
@@ -180,7 +181,9 @@ export function RecruitmentWorkspace({ mode = "overview" }: { mode?: "overview" 
         && (!jobFilter || application.job.id === jobFilter)
         && (!campaign || campaign.job_ids.includes(application.job.id))
         && (!statusFilter || application.status === statusFilter)
-        && (!availabilityFilter || (availabilityFilter === "AVAILABLE" ? application.aiScoringAvailable : !application.aiScoringAvailable));
+        && (!availabilityFilter || (availabilityFilter === "AVAILABLE"
+          ? application.aiAnalysisConsent !== false && application.matchStatus !== "CONSENT_NOT_GIVEN"
+          : application.aiAnalysisConsent === false || application.matchStatus === "CONSENT_NOT_GIVEN"));
     })
     .sort((a, b) => sort === "score"
       ? (b.matchScore ?? -1) - (a.matchScore ?? -1)
@@ -240,7 +243,7 @@ export function RecruitmentWorkspace({ mode = "overview" }: { mode?: "overview" 
     ["Tổng lượng CV ứng tuyển", apps.length, UsersRound, "text-blue-700 bg-blue-50"],
     ["CV ứng tuyển mới", apps.filter((app) => app.status === "SUBMITTED").length, Inbox, "text-cyan-700 bg-cyan-50"],
     ["CV phù hợp", apps.filter((app) => app.matchClassification === "PHU_HOP").length, CheckCircle2, "text-emerald-700 bg-emerald-50"],
-    ["CV chưa khả dụng AI", apps.filter((app) => !app.aiScoringAvailable).length, CirclePause, "text-amber-700 bg-amber-50"],
+    ["CV chưa khả dụng AI", apps.filter((app) => app.aiAnalysisConsent === false || app.matchStatus === "CONSENT_NOT_GIVEN").length, CirclePause, "text-amber-700 bg-amber-50"],
     ["Chiến dịch đang mở", campaigns.filter((campaign) => campaign.status === "ACTIVE").length, Megaphone, "text-violet-700 bg-violet-50"],
   ] as const;
 
@@ -283,7 +286,7 @@ export function RecruitmentWorkspace({ mode = "overview" }: { mode?: "overview" 
               <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {[["Tin đang đăng", jobs.filter((job) => job.status === "PUBLISHED").length], ["Đang xem xét", apps.filter((app) => app.status === "UNDER_REVIEW").length], ["Phỏng vấn", apps.filter((app) => app.status === "INTERVIEWING").length], ["Đã tuyển", apps.filter((app) => app.status === "HIRED").length]].map(([label, value]) => <div key={label} className="rounded-xl bg-[var(--surface-secondary)] p-4"><p className="text-xl font-black text-emerald-700">{value}</p><p className="mt-1 text-[11px] text-[var(--text-secondary)]">{label}</p></div>)}
               </div>
-              {limits && <div className="mt-5 rounded-xl border border-[var(--border)] p-4 text-xs"><div className="flex flex-wrap justify-between gap-2"><span>Doanh nghiệp cấp {limits.level} · {limits.publishedJobs}/{limits.jobLimit < 0 ? "∞" : limits.jobLimit} tin · {limits.cvViews}/{limits.cvViewLimit < 0 ? "∞" : limits.cvViewLimit} lượt CV</span><span className="font-black text-emerald-700">HR {limits.recruiterPlan === "PRO" ? "Pro" : "Thường"}</span></div></div>}
+              {limits && <div className="mt-5 rounded-xl border border-[var(--border)] p-4 text-xs"><div className="flex flex-wrap justify-between gap-2"><span>Doanh nghiệp cấp {limits.level} · {limits.publishedJobs}/{limits.jobLimit < 0 ? "∞" : limits.jobLimit} tin · {limits.cvViews}/{limits.cvViewLimit < 0 ? "∞" : limits.cvViewLimit} lượt CV</span><span className="font-black text-emerald-700">HR {limits.developmentProAccess ? "Standard (thử nghiệm Pro)" : limits.recruiterPlan === "PRO" ? "Pro" : "Thường"}</span></div></div>}
             </section>
             <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm"><h2 className="font-black">Thao tác nhanh</h2><div className="mt-4 space-y-2">{[["/recruiter/jobs/new", "Tạo tin tuyển dụng", BriefcaseBusiness], ["/recruiter/campaigns", "Tạo chiến dịch", Megaphone], ["/recruiter/candidates", "Lọc CV ứng viên", FileSearch], ["/recruiter/services", "Quản lý dịch vụ", Sparkles]].map(([href, label, Icon]) => <Link key={href as string} href={href as string} className="flex items-center justify-between rounded-xl border border-[var(--border)] px-3 py-3 text-sm font-semibold hover:border-emerald-400"><span className="flex items-center gap-2"><Icon size={17} className="text-emerald-600" />{label as string}</span><ArrowRight size={15} /></Link>)}</div></section>
           </div>

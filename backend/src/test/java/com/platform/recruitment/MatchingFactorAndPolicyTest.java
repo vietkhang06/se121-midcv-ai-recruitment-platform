@@ -88,14 +88,12 @@ class MatchingFactorAndPolicyTest {
                 .build();
         testCandidate.setId(candidateId);
 
-        testApp = Application.builder().aiAnalysisConsent(true)
+        testApp = Application.builder()
                 .job(testJob)
                 .candidate(testCandidate)
                 .build();
         testApp.setId(UUID.randomUUID());
 
-        when(jobRepository.findById(jobId)).thenReturn(Optional.of(testJob));
-        when(candidateProfileRepository.findById(candidateId)).thenReturn(Optional.of(testCandidate));
         when(applicationRepository.findByJobIdAndCandidateId(jobId, candidateId)).thenReturn(Optional.of(testApp));
         when(matchResultRepository.findByApplicationId(testApp.getId())).thenReturn(Optional.empty());
         when(matchResultRepository.save(any(MatchResult.class))).thenAnswer(invocation -> {
@@ -115,7 +113,7 @@ class MatchingFactorAndPolicyTest {
 
         // Candidate CV only mentions Python and Frontend (no Java, no Golang)
         CV cv = CV.builder().candidate(testCandidate).rawText("Kỹ năng: Python, HTML, CSS, ReactJS. Kinh nghiệm 1 năm làm frontend.").build();
-        when(cvRepository.findByCandidateId(candidateId)).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(testApp, cv, cv.getRawText());
         when(jobMatchingPolicyRepository.findByJobId(jobId)).thenReturn(Optional.empty()); // defaults applied
 
         matchingEngineService.calculateAndPersistMatchResult(jobId, candidateId);
@@ -143,7 +141,7 @@ class MatchingFactorAndPolicyTest {
         when(jobRequirementRepository.findByJobId(jobId)).thenReturn(List.of(r1));
 
         CV cv = CV.builder().candidate(testCandidate).rawText("Kỹ năng: Java, Spring Boot. Kinh nghiệm 4 năm làm backend backend Java.").build();
-        when(cvRepository.findByCandidateId(candidateId)).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(testApp, cv, cv.getRawText());
         when(jobMatchingPolicyRepository.findByJobId(jobId)).thenReturn(Optional.empty());
 
         matchingEngineService.calculateAndPersistMatchResult(jobId, candidateId);
@@ -177,7 +175,7 @@ class MatchingFactorAndPolicyTest {
         when(jobRequirementRepository.findByJobId(jobId)).thenReturn(List.of(r1));
 
         CV cv = CV.builder().candidate(testCandidate).rawText("Kỹ năng: Java, Spring Boot. Đại học Bách Khoa ngành CNTT. Kinh nghiệm 5 năm.").build();
-        when(cvRepository.findByCandidateId(candidateId)).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(testApp, cv, cv.getRawText());
 
         // Custom policy: heavy required skills weight 0.50, experience 0.20, education 0.10, project 0.10, semantic 0.10, pref 0.00
         JobMatchingPolicy customPolicy = JobMatchingPolicy.builder()
@@ -210,7 +208,7 @@ class MatchingFactorAndPolicyTest {
         when(jobRequirementRepository.findByJobId(jobId)).thenReturn(List.of(r1));
 
         CV cv = CV.builder().candidate(testCandidate).rawText("Kỹ năng: Java. Kinh nghiệm 3 năm.").build();
-        when(cvRepository.findByCandidateId(candidateId)).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(testApp, cv, cv.getRawText());
 
         JobMatchingPolicy noGithubPolicy = JobMatchingPolicy.createDefaultPolicy(testJob);
         noGithubPolicy.setIsGithubActive(false);
@@ -230,7 +228,7 @@ class MatchingFactorAndPolicyTest {
         when(jobRequirementRepository.findByJobId(jobId)).thenReturn(List.of(r1));
 
         CV cv = CV.builder().candidate(testCandidate).rawText("Kỹ năng: Java. Kinh nghiệm 3 năm.").build();
-        when(cvRepository.findByCandidateId(candidateId)).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(testApp, cv, cv.getRawText());
         when(jobMatchingPolicyRepository.findByJobId(jobId)).thenReturn(Optional.empty()); // default active
 
         MatchResult result = matchingEngineService.calculateAndPersistMatchResult(jobId, candidateId);

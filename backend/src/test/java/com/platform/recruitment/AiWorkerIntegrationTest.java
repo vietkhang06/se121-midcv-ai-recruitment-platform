@@ -97,7 +97,7 @@ class AiWorkerIntegrationTest {
                 .thenReturn(aiWorkerResponse);
 
         // Execute Lifecycle Service
-        lifecycleService.processJobDescription(job.getId());
+        lifecycleService.processJobDescription(com.platform.recruitment.user.User.builder().role(com.platform.recruitment.user.Role.ADMIN).build(), job.getId());
 
         // Verify Save operations were called for required & preferred skills
         verify(jobRequirementRepository, times(3)).save(any(JobRequirement.class));

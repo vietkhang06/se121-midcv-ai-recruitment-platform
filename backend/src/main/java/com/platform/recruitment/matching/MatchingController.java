@@ -27,16 +27,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 @RequestMapping("/api/v1/matching")
 public class MatchingController {
 
-    @Autowired(required=false)
-    private com.platform.recruitment.product.RecruiterEntitlements entitlements;
-    @Autowired(required=false)
-    private com.platform.recruitment.product.AiScreeningAccessService aiScreeningAccess;
     private final MatchingEngineService matchingEngineService;
     private final CandidateRankingService candidateRankingService;
     private final JobRepository jobRepository;
     private final RecruiterProfileRepository recruiterProfileRepository;
     private final ApplicationRepository applicationRepository;
     private final com.platform.recruitment.suspension.SuspensionGuard suspensionGuard;
+    private com.platform.recruitment.product.RecruiterFeatureAccess featureAccess;
+
+    @Autowired(required = false)
+    public void setFeatureAccess(com.platform.recruitment.product.RecruiterFeatureAccess featureAccess) {
+        this.featureAccess = featureAccess;
+    }
+
+    private boolean hasProFeatures(com.platform.recruitment.company.Company company) {
+        return featureAccess != null ? featureAccess.hasProFeatures(company)
+                : company != null && company.hasActiveRecruiterPro();
+    }
 
     @Autowired
     public MatchingController(MatchingEngineService matchingEngineService,
@@ -70,14 +77,7 @@ public class MatchingController {
         validateRecruiterJobAccess(currentUser, jobId);
         MatchResult result = matchingEngineService.calculateAndPersistMatchResult(jobId, candidateId);
         MatchScoreResponse response = MatchScoreResponse.fromEntity(result);
-        Job job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
-        if (currentUser.getRole() == Role.HR && aiScreeningAccess != null
-                && !aiScreeningAccess.hasActivePro(job.getCompany())) {
-            response.redactForStandardPlan(aiScreeningAccess);
-        } else if (aiScreeningAccess != null) {
-            response.setMatchClassification(aiScreeningAccess.classify(response.getOverallScore()));
-        }
+        if (isStandardRecruiter(currentUser, jobId)) response.redactForStandardPlan();
         return ResponseEntity.ok(ApiResponse.success("Match score calculated successfully", response));
     }
 
@@ -91,18 +91,10 @@ public class MatchingController {
             @RequestParam(defaultValue = "overallScore") String sort,
             @RequestParam(defaultValue = "desc") String direction) {
         validateRecruiterJobAccess(currentUser, jobId);
-        Job job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
-        boolean standardPlan = currentUser.getRole() == Role.HR && aiScreeningAccess != null
-                && !aiScreeningAccess.hasActivePro(job.getCompany());
         com.platform.recruitment.common.PageResponse<CandidateRankingResponse> ranked =
-                candidateRankingService.getRankedCandidatesPage(
-                        jobId, standardPlan ? null : minScore, page, size,
-                        standardPlan ? "createdAt" : sort, direction);
-        if (currentUser.getRole() == Role.HR && aiScreeningAccess != null) {
-            if (standardPlan) {
-                ranked.getContent().forEach(item -> item.redactForStandardPlan(aiScreeningAccess));
-            }
+                candidateRankingService.getRankedCandidatesPage(jobId, minScore, page, size, sort, direction);
+        if (isStandardRecruiter(currentUser, jobId)) {
+            ranked.getContent().forEach(CandidateRankingResponse::redactForStandardPlan);
         }
         return ResponseEntity.ok(ApiResponse.success("Candidate rankings retrieved successfully", ranked));
     }
@@ -120,14 +112,27 @@ public class MatchingController {
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID id) {
         validateApplicationAccess(currentUser, id);
-        if (currentUser.getRole() == Role.HR && entitlements != null) entitlements.view(currentUser,id);
         MatchInspectionResponse response = matchingEngineService.getMatchInspection(id);
-        if (currentUser.getRole() == Role.HR && aiScreeningAccess != null) {
+        if (currentUser.getRole() == Role.HR) {
             Application application = applicationRepository.findById(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Application", "id", id));
-            if (!aiScreeningAccess.evaluate(application).proDetail()) response.redactForStandardPlan();
+            if (!Boolean.TRUE.equals(application.getAiAnalysisConsent())) {
+                response.redactForNoConsent();
+            } else if (application.getJob() == null || application.getJob().getCompany() == null
+                    || !hasProFeatures(application.getJob().getCompany())) {
+                response.redactForStandardPlan();
+            } else {
+                response.setDetailAccess(true);
+            }
         }
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    private boolean isStandardRecruiter(User user, UUID jobId) {
+        if (user.getRole() != Role.HR) return false;
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
+        return !hasProFeatures(job.getCompany());
     }
 
     private void validateRecruiterJobAccess(User currentUser, UUID jobId) {

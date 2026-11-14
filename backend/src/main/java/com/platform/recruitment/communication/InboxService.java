@@ -104,7 +104,6 @@ public class InboxService {
                 u.getId())
             .getFirst();
     a.put("email_available", emailAvailable());
-    a.put("candidate_tier", "PRO".equals(a.get("account_plan")) ? "PRO" : Boolean.TRUE.equals(a.get("email_verified")) ? "VERIFIED" : "STANDARD");
     return a;
   }
 

@@ -42,7 +42,9 @@ public class PgvectorCosineSimilarity {
                         "WHERE cv.id=? AND jd.id=? AND cv.embedding IS NOT NULL AND jd.embedding IS NOT NULL " +
                         "AND cv.state='READY' AND jd.state='READY' AND cv.embedding_model IS NOT NULL AND cv.embedding_model=jd.embedding_model " +
                         "AND cv.embedding_dimension=1024 AND jd.embedding_dimension=1024 " +
-                        "AND cv.embedding_source_sha IS NOT NULL AND jd.embedding_source_sha IS NOT NULL",
+                        "AND cv.embedding_source_sha IS NOT NULL AND jd.embedding_source_sha IS NOT NULL " +
+                        "AND jd.embedding_source_sha=jd.source_sha " +
+                        "AND cv.embedding_model <> ''",
                         cvVersionId, jdVersionId
                 );
                 if (!scoreRows.isEmpty() && scoreRows.get(0).get("score") != null) {

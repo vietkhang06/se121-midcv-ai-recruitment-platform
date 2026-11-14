@@ -505,7 +505,7 @@ public class CandidateCvDraftAndEvidenceIntegrationTest {
         when(cvRepository.findByCandidateId(candidateProfile.getId())).thenReturn(List.of(cv));
         when(jobRequirementRepository.findByJobId(job.getId())).thenReturn(List.of(k8sReq));
 
-        Application application = Application.builder().aiAnalysisConsent(true).job(job).candidate(candidateProfile).appliedCv(cv).appliedCvVersion(draftVersion).build();
+        Application application = Application.builder().job(job).candidate(candidateProfile).appliedCv(cv).appliedCvVersion(draftVersion).build();
         application.setId(UUID.randomUUID());
         when(applicationRepository.findByJobIdAndCandidateId(job.getId(), candidateProfile.getId())).thenReturn(Optional.of(application));
         when(matchResultRepository.findByApplicationId(application.getId())).thenReturn(Optional.empty());

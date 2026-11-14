@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -168,6 +169,7 @@ public class CandidateCvDraftMapperAndProvenanceTest {
 
         when(candidateProfileRepository.findByUserId(candidateUser.getId())).thenReturn(Optional.of(doanVanChuongProfile));
         when(cvRepository.findById(cvId)).thenReturn(Optional.of(testCv));
+        when(cvRepository.findByIdForUpdate(cvId)).thenReturn(Optional.of(testCv));
         when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId)).thenReturn(new ArrayList<>(List.of(initialVersion)));
         when(cvVersionRepository.save(any(CVVersion.class))).thenAnswer(inv -> inv.getArgument(0));
     }
@@ -385,7 +387,7 @@ public class CandidateCvDraftMapperAndProvenanceTest {
 
     @Test
     @DisplayName("14.6 Attachment integration: cert_1 trả 400, UUID không tồn tại trả 404, UUID thật upload thành công")
-    void test6_attachmentUploadWithUuidAndRejections() {
+    void test6_attachmentUploadWithUuidAndRejections(@TempDir Path tempDir) {
         CVDraftResponse draft = cvService.getCVDraft(candidateUser, cvId);
         String realCertUuid = draft.getCertifications().get(0).get("id").toString();
         assertDoesNotThrow(() -> UUID.fromString(realCertUuid));
@@ -393,7 +395,7 @@ public class CandidateCvDraftMapperAndProvenanceTest {
         byte[] pdfMagic = "%PDF-1.4 sample evidence content".getBytes(StandardCharsets.UTF_8);
         MockMultipartFile file = new MockMultipartFile("file", "certificate.pdf", "application/pdf", pdfMagic);
 
-        Path tempPath = Path.of(System.getProperty("java.io.tmpdir"), "test-cert.pdf");
+        Path tempPath = tempDir.resolve("test-cert.pdf");
         when(documents.path(anyString())).thenReturn(tempPath);
         when(evidenceAttachmentRepository.save(any(CVEvidenceAttachment.class))).thenAnswer(inv -> {
             CVEvidenceAttachment a = inv.getArgument(0);

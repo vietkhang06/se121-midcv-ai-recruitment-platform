@@ -19,11 +19,6 @@ public class CompanyAdminDto {
     private String size;
     private String industry;
     private String description;
-    private String address;
-    private String contactPhone;
-    private String businessLicenseName;
-    private ZonedDateTime licenseSubmittedAt;
-    private int verificationLevel;
     private CompanyVerification verificationStatus;
     private com.platform.recruitment.company.CompanyOperationalStatus operationalStatus;
 

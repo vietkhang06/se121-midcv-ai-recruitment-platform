@@ -112,7 +112,7 @@ public class GitHubPipelineIntegrationTest {
                 .build();
         job.setId(UUID.randomUUID());
 
-        application = Application.builder().aiAnalysisConsent(true)
+        application = Application.builder()
                 .job(job)
                 .candidate(candidate)
                 .build();

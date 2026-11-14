@@ -7,7 +7,7 @@ import ts from 'typescript';
 const compile = input => ts.transpileModule(input, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText;
 const dataUrl = input => `data:text/javascript;base64,${Buffer.from(input).toString('base64')}`;
 const sseUrl = dataUrl(compile(readFileSync(new URL('../src/lib/sse.ts', import.meta.url), 'utf8')));
-const api = await import(dataUrl(compile(readFileSync(new URL('../src/lib/api.ts', import.meta.url), 'utf8').replace(/(['"])\.\/sse\1/g, JSON.stringify(sseUrl)))));
+const api = await import(dataUrl(compile(readFileSync(new URL('../src/lib/api.ts', import.meta.url), 'utf8').replace("'./sse'", JSON.stringify(sseUrl)))));
 const store = new Map();
 globalThis.window = { dispatchEvent() {} };
 globalThis.localStorage = { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, v), removeItem: k => store.delete(k) };

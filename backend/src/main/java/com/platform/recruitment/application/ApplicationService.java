@@ -29,17 +29,36 @@ import com.platform.recruitment.matching.CandidateRankingService;
 import com.platform.recruitment.matching.MatchResult;
 import com.platform.recruitment.matching.MatchResultRepository;
 import com.platform.recruitment.matching.MatchingEngineService;
+import com.platform.recruitment.matching.MatchScoreResponse;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 
 @Service
 public class ApplicationService {
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    private com.platform.recruitment.product.RecruiterEntitlements entitlements;
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    private com.platform.recruitment.product.AiScreeningAccessService aiScreeningAccess;
 
+    private com.platform.recruitment.product.RecruiterEntitlements entitlements;
+    @Autowired(required = false)
+    public void setEntitlements(com.platform.recruitment.product.RecruiterEntitlements entitlements) {
+        this.entitlements = entitlements;
+    }
+
+    private com.platform.recruitment.product.AiScreeningAccessService aiScreeningAccess;
+    @Autowired(required = false)
+    public void setAiScreeningAccess(com.platform.recruitment.product.AiScreeningAccessService access) {
+        this.aiScreeningAccess = access;
+    }
+
+    private com.platform.recruitment.product.RecruiterFeatureAccess featureAccess;
+    @Autowired(required = false)
+    public void setFeatureAccess(com.platform.recruitment.product.RecruiterFeatureAccess featureAccess) {
+        this.featureAccess = featureAccess;
+    }
+
+    private boolean hasProFeatures(com.platform.recruitment.company.Company company) {
+        return featureAccess != null ? featureAccess.hasProFeatures(company)
+                : company != null && company.hasActiveRecruiterPro();
+    }
 
     private com.platform.recruitment.communication.InboxService inbox;
     @Autowired public void setInbox(com.platform.recruitment.communication.InboxService inbox) { this.inbox=inbox; }
@@ -124,10 +143,12 @@ public class ApplicationService {
                             "Cannot submit application for job '%s' with status '%s'. Only PUBLISHED jobs accept applications.",
                             job.getTitle(), job.getStatus()));
         }
-
-        if (job.getApplicationDeadline() != null && job.getApplicationDeadline().isBefore(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")))) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Tin tuyển dụng đã hết hạn nộp hồ sơ.");
+        if (job.getApplicationDeadline() != null
+                && job.getApplicationDeadline().isBefore(java.time.LocalDate.now())) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                    "Đã hết hạn nhận hồ sơ cho tin tuyển dụng này.");
         }
+
         CV cv = cvRepository.findByIdForUpdate(request.getCvId())
                 .orElseThrow(() -> new ResourceNotFoundException("CV", "id", request.getCvId()));
 
@@ -144,11 +165,11 @@ public class ApplicationService {
         List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cv.getId());
         CVVersion appliedVersion = versions.isEmpty() ? null : versions.get(0);
         com.platform.recruitment.cv.ConfirmedCvInput.requireConfirmed(appliedVersion, candidate.getId());
-        boolean scoringEligible = Boolean.TRUE.equals(request.getAiAnalysisConsent())
-                && (aiScreeningAccess == null || aiScreeningAccess.evaluate(job, true).available());
-
-        // Lazy backfill for CVs confirmed before this migration: an eligible Quick Apply
+        // Lazy backfill for CVs confirmed before this migration: every normal Quick Apply
         // must trigger a real vector job for its exact pinned CV version.
+        boolean aiConsent = Boolean.TRUE.equals(request.getAiAnalysisConsent());
+        boolean scoringEligible = aiConsent
+                && (aiScreeningAccess == null || aiScreeningAccess.evaluate(job, true).available());
         if (scoringEligible && vectorLifecycle != null) vectorLifecycle.prepareConfirmedCv(appliedVersion, candidateUser.getId());
 
         // Pin the exact JD version used at application time. Legacy jobs are lazily prepared.
@@ -161,10 +182,9 @@ public class ApplicationService {
                 .appliedCv(cv)
                 .appliedCvVersion(appliedVersion)
                 .appliedJdVersionId(appliedJdVersionId)
-                .aiAnalysisConsent(Boolean.TRUE.equals(request.getAiAnalysisConsent()))
-                .aiConsentAt(Boolean.TRUE.equals(request.getAiAnalysisConsent()) ? java.time.ZonedDateTime.now() : null)
-                .aiConsentVersion(Boolean.TRUE.equals(request.getAiAnalysisConsent()) ? "midcv-ai-v1" : null)
-                .coverLetter(request.getCoverLetter())
+                .aiAnalysisConsent(aiConsent)
+                .aiConsentAt(aiConsent ? java.time.ZonedDateTime.now() : null)
+                .aiConsentVersion("quick-apply-v1")
                 .status(ApplicationStatus.SUBMITTED)
                 .build();
         Application savedApplication = applicationRepository.save(application);
@@ -182,14 +202,42 @@ public class ApplicationService {
 
         // Immediate matching persistence (match_results, match_factors, evidences)
         // Matching failure propagates: the transaction rolls back application and snapshot together.
-        if (scoringEligible) {
-            matchingEngineService.calculateAndPersistMatchResult(job.getId(), candidate.getId());
-        }
+        if (scoringEligible) matchingEngineService.calculateAndPersistMatchResult(job.getId(), candidate.getId());
         // Once the true CV/JD vectors exist, recalculate using actual Pgvector; no mock.
         if (scoringEligible && vectorLifecycle != null) vectorLifecycle.enqueueMatchAfterCommit(candidateUser.getId(), savedApplication.getId());
 
         if(inbox!=null) inbox.applicationEvent(savedApplication,false);
         return mapToResponse(savedApplication, snapshot);
+    }
+
+    /** Read-only preview for the selected confirmed CV; does not create an application. */
+    @Transactional(readOnly = true)
+    public MatchScoreResponse previewApplication(User candidateUser, SubmitApplicationRequest request) {
+        if (!Boolean.TRUE.equals(request.getAiAnalysisConsent())) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Cần đồng ý phân tích CV trước khi xem đối sánh.");
+        }
+        if (suspensionGuard != null) suspensionGuard.checkCandidateOperationAllowed(candidateUser);
+        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CandidateProfile", "userId", candidateUser.getId()));
+        Job job = jobRepository.findById(request.getJobId())
+                .orElseThrow(() -> new ResourceNotFoundException("Job", "id", request.getJobId()));
+        if (job.getStatus() != JobStatus.PUBLISHED) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Chỉ có thể xem đối sánh cho tin đang đăng.");
+        }
+        if (job.getApplicationDeadline() != null
+                && job.getApplicationDeadline().isBefore(java.time.LocalDate.now())) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Đã hết hạn nhận hồ sơ cho tin tuyển dụng này.");
+        }
+        CV cv = cvRepository.findById(request.getCvId())
+                .orElseThrow(() -> new ResourceNotFoundException("CV", "id", request.getCvId()));
+        if (!cv.getCandidate().getId().equals(candidate.getId())) {
+            throw new UnauthorizedAccessException("Candidate does not own the selected CV");
+        }
+        List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cv.getId());
+        CVVersion version = versions.isEmpty() ? null : versions.get(0);
+        com.platform.recruitment.cv.ConfirmedCvInput.requireConfirmed(version, candidate.getId());
+        return MatchScoreResponse.fromEntity(
+                matchingEngineService.previewMatch(job.getId(), candidate.getId(), version.getId()));
     }
 
     public static final java.util.Set<String> ALLOWED_APPLICATION_SORT_FIELDS = java.util.Set.of(
@@ -227,7 +275,7 @@ public class ApplicationService {
         List<ApplicationResponse> content = appList.stream()
                 .map(app -> {
                     ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(app.getId()).orElse(null);
-                    return applyRecruiterDisclosure(mapToResponse(app, snap));
+                    return recruiterResponse(recruiterUser, app, snap);
                 })
                 .toList();
         long total = (appPage != null) ? appPage.getTotalElements() : content.size();
@@ -290,88 +338,6 @@ public class ApplicationService {
                 .build();
     }
 
-    /**
-     * Lets the owner correct the cover letter and the AI-consent choice without
-     * replacing the immutable CV snapshot that was submitted to the employer.
-     */
-    @Transactional
-    public ApplicationResponse updateCandidateApplication(
-            User candidateUser,
-            UUID applicationId,
-            UpdateCandidateApplicationRequest request) {
-        if (suspensionGuard != null) {
-            suspensionGuard.checkCandidateOperationAllowed(candidateUser);
-        }
-
-        CandidateProfile candidate = candidateProfileRepository.findByUserId(candidateUser.getId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "CandidateProfile", "userId", candidateUser.getId()));
-        Application application = applicationRepository.findByIdForUpdate(applicationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Application", "id", applicationId));
-
-        if (application.getCandidate() == null
-                || !application.getCandidate().getId().equals(candidate.getId())) {
-            throw new UnauthorizedAccessException(
-                    "Bạn không có quyền chỉnh sửa đơn ứng tuyển này.");
-        }
-        if (request.getExpectedStatus() != null
-                && request.getExpectedStatus() != application.getStatus()) {
-            throw new CustomException(ErrorCode.CONCURRENT_MODIFICATION,
-                    "Trạng thái đơn đã thay đổi. Vui lòng tải lại trước khi chỉnh sửa.");
-        }
-        if (application.getStatus() != ApplicationStatus.SUBMITTED) {
-            throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION,
-                    "Chỉ có thể chỉnh sửa thư ứng tuyển và lựa chọn AI khi đơn đang ở trạng thái Đã nộp.");
-        }
-
-        boolean previousConsent = Boolean.TRUE.equals(application.getAiAnalysisConsent());
-        boolean nextConsent = Boolean.TRUE.equals(request.getAiAnalysisConsent());
-        boolean matchingMissing = nextConsent && matchResultRepository != null
-                && matchResultRepository.findByApplicationId(applicationId).isEmpty();
-        boolean shouldCalculateMatch = nextConsent && (!previousConsent || matchingMissing);
-        String coverLetter = request.getCoverLetter() == null
-                ? null : request.getCoverLetter().trim();
-        application.setCoverLetter(coverLetter == null || coverLetter.isEmpty() ? null : coverLetter);
-        application.setAiAnalysisConsent(nextConsent);
-        if (!nextConsent) {
-            application.setAiConsentAt(null);
-            application.setAiConsentVersion(null);
-        } else if (!previousConsent || application.getAiConsentAt() == null) {
-            application.setAiConsentAt(java.time.ZonedDateTime.now());
-            application.setAiConsentVersion("midcv-ai-v1");
-        }
-
-        if (shouldCalculateMatch) {
-            CVVersion appliedVersion = application.getAppliedCvVersion();
-            com.platform.recruitment.cv.ConfirmedCvInput.requireConfirmed(
-                    appliedVersion, candidate.getId());
-            if (vectorLifecycle != null) {
-                vectorLifecycle.prepareConfirmedCv(appliedVersion, candidateUser.getId());
-                UUID jdVersionId = vectorLifecycle.prepareJob(application.getJob());
-                if (application.getAppliedJdVersionId() == null) {
-                    application.setAppliedJdVersionId(jdVersionId);
-                }
-            }
-        }
-
-        Application saved = applicationRepository.save(application);
-        if (shouldCalculateMatch) {
-            // Persist a real result in the same request. The vector lifecycle then
-            // recalculates it after commit when the production embeddings are ready.
-            matchingEngineService.calculateAndPersistMatchResult(
-                    saved.getJob().getId(), candidate.getId());
-            if (vectorLifecycle != null) {
-                vectorLifecycle.enqueueMatchAfterCommit(candidateUser.getId(), saved.getId());
-            }
-        } else if (!nextConsent && previousConsent && matchResultRepository != null) {
-            // Consent revocation also revokes the derived score and its cascaded evidence.
-            matchResultRepository.deleteByApplicationId(saved.getId());
-        }
-
-        ApplicationCVSnapshot snapshot = snapshotRepository.findByApplicationId(saved.getId()).orElse(null);
-        return mapToResponse(saved, snapshot);
-    }
-
     @Transactional
     public ApplicationResponse updateApplicationStatus(User recruiterUser, UUID applicationId,
             UpdateApplicationStatusRequest request) {
@@ -397,8 +363,8 @@ public class ApplicationService {
                     "Trạng thái đơn đã thay đổi; hãy tải lại trước khi ra quyết định.");
         }
         if (previousStatus == request.getStatus()) {
-            return applyRecruiterDisclosure(mapToResponse(application,
-                    snapshotRepository.findByApplicationId(applicationId).orElse(null)));
+            return recruiterResponse(recruiterUser, application,
+                    snapshotRepository.findByApplicationId(applicationId).orElse(null));
         }
         application.setStatus(request.getStatus());
         Application savedApplication = applicationRepository.save(application);
@@ -415,7 +381,7 @@ public class ApplicationService {
 
         ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(savedApplication.getId()).orElse(null);
         if(inbox!=null && previousStatus!=savedApplication.getStatus()) inbox.applicationEvent(savedApplication,true);
-        return applyRecruiterDisclosure(mapToResponse(savedApplication, snap));
+        return recruiterResponse(recruiterUser, savedApplication, snap);
     }
 
     @Transactional(readOnly = true)
@@ -436,12 +402,6 @@ public class ApplicationService {
             throw new UnauthorizedAccessException("Recruiter does not own the company for this job posting");
         }
 
-        if (aiScreeningAccess != null && !aiScreeningAccess.hasActivePro(job.getCompany())) {
-            // A minimum numeric score is itself a score-detail entitlement. Standard
-            // accounts keep the real classification without a query side channel.
-            minScoreFilter = null;
-        }
-
         List<MatchResult> rankedResults = candidateRankingService.getRankedCandidatesForJob(jobId, minScoreFilter);
         List<UUID> rankedAppIds = rankedResults.stream().map(r -> r.getApplication().getId()).toList();
 
@@ -449,10 +409,8 @@ public class ApplicationService {
         for (MatchResult mr : rankedResults) {
             Application app = mr.getApplication();
             ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(app.getId()).orElse(null);
-            ApplicationResponse resp = mapToResponse(app, snap);
-            resp.setMatchScore(mr.getOverallScore());
-            resp.setMatchStatus(mr.getStatus());
-            responses.add(applyRecruiterDisclosure(resp));
+            ApplicationResponse resp = recruiterResponse(recruiterUser, app, snap);
+            responses.add(resp);
         }
 
         // Include any remaining applications for this job if no minScoreFilter is set
@@ -461,7 +419,7 @@ public class ApplicationService {
             for (Application app : allApps) {
                 if (!rankedAppIds.contains(app.getId())) {
                     ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(app.getId()).orElse(null);
-                    responses.add(applyRecruiterDisclosure(mapToResponse(app, snap)));
+                    responses.add(recruiterResponse(recruiterUser, app, snap));
                 }
             }
         }
@@ -567,35 +525,49 @@ public class ApplicationService {
         ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(application.getId()).orElse(null);
         if (entitlements != null) entitlements.view(recruiterUser, applicationId);
         if(inbox!=null) inbox.view(application,recruiterUser);
-        ApplicationResponse response = applyRecruiterDisclosure(mapToResponse(application, snap));
-        if (response.getSnapshot() != null && snap != null) {
-            response.getSnapshot().setRawTextSnapshot(snap.getRawTextSnapshot());
-            response.getSnapshot().setStructuredJsonSnapshot(snap.getStructuredJsonSnapshot());
-        }
-        return response;
+        return recruiterResponse(recruiterUser, application, snap);
     }
 
-    /** Numeric scores and factor details are a Pro entitlement; Standard keeps only the classification. */
-    private ApplicationResponse applyRecruiterDisclosure(ApplicationResponse response) {
-        if (response == null || !response.isAiScoringAvailable() || !response.isProDetailAvailable()) {
-            if (response != null) response.setMatchScore(null);
+    private ApplicationResponse recruiterResponse(
+            User recruiterUser, Application application, ApplicationCVSnapshot snapshot) {
+        ApplicationResponse response = mapToResponse(application, snapshot);
+        var company = application.getJob() == null ? null : application.getJob().getCompany();
+        boolean proAccess = hasProFeatures(company);
+        var access = aiScreeningAccess == null ? null : aiScreeningAccess.evaluate(application);
+        boolean scoringAvailable = access == null
+                ? Boolean.TRUE.equals(application.getAiAnalysisConsent())
+                : access.available();
+        response.setAiScoringAvailable(scoringAvailable);
+        response.setAiScoringReasonCode(access == null
+                ? (scoringAvailable ? "AVAILABLE" : "CONSENT_NOT_GIVEN") : access.code());
+        response.setAiScoringReason(access == null ? null : access.message());
+        response.setMatchClassification(com.platform.recruitment.product.AiScreeningAccessService
+                .classifyScore(scoringAvailable ? response.getMatchScore() : null));
+        response.setProDetailAvailable(proAccess && scoringAvailable
+                && response.getMatchScore() != null);
+        response.setRecruiterPlan(company != null && company.hasActiveRecruiterPro() ? "PRO" : "STANDARD");
+        response.setDevelopmentProAccess(featureAccess != null && featureAccess.isDevelopmentOverride(company));
+        if (!scoringAvailable || (recruiterUser != null
+                && recruiterUser.getRole() == com.platform.recruitment.user.Role.HR && !proAccess)) {
+            response.redactMatchForStandardPlan();
         }
         return response;
     }
 
     public ApplicationResponse mapToResponse(Application app, ApplicationCVSnapshot snap) {
+        AppliedCvIdentity cvIdentity = AppliedCvIdentity.fromSnapshot(snap);
         ApplicationResponse.SnapshotInfo snapshotInfo = null;
         if (snap != null) {
             snapshotInfo = ApplicationResponse.SnapshotInfo.builder()
                     .cvTitle(snap.getCvTitle())
-                    .rawTextSnapshot(null)
+                    .rawTextSnapshot(snap.getRawTextSnapshot())
                     .snapshotCreatedAt(snap.getSnapshotCreatedAt())
                     .build();
         }
 
         BigDecimal matchScore = null;
-        String matchStatus = null;
-        if (Boolean.TRUE.equals(app.getAiAnalysisConsent()) && matchResultRepository != null) {
+        String matchStatus = Boolean.FALSE.equals(app.getAiAnalysisConsent()) ? "CONSENT_NOT_GIVEN" : null;
+        if (matchResultRepository != null && !"CONSENT_NOT_GIVEN".equals(matchStatus)) {
             var matchOpt = matchResultRepository.findByApplicationId(app.getId());
             if (matchOpt.isPresent()) {
                 matchScore = matchOpt.get().getOverallScore();
@@ -616,20 +588,6 @@ public class ApplicationService {
             }
         }
 
-        com.platform.recruitment.product.AiScreeningAccessService.Access access =
-                aiScreeningAccess != null
-                        ? aiScreeningAccess.evaluate(app)
-                        : new com.platform.recruitment.product.AiScreeningAccessService.Access(
-                                Boolean.TRUE.equals(app.getAiAnalysisConsent()),
-                                Boolean.TRUE.equals(app.getAiAnalysisConsent()) ? "AVAILABLE" : "CONSENT_NOT_GIVEN",
-                                Boolean.TRUE.equals(app.getAiAnalysisConsent()) ? "Đủ điều kiện chấm điểm AI."
-                                        : "Ứng viên chưa cho phép midCV dùng AI để phân tích hồ sơ.",
-                                true, "PRO", false);
-
-        String classification = aiScreeningAccess != null
-                ? aiScreeningAccess.classify(access.available() ? matchScore : null)
-                : (matchScore == null ? "CHUA_KHA_DUNG" : "PHU_HOP");
-
         return ApplicationResponse.builder()
                 .id(app.getId())
                 .jobId(app.getJob().getId())
@@ -640,21 +598,18 @@ public class ApplicationService {
                 .candidatePhone(candidatePhone)
                 .candidateHeadline(candidateHeadline)
                 .candidateGithubUrl(candidateGithubUrl)
+                .appliedCvFullName(cvIdentity.fullName)
+                .appliedCvEmail(cvIdentity.email)
+                .appliedCvPhone(cvIdentity.phone)
+                .appliedCvHeadline(cvIdentity.headline)
+                .appliedCvGithubUrl(cvIdentity.githubUrl)
                 .appliedCvId(app.getAppliedCv() != null ? app.getAppliedCv().getId() : null)
                 .appliedCvVersionId(app.getAppliedCvVersion() != null ? app.getAppliedCvVersion().getId() : null)
                 .appliedCvVersionNumber(app.getAppliedCvVersion() != null ? app.getAppliedCvVersion().getVersionNumber() : null)
                 .status(app.getStatus())
-                .aiAnalysisConsent(Boolean.TRUE.equals(app.getAiAnalysisConsent()))
-                .coverLetter(app.getCoverLetter())
-                .matchScore(access.available() ? matchScore : null)
-                .matchStatus(!access.available() ? access.code()
-                        : matchStatus == null ? "PROCESSING" : matchStatus)
-                .aiScoringAvailable(access.available())
-                .aiScoringReasonCode(access.code())
-                .aiScoringReason(access.message())
-                .matchClassification(classification)
-                .proDetailAvailable(access.proDetail())
-                .recruiterPlan(access.recruiterPlan())
+                .matchScore(matchScore)
+                .matchStatus(matchStatus)
+                .aiAnalysisConsent(app.getAiAnalysisConsent())
                 .appliedAt(app.getAppliedAt())
                 .snapshot(snapshotInfo)
                 .build();

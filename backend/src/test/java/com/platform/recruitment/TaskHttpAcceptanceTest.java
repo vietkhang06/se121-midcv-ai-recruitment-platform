@@ -142,7 +142,7 @@ class TaskHttpAcceptanceTest {
         Job job=jobs.saveAndFlush(Job.builder().company(company).title("Fixture job").industry("Technology").seniority("Junior").description("Java developer fixture").status(JobStatus.PUBLISHED).build());
         CV cv=cvs.saveAndFlush(CV.builder().candidate(candidate).title("Fixture CV").creationPath(CVCreationPath.BUILDER).status("CONFIRMED").build());
         CVVersion version=versions.saveAndFlush(CVVersion.builder().cv(cv).title("Fixture v1").versionNumber(1).status("CONFIRMED").structuredJsonContent("{\"skills\":[\"Java\"],\"summary\":\"Java developer\"}").build());
-        Application application=applications.saveAndFlush(Application.builder().aiAnalysisConsent(true).candidate(candidate).job(job).appliedCv(cv).appliedCvVersion(version).build());
+        Application application=applications.saveAndFlush(Application.builder().candidate(candidate).job(job).appliedCv(cv).appliedCvVersion(version).build());
         results.saveAndFlush(MatchResult.builder().application(application).coreScore(new BigDecimal("60")).overallScore(new BigDecimal("60")).status("COMPLETED").build());
         String token=login(hr).path("accessToken").asText();
         assertEquals(200,call(HttpMethod.GET,"/api/v1/jobs/"+job.getId(),null,null).getStatusCode().value());
@@ -247,7 +247,7 @@ class TaskHttpAcceptanceTest {
         String path=metadata.path("preview_url").asText();
         assertEquals(403,call(HttpMethod.GET,path,null,login(h.hr()).path("accessToken").asText()).getStatusCode().value());
         h.version().setStatus("CONFIRMED");h.version().setStructuredJsonContent(db.queryForObject("SELECT structured_json_content FROM cv_versions WHERE id=?",String.class,h.version().getId()));versions.saveAndFlush(h.version());
-        Application app=applications.saveAndFlush(Application.builder().aiAnalysisConsent(true).candidate(candidate).job(h.job()).appliedCv(h.cv()).appliedCvVersion(h.version()).status(ApplicationStatus.SUBMITTED).build());
+        Application app=applications.saveAndFlush(Application.builder().candidate(candidate).job(h.job()).appliedCv(h.cv()).appliedCvVersion(h.version()).status(ApplicationStatus.SUBMITTED).build());
         db.update("INSERT INTO application_cv_snapshots(id,application_id,cv_title,raw_text_snapshot,structured_json_snapshot) VALUES(?,?,?,?,?)",UUID.randomUUID(),app.getId(),"Fixture","Java backend",h.version().getStructuredJsonContent());
         for(String token:List.of(candidateToken,login(h.hr()).path("accessToken").asText(),login(actor(Role.ADMIN)).path("accessToken").asText())){
             HttpHeaders auth=new HttpHeaders();auth.setBearerAuth(token);var response=http.exchange(path,HttpMethod.GET,new HttpEntity<>(auth),byte[].class);

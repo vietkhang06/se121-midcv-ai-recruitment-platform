@@ -19,8 +19,6 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 @Service
 public class Documents {
-  @org.springframework.beans.factory.annotation.Autowired(required=false)
-  private com.platform.recruitment.product.RecruiterEntitlements entitlements;
   private final JdbcTemplate jdbc;
   private final JobQueue queue;
   private final Events events;
@@ -305,7 +303,6 @@ public class Documents {
         && new String(b, 0, v.length(), java.nio.charset.StandardCharsets.US_ASCII).equals(v);
   }
 
-  @Transactional
   public Map<String, Object> accessibleVersion(UUID version, JobQueue.Actor a) {
     List<Map<String, Object>> rows =
         jdbc.queryForList(
@@ -325,7 +322,6 @@ public class Documents {
       throw new CustomException(
           ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy tài liệu hoặc bạn không có quyền truy cập.");
     }
-    if ("HR".equals(a.role()) && entitlements != null) entitlements.viewDocument(a.id(),version);
     return rows.get(0);
   }
 }

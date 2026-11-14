@@ -157,7 +157,6 @@ public class AdminModerationApiIntegrationTest {
     @Test
     @DisplayName("Company Verification: Under Review to Verified transition succeeds and records audit")
     void testCompanyVerification_ValidTransition_Success() {
-        testCompany.setAddress("Test office"); testCompany.setContactPhone("0901234567"); testCompany.setBusinessLicense(new byte[]{1});
         testCompany.setVerificationStatus(CompanyVerification.UNDER_REVIEW);
         when(companyRepository.findById(testCompany.getId())).thenReturn(Optional.of(testCompany));
         when(companyRepository.save(any(Company.class))).thenAnswer(i -> i.getArgument(0));

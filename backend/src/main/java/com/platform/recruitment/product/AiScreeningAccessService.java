@@ -15,6 +15,12 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AiScreeningAccessService {
   private final OccupationCatalog occupations;
+  private RecruiterFeatureAccess featureAccess;
+
+  @org.springframework.beans.factory.annotation.Autowired(required = false)
+  public void setFeatureAccess(RecruiterFeatureAccess featureAccess) {
+    this.featureAccess = featureAccess;
+  }
 
   public record Access(
       boolean available,
@@ -71,10 +77,15 @@ public class AiScreeningAccessService {
   }
 
   public boolean hasActivePro(Company company) {
-    return company != null && company.hasActiveRecruiterPro();
+    return featureAccess != null ? featureAccess.hasProFeatures(company)
+        : company != null && company.hasActiveRecruiterPro();
   }
 
   public String classify(BigDecimal score) {
+    return classifyScore(score);
+  }
+
+  public static String classifyScore(BigDecimal score) {
     if (score == null) return "CHUA_KHA_DUNG";
     if (score.compareTo(BigDecimal.valueOf(70)) >= 0) return "PHU_HOP";
     if (score.compareTo(BigDecimal.valueOf(50)) >= 0) return "CAN_NHAC";

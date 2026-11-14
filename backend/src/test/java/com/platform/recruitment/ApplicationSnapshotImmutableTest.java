@@ -116,7 +116,6 @@ class ApplicationSnapshotImmutableTest {
         SubmitApplicationRequest request = new SubmitApplicationRequest();
         request.setJobId(publishedJob.getId());
         request.setCvId(originalCV.getId());
-        request.setAiAnalysisConsent(true);
 
         when(candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())).thenReturn(Optional.of(candidateProfile));
         when(jobRepository.findByIdForApply(publishedJob.getId())).thenReturn(Optional.of(publishedJob));

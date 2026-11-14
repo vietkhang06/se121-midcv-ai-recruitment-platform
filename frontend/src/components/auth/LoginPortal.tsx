@@ -129,7 +129,7 @@ function LoginFormContent({ audience }: { audience?: AuthRole }) {
     setIsLoading(true);
 
     try {
-      await login(email.trim(), password, audience || roleParam ? role : undefined);
+      await login(email.trim(), password);
       // AuthContext handles role-based redirection
     } catch (err: unknown) {
       const eObj = err as { code?: string; message?: string } | undefined;

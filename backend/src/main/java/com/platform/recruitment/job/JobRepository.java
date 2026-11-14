@@ -24,13 +24,13 @@ public interface JobRepository extends JpaRepository<Job, UUID>, org.springframe
     Page<Job> findByTitleContainingIgnoreCase(String title, Pageable pageable);
     Page<Job> findByTitleContainingIgnoreCaseAndStatus(String title, JobStatus status, Pageable pageable);
 
-    @org.springframework.data.jpa.repository.Query("SELECT j FROM Job j WHERE j.status = :status AND j.company.operationalStatus = :opStatus AND j.company.verificationStatus = com.platform.recruitment.company.CompanyVerification.VERIFIED")
+    @org.springframework.data.jpa.repository.Query("SELECT j FROM Job j WHERE j.status = :status AND j.company.operationalStatus = :opStatus")
     Page<Job> findByStatusAndCompanyOperationalStatus(
             @org.springframework.data.repository.query.Param("status") JobStatus status,
             @org.springframework.data.repository.query.Param("opStatus") com.platform.recruitment.company.CompanyOperationalStatus opStatus,
             Pageable pageable);
 
-    @org.springframework.data.jpa.repository.Query("SELECT j FROM Job j WHERE j.status = :status AND j.industry = :industry AND j.company.operationalStatus = :opStatus AND j.company.verificationStatus = com.platform.recruitment.company.CompanyVerification.VERIFIED")
+    @org.springframework.data.jpa.repository.Query("SELECT j FROM Job j WHERE j.status = :status AND j.industry = :industry AND j.company.operationalStatus = :opStatus")
     Page<Job> findByStatusAndIndustryAndCompanyOperationalStatus(
             @org.springframework.data.repository.query.Param("status") JobStatus status,
             @org.springframework.data.repository.query.Param("industry") String industry,

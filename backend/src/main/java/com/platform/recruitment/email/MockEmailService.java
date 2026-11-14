@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
-@ConditionalOnProperty(name = "app.email-mode", havingValue = "MOCK")
+@ConditionalOnProperty(name = "app.email-mode", havingValue = "MOCK", matchIfMissing = true)
 public class MockEmailService implements EmailService {
 
     private final Map<String, String> devTokenStore = new ConcurrentHashMap<>();
@@ -17,8 +17,7 @@ public class MockEmailService implements EmailService {
     @Override
     public void sendVerificationEmail(String recipientEmail, String verificationToken) {
         devTokenStore.put(recipientEmail, verificationToken);
-        String verificationUrl = "http://localhost:3000/verify-email?token=" + verificationToken;
-        log.info("[MOCK EMAIL SERVICE] Verification email sent to: {} | Verification URL: {}", recipientEmail, verificationUrl);
+        log.info("[MOCK EMAIL SERVICE] Verification email simulated; development token is available only in the registration response.");
     }
 
     @Override public void sendPasswordResetEmail(String recipientEmail, String token) {

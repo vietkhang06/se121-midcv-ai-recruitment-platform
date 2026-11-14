@@ -11,7 +11,7 @@ import { SuspensionBanner } from "@/components/common/SuspensionBanner";
 import { FeedbackWidget } from "@/components/common/FeedbackWidget";
 
 export const metadata: Metadata = {
-  title: "midCV® — AI-Powered Intelligent Recruitment Platform",
+  title: "midCV® — CV chuẩn việc làm thật",
   description: "Objective evaluation layer for modern technical recruitment. Built to empower candidates and recruiters with transparent matching vectors.",
   icons: { icon: [{ url: '/icon.svg', type: 'image/svg+xml' }] },
 };

@@ -33,7 +33,6 @@ public class Application extends BaseEntity {
     @Column(name = "cover_letter", columnDefinition = "TEXT")
     private String coverLetter;
 
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "candidate_id", nullable = false)
     private CandidateProfile candidate;

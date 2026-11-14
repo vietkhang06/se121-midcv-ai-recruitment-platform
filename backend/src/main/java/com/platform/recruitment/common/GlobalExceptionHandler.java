@@ -65,8 +65,7 @@ public class GlobalExceptionHandler {
         log.error("Validation error: {}", errors);
 
         return new ResponseEntity<>(
-                ApiResponse.error(ErrorCode.VALIDATION_ERROR,
-                        "Dữ liệu chưa hợp lệ. Vui lòng kiểm tra các ràng buộc hiển thị trên màn hình.", errors),
+                ApiResponse.error(ErrorCode.VALIDATION_ERROR, "Validation failed for request arguments", errors),
                 HttpStatus.BAD_REQUEST
         );
     }
@@ -95,8 +94,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex) {
         log.error("Unhandled exception: ", ex);
         return new ResponseEntity<>(
-                ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR,
-                        "Hệ thống đang gặp sự cố ngoài dự kiến. Vui lòng thử lại sau.", null),
+                ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR, "An unexpected error occurred. Please try again later.", null),
                 HttpStatus.INTERNAL_SERVER_ERROR
         );
     }

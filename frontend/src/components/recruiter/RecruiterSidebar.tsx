@@ -48,7 +48,7 @@ const groups = [
   },
 ] as const;
 
-type Entitlements = { recruiterPlan?: "STANDARD" | "PRO"; proUntil?: string };
+type Entitlements = { recruiterPlan?: "STANDARD" | "PRO"; proUntil?: string; developmentProAccess?: boolean };
 
 export function RecruiterSidebar() {
   const pathname = usePathname();
@@ -94,10 +94,12 @@ export function RecruiterSidebar() {
       <div className="m-3 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-cyan-50 p-4 text-slate-800 dark:border-emerald-900 dark:from-emerald-950/50 dark:to-cyan-950/40 dark:text-slate-100">
         <div className="flex items-center gap-2 text-xs font-bold uppercase text-emerald-700 dark:text-emerald-300">
           <Sparkles size={15} />
-          {plan?.recruiterPlan === "PRO" ? "midCV HR Pro" : "Tài khoản thường"}
+          {plan?.developmentProAccess ? "Standard · thử nghiệm Pro" : plan?.recruiterPlan === "PRO" ? "midCV HR Pro" : "Tài khoản thường"}
         </div>
         <p className="mt-2 text-xs leading-5 text-slate-600 dark:text-slate-300">
-          {plan?.recruiterPlan === "PRO"
+          {plan?.developmentProAccess
+            ? "Đang mở điểm và minh chứng để kiểm thử trên máy phát triển. Gói tài khoản vẫn là Standard."
+            : plan?.recruiterPlan === "PRO"
             ? "Đã mở điểm thành phần, nhận xét và minh chứng AI chi tiết."
             : "Nâng cấp Pro để mở phân tích CV và evidence chi tiết."}
         </p>

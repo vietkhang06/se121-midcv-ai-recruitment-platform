@@ -82,6 +82,39 @@ public class AiWorkerClient {
         }
     }
 
+    /** Builds a recruiter JD suggestion through the worker's real evidence-grounded JD endpoint. */
+    public Map<String, Object> draftJd(Map<String, Object> request) {
+        String correlationId = UUID.randomUUID().toString();
+        String title = String.valueOf(request.getOrDefault("title", ""));
+        String industry = String.valueOf(request.getOrDefault("industry", ""));
+        StringBuilder source = new StringBuilder();
+        Object notes = request.get("notes");
+        if (notes instanceof String text && !text.isBlank()) source.append(text.strip());
+        Object skills = request.get("skills");
+        if (skills instanceof java.util.List<?> list && !list.isEmpty()) {
+            if (!source.isEmpty()) source.append("\n");
+            source.append("Skills mentioned by recruiter: ")
+                    .append(String.join(", ", list.stream().filter(String.class::isInstance)
+                            .map(String.class::cast).toList()));
+        }
+        if (source.isEmpty()) source.append(title);
+        Map<String, Object> body = Map.of("job_id", UUID.randomUUID().toString(),
+                "title", title, "industry", industry,
+                "raw_description", source.toString(), "correlation_id", correlationId);
+        try {
+            Map<?, ?> response = restClient.post().uri("/extract-jd")
+                    .contentType(MediaType.APPLICATION_JSON).body(body).retrieve().body(Map.class);
+            if (response == null || !"SUCCESS".equals(response.get("status"))
+                    || !response.containsKey("required_skills")
+                    || !response.containsKey("responsibilities")) {
+                throw new IllegalStateException("AI Worker returned an invalid JD response");
+            }
+            return (Map<String, Object>) response;
+        } catch (Exception ex) {
+            throw workerFailure("/extract-jd", correlationId, ex);
+        }
+    }
+
     public Map<String, Object> analyzeGithub(UUID candidateId, String githubUrl) {
         String correlationId = UUID.randomUUID().toString();
         Map<String, Object> body = Map.of(
@@ -190,11 +223,6 @@ public class AiWorkerClient {
         } catch (Exception ex) {
             throw workerFailure("/structure-cv", cid, ex);
         }
-    }
-
-    public Map<String,Object> draftJd(Map<String,Object> request) {
-        try { return restClient.post().uri("/draft-jd").contentType(MediaType.APPLICATION_JSON).body(request).retrieve().body(Map.class); }
-        catch(Exception ex) { throw workerFailure("/draft-jd",UUID.randomUUID().toString(),ex); }
     }
 
     public Map<String, Object> runtimeConfiguration() {

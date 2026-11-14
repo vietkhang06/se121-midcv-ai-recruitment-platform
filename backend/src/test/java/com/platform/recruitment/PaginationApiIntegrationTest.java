@@ -1,6 +1,7 @@
 package com.platform.recruitment;
 
 import com.platform.recruitment.auth.JwtTokenProvider;
+import com.platform.recruitment.auth.AuthSessionService;
 import com.platform.recruitment.common.GlobalExceptionHandler;
 import com.platform.recruitment.common.PageResponse;
 import com.platform.recruitment.config.JwtAuthenticationFilter;
@@ -8,6 +9,7 @@ import com.platform.recruitment.config.SecurityConfig;
 import com.platform.recruitment.job.JobController;
 import com.platform.recruitment.job.JobResponse;
 import com.platform.recruitment.job.JobService;
+import com.platform.recruitment.matching.JobMatchingPolicyService;
 import com.platform.recruitment.user.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,7 +42,13 @@ public class PaginationApiIntegrationTest {
     private JwtTokenProvider tokenProvider;
 
     @MockBean
+    private AuthSessionService authSessionService;
+
+    @MockBean
     private UserRepository userRepository;
+
+    @MockBean
+    private JobMatchingPolicyService jobMatchingPolicyService;
 
     @Test
     @DisplayName("GET /api/v1/jobs trả định dạng PageResponse chuẩn")

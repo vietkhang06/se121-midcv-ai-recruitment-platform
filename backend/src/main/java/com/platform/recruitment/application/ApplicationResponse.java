@@ -25,20 +25,46 @@ public class ApplicationResponse {
     private ApplicationStatus status;
     private java.math.BigDecimal matchScore;
     private String matchStatus;
-    private boolean aiScoringAvailable;
+    private Boolean aiAnalysisConsent;
+    /** Effective recruiter access, separate from the persisted subscription plan. */
+    private Boolean proDetailAvailable;
+    private String recruiterPlan;
+    private Boolean developmentProAccess;
+    private Boolean aiScoringAvailable;
     private String aiScoringReasonCode;
     private String aiScoringReason;
     private String matchClassification;
-    private boolean proDetailAvailable;
-    private String recruiterPlan;
-    private boolean aiAnalysisConsent;
-    private String coverLetter;
     private ZonedDateTime appliedAt;
     private String candidateEmail;
     private String candidatePhone;
     private String candidateHeadline;
     private String candidateGithubUrl;
+    /** Personal details in the confirmed CV snapshot at submission time, never account profile fallbacks. */
+    private String appliedCvFullName;
+    private String appliedCvEmail;
+    private String appliedCvPhone;
+    private String appliedCvHeadline;
+    private String appliedCvGithubUrl;
     private SnapshotInfo snapshot;
+
+    public void redactMatchForStandardPlan() {
+        proDetailAvailable = false;
+        if (Boolean.FALSE.equals(aiAnalysisConsent)) {
+            matchClassification = "CHUA_KHA_DUNG";
+            matchScore = null;
+            matchStatus = "CONSENT_NOT_GIVEN";
+            return;
+        }
+        if ("CONSENT_NOT_GIVEN".equals(matchStatus)) {
+            matchClassification = "CHUA_KHA_DUNG";
+            matchScore = null;
+            return;
+        }
+        matchClassification = matchScore == null ? "CHUA_KHA_DUNG"
+                : com.platform.recruitment.product.AiScreeningAccessService.classifyScore(matchScore);
+        matchScore = null;
+        matchStatus = matchClassification;
+    }
 
     @Data
     @Builder
@@ -47,7 +73,6 @@ public class ApplicationResponse {
     public static class SnapshotInfo {
         private String cvTitle;
         private String rawTextSnapshot;
-        private String structuredJsonSnapshot;
         private ZonedDateTime snapshotCreatedAt;
     }
 }

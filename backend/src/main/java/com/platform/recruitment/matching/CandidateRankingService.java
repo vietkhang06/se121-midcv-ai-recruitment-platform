@@ -17,8 +17,6 @@ import java.util.stream.Collectors;
 public class CandidateRankingService {
 
     private final MatchResultRepository matchResultRepository;
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    private com.platform.recruitment.product.AiScreeningAccessService aiScreeningAccess;
 
     /**
      * Ranks candidates for a specific Job by S_overall DESC with Ranking Safety:
@@ -35,8 +33,6 @@ public class CandidateRankingService {
 
         // Pending recomputations must not appear as fresh policy-compliant ranks.
         results = results.stream()
-                .filter(r -> r.getApplication() != null && Boolean.TRUE.equals(r.getApplication().getAiAnalysisConsent()))
-                .filter(r -> aiScreeningAccess == null || aiScreeningAccess.evaluate(r.getApplication()).available())
                 .filter(r -> !"STALE_POLICY".equals(r.getStatus()))
                 .collect(Collectors.toList());
 

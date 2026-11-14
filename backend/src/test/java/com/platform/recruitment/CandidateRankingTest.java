@@ -45,8 +45,8 @@ class CandidateRankingTest {
         CandidateProfile c1 = CandidateProfile.builder().fullName("Cand 1").build(); c1.setId(UUID.randomUUID());
         CandidateProfile c2 = CandidateProfile.builder().fullName("Cand 2").build(); c2.setId(UUID.randomUUID());
 
-        Application app1 = Application.builder().aiAnalysisConsent(true).job(job).candidate(c1).build(); app1.setId(UUID.randomUUID());
-        Application app2 = Application.builder().aiAnalysisConsent(true).job(job).candidate(c2).build(); app2.setId(UUID.randomUUID());
+        Application app1 = Application.builder().job(job).candidate(c1).build(); app1.setId(UUID.randomUUID());
+        Application app2 = Application.builder().job(job).candidate(c2).build(); app2.setId(UUID.randomUUID());
 
         MatchResult mr1 = MatchResult.builder().application(app1).requiredSkillsMissing(0).coreScore(BigDecimal.valueOf(80.0)).overallScore(BigDecimal.valueOf(82.0)).build();
         MatchResult mr2 = MatchResult.builder().application(app2).requiredSkillsMissing(0).coreScore(BigDecimal.valueOf(90.0)).overallScore(BigDecimal.valueOf(92.0)).build();
@@ -68,8 +68,8 @@ class CandidateRankingTest {
         CandidateProfile candA = CandidateProfile.builder().fullName("Candidate A (All Required, No Preferred)").build(); candA.setId(UUID.randomUUID());
         CandidateProfile candB = CandidateProfile.builder().fullName("Candidate B (Missing 1 Required, Full Preferred)").build(); candB.setId(UUID.randomUUID());
 
-        Application appA = Application.builder().aiAnalysisConsent(true).job(job).candidate(candA).build(); appA.setId(UUID.randomUUID());
-        Application appB = Application.builder().aiAnalysisConsent(true).job(job).candidate(candB).build(); appB.setId(UUID.randomUUID());
+        Application appA = Application.builder().job(job).candidate(candA).build(); appA.setId(UUID.randomUUID());
+        Application appB = Application.builder().job(job).candidate(candB).build(); appB.setId(UUID.randomUUID());
 
         // Candidate A: 0 missing required skills, S_overall = 80.0
         MatchResult mrA = MatchResult.builder().application(appA).requiredSkillsMissing(0).coreScore(BigDecimal.valueOf(80.0)).overallScore(BigDecimal.valueOf(80.0)).build();
@@ -91,7 +91,7 @@ class CandidateRankingTest {
         User user = User.builder().email("synthetic@example.test").role(Role.CANDIDATE).build();
         CandidateProfile candidate = CandidateProfile.builder().fullName("Synthetic Candidate").user(user).build();
         candidate.setId(UUID.randomUUID());
-        Application application = Application.builder().aiAnalysisConsent(true).candidate(candidate).build();
+        Application application = Application.builder().candidate(candidate).build();
         application.setId(UUID.randomUUID());
         MatchResult result = MatchResult.builder()
                 .application(application)

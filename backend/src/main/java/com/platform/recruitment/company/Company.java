@@ -33,33 +33,29 @@ public class Company extends BaseEntity {
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
-
     @Column(name = "address", columnDefinition = "TEXT")
     private String address;
-
     @Column(name = "contact_phone", columnDefinition = "TEXT")
     private String contactPhone;
-
     @Column(name = "description_html", columnDefinition = "TEXT")
     private String descriptionHtml;
-
     @Builder.Default
     @Column(name = "trust_level", nullable = false)
     private Integer trustLevel = 2;
     @com.fasterxml.jackson.annotation.JsonIgnore
     @Column(name = "business_license", columnDefinition = "bytea")
     private byte[] businessLicense;
+    @Column(name = "business_license_name")
     private String businessLicenseName;
+    @Column(name = "business_license_type")
     private String businessLicenseType;
+    @Column(name = "license_submitted_at")
     private ZonedDateTime licenseSubmittedAt;
-
     @Builder.Default
     @Column(name = "recruiter_plan", nullable = false, length = 20)
     private String recruiterPlan = "STANDARD";
-
     @Column(name = "recruiter_pro_until")
     private ZonedDateTime recruiterProUntil;
-
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
@@ -95,8 +91,7 @@ public class Company extends BaseEntity {
     }
 
     public boolean hasActiveRecruiterPro() {
-        return "PRO".equals(recruiterPlan)
-                && recruiterProUntil != null
+        return "PRO".equals(recruiterPlan) && recruiterProUntil != null
                 && recruiterProUntil.isAfter(ZonedDateTime.now());
     }
 }

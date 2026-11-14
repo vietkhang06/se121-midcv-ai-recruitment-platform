@@ -36,18 +36,35 @@ public class CandidateRankingResponse {
     private ZonedDateTime appliedAt;
 
     public void redactForStandardPlan(com.platform.recruitment.product.AiScreeningAccessService policy) {
-        this.status = policy.classify(this.overallScore);
-        this.overallScore = null;
-        this.coreScore = null;
-        this.githubScore = null;
-        this.requiredSkillsMatched = null;
-        this.requiredSkillsTotal = null;
-        this.requiredSkillsMissing = null;
-        this.preferredSkillsMatched = null;
-        this.preferredSkillsTotal = null;
-        this.isGithubActive = null;
-        this.githubFallbackApplied = null;
-        this.matchingAlgorithmVersion = null;
-        this.aiSummary = "Tài khoản thường được xem phân loại tổng quan. Nâng cấp Pro để xem điểm và phân tích chi tiết.";
+        if (overallScore != null) status = policy.classify(overallScore);
+        overallScore = null;
+        coreScore = null;
+        githubScore = null;
+        requiredSkillsMatched = null;
+        requiredSkillsTotal = null;
+        requiredSkillsMissing = null;
+        preferredSkillsMatched = null;
+        preferredSkillsTotal = null;
+        isGithubActive = null;
+        githubFallbackApplied = null;
+        matchingAlgorithmVersion = null;
+        aiSummary = null;
+    }
+
+    public void redactForStandardPlan() {
+        if (overallScore != null) status =
+                com.platform.recruitment.product.AiScreeningAccessService.classifyScore(overallScore);
+        overallScore = null;
+        coreScore = null;
+        githubScore = null;
+        requiredSkillsMatched = null;
+        requiredSkillsTotal = null;
+        requiredSkillsMissing = null;
+        preferredSkillsMatched = null;
+        preferredSkillsTotal = null;
+        isGithubActive = null;
+        githubFallbackApplied = null;
+        matchingAlgorithmVersion = null;
+        aiSummary = null;
     }
 }

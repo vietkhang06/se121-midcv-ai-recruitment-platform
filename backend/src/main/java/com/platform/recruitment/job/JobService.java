@@ -18,11 +18,6 @@ import java.util.UUID;
 
 @Service
 public class JobService {
-    @Autowired(required=false)
-    private com.platform.recruitment.product.OccupationCatalog occupations;
-    @Autowired(required = false)
-    private com.platform.recruitment.product.RecruiterEntitlements entitlements;
-
 
     private com.platform.recruitment.communication.InboxService inbox;
 
@@ -57,7 +52,6 @@ public class JobService {
 
     @Transactional
     public JobResponse createDraftJob(User recruiterUser, CreateJobRequest request) {
-        if (occupations != null) occupations.validate(request.getOccupationCodes());
         if (suspensionGuard != null) {
             suspensionGuard.checkRecruiterOperationAllowed(recruiterUser);
         }
@@ -79,6 +73,9 @@ public class JobService {
                 .seniority(request.getSeniority())
                 .seniorityOther(trimToNull(request.getSeniorityOther()))
                 .status(JobStatus.DRAFT)
+                .aiScreeningPolicyVersion(1)
+                .occupationCodes(request.getOccupationCodes() == null
+                        ? List.of() : List.copyOf(request.getOccupationCodes()))
                 .minSalary(Boolean.TRUE.equals(request.getSalaryNegotiable())
                         ? null : request.getMinSalary())
                 .maxSalary(Boolean.TRUE.equals(request.getSalaryNegotiable())
@@ -90,17 +87,7 @@ public class JobService {
                 .employmentType(request.getEmploymentType())
                 .employmentTypeOther(trimToNull(request.getEmploymentTypeOther()))
                 .description(request.getDescription())
-                .occupationCodes(request.getOccupationCodes() == null ? List.of() : request.getOccupationCodes())
-                .aiScreeningPolicyVersion(1)
-                .aiScreeningPackageCode("STANDARD_POSTING")
-                .descriptionHtml(request.getDescriptionHtml())
-                .candidateRequirements(request.getCandidateRequirements())
-                .benefitsContent(request.getBenefitsContent())
-                .workAddress(request.getWorkAddress())
-                .workingTime(request.getWorkingTime())
-                .applicationInstructions(request.getApplicationInstructions())
                 .applicationDeadline(request.getApplicationDeadline())
-
                 .responsibilities(request.getResponsibilities() == null
                         ? List.of() : List.copyOf(request.getResponsibilities()))
                 .build();
@@ -176,7 +163,6 @@ public class JobService {
                     "Tin đang bị đình chỉ; chỉ quản trị viên có thể khôi phục sau kiểm duyệt.");
         }
 
-        if (entitlements != null) entitlements.publish(recruiterUser, job);
         boolean newlyPublished = job.getStatus() != JobStatus.PUBLISHED;
         job.setStatus(JobStatus.PUBLISHED);
         Job publishedJob = jobRepository.save(job);
@@ -227,7 +213,6 @@ public class JobService {
 
     @Transactional
     public JobResponse updateJob(User recruiterUser, UUID jobId, CreateJobRequest request) {
-        if (occupations != null) occupations.validate(request.getOccupationCodes());
         if (suspensionGuard != null) {
             suspensionGuard.checkRecruiterOperationAllowed(recruiterUser);
         }
@@ -267,15 +252,10 @@ public class JobService {
         job.setEmploymentType(request.getEmploymentType());
         job.setEmploymentTypeOther(trimToNull(request.getEmploymentTypeOther()));
         job.setDescription(request.getDescription());
-        job.setOccupationCodes(request.getOccupationCodes() == null ? List.of() : request.getOccupationCodes());
-        job.setDescriptionHtml(request.getDescriptionHtml());
-        job.setCandidateRequirements(request.getCandidateRequirements());
-        job.setBenefitsContent(request.getBenefitsContent());
-        job.setWorkAddress(request.getWorkAddress());
-        job.setWorkingTime(request.getWorkingTime());
-        job.setApplicationInstructions(request.getApplicationInstructions());
         job.setApplicationDeadline(request.getApplicationDeadline());
-
+        if (request.getOccupationCodes() != null) {
+            job.setOccupationCodes(List.copyOf(request.getOccupationCodes()));
+        }
         job.setResponsibilities(request.getResponsibilities() == null
                 ? List.of() : List.copyOf(request.getResponsibilities()));
 
@@ -308,7 +288,7 @@ public class JobService {
             throw new ResourceNotFoundException("Job", "id", jobId);
         }
 
-        if (job.getCompany() == null || job.getCompany().getVerificationStatus() != CompanyVerification.VERIFIED || job.getCompany().isSuspended()
+        if (job.getCompany() == null || job.getCompany().isSuspended()
                 || job.getCompany().getOperationalStatus()
                 != com.platform.recruitment.company.CompanyOperationalStatus.ACTIVE) {
             // Jobs of inactive companies should not be publicly accessible
@@ -459,7 +439,6 @@ public class JobService {
             var clauses = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
 
             clauses.add(cb.equal(job.get("status"), JobStatus.PUBLISHED));
-            clauses.add(cb.equal(job.get("company").get("verificationStatus"), CompanyVerification.VERIFIED));
             clauses.add(cb.equal(
                     job.get("company").get("operationalStatus"),
                     com.platform.recruitment.company.CompanyOperationalStatus.ACTIVE));
@@ -517,13 +496,7 @@ public class JobService {
                 .id(job.getId())
                 .companyId(job.getCompany().getId())
                 .companyName(job.getCompany().getName())
-                .companyDescription(job.getCompany().getDescription())
-                .companyDescriptionHtml(job.getCompany().getDescriptionHtml())
-                .companyVerified(job.getCompany().getVerificationStatus() == CompanyVerification.VERIFIED)
                 .title(job.getTitle())
-                .promotedUntil(job.getPromotedUntil())
-                .aiScreeningPolicyVersion(job.getAiScreeningPolicyVersion())
-                .aiScreeningPackageCode(job.getAiScreeningPackageCode())
                 .industry(job.getIndustry())
                 .industryOther(job.getIndustryOther())
                 .seniority(job.getSeniority())
@@ -539,15 +512,7 @@ public class JobService {
                 .employmentType(job.getEmploymentType())
                 .employmentTypeOther(job.getEmploymentTypeOther())
                 .description(job.getDescription())
-                .occupationCodes(job.getOccupationCodes())
-                .descriptionHtml(job.getDescriptionHtml())
-                .candidateRequirements(job.getCandidateRequirements())
-                .benefitsContent(job.getBenefitsContent())
-                .workAddress(job.getWorkAddress())
-                .workingTime(job.getWorkingTime())
-                .applicationInstructions(job.getApplicationInstructions())
                 .applicationDeadline(job.getApplicationDeadline())
-
                 .responsibilities(job.getResponsibilities())
                 .requirements(reqResponses)
                 .createdAt(job.getCreatedAt())

@@ -26,7 +26,6 @@ public class CompanyResponse {
     private int verificationLevel;
     private String businessLicenseName;
     private ZonedDateTime licenseSubmittedAt;
-
     private CompanyVerification verificationStatus;
     private String verificationReason;
     private String reviewNotes;
@@ -50,7 +49,8 @@ public class CompanyResponse {
                 .descriptionHtml(company.getDescriptionHtml())
                 .businessLicenseName(company.getBusinessLicenseName())
                 .licenseSubmittedAt(company.getLicenseSubmittedAt())
-                .verificationLevel(company.getVerificationStatus() == CompanyVerification.VERIFIED ? (company.getTrustLevel() == null ? 2 : company.getTrustLevel()) : 1)
+                .verificationLevel(company.getVerificationStatus() == CompanyVerification.VERIFIED
+                        ? (company.getTrustLevel() == null ? 2 : company.getTrustLevel()) : 1)
                 .verificationStatus(company.getVerificationStatus())
                 .verificationReason(company.getReviewNotes())
                 .reviewNotes(company.getReviewNotes())

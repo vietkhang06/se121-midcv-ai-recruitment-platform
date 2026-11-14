@@ -596,10 +596,10 @@ public class PipelineWorker {
   }
 
   private void processApplicationMatch(UUID processingJob, UUID applicationId) {
-    var rows = jdbc.queryForList("SELECT job_id,candidate_id,status,ai_analysis_consent FROM applications WHERE id=?", applicationId);
+    var rows = jdbc.queryForList("SELECT job_id,candidate_id,status FROM applications WHERE id=?", applicationId);
     if (rows.isEmpty()) throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Application not found");
     var app = rows.get(0);
-    if (!"WITHDRAWN".equals(app.get("status")) && Boolean.TRUE.equals(app.get("ai_analysis_consent"))) {
+    if (!"WITHDRAWN".equals(app.get("status"))) {
       applicationMatching.calculateAndPersistMatchResult((UUID) app.get("job_id"), (UUID) app.get("candidate_id"));
     }
     queue.complete(processingJob, worker);

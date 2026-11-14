@@ -267,6 +267,7 @@ public class UnifiedCandidateCvIngestionTest {
 
         when(candidateProfileRepository.findByUserId(otherUser.getId())).thenReturn(Optional.of(otherProfile));
         when(cvRepository.findById(cvOfOriginalCandidate.getId())).thenReturn(Optional.of(cvOfOriginalCandidate));
+        when(cvRepository.findByIdForUpdate(cvOfOriginalCandidate.getId())).thenReturn(Optional.of(cvOfOriginalCandidate));
 
         // Attempting to read another candidate's CV
         assertThrows(UnauthorizedAccessException.class, () ->

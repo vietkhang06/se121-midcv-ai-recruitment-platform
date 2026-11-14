@@ -8,12 +8,12 @@ import java.util.UUID;
 @Data
 public class SubmitApplicationRequest {
 
-    @NotNull(message = "Vui lòng chọn tin tuyển dụng.")
+    @NotNull(message = "Job ID is required")
     private UUID jobId;
 
-    @NotNull(message = "Vui lòng chọn CV để ứng tuyển.")
+    @NotNull(message = "CV ID is required")
     private UUID cvId;
-    private Boolean aiAnalysisConsent = false;
-    @jakarta.validation.constraints.Size(max = 5000, message = "Thư ứng tuyển không được vượt quá 5.000 ký tự.")
-    private String coverLetter;
+
+    /** Missing means no consent. The frontend requires an explicit choice. */
+    private Boolean aiAnalysisConsent;
 }

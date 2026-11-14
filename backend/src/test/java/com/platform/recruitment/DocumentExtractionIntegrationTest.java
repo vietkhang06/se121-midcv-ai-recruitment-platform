@@ -78,6 +78,7 @@ public class DocumentExtractionIntegrationTest {
         testCandidate.setId(candidateId);
 
         lenient().when(candidateProfileRepository.findByUserId(userId)).thenReturn(Optional.of(testCandidate));
+        lenient().when(candidateProfileRepository.findByUserIdForUpdate(userId)).thenReturn(Optional.of(testCandidate));
         // Mock jdbcTemplate.update calls used by executeProcessingPipeline for stage tracking
         lenient().when(jdbcTemplate.update(contains("UPDATE processing_jobs"), any(), any(), any(), any())).thenReturn(1);
         lenient().when(jdbcTemplate.update(contains("UPDATE processing_jobs SET state"), any(), any())).thenReturn(1);
@@ -198,7 +199,7 @@ public class DocumentExtractionIntegrationTest {
         assertEquals(ErrorCode.INVALID_FILE, ex.getErrorCode());
         assertTrue(ex.getMessage().contains("FILE_EMPTY"));
         verifyNoInteractions(aiWorkerClient);
-        verifyNoInteractions(cvRepository);
+        verify(cvRepository, never()).save(any(CV.class));
     }
 
     @Test
@@ -222,7 +223,7 @@ public class DocumentExtractionIntegrationTest {
         assertEquals(ErrorCode.INVALID_FILE, ex.getErrorCode());
         assertTrue(ex.getMessage().contains("UNSUPPORTED_FILE_TYPE"));
         verifyNoInteractions(aiWorkerClient);
-        verifyNoInteractions(cvRepository);
+        verify(cvRepository, never()).save(any(CV.class));
     }
 
     @Test
@@ -279,6 +280,6 @@ public class DocumentExtractionIntegrationTest {
         assertEquals(ErrorCode.FILE_SIZE_EXCEEDED, ex.getErrorCode());
         assertTrue(ex.getMessage().contains("FILE_TOO_LARGE"));
         verifyNoInteractions(aiWorkerClient);
-        verifyNoInteractions(cvRepository);
+        verify(cvRepository, never()).save(any(CV.class));
     }
 }

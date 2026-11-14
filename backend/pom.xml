@@ -22,6 +22,7 @@
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <jjwt.version>0.12.6</jjwt.version>
         <lombok.version>1.18.34</lombok.version>
+        <byte-buddy-agent.version>1.14.18</byte-buddy-agent.version>
     </properties>
     
     <dependencies>
@@ -126,6 +127,14 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Preload Mockito's instrumentation agent; dynamic self-attach is denied by
+             some Windows/container environments and can leave Surefire's fork hanging. -->
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy-agent</artifactId>
+            <version>${byte-buddy-agent.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
@@ -162,6 +171,13 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-javaagent:${settings.localRepository}/net/bytebuddy/byte-buddy-agent/${byte-buddy-agent.version}/byte-buddy-agent-${byte-buddy-agent.version}.jar</argLine>
                 </configuration>
             </plugin>
         </plugins>

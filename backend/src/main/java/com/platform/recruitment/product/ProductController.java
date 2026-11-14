@@ -21,6 +21,12 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class ProductController {
+  private RecruiterFeatureAccess featureAccess;
+
+  @org.springframework.beans.factory.annotation.Autowired(required = false)
+  public void setFeatureAccess(RecruiterFeatureAccess featureAccess) {
+    this.featureAccess = featureAccess;
+  }
   private final com.platform.recruitment.ai.AiWorkerClient ai;
   private final CompanyService companies;
   private final CompanyRepository repository;
@@ -60,6 +66,7 @@ public class ProductController {
         || company.getVerificationStatus() == CompanyVerification.VERIFIED)
       throw invalid(
           "Hồ sơ đang được duyệt hoặc đã xác minh. Liên hệ quản trị viên để cập nhật giấy phép.");
+    if (file.getSize() > 5 * 1024 * 1024) throw invalid("Giấy phép tối đa 5 MB.");
     byte[] data = file.getBytes();
     if (data.length == 0 || data.length > 5 * 1024 * 1024) throw invalid("Giấy phép tối đa 5 MB.");
     String mime;
@@ -169,9 +176,10 @@ public class ProductController {
         Long.class, c.getId()));
     result.put("cvViews", db.queryForObject(
         "SELECT count(*) FROM company_cv_views WHERE company_id=?", Long.class, c.getId()));
-    boolean pro = c.hasActiveRecruiterPro();
-    result.put("recruiterPlan", pro ? "PRO" : "STANDARD");
-    result.put("proUntil", pro ? c.getRecruiterProUntil() : null);
+    boolean pro = featureAccess != null ? featureAccess.hasProFeatures(c) : c.hasActiveRecruiterPro();
+    result.put("recruiterPlan", c.hasActiveRecruiterPro() ? "PRO" : "STANDARD");
+    result.put("developmentProAccess", featureAccess != null && featureAccess.isDevelopmentOverride(c));
+    result.put("proUntil", c.hasActiveRecruiterPro() ? c.getRecruiterProUntil() : null);
     result.put("proFeatures", pro
         ? List.of("AI_SCORE_DETAILS", "AI_EVIDENCE", "ADVANCED_CANDIDATE_FILTERS")
         : List.of("AI_MATCH_CLASSIFICATION"));

@@ -96,6 +96,8 @@ public class JobMatchingPolicyService {
         // Preserve the application CV/JD snapshots; the worker uses pinned versions.
         if (jobQueue != null) {
             for (Application application : applicationRepository.findByJobId(jobId)) {
+                if ("quick-apply-v1".equals(application.getAiConsentVersion())
+                        && !Boolean.TRUE.equals(application.getAiAnalysisConsent())) continue;
                 if (application.getCandidate() == null || application.getCandidate().getUser() == null) {
                     throw new IllegalStateException("Application owner missing during policy invalidation");
                 }
@@ -122,7 +124,8 @@ public class JobMatchingPolicyService {
         int recalculatedCount = 0;
 
         for (Application app : applications) {
-            if (!Boolean.TRUE.equals(app.getAiAnalysisConsent())) continue;
+            if ("quick-apply-v1".equals(app.getAiConsentVersion())
+                    && !Boolean.TRUE.equals(app.getAiAnalysisConsent())) continue;
             // Same synchronous/atomic failure policy as submit; never return a partial success count.
             matchingEngineService.calculateAndPersistMatchResult(jobId, app.getCandidate().getId());
             recalculatedCount++;

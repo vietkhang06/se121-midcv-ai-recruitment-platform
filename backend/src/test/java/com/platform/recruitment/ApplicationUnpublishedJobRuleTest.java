@@ -85,7 +85,6 @@ class ApplicationUnpublishedJobRuleTest {
         SubmitApplicationRequest request = new SubmitApplicationRequest();
         request.setJobId(draftJob.getId());
         request.setCvId(candidateCV.getId());
-        request.setAiAnalysisConsent(true);
 
         when(candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())).thenReturn(Optional.of(candidateProfile));
         when(jobRepository.findByIdForApply(draftJob.getId())).thenReturn(Optional.of(draftJob));

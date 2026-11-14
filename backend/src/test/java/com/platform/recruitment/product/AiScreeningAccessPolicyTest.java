@@ -9,6 +9,7 @@ import com.platform.recruitment.job.Job;
 import com.platform.recruitment.job.JobStatus;
 import com.platform.recruitment.matching.CandidateRankingResponse;
 import com.platform.recruitment.matching.MatchScoreResponse;
+import com.platform.recruitment.matching.MatchInspectionResponse;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -87,16 +88,38 @@ class AiScreeningAccessPolicyTest {
     assertFalse(score.isDetailAccess());
     assertNull(score.getOverallScore());
     assertNull(score.getGithubScore());
+    assertNull(score.getCvVersionId());
+    assertNull(score.getSemanticMethod());
+    assertEquals("PHU_HOP", score.getMatchClassification());
 
     var ranking = CandidateRankingResponse.builder()
         .overallScore(new BigDecimal("55"))
         .coreScore(new BigDecimal("60"))
+        .isGithubActive(true)
+        .matchingAlgorithmVersion("v2")
         .requiredSkillsMatched(4)
         .build();
     ranking.redactForStandardPlan(policy);
     assertEquals("CAN_NHAC", ranking.getStatus());
     assertNull(ranking.getOverallScore());
     assertNull(ranking.getRequiredSkillsMatched());
+    assertNull(ranking.getIsGithubActive());
+    assertNull(ranking.getMatchingAlgorithmVersion());
+
+    var inspection = MatchInspectionResponse.builder()
+        .overallScore(new BigDecimal("72"))
+        .coreScore(new BigDecimal("70"))
+        .githubScore(new BigDecimal("90"))
+        .semanticMethod("PGVECTOR_COSINE_SIMILARITY")
+        .matchFactors(List.of(new MatchInspectionResponse.FactorItem()))
+        .evidences(List.of(new MatchInspectionResponse.EvidenceItem()))
+        .build();
+    inspection.redactForStandardPlan();
+    assertEquals("PHU_HOP", inspection.getMatchClassification());
+    assertNull(inspection.getOverallScore());
+    assertNull(inspection.getSemanticMethod());
+    assertNull(inspection.getMatchFactors());
+    assertNull(inspection.getEvidences());
   }
 
   private Job eligibleJob(Company company, String occupationCode) {

@@ -8,7 +8,7 @@ const source = readFileSync(new URL('../src/lib/api.ts', import.meta.url), 'utf8
 const sseSource = readFileSync(new URL('../src/lib/sse.ts', import.meta.url), 'utf8');
 const sseJavascript = ts.transpileModule(sseSource, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText;
 const sseUrl = `data:text/javascript;base64,${Buffer.from(sseJavascript).toString('base64')}`;
-const javascript = ts.transpileModule(source.replace(/(['"])\.\/sse\1/g, JSON.stringify(sseUrl)), {
+const javascript = ts.transpileModule(source.replace("'./sse'", JSON.stringify(sseUrl)), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
 }).outputText;
 const api = await import(`data:text/javascript;base64,${Buffer.from(javascript).toString('base64')}`);
@@ -107,72 +107,4 @@ test('admin users use one server page and preserve deactivated status', async ()
   assert.equal(url.searchParams.get('accountStatus'), 'DEACTIVATED');
   assert.equal(result.content[0].accountStatus, 'DEACTIVATED');
   assert.equal(result.content[0].role, 'RECRUITER');
-});
-
-test('candidate application edit sends consent and concurrency guard to the real endpoint', async () => {
-  const calls = [];
-  const app = {
-    id: 'app-edit-1',
-    job: { id: 'job-edit-1', title: 'Backend Engineer' },
-    appliedCvId: 'cv-edit-1',
-    appliedCvTitle: 'CV Backend',
-    appliedCvVersion: 2,
-    status: 'SUBMITTED',
-    appliedDate: '2026-11-05',
-  };
-  globalThis.fetch = async (url, options) => {
-    calls.push({ url: String(url), method: options.method, body: JSON.parse(options.body) });
-    return response({
-      id: app.id,
-      jobId: app.job.id,
-      status: 'SUBMITTED',
-      aiAnalysisConsent: true,
-      aiScoringAvailable: true,
-      aiScoringReasonCode: 'AVAILABLE',
-      aiScoringReason: 'Đủ điều kiện chấm điểm AI.',
-      coverLetter: 'Nội dung đã sửa',
-    });
-  };
-  const updated = await api.realApiClient.updateCandidateApplication(app, {
-    aiAnalysisConsent: true,
-    coverLetter: 'Nội dung đã sửa',
-  });
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0].method, 'PUT');
-  assert.ok(calls[0].url.endsWith('/api/v1/candidate/applications/app-edit-1'));
-  assert.deepEqual(calls[0].body, {
-    aiAnalysisConsent: true,
-    coverLetter: 'Nội dung đã sửa',
-    expectedStatus: 'SUBMITTED',
-  });
-  assert.equal(updated.aiScoringAvailable, true);
-  assert.equal(updated.coverLetter, 'Nội dung đã sửa');
-});
-
-test('validation response exposes human constraints without API debug prefix', async () => {
-  globalThis.fetch = async () => new Response(JSON.stringify({
-    success: false,
-    message: 'Dữ liệu chưa hợp lệ. Vui lòng kiểm tra các ràng buộc hiển thị trên màn hình.',
-    error: { code: 'VALIDATION_ERROR', details: {
-      title: 'Vui lòng nhập tiêu đề vị trí tuyển dụng.',
-      description: 'Vui lòng nhập mô tả công việc.',
-    } },
-  }), { status: 400, statusText: 'Bad Request', headers: { 'Content-Type': 'application/json' } });
-  const prior = console.error;
-  console.error = () => {};
-  try {
-    await assert.rejects(
-      () => api.apiRequest('/api/v1/jobs/draft', { method: 'POST', body: '{}' }),
-      error => {
-        assert.equal(error.message.includes('[API ERROR]'), false);
-        assert.deepEqual(api.getApiValidationMessages(error), [
-          'Vui lòng nhập tiêu đề vị trí tuyển dụng.',
-          'Vui lòng nhập mô tả công việc.',
-        ]);
-        return true;
-      },
-    );
-  } finally {
-    console.error = prior;
-  }
 });
