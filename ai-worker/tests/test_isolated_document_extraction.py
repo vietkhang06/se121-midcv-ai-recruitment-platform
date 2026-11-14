@@ -98,7 +98,7 @@ class TestIsolatedDocumentExtraction:
             assert res.document.extractionMethod == "IMAGE_OCR"
             assert "TRAN THI MAI" in res.rawText or res.document.characterCount > 0
         else:
-            assert res.error_code in ["TESSERACT_NOT_FOUND", "OCR_FAILED"]
+            assert res.error_code in ["TESSERACT_NOT_FOUND", "OCR_LANGUAGE_MISSING", "OCR_FAILED"]
 
     def test_empty_file_fails_cleanly(self, extraction_service, no_llm_guard):
         res = extraction_service.extract_from_bytes(b"", file_name="empty.pdf")

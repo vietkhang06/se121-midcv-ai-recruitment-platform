@@ -5,6 +5,7 @@ import json
 import logging
 from typing import Dict, Any, Optional
 from app.config import settings
+from app.services.llm.types import sanitize_sensitive_string
 
 logger = logging.getLogger(__name__)
 
@@ -302,8 +303,8 @@ class LLMClient:
 
             if resp.is_error:
                 status_code = resp.status_code
-                err_msg = resp.text
-                logger.error(f"[Ollama] HTTP error {status_code}: {err_msg}")
+                err_msg = sanitize_sensitive_string(resp.text)
+                logger.error("[Ollama] HTTP error %s [body_redacted=true, body_length=%s]", status_code, len(resp.text))
                 # Chỉ retry cho lỗi transient 408, 500, 502, 503, 504. Không retry 400, 401, 403, 404.
                 if status_code in [408, 500, 502, 503, 504] and attempt < max_retries:
                     time.sleep(1.0 * (attempt + 1))
@@ -362,7 +363,7 @@ class LLMClient:
                 logger.info(f"[Ollama] Trích xuất JSON thành công via {self.ollama_model} trong {latency:.2f}s")
                 return parsed_data
 
-            logger.warning(f"[Ollama] [Attempt {attempt + 1}] JSON malformed: {raw_text[:120]}")
+            logger.warning("[Ollama] [Attempt %s] JSON malformed [content_redacted=true, content_length=%s]", attempt + 1, len(raw_text))
             # Cho phép tối đa 1 lần retry khi model sinh JSON malformed
             if json_retry_count < max_json_retries:
                 json_retry_count += 1
@@ -437,7 +438,7 @@ class LLMClient:
                     err_code = err_obj.get("code")
                     err_message = err_obj.get("message")
                 except Exception:
-                    err_message = resp.text
+                    err_message = sanitize_sensitive_string(resp.text)
 
                 logger.error(
                     f"[OpenAI] API request failed: status_code={status_code}, "
@@ -522,7 +523,7 @@ class LLMClient:
                 logger.info(f"[OpenAI] Trích xuất JSON thành công via {self.openai_model} trong {latency:.2f}s")
                 return parsed_data
 
-            logger.warning(f"[OpenAI] [Attempt {attempt + 1}] Content không phải valid JSON: {content[:120]}")
+            logger.warning("[OpenAI] [Attempt %s] Content is not valid JSON [content_redacted=true, content_length=%s]", attempt + 1, len(content))
             # Cho phép tối đa 1 lần retry khi model sinh JSON malformed
             if json_retry_count < max_json_retries:
                 json_retry_count += 1

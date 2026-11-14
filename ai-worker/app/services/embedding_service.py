@@ -4,6 +4,7 @@ import logging
 from typing import List, Dict, Any, Optional
 import httpx
 from app.config import settings
+from app.services.llm.types import safe_error_category
 
 logger = logging.getLogger(__name__)
 
@@ -63,13 +64,13 @@ class OllamaEmbeddingService:
             with httpx.Client(timeout=self.timeout) as client:
                 resp = client.post(url, json=payload)
         except Exception as e:
-            logger.error(f"[Ollama Embedding] Connection to {url} failed: {e}")
-            raise EmbeddingError(f"Failed to connect to Ollama embedding endpoint: {e}", status_code=503)
+            logger.error("[Ollama Embedding] Connection failed [category=%s]", safe_error_category(e))
+            raise EmbeddingError("Failed to connect to Ollama embedding endpoint", status_code=503)
 
         if resp.is_error:
-            logger.error(f"[Ollama Embedding] HTTP {resp.status_code}: {resp.text}")
+            logger.error("[Ollama Embedding] HTTP %s [body_redacted=true, body_length=%s]", resp.status_code, len(resp.text))
             raise EmbeddingError(
-                f"Ollama embedding request failed: {resp.text}",
+                "Ollama embedding request failed",
                 status_code=resp.status_code,
                 details={"model": self.model_name}
             )

@@ -34,6 +34,7 @@ from app.api.dev_endpoints import dev_router
 from app.services.cv_structuring_service import CVStructuringService, StructuringResponse
 from app.services.document_extraction_service import DocumentExtractionService
 from app.config import settings
+from app.services.llm.types import safe_error_category
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -57,7 +58,7 @@ if settings.LLM_PRIMARY_ENABLED and settings.LLM_PRIMARY_API_KEY:
             max_retries=settings.LLM_PRIMARY_MAX_RETRIES
         )
     except Exception as e:
-        logger.warning(f"Failed to initialize LLM client for taxonomy normalizer: {e}")
+        logger.warning("Failed to initialize LLM client for taxonomy normalizer [category=%s]", safe_error_category(e))
 
 taxonomy_normalizer = TaxonomyNormalizer(llm_client=primary_llm_client)
 score_explainer_service = ScoreExplainerService(llm_client=primary_llm_client)
@@ -122,14 +123,14 @@ def extract_document(request: DocumentExtractRequest):
             error_message=ocr_ex.message
         )
     except Exception as e:
-        logger.error(f"Document Extraction unhandled exception: {e}", exc_info=True)
+        logger.error("Document Extraction failed [category=%s]", safe_error_category(e))
         return DocumentExtractResponse(
             status="FAILED",
             source_type=request.file_type or "UNKNOWN",
             used_ocr=False,
             text=None,
             error_code="EXTRACTION_ERROR",
-            error_message=f"Document extraction unexpected error: {str(e)}"
+            error_message="Document extraction failed. Use the request correlation ID for diagnosis."
         )
 
 @router.post("/extract-jd", response_model=JDExtractResponse)
@@ -138,10 +139,10 @@ def extract_jd(request: JDExtractRequest):
         logger.info(f"Received JD Extraction request for job_id: {request.job_id}")
         return jd_parser.parse_job_description(request)
     except Exception as e:
-        logger.error(f"JD Extraction failed: {e}", exc_info=True)
+        logger.error("JD Extraction failed [category=%s]", safe_error_category(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"JD Extraction Error: {str(e)}"
+            detail="JD extraction failed"
         )
 
 @router.post("/extract-cv", response_model=CVExtractResponse)
@@ -156,10 +157,10 @@ def extract_cv(request: CVExtractRequest):
             detail=ocr_ex.to_dict()
         )
     except Exception as e:
-        logger.error(f"CV Extraction failed: {e}", exc_info=True)
+        logger.error("CV Extraction failed [category=%s]", safe_error_category(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"CV Extraction Error: {str(e)}"
+            detail="CV extraction failed"
         )
 
 
@@ -188,10 +189,10 @@ async def structure_cv(request: StructureCVRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"CV Structuring failed: {e}", exc_info=True)
+        logger.error("CV Structuring failed [category=%s]", safe_error_category(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"CV Structuring Error: {str(e)}"
+            detail="CV structuring failed"
         )
 
 @router.post("/analyze-github", response_model=GitHubAnalyzeResponse)
@@ -200,7 +201,7 @@ def analyze_github(request: GitHubAnalyzeRequest):
         logger.info(f"Received GitHub Analysis request for candidate_id: {request.candidate_id}")
         return github_analyzer.analyze_candidate_github(request)
     except Exception as e:
-        logger.error(f"GitHub Analysis failed: {e}", exc_info=True)
+        logger.error("GitHub Analysis failed [category=%s]", safe_error_category(e))
         # Graceful Fallback: Return UNAVAILABLE rather than HTTP 500 error to keep CV/JD processing intact
         return GitHubAnalyzeResponse(
             candidate_id=request.candidate_id,
@@ -208,11 +209,11 @@ def analyze_github(request: GitHubAnalyzeRequest):
             github_url=request.github_url,
             public_repos_count=0,
             activity_signal="LIMITED_OBSERVABLE_ACTIVITY",
-            summary_notes=f"GitHub Analysis fallback triggered due to error: {str(e)}",
+            summary_notes="GitHub evidence is temporarily unavailable; CV/JD matching was not interrupted.",
             language_rank_summary="Unavailable",
             overall_supporting_rating="UNAVAILABLE",
             status="UNAVAILABLE",
-            error_message=str(e)
+            error_message="GITHUB_PROVIDER_UNAVAILABLE"
         )
 
 @router.post("/taxonomy/normalize-skills", response_model=SkillNormalizeResponse)
@@ -221,10 +222,10 @@ def normalize_skills(request: SkillNormalizeRequest):
         logger.info(f"Received Taxonomy Normalization request for {len(request.skills)} skills")
         return taxonomy_normalizer.normalize_skills(request)
     except Exception as e:
-        logger.error(f"Taxonomy Normalization failed: {e}", exc_info=True)
+        logger.error("Taxonomy Normalization failed [category=%s]", safe_error_category(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Taxonomy Normalization Error: {str(e)}"
+            detail="Taxonomy normalization failed"
         )
 
 @router.get("/taxonomy/autocomplete", response_model=AutocompleteResponse)
@@ -232,10 +233,10 @@ def autocomplete_skills(query: str = "", limit: int = 10):
     try:
         return taxonomy_normalizer.autocomplete(query=query, limit=limit)
     except Exception as e:
-        logger.error(f"Taxonomy Autocomplete failed: {e}", exc_info=True)
+        logger.error("Taxonomy Autocomplete failed [category=%s]", safe_error_category(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Taxonomy Autocomplete Error: {str(e)}"
+            detail="Taxonomy autocomplete failed"
         )
 
 @router.post("/matching/semantic-compare", response_model=SemanticCompareResponse)
@@ -248,10 +249,10 @@ def semantic_compare(request: SemanticCompareRequest):
         )
         return semantic_matching_service.compare_semantic(request)
     except Exception as e:
-        logger.error(f"Semantic comparison failed: {e}", exc_info=True)
+        logger.error("Semantic comparison failed [category=%s]", safe_error_category(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Semantic Comparison Error: {str(e)}"
+            detail="Semantic comparison failed"
         )
 
 @router.post("/matching/explain-score", response_model=ExplainScoreResponse)
@@ -263,10 +264,10 @@ def explain_score(request: ExplainScoreRequest):
         )
         return score_explainer_service.explain(request)
     except Exception as e:
-        logger.error(f"Score explanation failed: {e}", exc_info=True)
+        logger.error("Score explanation failed [category=%s]", safe_error_category(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Score Explanation Error: {str(e)}"
+            detail="Score explanation failed"
         )
 
 @router.post("/matching/skill-gap-and-roadmap", response_model=SkillGapAnalysisResponse)
@@ -278,10 +279,10 @@ def analyze_skill_gap_and_roadmap(request: SkillGapAnalysisRequest):
         )
         return skill_gap_service.analyze_gap_and_generate_roadmap(request)
     except Exception as e:
-        logger.error(f"Skill Gap analysis failed: {e}", exc_info=True)
+        logger.error("Skill Gap analysis failed [category=%s]", safe_error_category(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Skill Gap Analysis Error: {str(e)}"
+            detail="Skill gap analysis failed"
         )
 
 
