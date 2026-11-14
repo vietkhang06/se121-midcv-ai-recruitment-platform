@@ -1,0 +1,109 @@
+<testsuites id="" name="" tests="15" failures="0" skipped="0" errors="0" time="28.254631999999997">
+<testsuite name="paper-studio-acceptance.spec.ts" timestamp="2026-11-14T03:35:32.893Z" hostname="chromium-desktop" tests="15" failures="0" skipped="0" time="22.11" errors="0">
+<testcase name="U02 Paper Studio acceptance › mobile vi light: public surface is responsive and keyboard reachable" classname="paper-studio-acceptance.spec.ts" time="1.644">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\..\..\..\frontend\test-results\paper-studio-acceptance-U0-0289c-sive-and-keyboard-reachable-chromium-desktop\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="U02 Paper Studio acceptance › mobile vi dark: public surface is responsive and keyboard reachable" classname="paper-studio-acceptance.spec.ts" time="1.209">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\..\..\..\frontend\test-results\paper-studio-acceptance-U0-02251-sive-and-keyboard-reachable-chromium-desktop\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="U02 Paper Studio acceptance › mobile en light: public surface is responsive and keyboard reachable" classname="paper-studio-acceptance.spec.ts" time="1.453">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\..\..\..\frontend\test-results\paper-studio-acceptance-U0-53171-sive-and-keyboard-reachable-chromium-desktop\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="U02 Paper Studio acceptance › mobile en dark: public surface is responsive and keyboard reachable" classname="paper-studio-acceptance.spec.ts" time="1.45">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\..\..\..\frontend\test-results\paper-studio-acceptance-U0-a5483-sive-and-keyboard-reachable-chromium-desktop\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="U02 Paper Studio acceptance › tablet vi light: public surface is responsive and keyboard reachable" classname="paper-studio-acceptance.spec.ts" time="1.279">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\..\..\..\frontend\test-results\paper-studio-acceptance-U0-7dcfc-sive-and-keyboard-reachable-chromium-desktop\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="U02 Paper Studio acceptance › tablet vi dark: public surface is responsive and keyboard reachable" classname="paper-studio-acceptance.spec.ts" time="1.136">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\..\..\..\frontend\test-results\paper-studio-acceptance-U0-83337-sive-and-keyboard-reachable-chromium-desktop\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="U02 Paper Studio acceptance › tablet en light: public surface is responsive and keyboard reachable" classname="paper-studio-acceptance.spec.ts" time="1.286">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\..\..\..\frontend\test-results\paper-studio-acceptance-U0-df6c2-sive-and-keyboard-reachable-chromium-desktop\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="U02 Paper Studio acceptance › tablet en dark: public surface is responsive and keyboard reachable" classname="paper-studio-acceptance.spec.ts" time="1.412">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\..\..\..\frontend\test-results\paper-studio-acceptance-U0-cba7d-sive-and-keyboard-reachable-chromium-desktop\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="U02 Paper Studio acceptance › desktop vi light: public surface is responsive and keyboard reachable" classname="paper-studio-acceptance.spec.ts" time="1.711">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\..\..\..\frontend\test-results\paper-studio-acceptance-U0-846cd-sive-and-keyboard-reachable-chromium-desktop\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="U02 Paper Studio acceptance › desktop vi dark: public surface is responsive and keyboard reachable" classname="paper-studio-acceptance.spec.ts" time="1.643">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\..\..\..\frontend\test-results\paper-studio-acceptance-U0-27817-sive-and-keyboard-reachable-chromium-desktop\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="U02 Paper Studio acceptance › desktop en light: public surface is responsive and keyboard reachable" classname="paper-studio-acceptance.spec.ts" time="1.656">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\..\..\..\frontend\test-results\paper-studio-acceptance-U0-be212-sive-and-keyboard-reachable-chromium-desktop\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="U02 Paper Studio acceptance › desktop en dark: public surface is responsive and keyboard reachable" classname="paper-studio-acceptance.spec.ts" time="1.861">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\..\..\..\frontend\test-results\paper-studio-acceptance-U0-16d71-sive-and-keyboard-reachable-chromium-desktop\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="U02 Paper Studio acceptance › CANDIDATE: role shell preserves Paper Studio behavior" classname="paper-studio-acceptance.spec.ts" time="1.059">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\..\..\..\frontend\test-results\paper-studio-acceptance-U0-3b7a6-erves-Paper-Studio-behavior-chromium-desktop\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="U02 Paper Studio acceptance › RECRUITER: role shell preserves Paper Studio behavior" classname="paper-studio-acceptance.spec.ts" time="1.609">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\..\..\..\frontend\test-results\paper-studio-acceptance-U0-a940d-erves-Paper-Studio-behavior-chromium-desktop\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="U02 Paper Studio acceptance › ADMIN: role shell preserves Paper Studio behavior" classname="paper-studio-acceptance.spec.ts" time="1.702">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\..\..\..\frontend\test-results\paper-studio-acceptance-U0-49fda-erves-Paper-Studio-behavior-chromium-desktop\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

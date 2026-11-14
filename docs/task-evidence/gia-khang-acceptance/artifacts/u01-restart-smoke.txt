@@ -1,0 +1,15 @@
+U01 BACKEND RESTART SMOKE
+timestamp=2026-11-14T15:08:40+07:00
+git_head=fa52f2f53c3429a44b44d97b23417197e451691f
+working_tree=codex/gk-six-task-acceptance (uncommitted)
+database=disposable pgvector/pgvector:pg16 on 127.0.0.1:55440/midcv_restart
+backend=Spring Boot production process on 127.0.0.1:18082
+phase_1=register candidate; verify test account; login; PUT preferences; POST letter; POST upgrade request
+phase_1_result=PRE_RESTART_HTTP_PERSISTENCE_OK
+restart=graceful backend stop followed by a new Spring Boot process against the same database
+phase_2=login again; GET preferences; GET letters; GET upgrade request; GET account
+phase_2_assertions=keyword Kotlin; persisted letter body; requested true; account_plan STANDARD
+phase_2_result=POST_RESTART_HTTP_PERSISTENCE_OK
+cleanup=backend stopped; disposable container stopped and removed with --rm
+external_provider=NOT_RUN
+secrets=none recorded; test password/token omitted

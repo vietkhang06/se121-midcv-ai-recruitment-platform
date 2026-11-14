@@ -1,0 +1,16 @@
+..................sssssss............................................... [ 26%]
+........................................................................ [ 52%]
+........................................................................ [ 78%]
+...........................................................              [100%]
+============================== warnings summary ===============================
+C:\Users\khang\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\formparsers.py:12
+  C:\Users\khang\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+C:\Users\khang\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\testclient.py:41
+  C:\Users\khang\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\testclient.py:41: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    [], typing.ContextManager[anyio.abc.BlockingPortal]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: D:\UIT-2026_2027_HK1\DoAn1\14-11-2026\se121-midcv-ai-recruitment-platform\docs\task-evidence\gia-khang-acceptance\artifacts\python-offline.xml -
+268 passed, 7 skipped, 2 deselected, 2 warnings in 43.39s
