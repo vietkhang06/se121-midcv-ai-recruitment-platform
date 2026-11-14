@@ -57,7 +57,14 @@ jobs:
           mvn -B test 2>&1 | tee ../backend-test.log
           code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
-          exit "$code"
+          cd ..
+          python scripts/ci/verify_debt_baseline.py backend backend-test.log
+      - name: Run scoped acceptance tests
+        working-directory: backend
+        run: >-
+          mvn -B
+          -Dtest=OAuthServiceStateTest,TaskHttpAcceptanceTest,InboxIntegrationTest,InboxOutboxTransactionTest,SpringSecurityRbacAndMultiTenantIntegrationTest,CompanyVerificationContextLoadTest,PaginationApiIntegrationTest
+          test
       - name: Build backend evidence
         if: always()
         shell: bash
@@ -176,13 +183,15 @@ jobs:
           contract_code=${PIPESTATUS[0]}
           npm run build 2>&1 | tee -a ../frontend-test.log
           build_code=${PIPESTATUS[0]}
-          code=$((lint_code || contract_code || build_code))
           {
             echo "lint_code=$lint_code"
             echo "contract_code=$contract_code"
             echo "build_code=$build_code"
           } >> "$GITHUB_OUTPUT"
-          exit "$code"
+          cd ..
+          python scripts/ci/verify_debt_baseline.py frontend frontend-test.log
+          baseline_code=$?
+          exit $((baseline_code || contract_code || build_code))
       - name: Build frontend evidence
         if: always()
         shell: bash
