@@ -1,5 +1,9 @@
 # MidCV — Current implementation and verification status
 
+## ARCH-01 / ARCH-02 (13/11/2026)
+
+Đã bổ sung trạng thái phương pháp matching `PENDING_VECTOR`, `FALLBACK_USED`, `PGVECTOR_READY`, giao diện HR hiển thị điểm tạm tính và công cụ đối chiếu API/SQL thật. **ARCH-01 chưa nghiệm thu**, ARCH-02 chưa có bằng chứng chuyển trạng thái từ vector chờ sang Pgvector trên hệ thống đang chạy. Không nâng các phase `NOT_STARTED` chỉ từ sửa source. Quy trình và điều kiện đóng task: [ARCH_01_02_LIVE_ACCEPTANCE.md](ARCH_01_02_LIVE_ACCEPTANCE.md).
+
 Updated after implementation work on 21/10/2026.
 
 ## Verification rule

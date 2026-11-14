@@ -33,3 +33,11 @@ Implementation choices within recommended option A: enforce actor ownership in l
 - Xác minh doanh nghiệp do admin thực hiện, không tự duyệt sau hai ngày. Cấp 2 mặc định 5 tin đang hoạt động/100 CV riêng; cấp 3 do admin thẩm định uy tín.
 - Gói dịch vụ dùng ví credit được cấp qua admin và lịch sử giao dịch, chưa tích hợp thanh toán ngân hàng. Giá là cấu hình nội bộ midCV.
 - Thêm V35, không sửa migration cũ, không đổi phiên bản thư viện. Mọi trạng thái nghiệm thu được giới hạn bởi báo cáo bằng chứng thật trong docs/product-upgrade.
+
+# ARCH-02 (13/11/2026) — Trạng thái matching theo phương pháp thực tế
+
+Theo yêu cầu trực tiếp của nhóm: kết quả semantic từ text fallback không được báo như một kết quả vector đã hoàn tất. Lưu `PENDING_VECTOR` khi thiếu vector, `FALLBACK_USED` khi dữ liệu vector có nhưng SQL không cho điểm, `PGVECTOR_READY` chỉ khi SQL `<=>` trả điểm với hai vector READY, cùng model và đúng 1024 chiều. Giữ điểm fallback tạm tính và thể hiện phương pháp, model, phiên bản CV/JD trên inspection HR. Không hồi tố trạng thái các bản ghi cũ khi thiếu provenance. Nghiệm thu live theo `docs/ARCH_01_02_LIVE_ACCEPTANCE.md`.
+
+## DEC-DEV-01 (14/11/2026) — Quyền xem Pro tạm thời cho HR Standard khi kiểm thử
+
+Theo yêu cầu trực tiếp của chủ dự án, cho phép HR của công ty Standard xem các tính năng đối sánh chi tiết như Pro trong phiên chạy local dev khi bật `MIDCV_DEV_STANDARD_PRO_ACCESS=true`. Mặc định tắt; profile prod luôn vô hiệu hóa kể cả khi biến môi trường được đặt. Quyền này chỉ áp dụng cho tính năng hiển thị đối sánh của HR, không thay `recruiter_plan`/hạn Pro trong database, không cấp thêm quota/độ tin cậy, không vượt qua consent của ứng viên hoặc ranh giới công ty. API entitlement ghi rõ đây là quyền thử nghiệm. Tắt biến và khởi động lại backend để trở về hành vi Standard.
