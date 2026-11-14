@@ -131,6 +131,7 @@ public class GitHubHardenedSignalTest {
                 .candidate(candidate)
                 .rawText("3 years experience in Java, Spring Boot, PostgreSQL, Docker.")
                 .build();
+        ConfirmedCvFixture.attach(application, cv, cv.getRawText());
         lenient().when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
 
         JobRequirement req1 = JobRequirement.builder()
@@ -162,11 +163,13 @@ public class GitHubHardenedSignalTest {
     void testNonTechnicalJob_GitHubDisabled() {
         Application mktApp = Application.builder().job(marketingJob).candidate(candidate).build();
         mktApp.setId(UUID.randomUUID());
+        ConfirmedCvFixture.attach(mktApp, CV.builder().candidate(candidate).build(), "Reviewed marketing professional with SEO and paid media experience.");
         when(applicationRepository.findByJobIdAndCandidateId(marketingJob.getId(), candidate.getId())).thenReturn(Optional.of(mktApp));
 
         GitHubProfile profile = GitHubProfile.builder()
                 .candidate(candidate)
                 .status("SYNCED")
+                .ownershipStatus("OWNED")
                 .activitySignal(GitHubActivitySignal.HIGH)
                 .build();
         profile.setId(UUID.randomUUID());
@@ -186,6 +189,7 @@ public class GitHubHardenedSignalTest {
     void testNonCodingITJob_GitHubDisabled() {
         Application hdApp = Application.builder().job(helpdeskJob).candidate(candidate).build();
         hdApp.setId(UUID.randomUUID());
+        ConfirmedCvFixture.attach(hdApp, CV.builder().candidate(candidate).build(), "Reviewed IT helpdesk technician with hardware support experience.");
         when(applicationRepository.findByJobIdAndCandidateId(helpdeskJob.getId(), candidate.getId())).thenReturn(Optional.of(hdApp));
 
         MatchResult result = matchingEngineService.calculateAndPersistMatchResult(helpdeskJob.getId(), candidate.getId());
@@ -203,6 +207,7 @@ public class GitHubHardenedSignalTest {
         GitHubProfile profile = GitHubProfile.builder()
                 .candidate(candidate)
                 .status("SYNCED")
+                .ownershipStatus("OWNED")
                 .activitySignal(GitHubActivitySignal.HIGH)
                 .build();
         profile.setId(UUID.randomUUID());
@@ -327,6 +332,7 @@ public class GitHubHardenedSignalTest {
         GitHubProfile profile = GitHubProfile.builder()
                 .candidate(candidate)
                 .status("SYNCED")
+                .ownershipStatus("OWNED")
                 .activitySignal(GitHubActivitySignal.HIGH)
                 .build();
         profile.setId(UUID.randomUUID());
@@ -352,8 +358,8 @@ public class GitHubHardenedSignalTest {
         assertNotNull(result.getGithubScore());
         assertTrue(result.getIsGithubActive());
         assertFalse(result.getGithubFallbackApplied());
-        assertEquals(BigDecimal.valueOf(0.85), result.getCoreWeight());
-        assertEquals(BigDecimal.valueOf(0.15), result.getGithubWeight());
+        assertEquals(0, result.getCoreWeight().compareTo(BigDecimal.valueOf(0.85)));
+        assertEquals(0, result.getGithubWeight().compareTo(BigDecimal.valueOf(0.15)));
 
         // Verify evidence saved
         ArgumentCaptor<Evidence> captor = ArgumentCaptor.forClass(Evidence.class);
@@ -372,6 +378,7 @@ public class GitHubHardenedSignalTest {
         GitHubProfile profile = GitHubProfile.builder()
                 .candidate(candidate)
                 .status("SYNCED")
+                .ownershipStatus("OWNED")
                 .activitySignal(GitHubActivitySignal.HIGH)
                 .build();
         profile.setId(UUID.randomUUID());

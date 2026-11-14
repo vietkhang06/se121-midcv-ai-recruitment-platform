@@ -26,7 +26,7 @@ class AuditScreeningPipelineRegressionTest {
         when(manager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
         when(jdbc.queryForList("SELECT id FROM screening_runs WHERE cv_version_id=?",version))
                 .thenReturn(screening ? List.of(Map.of("id",UUID.randomUUID())) : List.of());
-        when(worker.structureCv(anyString(),eq(version),anyString())).thenReturn(Map.of("success",true,"data",Map.of(
+        when(worker.structureCv(anyString(),eq(version),anyString(),anyBoolean())).thenReturn(Map.of("success",true,"data",Map.of(
                 "skills",List.of(Map.of("name","Java")),"experience",List.of(),"education",List.of())));
         String vector="[1,"+"0,".repeat(1022)+"0]";
         when(ai.activeEmbeddingModel()).thenReturn("bge-m3");when(ai.semanticText(any())).thenReturn("Java");

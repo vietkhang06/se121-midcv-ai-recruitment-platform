@@ -84,11 +84,9 @@ class RealityMatchingManipulationTest {
 
     @Test
     void testManipulationA_MatchingJavaCV_HighOverallScore() {
-        when(jobRepository.findById(javaJob.getId())).thenReturn(Optional.of(javaJob));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
 
         CV cv = CV.builder().candidate(candidate).rawText("Senior Engineer with 4 years experience building Java Spring Boot microservices and PostgreSQL databases.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(application, cv, cv.getRawText());
 
         JobRequirement r1 = JobRequirement.builder().job(javaJob).skillName("Java").requirementType(RequirementType.REQUIRED).build();
         JobRequirement r2 = JobRequirement.builder().job(javaJob).skillName("Spring Boot").requirementType(RequirementType.REQUIRED).build();
@@ -109,12 +107,10 @@ class RealityMatchingManipulationTest {
 
     @Test
     void testManipulationB_UnrelatedPythonCV_ScoreDropsSignificantly() {
-        when(jobRepository.findById(javaJob.getId())).thenReturn(Optional.of(javaJob));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
 
         // Candidate has Python, Django, Redis - NONE of the Java JD required skills
         CV cvPython = CV.builder().candidate(candidate).rawText("Software Developer with 3 years experience in Python, Django, and Redis caching.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cvPython));
+        ConfirmedCvFixture.attach(application, cvPython, cvPython.getRawText());
 
         JobRequirement r1 = JobRequirement.builder().job(javaJob).skillName("Java").requirementType(RequirementType.REQUIRED).build();
         JobRequirement r2 = JobRequirement.builder().job(javaJob).skillName("Spring Boot").requirementType(RequirementType.REQUIRED).build();
@@ -132,12 +128,10 @@ class RealityMatchingManipulationTest {
 
     @Test
     void testManipulationC_AddingRequiredSkillKubernetes_RequiredMissingGated() {
-        when(jobRepository.findById(javaJob.getId())).thenReturn(Optional.of(javaJob));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
 
         // Candidate has Java and Spring Boot, but lacks Kubernetes
         CV cv = CV.builder().candidate(candidate).rawText("3 years experience in Java and Spring Boot.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(application, cv, cv.getRawText());
 
         JobRequirement r1 = JobRequirement.builder().job(javaJob).skillName("Java").requirementType(RequirementType.REQUIRED).build();
         JobRequirement r2 = JobRequirement.builder().job(javaJob).skillName("Spring Boot").requirementType(RequirementType.REQUIRED).build();
@@ -155,12 +149,10 @@ class RealityMatchingManipulationTest {
 
     @Test
     void testManipulationD_AddingPreferredSkill_CannotCompensateMissingRequired() {
-        when(jobRepository.findById(javaJob.getId())).thenReturn(Optional.of(javaJob));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
 
         // Candidate has Java & Spring Boot, lacks PostgreSQL, but has Docker & AWS preferred
         CV cv = CV.builder().candidate(candidate).rawText("Java Spring Boot developer with Docker and AWS experience").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(application, cv, cv.getRawText());
 
         JobRequirement r1 = JobRequirement.builder().job(javaJob).skillName("Java").requirementType(RequirementType.REQUIRED).build();
         JobRequirement r2 = JobRequirement.builder().job(javaJob).skillName("Spring Boot").requirementType(RequirementType.REQUIRED).build();
@@ -200,30 +192,27 @@ class RealityMatchingManipulationTest {
 
     @Test
     void testGitHubCase1_EligibleAndAvailable_85_15_Formula() {
-        when(jobRepository.findById(javaJob.getId())).thenReturn(Optional.of(javaJob));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
 
         CV cv = CV.builder().candidate(candidate).rawText("3 years exp in Java, Spring Boot, PostgreSQL.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(application, cv, cv.getRawText());
 
-        GitHubProfile profile = GitHubProfile.builder().candidate(candidate).status("SYNCED").activitySignal(GitHubActivitySignal.HIGH).build();
+        GitHubProfile profile = GitHubProfile.builder().candidate(candidate).status("SYNCED")
+                .ownershipStatus("OWNED").activitySignal(GitHubActivitySignal.HIGH).build();
         profile.setId(UUID.randomUUID());
         when(gitHubProfileRepository.findByCandidateId(candidate.getId())).thenReturn(Optional.of(profile));
 
         MatchResult result = matchingEngineService.calculateAndPersistMatchResult(javaJob.getId(), candidate.getId());
 
         assertNotNull(result.getGithubScore());
-        assertEquals(BigDecimal.valueOf(0.85), result.getCoreWeight());
-        assertEquals(BigDecimal.valueOf(0.15), result.getGithubWeight());
+        assertEquals(0, result.getCoreWeight().compareTo(BigDecimal.valueOf(0.85)));
+        assertEquals(0, result.getGithubWeight().compareTo(BigDecimal.valueOf(0.15)));
     }
 
     @Test
     void testGitHubCase2_NoGitHub_FallbackCore_ZeroPenalty() {
-        when(jobRepository.findById(javaJob.getId())).thenReturn(Optional.of(javaJob));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
 
         CV cv = CV.builder().candidate(candidate).rawText("3 years exp in Java, Spring Boot, PostgreSQL.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(application, cv, cv.getRawText());
         when(gitHubProfileRepository.findByCandidateId(candidate.getId())).thenReturn(Optional.empty());
 
         MatchResult result = matchingEngineService.calculateAndPersistMatchResult(javaJob.getId(), candidate.getId());
@@ -236,11 +225,9 @@ class RealityMatchingManipulationTest {
 
     @Test
     void testGitHubCase3_PrivateRepo_FallbackCore_ZeroPenalty() {
-        when(jobRepository.findById(javaJob.getId())).thenReturn(Optional.of(javaJob));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
 
         CV cv = CV.builder().candidate(candidate).rawText("3 years exp in Java, Spring Boot, PostgreSQL.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(application, cv, cv.getRawText());
 
         GitHubProfile privateProfile = GitHubProfile.builder().candidate(candidate).status("PRIVATE_ONLY").publicReposCount(0).build();
         when(gitHubProfileRepository.findByCandidateId(candidate.getId())).thenReturn(Optional.of(privateProfile));
@@ -253,12 +240,9 @@ class RealityMatchingManipulationTest {
 
     @Test
     void testGitHubCase4_ApiFailure_FallbackCore_ZeroPenalty() {
-        when(jobRepository.findById(javaJob.getId())).thenReturn(Optional.of(javaJob));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
 
         CV cv = CV.builder().candidate(candidate).rawText("3 years exp in Java, Spring Boot, PostgreSQL.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
-
+        ConfirmedCvFixture.attach(application, cv, cv.getRawText());
         GitHubProfile apiFailedProfile = GitHubProfile.builder().candidate(candidate).status("API_UNAVAILABLE").build();
         when(gitHubProfileRepository.findByCandidateId(candidate.getId())).thenReturn(Optional.of(apiFailedProfile));
 
@@ -270,11 +254,13 @@ class RealityMatchingManipulationTest {
 
     @Test
     void testGitHubCase5_NonITJob_FallbackCore_ZeroPenalty() {
-        when(jobRepository.findById(marketingJob.getId())).thenReturn(Optional.of(marketingJob));
-        when(candidateProfileRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
 
         CV cv = CV.builder().candidate(candidate).rawText("3 years in Marketing.").build();
-        when(cvRepository.findByCandidateId(candidate.getId())).thenReturn(List.of(cv));
+        Application marketingApplication = Application.builder().job(marketingJob).candidate(candidate).build();
+        marketingApplication.setId(UUID.randomUUID());
+        ConfirmedCvFixture.attach(marketingApplication, cv, cv.getRawText());
+        when(applicationRepository.findByJobIdAndCandidateId(marketingJob.getId(), candidate.getId()))
+                .thenReturn(Optional.of(marketingApplication));
 
         MatchResult result = matchingEngineService.calculateAndPersistMatchResult(marketingJob.getId(), candidate.getId());
 

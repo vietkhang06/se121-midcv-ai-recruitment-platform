@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Job, CV, Application } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { fetchCandidateCVs, submitApplication } from '@/lib/api';
+import { fetchCandidateCVs, submitApplication, previewQuickApply, QuickApplyPreview } from '@/lib/api';
 import {
   X,
   ShieldAlert,
@@ -40,13 +40,23 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [cvLoadError, setCvLoadError] = useState<string | null>(null);
+  const [aiAnalysisConsent, setAiAnalysisConsent] = useState(false);
+  const [preview, setPreview] = useState<QuickApplyPreview | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const previewRequestRef = useRef(0);
 
   const closeModal = () => {
+    previewRequestRef.current += 1;
     setIsSubmitted(false);
     setSubmitError(null);
     setCvLoadError(null);
     setCandidateCVs(null);
     setSelectedCvId('');
+    setAiAnalysisConsent(false);
+    setPreview(null);
+    setPreviewError(null);
+    setIsPreviewing(false);
     onClose();
   };
 
@@ -116,6 +126,24 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
     });
   };
 
+  const handlePreview = async () => {
+    if (!selectedCv || !aiAnalysisConsent) return;
+    const requestId = ++previewRequestRef.current;
+    setIsPreviewing(true);
+    setPreview(null);
+    setPreviewError(null);
+    try {
+      const result = await previewQuickApply(job.id, selectedCv.id);
+      if (requestId === previewRequestRef.current) setPreview(result);
+    } catch (err: unknown) {
+      if (requestId === previewRequestRef.current) {
+        setPreviewError(err instanceof Error ? err.message : 'Không thể xem đối sánh lúc này.');
+      }
+    } finally {
+      if (requestId === previewRequestRef.current) setIsPreviewing(false);
+    }
+  };
+
   const handleConfirmApplication = async () => {
     if (!selectedCv) {
       setSubmitError('Bạn chưa có CV nào trong tài khoản. Vui lòng tải lên hoặc tạo CV trước.');
@@ -130,6 +158,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
         appliedCvId: selectedCv.id,
         appliedCvTitle: selectedCv.title,
         appliedCvVersion: null,
+        aiAnalysisConsent,
         status: 'SUBMITTED',
         appliedDate: '',
       });
@@ -145,10 +174,10 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md overflow-y-auto">
-      
+
       {/* 07 — Modal Card (Figma Screen 07: 1440x1332 node container) */}
       <div className="w-full max-w-2xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl shadow-2xl text-[var(--heading)] dark:text-[var(--retro-cream)] relative overflow-hidden my-8">
-        
+
         {/* Modal Header */}
         <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-[var(--border)] relative">
           <button
@@ -174,14 +203,19 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-6 sm:p-8 space-y-6">
-          
+
           {isSubmitted ? (
             <div className="text-center py-8 space-y-3">
               <CheckCircle2 className="w-12 h-12 text-[var(--success)] mx-auto" />
               <h3 className="text-xl font-editorial font-bold text-[var(--heading)] dark:text-[var(--retro-cream)]">{t('quickApply.successTitle', 'Nộp Hồ Sơ Thành Công!')}</h3>
               <p className="text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)] max-w-md mx-auto">
-                {isVi ? 'Đơn ứng tuyển và phiên bản CV đã chọn đã được lưu.' : 'Your application and selected CV version have been saved.'}
+                {aiAnalysisConsent
+                  ? (isVi ? 'Đã lưu đơn và CV đã chọn. Điểm đối sánh sẽ cập nhật khi vector sẵn sàng.' : 'Application and CV saved. The match may update when vectors become ready.')
+                  : (isVi ? 'Đã lưu đơn và CV đã chọn; bạn chưa cho phép phân tích AI.' : 'Application and CV saved without AI analysis consent.')}
               </p>
+              <Link href="/candidate/applications" onClick={closeModal} className="inline-block text-sm font-semibold text-blue-700 underline">
+                {isVi ? 'Xem đơn và báo cáo' : 'View application and report'}
+              </Link>
               <div className="pt-4">
                 <button
                   onClick={closeModal}
@@ -210,7 +244,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
                 ) : candidateCVs.length > 0 ? (
                   <select
                     value={selectedCvId}
-                    onChange={(e) => setSelectedCvId(e.target.value)}
+                    onChange={(e) => { previewRequestRef.current += 1; setIsPreviewing(false); setSelectedCvId(e.target.value); setPreview(null); setPreviewError(null); }}
                     className="w-full text-xs bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl px-3.5 py-2.5 text-[var(--heading)] dark:text-[var(--retro-cream)] focus:outline-none focus:border-[var(--border)]"
                   >
                     {candidateCVs.map((c) => (
@@ -227,6 +261,31 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
                   </div>
                 )}
                 {candidateCVs?.length === 0 && !cvLoadError && <Link href={`/candidate/cvs/builder?returnTo=${encodeURIComponent(`/jobs/${job.id}`)}`} onClick={closeModal} className="mt-2 inline-flex text-xs font-semibold text-blue-700 underline dark:text-blue-300">{isVi ? 'Tạo hoặc xác nhận CV' : 'Create or confirm a CV'}</Link>}
+              </div>
+
+              <div className="rounded-xl border border-slate-200 dark:border-[var(--border)] p-4 space-y-3 text-xs">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input type="checkbox" checked={aiAnalysisConsent} onChange={(e) => {
+                    previewRequestRef.current += 1; setIsPreviewing(false); setAiAnalysisConsent(e.target.checked); setPreview(null); setPreviewError(null);
+                  }} className="mt-0.5" />
+                  <span>{isVi
+                    ? 'Tôi đồng ý cho midCV phân tích CV đã chọn và JD này bằng AI để tạo báo cáo đối sánh. Tôi vẫn có thể nộp đơn nếu không đồng ý.'
+                    : 'I agree to AI analysis of this CV against this job. I can still apply without consent.'}</span>
+                </label>
+                {aiAnalysisConsent && selectedCv && (
+                  <button type="button" disabled={isPreviewing} onClick={handlePreview}
+                    className="rounded-lg border border-blue-300 px-3 py-2 font-semibold text-blue-700 disabled:opacity-50">
+                    {isPreviewing ? (isVi ? 'Đang đối sánh...' : 'Matching...') : (isVi ? 'Xem đối sánh tạm trước khi nộp' : 'Preview match before applying')}
+                  </button>
+                )}
+                {previewError && <p role="alert" className="text-rose-700">{previewError}</p>}
+                {preview && <div role="status" className="space-y-1 text-slate-700 dark:text-slate-200">
+                  <p>{isVi ? 'Điểm tạm tính: ' : 'Provisional score: '}
+                    <strong>{preview.overallScore != null ? `${Number(preview.overallScore).toFixed(1)}%` : 'N/A'}</strong></p>
+                  <p>{isVi ? 'Trạng thái: ' : 'Status: '}{preview.status}</p>
+                  <p>{isVi ? 'Phương pháp: ' : 'Method: '}{preview.semanticMethod || 'N/A'}</p>
+                  <p>{isVi ? 'Bản xem trước không tạo đơn; điểm cuối có thể đổi khi vector CV/JD sẵn sàng.' : 'Preview does not submit an application; the final score may change when CV/JD vectors are ready.'}</p>
+                </div>}
               </div>
 
               {submitError && (

@@ -13,6 +13,7 @@ import com.platform.recruitment.company.CompanyVerification;
 import com.platform.recruitment.company.dto.CompanyResponse;
 import com.platform.recruitment.company.service.CompanyVerificationService;
 import com.platform.recruitment.auth.JwtTokenProvider;
+import com.platform.recruitment.auth.AuthSessionService;
 import com.platform.recruitment.config.JwtAuthenticationFilter;
 import com.platform.recruitment.config.SecurityConfig;
 import com.platform.recruitment.user.Role;
@@ -60,6 +61,9 @@ public class CompanyVerificationContextLoadTest {
 
     @MockBean
     private JwtTokenProvider tokenProvider;
+
+    @MockBean
+    private AuthSessionService authSessionService;
 
     @MockBean
     private UserRepository userRepository;

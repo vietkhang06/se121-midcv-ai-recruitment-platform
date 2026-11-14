@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.platform.recruitment.company.RecruiterProfileRepository;
 import com.platform.recruitment.matching.CandidateRankingService;
 import com.platform.recruitment.matching.MatchResultRepository;
+import com.platform.recruitment.matching.MatchResult;
 
 import com.platform.recruitment.cv.CVVersion;
 import com.platform.recruitment.cv.CVVersionRepository;
@@ -140,6 +141,44 @@ public class ApplicationDuplicateProtectionTest {
         assertEquals(candidate.getId(), response.getCandidateId());
         verify(applicationRepository, times(1)).save(any(Application.class));
         verify(snapshotRepository, times(1)).save(any(ApplicationCVSnapshot.class));
+        verifyNoInteractions(matchingEngineService);
+    }
+
+    @Test
+    void consentedQuickApplyScoresTheSelectedCvAndStoresConsent() {
+        request1.setAiAnalysisConsent(true);
+        when(candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())).thenReturn(Optional.of(candidate));
+        when(jobRepository.findByIdForApply(job1.getId())).thenReturn(Optional.of(job1));
+        when(cvRepository.findByIdForUpdate(cv.getId())).thenReturn(Optional.of(cv));
+        when(applicationRepository.save(any(Application.class))).thenAnswer(invocation -> {
+            Application saved = invocation.getArgument(0);
+            saved.setId(UUID.randomUUID());
+            return saved;
+        });
+
+        ApplicationResponse response = applicationService.submitApplication(candidateUser, request1);
+
+        assertEquals(Boolean.TRUE, response.getAiAnalysisConsent());
+        org.mockito.ArgumentCaptor<Application> captured = org.mockito.ArgumentCaptor.forClass(Application.class);
+        verify(applicationRepository).save(captured.capture());
+        assertNotNull(captured.getValue().getAiConsentAt());
+        assertEquals("quick-apply-v1", captured.getValue().getAiConsentVersion());
+        verify(matchingEngineService).calculateAndPersistMatchResult(job1.getId(), candidate.getId());
+    }
+
+    @Test
+    void previewUsesOwnedConfirmedVersionWithoutCreatingAnApplication() {
+        request1.setAiAnalysisConsent(true);
+        when(candidateProfileRepository.findByUserId(candidateUser.getId())).thenReturn(Optional.of(candidate));
+        when(jobRepository.findById(job1.getId())).thenReturn(Optional.of(job1));
+        when(cvRepository.findById(cv.getId())).thenReturn(Optional.of(cv));
+        when(matchingEngineService.previewMatch(any(), any(), any())).thenReturn(MatchResult.builder().build());
+
+        assertNotNull(applicationService.previewApplication(candidateUser, request1));
+        CVVersion selectedVersion = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cv.getId()).get(0);
+        verify(matchingEngineService).previewMatch(job1.getId(), candidate.getId(), selectedVersion.getId());
+        verify(applicationRepository, never()).save(any());
+        verify(snapshotRepository, never()).save(any());
     }
 
     @Test

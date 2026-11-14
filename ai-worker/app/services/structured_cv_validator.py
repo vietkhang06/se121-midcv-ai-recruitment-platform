@@ -177,6 +177,20 @@ class StructuredCVValidator:
                 model.warnings.append("Unsupported extracted skill omitted; review the source document.")
         model.skills = retained
 
+        # Education institution names are proper nouns and must be stated in the
+        # source. Keeping a model-invented school in the draft makes it look like
+        # extracted fact and allows it to be confirmed without correction.
+        grounded_education = []
+        for education in model.education:
+            institution = (education.institution or "").strip()
+            if institution and normalized(institution) in normalized_raw:
+                grounded_education.append(education)
+            else:
+                model.warnings.append(
+                    "Unsupported education institution omitted; enter the school from the source document if applicable."
+                )
+        model.education = grounded_education
+
         number = r"(\d+(?:[.,]\d+)?)"
         gpa_mentions = []
         # Explicit labelled grades may omit a scale. Bare fractions require a decimal
@@ -220,5 +234,5 @@ class StructuredCVValidator:
         model.warnings = list(dict.fromkeys(model.warnings))
         model.evidence["raw_char_count"] = len(raw_text)
         model.evidence["extracted_skills_count"] = len(model.skills)
-        model.evidence["grounding_policy"] = "unsupported_skills_gpa_removed_v1"
+        model.evidence["grounding_policy"] = "unsupported_skills_gpa_education_institution_removed_v2"
         return model

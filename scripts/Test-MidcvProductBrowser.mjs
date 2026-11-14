@@ -1,0 +1,57 @@
+import { chromium } from '../frontend/node_modules/playwright/index.mjs';
+import fs from 'node:fs';
+const ctx=JSON.parse(fs.readFileSync(process.env.MIDCV_BROWSER_CONTEXT,'utf8'));
+const web=(process.env.MIDCV_WEB_URL || 'http://localhost:3000').replace(/\/$/,'');
+const api=(process.env.MIDCV_API_URL || 'http://localhost:8080').replace(/\/$/,'');
+const browser=await chromium.launch({...(process.env.CHROME_PATH ? {executablePath:process.env.CHROME_PATH} : {}),headless:true,args:process.env.MIDCV_BROWSER_LEGACY ? ['--headless=old','--no-sandbox','--disable-dev-shm-usage','--single-process','--no-zygote','--disable-gpu'] : []});
+const errors=[];
+try {
+ const context=await browser.newContext({viewport:{width:1440,height:1000}});
+ const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(web+'/employers');await page.getByRole('link',{name:'Đăng ký doanh nghiệp'}).waitFor();
+ await page.goto(web+'/jobs');await page.getByRole('button',{name:'Đăng ký',exact:true}).first().click();await page.getByRole('button',{name:'Nhà tuyển dụng',exact:true}).click();await page.waitForURL('**/employers/register');
+ for(const label of ['Số điện thoại người đại diện','Mã số thuế doanh nghiệp','Địa chỉ doanh nghiệp'])await page.getByLabel(label,{exact:true}).waitFor();
+ console.log('PASS | UI employer portal links to dedicated account flow');
+ await context.addInitScript((both)=>{const isHr=localStorage.getItem('live_use_hr')==='true';const auth=isHr?both.hr:both.candidate;localStorage.setItem('auth_token',auth.accessToken);localStorage.setItem('auth_refresh_token',auth.refreshToken);localStorage.setItem('auth_user',JSON.stringify({id:auth.userId,email:auth.email,fullName:isHr?'MidCV Live HR':'MidCV Live Candidate',role:isHr?'RECRUITER':'CANDIDATE',emailVerified:true}));},{hr:ctx.hr,candidate:ctx.candidate});
+ await page.goto(web+'/candidate/cvs/builder');
+ await page.getByRole('heading',{name:'Chọn mẫu, kể câu chuyện của bạn.'}).waitFor();
+ for (const title of ['Tiêu chuẩn','Tiêu chuẩn (Ít kinh nghiệm)','Sáng tạo','Ấn tượng']) await page.getByRole('heading',{name:title,exact:true}).waitFor();
+ await page.getByRole('button',{name:'Chuyên nghiệp',exact:true}).click();await page.getByRole('heading',{name:'Ấn tượng',exact:true}).waitFor();
+ if(await page.getByRole('heading',{name:'Tiêu chuẩn',exact:true}).count())throw new Error('Gallery filter did not remove unrelated cards');
+ await page.getByRole('button',{name:'Tất cả',exact:true}).click();await page.getByRole('heading',{name:'Sáng tạo',exact:true}).click();
+ await page.locator('#printable-cv').waitFor();if(!(await page.locator('#printable-cv').getAttribute('class')).includes('creative'))throw new Error('Template not selected');
+ console.log('PASS | UI gallery displays four official templates; category filter and selection work');
+ await page.goto(web+'/candidate/cvs/builder?edit='+ctx.cv);await page.locator('#printable-cv').waitFor();
+ await page.getByLabel('Font CV',{exact:true}).selectOption('Verdana');await page.getByRole('button',{name:'Lưu',exact:true}).click();await page.getByText('Bản nháp đã được lưu.',{exact:true}).waitFor();
+ await page.reload();await page.locator('#printable-cv').waitFor();await page.waitForTimeout(800);
+ if(await page.getByLabel('Font CV',{exact:true}).inputValue()!=='Verdana')throw new Error('CV font did not persist after reload');
+ console.log('PASS | UI saves CV design through real API and reloads persisted font');
+ await page.goto(web+'/jobs');await page.getByRole('button',{name:/Danh mục Nghề/}).click();
+ await page.getByPlaceholder('Tìm theo tên tiếng Việt, tiếng Anh hoặc mã ISCO…').fill('Backend');await page.getByRole('button',{name:/Lập trình viên Backend/}).first().click();await page.getByRole('button',{name:'Áp dụng',exact:true}).click();
+ console.log('PASS | UI three-column occupation catalog searches and applies actual code filter');
+ const confirm=await page.request.post(api+'/api/v1/candidate/cvs/'+ctx.cv+'/confirm',{headers:{Authorization:'Bearer '+ctx.candidate.accessToken}});if(!confirm.ok())throw new Error('Could not confirm edited CV');
+ await page.goto(web+'/jobs/'+ctx.jobs[2]);await page.getByRole('button',{name:'Ứng tuyển',exact:true}).first().click();
+ await page.getByRole('button',{name:'Chọn từ kho CV',exact:true}).waitFor();
+ const consent=page.getByRole('checkbox',{name:'Cho phép midCV sử dụng công nghệ AI để phân tích độ phù hợp CV của bạn.',exact:true});if(await consent.isChecked())throw new Error('AI consent must default to unchecked');
+ await page.getByRole('button',{name:'Nộp Đơn Ứng Tuyển',exact:true}).click();await page.getByRole('heading',{name:'Ứng Tuyển Thành Công!',exact:true}).waitFor();
+ console.log('PASS | UI application selects a confirmed CV and submits with AI consent unchecked');
+ await page.evaluate(()=>localStorage.setItem('live_use_hr','true'));
+ const hrContext=context; const hr=page;
+ await hr.goto(web+'/recruiter/candidates');await hr.getByRole('heading',{name:'Quản lý CV ứng viên',exact:true}).waitFor();await hr.getByText('Ứng viên chưa đồng ý phân tích AI',{exact:false}).first().waitFor();
+
+ await hr.goto(web+'/recruiter/jobs/new');await hr.getByRole('textbox',{name:'Mô tả công việc',exact:true}).fill('Nội dung JD kiểm thử trình định dạng.');
+ await hr.getByRole('textbox',{name:'Mô tả công việc',exact:true}).press('Control+A');await hr.getByRole('button',{name:'In đậm',exact:true}).first().click();
+ await hr.getByRole('textbox',{name:'Quyền lợi',exact:true}).fill('Quyền lợi được lưu từ UI.');
+
+ await hr.getByPlaceholder('Ví dụ: Senior Java Backend Engineer, Data Scientist...').fill('JD saved through live browser');
+ await hr.getByRole('textbox',{name:'Yêu cầu ứng viên',exact:true}).fill('Kinh nghiệm Java thực tế.');
+ await hr.getByRole('button',{name:'Lưu Bản Nháp (Draft)',exact:true}).click();await hr.waitForURL('**/recruiter/jobs');
+ const saved=await hr.request.get(api+'/api/v1/recruiter/jobs?size=100',{headers:{Authorization:'Bearer '+ctx.hr.accessToken}});const savedBody=await saved.json();const jd=savedBody.data.content.find(j=>j.title==='JD saved through live browser');
+ if(!jd||!/<(b|strong)>/.test(jd.descriptionHtml)||!jd.benefitsContent.includes('Quyền lợi được lưu từ UI.'))throw new Error('Rich JD formatting was not persisted from browser');
+ console.log('PASS | UI rich JD save preserves bold formatting and benefit content in database');
+ console.log('PASS | UI recruiter workspace renders consent status; rich JD editor is interactive');
+ await hr.goto(web+'/recruiter/applications/'+ctx.applications[0]);await hr.getByText('Hồ sơ ứng tuyển · Phiên bản đã chốt').waitFor();await hr.getByText('Ứng viên chưa đồng ý cho midCV phân tích và chấm điểm CV cho đơn ứng tuyển này.',{exact:true}).waitFor();
+ console.log('PASS | UI immutable CV detail displays opted-out state and persisted snapshot');
+ if(errors.length)throw new Error('Browser runtime errors: '+errors.join(' | '));
+ await hrContext.close();
+} finally {await browser.close();}

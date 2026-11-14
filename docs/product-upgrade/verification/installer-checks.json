@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "action": "compatibility check",
+      "result": "PASS"
+    },
+    {
+      "action": "apply",
+      "result": "PASS"
+    },
+    {
+      "action": "compatibility check",
+      "result": "PASS"
+    },
+    {
+      "action": "conflict protection",
+      "result": "PASS"
+    }
+  ]
+}

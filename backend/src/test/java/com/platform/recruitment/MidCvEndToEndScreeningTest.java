@@ -398,10 +398,10 @@ public class MidCvEndToEndScreeningTest {
         // Candidate 1 CV
         String cvRawText = "Hồ sơ ứng viên Nguyễn Văn A: 5 năm kinh nghiệm lập trình Java, Spring Boot, PostgreSQL. Kỹ năng phụ trợ: Docker. Tốt nghiệp Đại học Bách Khoa ngành Công nghệ Thông tin.";
         CV cv1 = CV.builder().candidate(candidateProfile1).rawText(cvRawText).build();
-        when(cvRepository.findByCandidateId(candidateProfile1.getId())).thenReturn(List.of(cv1));
 
         Application app1 = Application.builder().job(jobA).candidate(candidateProfile1).build();
         app1.setId(UUID.randomUUID());
+        ConfirmedCvFixture.attach(app1, cv1, cvRawText);
         when(applicationRepository.findByJobIdAndCandidateId(jobA.getId(), candidateProfile1.getId())).thenReturn(Optional.of(app1));
         when(matchResultRepository.findByApplicationId(app1.getId())).thenReturn(Optional.empty());
         when(matchResultRepository.save(any())).thenAnswer(inv -> {
@@ -424,7 +424,7 @@ public class MidCvEndToEndScreeningTest {
         MatchResult result = matchingEngineService.calculateAndPersistMatchResult(jobA.getId(), candidateProfile1.getId());
 
         assertNotNull(result);
-        assertEquals("COMPLETED", result.getStatus());
+        assertEquals("PENDING_VECTOR", result.getStatus());
         assertEquals(3, result.getRequiredSkillsTotal());
         assertEquals(3, result.getRequiredSkillsMatched());
         assertEquals(0, result.getRequiredSkillsMissing());
@@ -438,14 +438,12 @@ public class MidCvEndToEndScreeningTest {
             return true;
         }));
 
-        // Reconstruct Core Score from MatchFactors:
-        // Sum(score * weight) over all factors
-        double reconstructedCore = savedFactors.stream()
+        // Contributions are rounded to 2 decimals individually by the production policy.
+        BigDecimal reconstructedCoreBd = savedFactors.stream()
                 .filter(f -> !"GITHUB_SUPPORTING".equals(f.getFactorType()))
-                .mapToDouble(f -> f.getScore().doubleValue() * f.getWeight().doubleValue())
-                .sum();
-
-        BigDecimal reconstructedCoreBd = BigDecimal.valueOf(reconstructedCore).setScale(2, RoundingMode.HALF_UP);
+                .map(MatchFactor::getWeightedContribution)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
         assertEquals(result.getCoreScore(), reconstructedCoreBd, "Persisted core score must exactly match sum of factor weights");
 
         // Verify Overall Score equals Core Score when GitHub is absent
@@ -526,10 +524,10 @@ public class MidCvEndToEndScreeningTest {
 
         String rawCv = "Kỹ năng chuyên môn: Thành thạo Java Spring Boot xây dựng hệ thống phân tán microservices.";
         CV cv = CV.builder().candidate(candidateProfile1).rawText(rawCv).build();
-        when(cvRepository.findByCandidateId(candidateProfile1.getId())).thenReturn(List.of(cv));
 
         Application app = Application.builder().job(jobA).candidate(candidateProfile1).build();
         app.setId(UUID.randomUUID());
+        ConfirmedCvFixture.attach(app, cv, rawCv);
         when(applicationRepository.findById(app.getId())).thenReturn(Optional.of(app));
 
         MatchResult mr = MatchResult.builder()
@@ -644,6 +642,9 @@ public class MidCvEndToEndScreeningTest {
         // Test C: Candidate 2 attempting to inspect Candidate 1's application -> 403 Forbidden
         Application appCand1 = Application.builder().job(jobA).candidate(candidateProfile1).build();
         appCand1.setId(UUID.randomUUID());
+        ConfirmedCvFixture.attach(appCand1,
+                CV.builder().candidate(candidateProfile1).build(),
+                "Reviewed candidate Java backend experience.");
         when(applicationRepository.findById(appCand1.getId())).thenReturn(Optional.of(appCand1));
 
         UnauthorizedAccessException exCrossCand = assertThrows(UnauthorizedAccessException.class, () -> {
@@ -679,7 +680,7 @@ public class MidCvEndToEndScreeningTest {
         when(applicationRepository.findByJobIdAndCandidateId(jobA.getId(), candidateProfile1.getId())).thenReturn(Optional.of(app));
 
         CV cv = CV.builder().candidate(candidateProfile1).rawText("Java Spring Boot PostgreSQL").build();
-        when(cvRepository.findByCandidateId(candidateProfile1.getId())).thenReturn(List.of(cv));
+        ConfirmedCvFixture.attach(app, cv, cv.getRawText());
 
         MatchResult existingResult = MatchResult.builder()
                 .application(app)
@@ -696,6 +697,6 @@ public class MidCvEndToEndScreeningTest {
         MatchResult updated = matchingEngineService.calculateAndPersistMatchResult(jobA.getId(), candidateProfile1.getId());
 
         assertEquals(existingResult.getId(), updated.getId(), "Should update existing MatchResult ID rather than inserting duplicates");
-        assertEquals("COMPLETED", updated.getStatus());
+        assertEquals("PENDING_VECTOR", updated.getStatus());
     }
 }

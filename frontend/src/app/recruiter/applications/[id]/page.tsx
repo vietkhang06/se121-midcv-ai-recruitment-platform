@@ -278,8 +278,13 @@ export default function CandidateMatchInspectionPage({
     );
   }
 
-  const candidateDisplayName =
-    application?.candidateName || data?.candidateName || 'Ứng viên';
+  const candidateDisplayName = application?.appliedCvFullName ||
+    (locale === 'vi' ? 'Không ghi trong CV đã nộp' : 'Not provided in submitted CV');
+  const detailAccess = data?.detailAccess === true && application?.proDetailAvailable !== false;
+  const classificationOnly = !!data && !detailAccess && !!data.matchClassification;
+  const classificationLabels: Record<string, string> = locale === 'vi'
+    ? { PHU_HOP: 'Phù hợp', CAN_NHAC: 'Cân nhắc', KHONG_PHU_HOP: 'Không phù hợp', CHUA_KHA_DUNG: 'Chưa khả dụng' }
+    : { PHU_HOP: 'Suitable', CAN_NHAC: 'Consider', KHONG_PHU_HOP: 'Not suitable', CHUA_KHA_DUNG: 'Unavailable' };
 
   const currentStatus =
     application?.status || (data ? 'MATCHED' : 'SUBMITTED');
@@ -290,6 +295,7 @@ export default function CandidateMatchInspectionPage({
   // An application may exist before matching has produced an inspection result.
   // Normalize the score once so the UI safely displays N/A in that case.
   const overallScore =
+    detailAccess &&
     typeof data?.overallScore === 'number' &&
     Number.isFinite(data.overallScore)
       ? data.overallScore
@@ -588,14 +594,14 @@ export default function CandidateMatchInspectionPage({
               <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 {locale === 'vi'
-                  ? 'Thông Tin Hồ Sơ Ứng Viên (Candidate Identity)'
-                  : 'Candidate Identity & Contact Information'}
+                  ? 'Thông tin từ CV đã nộp'
+                  : 'Submitted CV contact information'}
               </h3>
             </div>
             <span className="text-[11px] font-sans text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-xl font-semibold">
               {locale === 'vi'
-                ? 'Thông tin từ đơn ứng tuyển'
-                : 'Application profile information'}
+                ? 'Snapshot CV tại thời điểm ứng tuyển'
+                : 'CV snapshot at application time'}
             </span>
           </div>
 
@@ -615,7 +621,7 @@ export default function CandidateMatchInspectionPage({
               <span className="font-semibold text-slate-900 dark:text-white flex items-center gap-1">
                 <Mail className="w-3.5 h-3.5 text-blue-500" />
                 <span className="font-sans">
-                  {application?.candidateEmail ||
+                  {application?.appliedCvEmail ||
                     (locale === 'vi'
                       ? 'Chưa cung cấp email'
                       : 'Email not provided')}
@@ -629,7 +635,7 @@ export default function CandidateMatchInspectionPage({
               <span className="font-semibold text-slate-900 dark:text-white flex items-center gap-1">
                 <Phone className="w-3.5 h-3.5 text-emerald-500" />
                 <span className="font-sans">
-                  {application?.candidatePhone ||
+                  {application?.appliedCvPhone ||
                     (locale === 'vi'
                       ? 'Chưa cập nhật SĐT'
                       : 'Not provided')}
@@ -642,12 +648,12 @@ export default function CandidateMatchInspectionPage({
                   ? 'Tài khoản GitHub:'
                   : 'GitHub Profile:'}
               </span>
-              {application?.githubUrl ? (
+              {application?.appliedCvGithubUrl ? (
                 <a
                   href={
-                    application.githubUrl.startsWith('http')
-                      ? application.githubUrl
-                      : `https://${application.githubUrl}`
+                    application.appliedCvGithubUrl.startsWith('http')
+                      ? application.appliedCvGithubUrl
+                      : `https://${application.appliedCvGithubUrl}`
                   }
                   target="_blank"
                   rel="noopener noreferrer"
@@ -655,7 +661,7 @@ export default function CandidateMatchInspectionPage({
                 >
                   <GitBranch className="w-3.5 h-3.5" />
                   <span>
-                    {application.githubUrl.replace('https://github.com/', '')}
+                    {application.appliedCvGithubUrl.replace('https://github.com/', '')}
                   </span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
@@ -669,7 +675,14 @@ export default function CandidateMatchInspectionPage({
         </div>
 
         {/* Top 2-Card Row: Overall Fit Index & Match Explanation Narrative */}
-        {data && (
+        {classificationOnly && (
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+            {locale === 'vi' ? 'Gói Standard chỉ hiển thị phân loại: ' : 'Standard plan classification: '}
+            <strong>{classificationLabels[data?.matchClassification || ''] || data?.matchClassification}</strong>
+            {locale === 'vi' ? '. Điểm và minh chứng chi tiết không được cung cấp cho gói này.' : '. Scores and detailed evidence are unavailable on this plan.'}
+          </div>
+        )}
+        {data && detailAccess && data.overallScore !== null && (
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             {/* Card 1: Overall Fit Index */}
             <div className="md:col-span-4 bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-7 shadow-xs flex flex-col items-center justify-center text-center space-y-4 transition-colors">
@@ -796,10 +809,10 @@ export default function CandidateMatchInspectionPage({
         )}
 
         {/* Match Scores & Semantic Skills Breakdown */}
-        {data && <ScoreBreakdownCard data={data} />}
+        {data && detailAccess && data.overallScore !== null && <ScoreBreakdownCard data={data} />}
 
         {/* GitHub Assessment Card */}
-        {data && (
+        {data && detailAccess && data.overallScore !== null && (
           <GitHubAssessmentCard assessment={data.githubAssessment} />
         )}
 

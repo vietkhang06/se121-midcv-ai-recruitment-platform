@@ -1,5 +1,9 @@
 # MidCV — Current implementation and verification status
 
+## ARCH-01 / ARCH-02 (13/11/2026)
+
+Đã bổ sung trạng thái phương pháp matching `PENDING_VECTOR`, `FALLBACK_USED`, `PGVECTOR_READY`, giao diện HR hiển thị điểm tạm tính và công cụ đối chiếu API/SQL thật. **ARCH-01 chưa nghiệm thu**, ARCH-02 chưa có bằng chứng chuyển trạng thái từ vector chờ sang Pgvector trên hệ thống đang chạy. Không nâng các phase `NOT_STARTED` chỉ từ sửa source. Quy trình và điều kiện đóng task: [ARCH_01_02_LIVE_ACCEPTANCE.md](ARCH_01_02_LIVE_ACCEPTANCE.md).
+
 Updated after implementation work on 21/10/2026.
 
 ## Verification rule
@@ -37,3 +41,7 @@ Chưa có live PostgreSQL/OAuth/SMTP/restart acceptance trong môi trường bà
 C02/J01/P01–P02/G01/Q01–Q03/N01–N02: xem [BUSINESS_TASKS_20261031.md](BUSINESS_TASKS_20261031.md).
 
 Bản này thêm V30, giữ toàn bộ migration trước đó. Kết quả hồi quy được ghi riêng tại `task-evidence/20261031-business/`; không nâng trạng thái live acceptance của các phase chỉ từ kết quả Mockito/H2/HTTP loopback hoặc build frontend.
+
+## Bổ sung nâng cấp sản phẩm — 04/11/2026
+
+Phạm vi, API và bằng chứng kiểm thử của nâng cấp giao diện/nghiệp vụ được ghi tại [product-upgrade/IMPLEMENTATION_AND_ACCEPTANCE.md](product-upgrade/IMPLEMENTATION_AND_ACCEPTANCE.md) và [product-upgrade/API_ADDITIONS.md](product-upgrade/API_ADDITIONS.md). Bằng chứng này không thay thế nghiệm thu chất lượng LLM/OCR/GitHub của các phase trước.

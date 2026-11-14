@@ -1,0 +1,80 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> frontend@0.1.0 build
+> next build
+
+▲ Next.js 16.3.3 (Turbopack)
+✓ Running next.config.ts took 24ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 790ms
+  Running TypeScript ...
+  Finished TypeScript in 2.4s ...
+  Collecting page data using 8 workers ...
+  Generating static pages using 8 workers (0/51) ...
+  Generating static pages using 8 workers (12/51)
+  Generating static pages using 8 workers (25/51)
+  Generating static pages using 8 workers (38/51)
+✓ Generating static pages using 8 workers (51/51) in 553ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /admin
+├ ○ /admin/account
+├ ○ /admin/ai-settings
+├ ○ /admin/audit-logs
+├ ○ /admin/companies
+├ ○ /admin/moderation
+├ ○ /admin/notifications
+├ ○ /admin/taxonomy
+├ ○ /admin/users
+├ ○ /apple-icon.png
+├ ○ /candidate
+├ ○ /candidate/account
+├ ○ /candidate/applications
+├ ○ /candidate/cvs
+├ ○ /candidate/cvs/builder
+├ ○ /candidate/messages
+├ ○ /candidate/notifications
+├ ○ /candidate/profile
+├ ○ /employers
+├ ○ /employers/login
+├ ○ /employers/register
+├ ○ /forgot-password
+├ ○ /help
+├ ○ /icon.png
+├ ○ /icon.svg
+├ ○ /jobs
+├ ƒ /jobs/[id]
+├ ○ /jobseekers/login
+├ ○ /jobseekers/register
+├ ○ /login
+├ ○ /oauth/callback
+├ ○ /oauth/complete
+├ ○ /recruiter
+├ ○ /recruiter/account
+├ ○ /recruiter/analytics
+├ ƒ /recruiter/applications/[id]
+├ ○ /recruiter/campaigns
+├ ○ /recruiter/candidates
+├ ○ /recruiter/company
+├ ○ /recruiter/jobs
+├ ƒ /recruiter/jobs/[id]
+├ ƒ /recruiter/jobs/[id]/applications
+├ ƒ /recruiter/jobs/[id]/edit
+├ ƒ /recruiter/jobs/[id]/ranking
+├ ○ /recruiter/jobs/new
+├ ○ /recruiter/messages
+├ ○ /recruiter/notifications
+├ ○ /recruiter/pipeline
+├ ○ /recruiter/profile
+├ ○ /recruiter/services
+├ ○ /register
+├ ○ /reset-password
+└ ○ /verify-email
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

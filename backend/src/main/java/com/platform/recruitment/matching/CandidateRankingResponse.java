@@ -34,4 +34,37 @@ public class CandidateRankingResponse {
     private String matchingAlgorithmVersion;
     private String aiSummary;
     private ZonedDateTime appliedAt;
+
+    public void redactForStandardPlan(com.platform.recruitment.product.AiScreeningAccessService policy) {
+        if (overallScore != null) status = policy.classify(overallScore);
+        overallScore = null;
+        coreScore = null;
+        githubScore = null;
+        requiredSkillsMatched = null;
+        requiredSkillsTotal = null;
+        requiredSkillsMissing = null;
+        preferredSkillsMatched = null;
+        preferredSkillsTotal = null;
+        isGithubActive = null;
+        githubFallbackApplied = null;
+        matchingAlgorithmVersion = null;
+        aiSummary = null;
+    }
+
+    public void redactForStandardPlan() {
+        if (overallScore != null) status =
+                com.platform.recruitment.product.AiScreeningAccessService.classifyScore(overallScore);
+        overallScore = null;
+        coreScore = null;
+        githubScore = null;
+        requiredSkillsMatched = null;
+        requiredSkillsTotal = null;
+        requiredSkillsMissing = null;
+        preferredSkillsMatched = null;
+        preferredSkillsTotal = null;
+        isGithubActive = null;
+        githubFallbackApplied = null;
+        matchingAlgorithmVersion = null;
+        aiSummary = null;
+    }
 }

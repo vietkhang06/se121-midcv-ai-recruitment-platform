@@ -5,6 +5,10 @@ server:
     include-binding-errors: never
     include-stacktrace: never
 
+app:
+  testing:
+    standard-recruiter-full-access: false
+
 spring:
   jpa:
     show-sql: false
@@ -31,3 +35,6 @@ management:
   endpoint:
     health:
       show-details: never
+  health:
+    mail:
+      enabled: ${MAIL_HEALTH_ENABLED:true}

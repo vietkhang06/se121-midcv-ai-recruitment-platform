@@ -168,6 +168,11 @@ export interface Application {
   candidateEmail?: string;
   candidatePhone?: string;
   candidateHeadline?: string;
+  appliedCvFullName?: string;
+  appliedCvEmail?: string;
+  appliedCvPhone?: string;
+  appliedCvHeadline?: string;
+  appliedCvGithubUrl?: string;
   status: ApplicationStatus;
   appliedDate: string;
   expectedSalary?: number;
@@ -176,6 +181,11 @@ export interface Application {
   portfolioUrl?: string;
   matchScore?: number;
   matchStatus?: string;
+  matchClassification?: string;
+  aiAnalysisConsent?: boolean;
+  proDetailAvailable?: boolean;
+  recruiterPlan?: 'STANDARD' | 'PRO';
+  developmentProAccess?: boolean;
   snapshot?: {
     cvTitle?: string;
     rawTextSnapshot?: string;
@@ -280,6 +290,8 @@ export interface MatchInspectionData {
   candidateName: string;
   algorithmVersion?: string;
   calculationStatus?: string;
+  matchClassification?: string;
+  detailAccess?: boolean;
   overallScore: number | null;
   coreScore: number | null;
   githubScore?: number | null;

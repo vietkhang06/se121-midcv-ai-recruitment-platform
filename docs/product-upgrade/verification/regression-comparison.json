@@ -1,0 +1,16 @@
+{
+  "baseline_counts": {
+    "PASS": 376,
+    "FAIL": 13,
+    "ERROR": 62,
+    "SKIP": 17
+  },
+  "current_counts_common": {
+    "PASS": 376,
+    "FAIL": 13,
+    "ERROR": 62,
+    "SKIP": 17
+  },
+  "introduced_failures": {},
+  "scope": "95 pre-existing classes under the same Java21 / ByteBuddy premain environment; external-stack classes omitted"
+}

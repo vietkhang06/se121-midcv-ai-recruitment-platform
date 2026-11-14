@@ -172,3 +172,8 @@ Tài liệu này xác định các tiêu chí nghiệm thu (Acceptance Criteria 
   - Kiểm tra thẩm định 100% các route API bảo đảm: Candidate không vào được Recruiter/Admin route, Recruiter không cấu hình AI, Admin không nộp đơn giả lập.
 - **AC-P10-03 (Zero Fabrication Audit)**:
   - Mọi báo cáo kết quả kiểm thử đều có exit code, log và timestamp thực tế từ môi trường máy chủ.
+
+
+## Bổ sung nâng cấp sản phẩm — 04/11/2026
+
+Phạm vi, API và bằng chứng kiểm thử của nâng cấp giao diện/nghiệp vụ được ghi tại [product-upgrade/IMPLEMENTATION_AND_ACCEPTANCE.md](product-upgrade/IMPLEMENTATION_AND_ACCEPTANCE.md) và [product-upgrade/API_ADDITIONS.md](product-upgrade/API_ADDITIONS.md). Bằng chứng này không thay thế nghiệm thu chất lượng LLM/OCR/GitHub của các phase trước.

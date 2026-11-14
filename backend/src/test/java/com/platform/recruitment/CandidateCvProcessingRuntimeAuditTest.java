@@ -159,7 +159,9 @@ public class CandidateCvProcessingRuntimeAuditTest {
         attackerProfile.setId(UUID.randomUUID());
 
         lenient().when(candidateProfileRepository.findByUserId(userId)).thenReturn(Optional.of(candidateProfile));
+        lenient().when(candidateProfileRepository.findByUserIdForUpdate(userId)).thenReturn(Optional.of(candidateProfile));
         lenient().when(candidateProfileRepository.findByUserId(attackerUser.getId())).thenReturn(Optional.of(attackerProfile));
+        lenient().when(candidateProfileRepository.findByUserIdForUpdate(attackerUser.getId())).thenReturn(Optional.of(attackerProfile));
 
         // Default jdbcTemplate mocks for Documents and JobQueue
         lenient().doReturn(List.of(Map.of("id", UUID.randomUUID())))
@@ -247,6 +249,7 @@ public class CandidateCvProcessingRuntimeAuditTest {
         cv.setId(cvId);
 
         when(cvRepository.findById(cvId)).thenReturn(Optional.of(cv));
+        lenient().when(cvRepository.findByIdForUpdate(cvId)).thenReturn(Optional.of(cv));
         when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cvId)).thenReturn(Collections.emptyList());
         when(cvVersionRepository.save(any(CVVersion.class))).thenAnswer(inv -> {
             CVVersion v = inv.getArgument(0);
@@ -276,6 +279,7 @@ public class CandidateCvProcessingRuntimeAuditTest {
         cv.setId(cvId);
 
         when(cvRepository.findById(cvId)).thenReturn(Optional.of(cv));
+        lenient().when(cvRepository.findByIdForUpdate(cvId)).thenReturn(Optional.of(cv));
 
         // Attacker attempting to access candidate's CV
         assertThrows(UnauthorizedAccessException.class, () -> cvService.getCVById(attackerUser, cvId));
@@ -333,7 +337,7 @@ public class CandidateCvProcessingRuntimeAuditTest {
                 "required_skills", List.of(Map.of("normalized_name", "Java", "min_years_exp", 5))
         ));
 
-        processingLifecycleService.processJobDescription(jobId);
+        processingLifecycleService.processJobDescription(User.builder().role(Role.ADMIN).build(), jobId);
         verify(aiWorkerClient, times(1)).extractJd(eq(jobId), eq("Staff Engineer"), eq("Tech"), eq("Java & Cloud"));
 
         // 2. GitHub profile analysis
@@ -363,6 +367,7 @@ public class CandidateCvProcessingRuntimeAuditTest {
         cv.setId(cvId);
 
         when(cvRepository.findById(cvId)).thenReturn(Optional.of(cv));
+        lenient().when(cvRepository.findByIdForUpdate(cvId)).thenReturn(Optional.of(cv));
         when(cvRepository.findByCandidateId(candidateProfile.getId())).thenReturn(List.of(cv));
 
         CVResponse byId = cvService.getCVById(candidateUser, cvId);

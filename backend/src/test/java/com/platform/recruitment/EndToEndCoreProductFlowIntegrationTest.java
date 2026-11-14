@@ -4,6 +4,7 @@ import com.platform.recruitment.application.*;
 import com.platform.recruitment.candidate.CandidateProfile;
 import com.platform.recruitment.candidate.CandidateProfileRepository;
 import com.platform.recruitment.common.CustomException;
+import com.platform.recruitment.common.ErrorCode;
 import com.platform.recruitment.common.UnauthorizedAccessException;
 import com.platform.recruitment.company.Company;
 import com.platform.recruitment.company.CompanyVerification;
@@ -81,6 +82,8 @@ public class EndToEndCoreProductFlowIntegrationTest {
         hiringCompany = Company.builder()
                 .name("MidCV Technologies")
                 .verificationStatus(CompanyVerification.VERIFIED)
+                .recruiterPlan("PRO")
+                .recruiterProUntil(ZonedDateTime.now().plusDays(1))
                 .build();
         hiringCompany.setId(UUID.randomUUID());
 
@@ -127,9 +130,9 @@ public class EndToEndCoreProductFlowIntegrationTest {
     @DisplayName("Service-level lifecycle with mocked repositories and scorer; not full 15-step live E2E")
     void testFullRecruitmentLifecycle() {
         // Step 1: Candidate submits application
-        when(candidateProfileRepository.findByUserId(candidateUser.getId())).thenReturn(Optional.of(candidateProfile));
-        when(jobRepository.findById(backendJob.getId())).thenReturn(Optional.of(backendJob));
-        when(cvRepository.findById(candidateCv.getId())).thenReturn(Optional.of(candidateCv));
+        when(candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())).thenReturn(Optional.of(candidateProfile));
+        when(jobRepository.findByIdForApply(backendJob.getId())).thenReturn(Optional.of(backendJob));
+        when(cvRepository.findByIdForUpdate(candidateCv.getId())).thenReturn(Optional.of(candidateCv));
         when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(candidateCv.getId())).thenReturn(List.of(confirmedVersion));
         when(applicationRepository.existsByJobIdAndCandidateId(backendJob.getId(), candidateProfile.getId())).thenReturn(false);
 
@@ -142,6 +145,7 @@ public class EndToEndCoreProductFlowIntegrationTest {
         SubmitApplicationRequest submitReq = new SubmitApplicationRequest();
         submitReq.setJobId(backendJob.getId());
         submitReq.setCvId(candidateCv.getId());
+        submitReq.setAiAnalysisConsent(true);
 
         ApplicationResponse appResp = applicationService.submitApplication(candidateUser, submitReq);
 
@@ -154,6 +158,7 @@ public class EndToEndCoreProductFlowIntegrationTest {
 
         // Step 2: Recruiter retrieves ranked applications
         when(recruiterProfileRepository.findByUserId(recruiterUser.getId())).thenReturn(Optional.of(recruiterProfile));
+        when(jobRepository.findById(backendJob.getId())).thenReturn(Optional.of(backendJob));
 
         Application submittedApp = Application.builder()
                 .job(backendJob)
@@ -175,6 +180,7 @@ public class EndToEndCoreProductFlowIntegrationTest {
 
         when(candidateRankingService.getRankedCandidatesForJob(backendJob.getId(), null))
                 .thenReturn(List.of(matchResult));
+        when(matchResultRepository.findByApplicationId(submittedApp.getId())).thenReturn(Optional.of(matchResult));
         when(snapshotRepository.findByApplicationId(submittedApp.getId())).thenReturn(Optional.empty());
 
         List<ApplicationResponse> ranked = applicationService.getRankedApplicationsForJob(recruiterUser, backendJob.getId(), null);
@@ -183,7 +189,7 @@ public class EndToEndCoreProductFlowIntegrationTest {
         assertEquals("HIGH", ranked.get(0).getMatchStatus());
 
         // Step 3: Recruiter makes human decision (SHORTLISTED)
-        when(applicationRepository.findById(submittedApp.getId())).thenReturn(Optional.of(submittedApp));
+        when(applicationRepository.findByIdForUpdate(submittedApp.getId())).thenReturn(Optional.of(submittedApp));
 
         UpdateApplicationStatusRequest shortlistReq = UpdateApplicationStatusRequest.builder()
                 .status(ApplicationStatus.SHORTLISTED)
@@ -217,9 +223,9 @@ public class EndToEndCoreProductFlowIntegrationTest {
                 .status("DRAFT")
                 .build();
 
-        when(candidateProfileRepository.findByUserId(candidateUser.getId())).thenReturn(Optional.of(candidateProfile));
-        when(jobRepository.findById(backendJob.getId())).thenReturn(Optional.of(backendJob));
-        when(cvRepository.findById(draftCv.getId())).thenReturn(Optional.of(draftCv));
+        when(candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())).thenReturn(Optional.of(candidateProfile));
+        when(jobRepository.findByIdForApply(backendJob.getId())).thenReturn(Optional.of(backendJob));
+        when(cvRepository.findByIdForUpdate(draftCv.getId())).thenReturn(Optional.of(draftCv));
         when(cvVersionRepository.findByCvIdOrderByVersionNumberDesc(draftCv.getId())).thenReturn(List.of(draftVersion));
 
         SubmitApplicationRequest submitReq = new SubmitApplicationRequest();
@@ -230,7 +236,8 @@ public class EndToEndCoreProductFlowIntegrationTest {
                 applicationService.submitApplication(candidateUser, submitReq)
         );
 
-        assertTrue(ex.getMessage().contains("DRAFT"));
+        assertEquals(ErrorCode.VALIDATION_ERROR, ex.getErrorCode());
+        assertTrue(ex.getMessage().toLowerCase(java.util.Locale.ROOT).contains("confirmed"));
         verify(applicationRepository, never()).save(any());
     }
 

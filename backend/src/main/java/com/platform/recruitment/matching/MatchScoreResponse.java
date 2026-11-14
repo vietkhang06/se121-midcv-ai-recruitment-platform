@@ -29,6 +29,37 @@ public class MatchScoreResponse {
     private String status;
     private String algorithmVersion;
     private ZonedDateTime createdAt;
+    private boolean detailAccess;
+    private String matchClassification;
+
+    public void redactForStandardPlan(com.platform.recruitment.product.AiScreeningAccessService policy) {
+        if (overallScore != null) matchClassification = policy.classify(overallScore);
+        detailAccess = false;
+        overallScore = null;
+        coreScore = null;
+        githubScore = null;
+        cvVersionId = null;
+        jdVersionId = null;
+        semanticMethod = null;
+        embeddingModel = null;
+        scoringPolicyVersion = null;
+        algorithmVersion = null;
+    }
+
+    public void redactForStandardPlan() {
+        if (overallScore != null) matchClassification =
+                com.platform.recruitment.product.AiScreeningAccessService.classifyScore(overallScore);
+        detailAccess = false;
+        overallScore = null;
+        coreScore = null;
+        githubScore = null;
+        cvVersionId = null;
+        jdVersionId = null;
+        semanticMethod = null;
+        embeddingModel = null;
+        scoringPolicyVersion = null;
+        algorithmVersion = null;
+    }
 
     public static MatchScoreResponse fromEntity(MatchResult entity) {
         if (entity == null) {
@@ -60,6 +91,7 @@ public class MatchScoreResponse {
                 .status(entity.getStatus())
                 .algorithmVersion(entity.getMatchingAlgorithmVersion())
                 .createdAt(entity.getCreatedAt())
+                .detailAccess(true)
                 .build();
     }
 }

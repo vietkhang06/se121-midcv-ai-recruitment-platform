@@ -31,10 +31,24 @@ def test_grade_preserved(raw, gpa, scale):
 
 
 def test_unsupported_gpa_removed():
-    data = validate({'education': [{'institution': 'Example Institute', 'gpa': 4.0, 'gpa_scale': 4.0}]}, 'Academic projects. No grade is supplied.')
+    data = validate({'education': [{'institution': 'Example Institute', 'gpa': 4.0, 'gpa_scale': 4.0}]}, 'Education: Example Institute. Academic projects. No grade is supplied.')
     assert data.education[0].gpa is None
     assert data.education[0].gpa_scale is None
     assert data.warnings
+
+
+def test_unmentioned_education_institution_is_removed_from_structured_draft():
+    raw = "EDUCATION\nBachelor of Software Engineering - North Example Institute (2020)\n"
+    data = validate({
+        'education': [
+            {'institution': 'South Example University', 'degree': 'Bachelor of Software Engineering', 'endYear': 2020},
+            {'institution': 'North Example Institute', 'degree': 'Bachelor of Software Engineering', 'endYear': 2020},
+        ]
+    }, raw)
+
+    assert [item.institution for item in data.education] == ['North Example Institute']
+    assert data.education[0].degree == 'Bachelor of Software Engineering'
+    assert any('Unsupported education institution omitted' in warning for warning in data.warnings)
 
 
 def test_scale_not_inferred():
@@ -44,5 +58,5 @@ def test_scale_not_inferred():
 
 
 def test_calendar_fraction_not_grade():
-    e = validate({'education': [{'institution': 'Example Institute', 'gpa': 3, 'gpa_scale': 4}]}, 'Meeting date 3/4.').education[0]
+    e = validate({'education': [{'institution': 'Example Institute', 'gpa': 3, 'gpa_scale': 4}]}, 'Education: Example Institute. Meeting date 3/4.').education[0]
     assert e.gpa is None

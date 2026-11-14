@@ -70,9 +70,19 @@ interface BackendApplicationDto {
   candidatePhone?: string | null;
   candidateHeadline?: string | null;
   candidateGithubUrl?: string | null;
+  appliedCvFullName?: string | null;
+  appliedCvEmail?: string | null;
+  appliedCvPhone?: string | null;
+  appliedCvHeadline?: string | null;
+  appliedCvGithubUrl?: string | null;
   status?: string | null;
   matchScore?: number | null;
   matchStatus?: string | null;
+  matchClassification?: string | null;
+  aiAnalysisConsent?: boolean | null;
+  proDetailAvailable?: boolean | null;
+  recruiterPlan?: 'STANDARD' | 'PRO' | null;
+  developmentProAccess?: boolean | null;
   appliedAt?: string | null;
   snapshot?: {
     cvTitle?: string | null;
@@ -1192,6 +1202,8 @@ export class RealApiClient implements ApiClient {
       appliedCvVersion: app.appliedCvVersionNumber ?? null,
       appliedCvVersionId: app.appliedCvVersionId ?? undefined,
       candidateName: app.candidateName || user?.fullName || '',
+      matchStatus: app.matchStatus ?? undefined,
+      aiAnalysisConsent: app.aiAnalysisConsent === true,
       status: toApplicationStatus(app.status),
       appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : ''
     }));
@@ -1211,7 +1223,8 @@ export class RealApiClient implements ApiClient {
       },
       body: JSON.stringify({
         jobId: app.job.id,
-        cvId: app.appliedCvId
+        cvId: app.appliedCvId,
+        aiAnalysisConsent: app.aiAnalysisConsent === true
       })
     });
 
@@ -1262,6 +1275,11 @@ export class RealApiClient implements ApiClient {
       status: toApplicationStatus(app.status),
       matchScore: app.matchScore != null ? Number(app.matchScore) : undefined,
       matchStatus: app.matchStatus ?? undefined,
+      matchClassification: app.matchClassification ?? undefined,
+      aiAnalysisConsent: app.aiAnalysisConsent ?? undefined,
+      proDetailAvailable: app.proDetailAvailable ?? undefined,
+      recruiterPlan: app.recruiterPlan ?? undefined,
+      developmentProAccess: app.developmentProAccess ?? undefined,
       appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
       snapshot: app.snapshot ? {
         cvTitle: app.snapshot.cvTitle ?? undefined,
@@ -1311,9 +1329,19 @@ export class RealApiClient implements ApiClient {
       candidatePhone: app.candidatePhone ?? undefined,
       candidateHeadline: app.candidateHeadline ?? undefined,
       githubUrl: app.candidateGithubUrl ?? undefined,
+      appliedCvFullName: app.appliedCvFullName ?? undefined,
+      appliedCvEmail: app.appliedCvEmail ?? undefined,
+      appliedCvPhone: app.appliedCvPhone ?? undefined,
+      appliedCvHeadline: app.appliedCvHeadline ?? undefined,
+      appliedCvGithubUrl: app.appliedCvGithubUrl ?? undefined,
       status: toApplicationStatus(app.status),
       matchScore: app.matchScore != null ? Number(app.matchScore) : undefined,
       matchStatus: app.matchStatus ?? undefined,
+      matchClassification: app.matchClassification ?? undefined,
+      aiAnalysisConsent: app.aiAnalysisConsent ?? undefined,
+      proDetailAvailable: app.proDetailAvailable ?? undefined,
+      recruiterPlan: app.recruiterPlan ?? undefined,
+      developmentProAccess: app.developmentProAccess ?? undefined,
       appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
       snapshot: app.snapshot ? {
         cvTitle: app.snapshot.cvTitle ?? undefined,
@@ -1680,12 +1708,14 @@ export class RealApiClient implements ApiClient {
       applicationId: String(data.applicationId || data.id),
       jobTitle: readString(data.jobTitle),
       candidateName: readString(data.candidateName),
-      overallScore: Number(data.overallScore) || 0,
-      coreScore: Number(data.coreScore) || 0,
+      overallScore: readNumber(data.overallScore),
+      coreScore: readNumber(data.coreScore),
       githubScore: data.githubScore != null ? Number(data.githubScore) : undefined,
       githubScoreActive: !!data.githubScoreActive,
       algorithmVersion: readString(data.algorithmVersion) || undefined,
       calculationStatus: readString(data.calculationStatus) || undefined,
+      matchClassification: readString(data.matchClassification) || undefined,
+      detailAccess: data.detailAccess === true,
       cvVersionId: readString(data.cvVersionId) || undefined,
       jdVersionId: readString(data.jdVersionId) || undefined,
       semanticMethod: readString(data.semanticMethod) || undefined,
@@ -1705,7 +1735,7 @@ export class RealApiClient implements ApiClient {
       })),
       matchFactors: getObjectRows(data.matchFactors).map((factor) => ({
         factorName: readString(factor.factorName),
-        score: readNumber(factor.score) ?? 0,
+        score: readNumber(factor.score),
         weight: readNumber(factor.weight) ?? undefined,
         configuredWeight: readNumber(factor.configuredWeight) ?? undefined,
         effectiveWeight: readNumber(factor.effectiveWeight) ?? undefined,
@@ -1913,6 +1943,24 @@ export const downloadCVEvidence = (cvId: string, attachmentId: string, fileName:
 export const fetchCVEvidenceBlob = (cvId: string, attachmentId: string) => currentApiClient.fetchCVEvidenceBlob(cvId, attachmentId);
 export const fetchCandidateApplications = () => currentApiClient.fetchCandidateApplications();
 export const submitApplication = (app: Application) => currentApiClient.submitApplication(app);
+export interface QuickApplyPreview {
+  overallScore: number | null;
+  status: string;
+  semanticMethod: string | null;
+  cvVersionId: string | null;
+  jdVersionId: string | null;
+}
+/** Side-effect-free preview of the selected confirmed CV against a published job. */
+export async function previewQuickApply(jobId: string, cvId: string): Promise<QuickApplyPreview> {
+  const token = getAuthToken();
+  if (!token) throw new ApiError('POST', '/api/v1/candidate/applications/match-preview', 401, 'UNAUTHORIZED', 'Chưa đăng nhập.');
+  const result = await apiRequest<ApiEnvelope<QuickApplyPreview>>('/api/v1/candidate/applications/match-preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ jobId, cvId, aiAnalysisConsent: true })
+  });
+  return result.data;
+}
 export const fetchJobApplications = (jobId: string) => currentApiClient.fetchJobApplications(jobId);
 export const fetchRecruiterProfile = () => currentApiClient.fetchRecruiterProfile();
 export const fetchRecruiterCompany = () => currentApiClient.fetchRecruiterCompany();
@@ -2518,5 +2566,3 @@ export async function triggerGithubAnalysis(): Promise<{ message: string; status
   });
   return unwrapApiData(res);
 }
-
-

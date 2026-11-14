@@ -34,6 +34,7 @@ export default function ApplicationHistoryPage() {
   const [isUploadOpen, setIsUploadOpen] = useState<boolean>(false);
   const [expandedAppId, setExpandedAppId] = useState<string | null>(null);
   const [inspections, setInspections] = useState<Record<string, MatchInspectionData | null>>({});
+  const [inspectionErrors, setInspectionErrors] = useState<Record<string, string>>({});
 
   const loadApplications = () => {
     setIsLoading(true);
@@ -63,12 +64,13 @@ export default function ApplicationHistoryPage() {
   const toggleExpand = async (id: string) => {
     const nextId = expandedAppId === id ? null : id;
     setExpandedAppId(nextId);
-    if (nextId && inspections[nextId] === undefined) {
+    if (nextId && applications.find((app) => app.id === nextId)?.aiAnalysisConsent === false) return;
+    if (nextId && inspections[nextId] == null && !inspectionErrors[nextId]) {
       try {
         const data = await fetchMatchInspection(nextId);
         setInspections(prev => ({ ...prev, [nextId]: data }));
       } catch (err) {
-        console.error('Failed to load match inspection:', err);
+        setInspectionErrors(prev => ({ ...prev, [nextId]: err instanceof Error ? err.message : 'Không tải được báo cáo.' }));
         setInspections(prev => ({ ...prev, [nextId]: null }));
       }
     }
@@ -279,6 +281,20 @@ export default function ApplicationHistoryPage() {
                   {/* Expandable Match Report Detail */}
                   {isExpanded && (
                     <div className="pt-3 border-t border-slate-200 dark:border-[var(--border)] space-y-4 animate-fade-in">
+                      {app.aiAnalysisConsent === false ? (
+                        <p role="status" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
+                          {locale === 'vi' ? 'Bạn đã nộp đơn mà không đồng ý phân tích CV bằng AI; đơn này không có báo cáo đối sánh.' : 'This application was submitted without consent for AI analysis, so no match report was generated.'}
+                        </p>
+                      ) : inspectionErrors[app.id] ? (
+                        <div role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-800">
+                          {inspectionErrors[app.id]}
+                          <button type="button" className="ml-3 underline" onClick={() => {
+                            setInspectionErrors(prev => { const next = { ...prev }; delete next[app.id]; return next; });
+                            setExpandedAppId(null);
+                          }}>{locale === 'vi' ? 'Đóng và thử lại' : 'Close and retry'}</button>
+                        </div>
+                      ) : (
+                      <>
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-sans font-bold uppercase tracking-wider text-[var(--heading)] dark:text-[var(--retro-cream)]">
                           {locale === 'vi' ? 'BÁO CÁO PHÂN TÍCH ĐỐI SÁNH midCV® AI' : 'midCV® AI MATCH REPORT ANALYSIS'}
@@ -290,10 +306,10 @@ export default function ApplicationHistoryPage() {
 
                       {(() => {
                         const insp = inspections[app.id];
-                        const overall = insp ? `${Number(insp.overallScore).toFixed(1)}%` : '---';
-                        const core = insp ? `${Number(insp.coreScore).toFixed(1)}%` : '---';
+                        const overall = insp?.overallScore != null ? `${insp.overallScore.toFixed(1)}%` : '---';
+                        const core = insp?.coreScore != null ? `${insp.coreScore.toFixed(1)}%` : '---';
                         const gh = insp?.githubScore != null ? `${Number(insp.githubScore).toFixed(1)}%` : (insp ? 'N/A' : '---');
-                        const isHigh = insp && Number(insp.overallScore) >= 80;
+                        const isHigh = insp?.overallScore != null && insp.overallScore >= 80;
 
                         return (
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -307,7 +323,7 @@ export default function ApplicationHistoryPage() {
                               <span className={`text-[10px] font-medium block ${isHigh ? 'text-[var(--success)] dark:text-[var(--success)]' : 'text-[var(--text-secondary)]'}`}>
                                 {insp 
                                   ? (isHigh ? (locale === 'vi' ? 'Đạt ngưỡng tiến cử trực tiếp' : 'Direct recommendation threshold met') : (locale === 'vi' ? 'Đang trong diện xem xét' : 'Under consideration')) 
-                                  : (locale === 'vi' ? 'Đang tính toán điểm...' : 'Calculating score...')}
+                                  : (locale === 'vi' ? 'Chưa có kết quả; đóng/mở lại để thử' : 'No result yet; close and reopen to retry')}
                               </span>
                             </div>
 
@@ -345,6 +361,8 @@ export default function ApplicationHistoryPage() {
                       <div className="text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)] bg-slate-50 dark:bg-[var(--surface)] p-3.5 rounded-xl border border-slate-200 dark:border-[var(--border)] leading-relaxed">
                         <strong>{locale === 'vi' ? 'Lưu ý bảo mật & minh bạch:' : 'Security & Transparency Notice:'}</strong> {app.appliedCvVersion == null ? (locale === 'vi' ? 'Hồ sơ lịch sử chưa có thông tin phiên bản để đối chiếu.' : 'Version information is unavailable for this historical application.') : (locale === 'vi' ? `Snapshot CV phiên bản v${app.appliedCvVersion}.0 được lưu tại thời điểm nộp đơn. Chỉnh sửa CV sau đó không thay đổi phiên bản đã nộp.` : `CV snapshot v${app.appliedCvVersion}.0 was saved upon submission. Later edits do not change the submitted version.`)}
                       </div>
+                      </>
+                      )}
                     </div>
                   )}
                 </div>

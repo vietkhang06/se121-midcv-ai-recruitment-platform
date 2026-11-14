@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
@@ -81,6 +82,43 @@ class AiWorkerClientTest {
         CustomException error = assertThrows(CustomException.class,
                 () -> client.structureCv("synthetic text", null, "test-correlation-id"));
 
+        assertEquals(ErrorCode.SERVICE_UNAVAILABLE, error.getErrorCode());
+        server.verify();
+    }
+
+    @Test
+    void draftJdUsesRealExtractEndpointAndRejectsMalformedResponse() {
+        RestClient.Builder builder = RestClient.builder().baseUrl(BASE_URL);
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        AiWorkerClient client = new AiWorkerClient(builder.build());
+        server.expect(requestTo(BASE_URL + "/extract-jd"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(content().json("{\"title\":\"Backend Engineer\",\"industry\":\"IT\"}"))
+                .andRespond(withSuccess("{\"status\":\"SUCCESS\",\"required_skills\":[],\"responsibilities\":[]}",
+                        MediaType.APPLICATION_JSON));
+        assertEquals("SUCCESS", client.draftJd(java.util.Map.of(
+                "title", "Backend Engineer", "industry", "IT")).get("status"));
+        server.verify();
+
+        RestClient.Builder invalidBuilder = RestClient.builder().baseUrl(BASE_URL);
+        MockRestServiceServer invalidServer = MockRestServiceServer.bindTo(invalidBuilder).build();
+        AiWorkerClient invalidClient = new AiWorkerClient(invalidBuilder.build());
+        invalidServer.expect(requestTo(BASE_URL + "/extract-jd"))
+                .andRespond(withSuccess("{\"status\":\"SUCCESS\"}", MediaType.APPLICATION_JSON));
+        assertThrows(CustomException.class, () -> invalidClient.draftJd(java.util.Map.of(
+                "title", "Backend Engineer", "industry", "IT")));
+        invalidServer.verify();
+    }
+
+    @Test
+    void draftJdMapsProviderFailureToServiceUnavailable() {
+        RestClient.Builder builder = RestClient.builder().baseUrl(BASE_URL);
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        AiWorkerClient client = new AiWorkerClient(builder.build());
+        server.expect(requestTo(BASE_URL + "/extract-jd"))
+                .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+        CustomException error = assertThrows(CustomException.class, () -> client.draftJd(
+                java.util.Map.of("title", "Backend Engineer", "industry", "IT")));
         assertEquals(ErrorCode.SERVICE_UNAVAILABLE, error.getErrorCode());
         server.verify();
     }

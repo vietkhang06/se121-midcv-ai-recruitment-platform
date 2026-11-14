@@ -96,7 +96,7 @@ export const Navbar: React.FC = () => {
     <>
       <header className="sticky top-0 z-40 bg-white/95 dark:bg-[var(--surface)]/95 backdrop-blur-md border-b border-blue-100/80 dark:border-[var(--border)] text-[var(--heading)] dark:text-[var(--text-secondary)] transition-colors">
       <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-2.5 xl:gap-4">
-        
+
         {/* Brand Logo */}
         <div className="flex items-center gap-3 shrink-0">
           <BrandLogo size="md" />
@@ -115,7 +115,7 @@ export const Navbar: React.FC = () => {
 
         {/* Desktop Navigation Menus (Strictly segregated by Role, no text compression) */}
         <nav className="hidden lg:flex items-center gap-1 xl:gap-2.5 text-xs xl:text-[13px] font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap shrink-0">
-          
+
           {/* 1. Việc làm + menu danh mục theo đúng Industry enum/API hiện có */}
           <div className="group relative shrink-0 py-3">
             <Link
@@ -231,7 +231,7 @@ export const Navbar: React.FC = () => {
 
         {/* Action Controls & User Right Section */}
         <div className="flex items-center gap-2 sm:gap-2.5 xl:gap-3 shrink-0">
-          
+
           {/* Language Switcher */}
           <button
             onClick={toggleLocale}
@@ -312,7 +312,7 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Drawer Backdrop Overlay */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 top-16 bg-black/50 backdrop-blur-xs z-40 lg:hidden animate-fade-in"
           onClick={() => setIsMobileMenuOpen(false)}
         />
@@ -320,7 +320,7 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Drawer Panel */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed top-16 left-0 right-0 max-h-[calc(100vh-4rem)] overflow-y-auto bg-white dark:bg-[var(--surface)] border-b border-slate-200 dark:border-[var(--border)] p-5 shadow-2xl space-y-4 z-50 lg:hidden animate-fade-in"
         >
           {/* User Info Row in Mobile */}

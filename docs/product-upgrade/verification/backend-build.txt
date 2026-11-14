@@ -1,0 +1,45 @@
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------< com.platform:recruitment-backend >------------------
+[INFO] Building recruitment-backend 1.0.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- resources:3.3.1:resources (default-resources) @ recruitment-backend ---
+[INFO] Copying 2 resources from src/main/resources to target/classes-mvn
+[INFO] Copying 37 resources from src/main/resources to target/classes-mvn
+[INFO]
+[INFO] --- compiler:3.13.0:compile (default-compile) @ recruitment-backend ---
+[INFO] Compiling 3 source files with javac [debug parameters release 21] to target/classes-mvn
+[WARNING] unknown enum constant javax.annotation.meta.When.MAYBE
+  reason: class file for javax.annotation.meta.When not found
+[WARNING] unknown enum constant javax.annotation.meta.When.MAYBE
+  reason: class file for javax.annotation.meta.When not found
+[WARNING] unknown enum constant javax.annotation.meta.When.MAYBE
+  reason: class file for javax.annotation.meta.When not found
+[WARNING] unknown enum constant javax.annotation.meta.When.MAYBE
+  reason: class file for javax.annotation.meta.When not found
+[WARNING] unknown enum constant javax.annotation.meta.When.MAYBE
+  reason: class file for javax.annotation.meta.When not found
+[INFO]
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ recruitment-backend ---
+[INFO] skip non existing resourceDirectory /workspace/scratch/3a01155dc378/source/se121-midcv-ai-recruitment-platform-master/backend/src/test/resources
+[INFO]
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ recruitment-backend ---
+[INFO] Compiling 1 source file with javac [debug parameters release 21] to target/test-classes-mvn
+[INFO]
+[INFO] --- surefire:3.2.5:test (default-test) @ recruitment-backend ---
+[INFO] Tests are skipped.
+[INFO]
+[INFO] --- jar:3.4.2:jar (default-jar) @ recruitment-backend ---
+[INFO] Building jar: /workspace/scratch/3a01155dc378/source/se121-midcv-ai-recruitment-platform-master/backend/target/recruitment-backend-1.0.0-SNAPSHOT.jar
+[INFO]
+[INFO] --- spring-boot:3.3.2:repackage (repackage) @ recruitment-backend ---
+[INFO] Replacing main artifact /workspace/scratch/3a01155dc378/source/se121-midcv-ai-recruitment-platform-master/backend/target/recruitment-backend-1.0.0-SNAPSHOT.jar with repackaged archive, adding nested dependencies in BOOT-INF/.
+[INFO] The original artifact has been renamed to /workspace/scratch/3a01155dc378/source/se121-midcv-ai-recruitment-platform-master/backend/target/recruitment-backend-1.0.0-SNAPSHOT.jar.original
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  4.872 s
+[INFO] Finished at: 2026-11-04T23:45:15+07:00
+[INFO] ------------------------------------------------------------------------
