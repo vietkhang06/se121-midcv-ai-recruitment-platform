@@ -41,3 +41,6 @@ Theo yêu cầu trực tiếp của nhóm: kết quả semantic từ text fallba
 ## DEC-DEV-01 (14/11/2026) — Quyền xem Pro tạm thời cho HR Standard khi kiểm thử
 
 Theo yêu cầu trực tiếp của chủ dự án, cho phép HR của công ty Standard xem các tính năng đối sánh chi tiết như Pro trong phiên chạy local dev khi bật `MIDCV_DEV_STANDARD_PRO_ACCESS=true`. Mặc định tắt; profile prod luôn vô hiệu hóa kể cả khi biến môi trường được đặt. Quyền này chỉ áp dụng cho tính năng hiển thị đối sánh của HR, không thay `recruiter_plan`/hạn Pro trong database, không cấp thêm quota/độ tin cậy, không vượt qua consent của ứng viên hoặc ranh giới công ty. API entitlement ghi rõ đây là quyền thử nghiệm. Tắt biến và khởi động lại backend để trở về hành vi Standard.
+
+## 2026-11-15 — Approved remaining-task remediation
+Owner authorizes LinkedIn OIDC alongside existing Google/GitHub, production configuration hardening, and reproducible evaluation. External provider acceptance, labeled dataset metrics and database restore acceptance remain unverified until real inputs exist. OAuth new registrations retain the existing Candidate role; existing HR accounts link providers from their authenticated profile.

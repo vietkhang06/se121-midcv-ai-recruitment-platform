@@ -70,7 +70,8 @@ test('refresh HTTP 503 preserves stored credentials', async () => {
   const prior=console.error; console.error=()=>{};
   try { await assert.rejects(() => api.apiRequest('/api/v1/candidate/profile'), e => e.status===0 && /HTTP 503/.test(e.message)); }
   finally { console.error=prior; }
-  assert.equal(store.get('auth_refresh_token'),'refresh-old');
+  assert.equal(store.get('auth_refresh_token'),undefined);
+  assert.equal(store.get('auth_token'),expired);
 });
 
 test('late rejected refresh from old session cannot log out a newer login', async () => {
@@ -82,7 +83,7 @@ test('late rejected refresh from old session cannot log out a newer login', asyn
   api.saveAuthTokens({accessToken:live,refreshToken:'fresh-login'});
   release(reply(null,401));
   assert.equal(await pending,live);
-  assert.equal(store.get('auth_refresh_token'),'fresh-login');
+  assert.equal(store.get('auth_refresh_token'),undefined);
 });
 
 test('public GET returning 401 does not clear unrelated stored auth', async () => {

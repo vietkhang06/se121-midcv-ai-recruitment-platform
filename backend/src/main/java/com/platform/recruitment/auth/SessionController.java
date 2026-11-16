@@ -17,12 +17,20 @@ public class SessionController {
     private final AuthSessionService sessions;
     private final PasswordResetService resets;
     private final JwtTokenProvider tokens;
+    private final BrowserSessionCookies browserCookies;
     public record RefreshRequest(@NotBlank String refreshToken) {}
     public record ForgotRequest(@NotBlank @Email String email) {}
     public record ResetRequest(@NotBlank String token, @NotBlank @Size(min=8,max=72) String password) {}
 
     @PostMapping("/refresh")
-    public ApiResponse<JwtResponse> refresh(@Valid @RequestBody RefreshRequest request) { return ApiResponse.success(sessions.refresh(request.refreshToken())); }
+    public ApiResponse<JwtResponse> refresh(@RequestBody(required = false) RefreshRequest request,
+            jakarta.servlet.http.HttpServletRequest http) {
+        String refresh = BrowserSessionCookies.requested(http) ? browserCookies.read(http)
+                : request == null ? null : request.refreshToken();
+        if (refresh == null || refresh.isBlank()) throw new com.platform.recruitment.common.CustomException(
+                com.platform.recruitment.common.ErrorCode.AUTHENTICATION_FAILED, "Refresh session is missing");
+        return ApiResponse.success(sessions.refresh(refresh));
+    }
 
     @GetMapping("/sessions") @PreAuthorize("isAuthenticated()")
     public ApiResponse<List<Map<String,Object>>> list(@AuthenticationPrincipal User user, @RequestHeader("Authorization") String authorization) {

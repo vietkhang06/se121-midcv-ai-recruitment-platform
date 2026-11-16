@@ -45,3 +45,7 @@ Bản này thêm V30, giữ toàn bộ migration trước đó. Kết quả hồ
 ## Bổ sung nâng cấp sản phẩm — 04/11/2026
 
 Phạm vi, API và bằng chứng kiểm thử của nâng cấp giao diện/nghiệp vụ được ghi tại [product-upgrade/IMPLEMENTATION_AND_ACCEPTANCE.md](product-upgrade/IMPLEMENTATION_AND_ACCEPTANCE.md) và [product-upgrade/API_ADDITIONS.md](product-upgrade/API_ADDITIONS.md). Bằng chứng này không thay thế nghiệm thu chất lượng LLM/OCR/GitHub của các phase trước.
+
+## Bản sửa trên source master(8)
+
+Xem [ma trận và hướng dẫn bàn giao](MIDCV_REMEDIATION_HANDOFF.md) để phân biệt kiểm thử tập trung và các bước nghiệm thu live còn chờ.

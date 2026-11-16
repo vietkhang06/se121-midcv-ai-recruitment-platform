@@ -128,7 +128,7 @@ public class SecurityConfig {
                 "X-Requested-With",
                 "Access-Control-Request-Method",
                 "Access-Control-Request-Headers", "Last-Event-ID", "X-Request-ID",
-                "If-Match", "If-None-Match"
+                "If-Match", "If-None-Match", "X-MidCV-Session"
         ));
         configuration.setExposedHeaders(List.of(
                 "Authorization", "X-Request-ID", "Content-Disposition", "ETag"

@@ -47,3 +47,19 @@ def test_rejects_missing_or_mixed_ground_truth():
     labels = [dict(case_id='jd1', candidate_id='b', relevance=1, dataset_version='v1', annotator='reviewer')]
     with pytest.raises(ValueError, match='No independent label'):
         ranking.evaluate(preds, labels, 1)
+
+
+def test_binary_metrics_use_declared_threshold_and_real_labels():
+    labels = [dict(case_id='jd', candidate_id=x, relevance=y, dataset_version='v1', annotator='reviewer')
+              for x, y in [('a', 3), ('b', 0), ('c', 2)]]
+    preds = [dict(case_id='jd', candidate_id=x, score=y, method='HYBRID', source='BACKEND_API', policy_version='v2')
+             for x, y in [('a', 90), ('b', 80), ('c', 20)]]
+    values = ranking.evaluate(preds, labels, 2, 70)['methods']['HYBRID']['classification']
+    assert (values['tp'], values['fp'], values['fn']) == (1, 1, 1)
+    assert values['precision'] == values['recall'] == values['f1'] == 0.5
+    assert 'classification' not in ranking.evaluate(preds, labels, 2)['methods']['HYBRID']
+
+
+def test_invalid_k_rejected_at_library_boundary():
+    with pytest.raises(ValueError, match='positive integer'):
+        ranking.evaluate([], [], 0)

@@ -43,7 +43,7 @@ public class InboxEmailDispatcher {
               status -> {
                 var rows =
                     db.queryForList(
-                        "SELECT o.id,o.attempts,n.title,n.body,n.href,u.email FROM"
+                        "SELECT o.id,o.notification_id,o.attempts,n.title,n.body,n.href,u.email FROM"
                             + " inbox_email_outbox o JOIN inbox_notifications n ON"
                             + " n.id=o.notification_id JOIN users u ON u.id=n.user_id JOIN"
                             + " inbox_preferences p ON p.user_id=u.id AND p.email_alerts=TRUE WHERE"
@@ -58,7 +58,10 @@ public class InboxEmailDispatcher {
                   m.setFrom(from);
                   m.setTo((String) r.get("email"));
                   m.setSubject("MidCV — " + r.get("title"));
-                  m.setText(r.get("body") + "\n\n" + origin.replaceAll("/$", "") + r.get("href"));
+                  // SMTP is at-least-once: a failure after send can cause a retry.
+                  // The stable notification ID lets recipients identify repeated delivery.
+                  m.setText(r.get("body") + "\n\n" + origin.replaceAll("/$", "") + r.get("href")
+                      + "\n\nNotification ID: " + r.get("notification_id"));
                   mail.getObject().send(m);
                   db.update(
                       "UPDATE inbox_email_outbox SET sent_at=CURRENT_TIMESTAMP,attempts=? WHERE"

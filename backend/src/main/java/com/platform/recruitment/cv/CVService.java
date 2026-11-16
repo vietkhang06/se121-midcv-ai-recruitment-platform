@@ -36,7 +36,7 @@ import java.util.*;
 @Slf4j
 @Service
 public class CVService {
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    @org.springframework.beans.factory.annotation.Autowired
     private com.platform.recruitment.embedding.VersionedEmbeddingLifecycle versionedEmbeddingLifecycle;
 
     private static final Set<String> CV_UPLOAD_EXTENSIONS =
@@ -52,21 +52,21 @@ public class CVService {
     private final AiWorkerClient aiWorkerClient;
     private final ObjectMapper objectMapper;
     private final org.springframework.transaction.support.TransactionTemplate tx;
-    @Autowired(required = false)
+    @Autowired
     private CVEvidenceAttachmentRepository cvEvidenceAttachmentRepository;
 
     public void setCvEvidenceAttachmentRepository(CVEvidenceAttachmentRepository cvEvidenceAttachmentRepository) {
         this.cvEvidenceAttachmentRepository = cvEvidenceAttachmentRepository;
     }
 
-    @Autowired(required = false)
+    @Autowired
     private EmbeddingService embeddingService;
 
     public void setEmbeddingService(EmbeddingService embeddingService) {
         this.embeddingService = embeddingService;
     }
 
-    @Autowired(required = false)
+    @Autowired
     private MatchResultRepository matchResultRepository;
 
     public void setMatchResultRepository(MatchResultRepository matchResultRepository) {
@@ -82,9 +82,9 @@ public class CVService {
             Documents documents,
             TextReader textReader,
             JdbcTemplate jdbcTemplate,
-            @Autowired(required = false) AiWorkerClient aiWorkerClient,
-            @Autowired(required = false) ObjectMapper objectMapper,
-            @Autowired(required = false) org.springframework.transaction.PlatformTransactionManager transactionManager) {
+            @Autowired AiWorkerClient aiWorkerClient,
+            @Autowired ObjectMapper objectMapper,
+            @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager) {
         this.cvRepository = cvRepository;
         this.cvVersionRepository = cvVersionRepository;
         this.cvSectionRepository = cvSectionRepository;

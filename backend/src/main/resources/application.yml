@@ -66,6 +66,9 @@ app:
   public-base-url: ${BACKEND_PUBLIC_URL:http://localhost:8080}
   frontend-url: ${FRONTEND_PUBLIC_URL:http://localhost:3000}
   oauth:
+    linkedin:
+      client-id: ${LINKEDIN_OAUTH_CLIENT_ID:}
+      client-secret: ${LINKEDIN_OAUTH_CLIENT_SECRET:}
     google:
       client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
       client-secret: ${GOOGLE_OAUTH_CLIENT_SECRET:}

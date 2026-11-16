@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { AuthHeroBanner, AuthRole } from '@/components/auth/AuthHeroBanner';
 import { ThemeSwitch } from '@/components/common/ThemeSwitch';
-import { GoogleIcon, GitHubIcon } from '@/components/auth/SocialIcons';
+import { GoogleIcon, GitHubIcon, LinkedInIcon } from '@/components/auth/SocialIcons';
 import { BASE_URL } from '@/lib/api';
 import { Reveal } from '@/components/motion/Reveal';
 import {
@@ -40,7 +40,7 @@ function LoginFormContent() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [oauthLoading, setOauthLoading] = useState<'google' | 'github' | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'github' | 'linkedin' | null>(null);
   const [isUnverified, setIsUnverified] = useState<boolean>(false);
 
   const oauthNotice = useMemo(() => {
@@ -98,7 +98,7 @@ function LoginFormContent() {
     window.history.replaceState(null, '', `/login${newQuery}`);
   };
 
-  const handleOAuth = (provider: 'google' | 'github') => {
+  const handleOAuth = (provider: 'google' | 'github' | 'linkedin') => {
     if (role === 'RECRUITER') {
       setError(
         locale === 'vi'
@@ -407,7 +407,7 @@ function LoginFormContent() {
           </div>
 
           {/* Social login uses backend authorization code flows. */}
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3">
             {/* Google Button */}
             <button
               type="button"
@@ -436,6 +436,19 @@ function LoginFormContent() {
                 <GitHubIcon className="w-4 h-4 shrink-0" />
               )}
               <span className="truncate">GitHub</span>
+            </button>
+<button
+              type="button"
+              onClick={() => handleOAuth('linkedin')}
+              disabled={oauthLoading !== null}
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[var(--surface)] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-xs disabled:opacity-60"
+            >
+              {oauthLoading === 'linkedin' ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-[var(--primary)]" />
+              ) : (
+                <LinkedInIcon className="w-4 h-4 shrink-0" />
+              )}
+              <span className="truncate">LinkedIn</span>
             </button>
           </div>
 

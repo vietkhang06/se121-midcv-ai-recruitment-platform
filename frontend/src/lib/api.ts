@@ -118,7 +118,7 @@ interface LoginApiDto {
   email: string;
   role: string;
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
 }
 
 declare global {
@@ -222,7 +222,7 @@ function unwrapApiData<T>(value: ApiEnvelope<T> | T): T {
   return isApiEnvelope(value) ? value.data : value;
 }
 
-export async function beginOAuthLink(provider: 'google' | 'github'): Promise<string> {
+export async function beginOAuthLink(provider: 'google' | 'github' | 'linkedin'): Promise<string> {
   const token = getAuthToken();
   if (!token) throw new Error('Vui lòng đăng nhập lại trước khi liên kết tài khoản.');
   const response = await authorizedFetch(`${BASE_URL}/api/v1/auth/oauth/${provider}/link`, { method: 'POST', credentials: 'include', headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
@@ -325,7 +325,8 @@ export function clearAuthSession(): void {
 
 export function saveAuthTokens(auth: { accessToken: string; refreshToken?: string }): void {
   localStorage.setItem('auth_token', auth.accessToken);
-  if (auth.refreshToken) localStorage.setItem('auth_refresh_token', auth.refreshToken);
+  // Remove legacy browser refresh secrets; the server now sets an HttpOnly cookie.
+  localStorage.removeItem('auth_refresh_token');
 }
 
 class AuthRefreshError extends Error {
@@ -341,17 +342,17 @@ export async function ensureAuthToken(rejectedToken?: string): Promise<string | 
   const refresh = async () => {
     const current = getAuthToken();
     if (current && !isJwtExpired(current) && current !== rejectedToken) return current;
-    const refreshToken = localStorage.getItem('auth_refresh_token');
-    if (!refreshToken) { if (current) clearAuthSession(); return null; }
+    if (!current) return null;
+    localStorage.removeItem('auth_refresh_token');
     const response = await fetch(`${BASE_URL}/api/v1/auth/refresh`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }), cache: 'no-store'
+      method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', 'X-MidCV-Session': 'cookie' },
+      body: '{}', cache: 'no-store'
     });
     if (!response.ok) {
       // Invalid/revoked refresh token: end only the session that initiated this request.
       // Another tab may have logged in while the HTTP request was in flight.
       if (response.status === 400 || response.status === 401) {
-        if (localStorage.getItem('auth_refresh_token') === refreshToken) {
+        if (getAuthToken() === current) {
           clearAuthSession();
           throw new AuthRefreshError(response.status);
         }
@@ -361,9 +362,9 @@ export async function ensureAuthToken(rejectedToken?: string): Promise<string | 
       throw new Error(`Máy chủ xác thực tạm thời không thể gia hạn phiên (HTTP ${response.status}).`);
     }
     const body = await response.json();
-    if (!body?.data?.accessToken || !body?.data?.refreshToken) throw new Error('Phản hồi gia hạn phiên không hợp lệ.');
+    if (!body?.data?.accessToken) throw new Error('Phản hồi gia hạn phiên không hợp lệ.');
     // A logout or a newer login may have happened while the refresh was in flight.
-    if (localStorage.getItem('auth_refresh_token') !== refreshToken) return getAuthToken();
+    if (getAuthToken() !== current) return getAuthToken();
     saveAuthTokens(body.data);
     return body.data.accessToken as string;
   };
@@ -408,6 +409,7 @@ export async function apiRequest<T>(
   const isPublic = isPublicRead(endpoint, method);
 
   const headers = new Headers(options.headers || {});
+  if (endpoint.startsWith('/api/v1/auth/')) headers.set('X-MidCV-Session', 'cookie');
   if (isPublic) {
     headers.delete('Authorization');
   } else {
@@ -423,7 +425,7 @@ export async function apiRequest<T>(
   let res: Response;
   try {
     res = await (isPublic || ['/api/v1/auth/login', '/api/v1/auth/verify-email', '/api/v1/auth/resend-verification', '/api/v1/auth/check-email', '/api/v1/auth/forgot-password', '/api/v1/auth/reset-password'].includes(endpoint.split('?')[0])
-      || endpoint.startsWith('/api/v1/auth/register') ? fetch : authorizedFetch)(url, { ...options, headers });
+      || endpoint.startsWith('/api/v1/auth/register') ? fetch : authorizedFetch)(url, { ...options, credentials: 'include', headers });
   } catch (netErr: unknown) {
     if (netErr instanceof AuthRefreshError) {
       throw new ApiError(method, url, netErr.status, 'AUTH_REFRESH_REJECTED', netErr.message);
@@ -1852,7 +1854,7 @@ export class RealApiClient implements ApiClient {
     });
 
     const jwtData = json.data;
-    if (!jwtData || !jwtData.userId || !jwtData.email || !jwtData.accessToken || !jwtData.refreshToken) {
+    if (!jwtData || !jwtData.userId || !jwtData.email || !jwtData.accessToken) {
       throw new Error('Phản hồi đăng nhập không hợp lệ.');
     }
     const user: User = {
