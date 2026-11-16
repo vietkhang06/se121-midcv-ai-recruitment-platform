@@ -42,17 +42,17 @@ public class MatchingEngineService {
     private final CVRepository cvRepository;
     private final MatchResultRepository matchResultRepository;
     private final MatchFactorRepository matchFactorRepository;
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    @org.springframework.beans.factory.annotation.Autowired
     private CVVersionRepository cvVersionRepository;
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    @org.springframework.beans.factory.annotation.Autowired
     private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    @org.springframework.beans.factory.annotation.Autowired
     private EvidenceRepository evidenceRepository;
 
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    @org.springframework.beans.factory.annotation.Autowired
     private com.platform.recruitment.github.GitHubProfileRepository gitHubProfileRepository;
 
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    @org.springframework.beans.factory.annotation.Autowired
     private JobMatchingPolicyRepository jobMatchingPolicyRepository;
 
     private final RequiredSkillMatcher requiredSkillMatcher;
@@ -66,13 +66,13 @@ public class MatchingEngineService {
         this.cvVersionRepository = cvVersionRepository;
     }
 
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    @org.springframework.beans.factory.annotation.Autowired
     private SkillNormalizer skillNormalizer = new SkillNormalizer();
 
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    @org.springframework.beans.factory.annotation.Autowired
     private com.platform.recruitment.embedding.PgvectorCosineSimilarity pgvectorCosineSimilarity = new com.platform.recruitment.embedding.PgvectorCosineSimilarity();
 
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    @org.springframework.beans.factory.annotation.Autowired
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @Transactional

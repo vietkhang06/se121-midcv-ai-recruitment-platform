@@ -38,3 +38,13 @@ management:
   health:
     mail:
       enabled: ${MAIL_HEALTH_ENABLED:true}
+
+# Production must supply its own signing key; never inherit the development fallback.
+jwt:
+  secret: ${JWT_SECRET}
+
+# Enforce Secure on browser refresh cookies behind the HTTPS reverse proxy.
+---
+app:
+  security:
+    refresh-cookie-secure: true

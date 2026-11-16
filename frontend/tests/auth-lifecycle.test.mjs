@@ -14,15 +14,15 @@ function seed() {store.clear();store.set('auth_user','{"id":"fixture-user"}');st
 const json = (data,status=200) => new Response(JSON.stringify({data}),{status,headers:{'content-type':'application/json'}});
 test('ten concurrent calls rotate a refresh token once', async()=>{
   seed(); let calls=0; const renewed=jwt(600);
-  globalThis.fetch=async()=>{calls++; await Promise.resolve(); return json({accessToken:renewed,refreshToken:'rotated-refresh'});};
+  globalThis.fetch=async(url,options)=>{assert.equal(options.credentials,'include');assert.equal(options.headers['X-MidCV-Session'],'cookie');assert.equal(options.body,'{}');calls++; await Promise.resolve(); return json({accessToken:renewed,refreshToken:'rotated-refresh'});};
   assert.deepEqual(await Promise.all(Array.from({length:10},()=>api.ensureAuthToken())),Array(10).fill(renewed));
-  assert.equal(calls,1);assert.equal(store.get('auth_refresh_token'),'rotated-refresh');
+  assert.equal(calls,1);assert.equal(store.get('auth_refresh_token'),undefined);
 });
 test('a rejected refresh clears access, refresh and user together',async()=>{
   seed();globalThis.fetch=async()=>json(null,401);await assert.rejects(api.ensureAuthToken());assert.equal(store.size,0);
 });
 test('transient refresh failure preserves credentials for retry',async()=>{
-  seed();globalThis.fetch=async()=>json(null,503);await assert.rejects(api.ensureAuthToken());assert.equal(store.get('auth_refresh_token'),'old-refresh');
+  seed();globalThis.fetch=async()=>json(null,503);await assert.rejects(api.ensureAuthToken());assert.equal(store.get('auth_refresh_token'),undefined);
 });
 test('an in-flight refresh cannot restore a logged-out session',async()=>{
   seed();let release;globalThis.fetch=()=>new Promise(resolve=>{release=resolve;});

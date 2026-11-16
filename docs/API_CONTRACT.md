@@ -631,3 +631,7 @@ Ma trận quyền và nghiệm thu thật: [BUSINESS_TASKS_20261031.md](BUSINESS
 ## Bổ sung nâng cấp sản phẩm — 04/11/2026
 
 Phạm vi, API và bằng chứng kiểm thử của nâng cấp giao diện/nghiệp vụ được ghi tại [product-upgrade/IMPLEMENTATION_AND_ACCEPTANCE.md](product-upgrade/IMPLEMENTATION_AND_ACCEPTANCE.md) và [product-upgrade/API_ADDITIONS.md](product-upgrade/API_ADDITIONS.md). Bằng chứng này không thay thế nghiệm thu chất lượng LLM/OCR/GitHub của các phase trước.
+
+## Bổ sung OAuth LinkedIn và phiên trình duyệt
+
+LinkedIn dùng cùng các route OAuth start/callback/link. /oauth/complete cũng nhận ticket từ LinkedIn khi thiếu email đã xác minh. Với X-MidCV-Session: cookie và Origin frontend được phép, login/refresh/oauth exchange trả access token và ghi refresh cookie HttpOnly. Refresh trình duyệt đọc cookie và logout thu hồi phiên rồi xóa cookie. Client không gửi header này tiếp tục dùng refresh token qua JSON.

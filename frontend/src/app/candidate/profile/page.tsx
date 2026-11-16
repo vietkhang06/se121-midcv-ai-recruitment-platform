@@ -65,7 +65,7 @@ export default function CandidateProfilePage() {
     return () => { active = false; };
   }, [loadAttempt]);
 
-  const handleLinkProvider = async (provider: 'google' | 'github') => {
+  const handleLinkProvider = async (provider: 'google' | 'github' | 'linkedin') => {
     setLinkingGithub(true);
     try { window.location.assign(await beginOAuthLink(provider)); }
     catch (error: unknown) { setGithubSyncMessage(error instanceof Error ? error.message : (locale === 'vi' ? 'Không thể bắt đầu liên kết tài khoản.' : 'Could not start account linking.')); setLinkingGithub(false); }
@@ -326,6 +326,7 @@ export default function CandidateProfilePage() {
                     {linkingGithub ? (locale === 'vi' ? 'Đang chuyển đến GitHub…' : 'Opening GitHub…') : githubConnection?.connected ? (locale === 'vi' ? `Đã xác minh @${githubConnection.login} · Kết nối lại` : `Verified @${githubConnection.login} · Reconnect`) : (locale === 'vi' ? 'Xác minh tài khoản GitHub' : 'Verify GitHub ownership')}
                   </button>
                   <button type="button" onClick={() => handleLinkProvider('google')} disabled={linkingGithub} className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold hover:bg-white focus-visible:outline-2 focus-visible:outline-blue-600 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800">{locale === 'vi' ? 'Liên kết Google' : 'Link Google'}</button>
+                  <button type="button" onClick={() => handleLinkProvider('linkedin')} disabled={linkingGithub} className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold hover:bg-white focus-visible:outline-2 focus-visible:outline-blue-600 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800">{locale === 'vi' ? 'Liên kết LinkedIn' : 'Link LinkedIn'}</button>
                   <span className="text-xs text-slate-600 dark:text-slate-400">{githubConnection?.connected ? (locale === 'vi' ? 'Quét công khai; không cấp quyền kho riêng tư.' : 'Public scanning only; private repositories are not authorized.') : (locale === 'vi' ? 'Username công khai tự nhập chưa chứng minh quyền sở hữu.' : 'A manually entered public username does not prove ownership.')}</span>
                 </div>
               </div>

@@ -38,7 +38,7 @@ function SocialButtons({
 }) {
   return (
     <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-      {(['google', 'github'] as OAuthProvider[]).map((provider) => {
+      {(['google', 'github', 'linkedin'] as OAuthProvider[]).map((provider) => {
         const icon = provider === 'google'
           ? <GoogleIcon className="h-4 w-4 shrink-0" />
           : provider === 'github'
@@ -247,7 +247,6 @@ export const AuthModal: React.FC = () => {
   };
 
   const handleOAuth = (provider: OAuthProvider) => {
-    if (provider === 'linkedin') return;
     setOauthLoading(provider);
     setOauthNotice(null);
     setLoginError(null);

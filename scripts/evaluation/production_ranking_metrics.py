@@ -59,7 +59,11 @@ def eval_case(predictions: list[tuple[str, float]], relevance: dict[str, int], k
             "pairwise_comparisons": comparable}
 
 
-def evaluate(predicted: list[dict], labels: list[dict], k: int) -> dict:
+def evaluate(predicted: list[dict], labels: list[dict], k: int, score_threshold: float | None = None) -> dict:
+    if isinstance(k, bool) or not isinstance(k, int) or k < 1:
+        raise ValueError("k must be a positive integer")
+    if score_threshold is not None and (not math.isfinite(score_threshold) or not 0 <= score_threshold <= 100):
+        raise ValueError("score_threshold must be finite and between 0 and 100")
     truth: dict[str, dict[str, int]] = defaultdict(dict)
     versions: set[str] = set()
     for row in labels:
@@ -83,7 +87,7 @@ def evaluate(predicted: list[dict], labels: list[dict], k: int) -> dict:
             raise ValueError("Missing scoring policy version")
         case, cand, method = (str(row[k]) for k in ("case_id", "candidate_id", "method"))
         score = row["score"]
-        if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score):
+        if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score) or not 0 <= score <= 100:
             raise ValueError("Non-finite or nonnumeric score")
         if cand not in truth.get(case, {}):
             raise ValueError(f"No independent label for {case}/{cand}")
@@ -106,6 +110,24 @@ def evaluate(predicted: list[dict], labels: list[dict], k: int) -> dict:
         keys = [f"precision@{k}", f"recall@{k}", f"ndcg@{k}", "pairwise_accuracy"]
         report["methods"][method] = {key: round(sum(x[key] for x in rows if x[key] is not None) / max(1, sum(x[key] is not None for x in rows)), 6) for key in keys}
         report["methods"][method]["cases"] = len(rows)
+        if score_threshold is not None:
+            tp = fp = fn = tn = 0
+            for case, candidates in cases.items():
+                for candidate, score in candidates:
+                    positive = truth[case][candidate] > 0
+                    selected = score >= score_threshold
+                    tp += int(selected and positive)
+                    fp += int(selected and not positive)
+                    fn += int(not selected and positive)
+                    tn += int(not selected and not positive)
+            precision = tp / (tp + fp) if tp + fp else 0.0
+            recall = tp / (tp + fn) if tp + fn else 0.0
+            report["methods"][method]["classification"] = {
+                "aggregation": "micro", "positive_label": "relevance > 0",
+                "score_threshold": score_threshold, "tp": tp, "fp": fp, "fn": fn, "tn": tn,
+                "precision": precision, "recall": recall,
+                "f1": 2 * precision * recall / (precision + recall) if precision + recall else 0.0}
+
     return report
 
 
@@ -115,10 +137,11 @@ def main() -> None:
     parser.add_argument("--ground-truth", required=True)
     parser.add_argument("--k", type=int, default=5)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--score-threshold", type=float, help="Predeclared binary decision threshold; omit to report only ranking metrics")
     args = parser.parse_args()
     if args.k < 1:
         parser.error("--k must be positive")
-    result = evaluate(read_jsonl(args.predictions), read_jsonl(args.ground_truth), args.k)
+    result = evaluate(read_jsonl(args.predictions), read_jsonl(args.ground_truth), args.k, args.score_threshold)
     Path(args.output).write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Produced ranking metrics for {len(result['methods'])} REAL scoring methods.")
 

@@ -1,0 +1,618 @@
+{
+  "schema_version": 1,
+  "scope": "explicit Java references; not reflection/runtime dependencies",
+  "edges": [
+    [
+      "admin",
+      "ai"
+    ],
+    [
+      "admin",
+      "application"
+    ],
+    [
+      "admin",
+      "candidate"
+    ],
+    [
+      "admin",
+      "common"
+    ],
+    [
+      "admin",
+      "company"
+    ],
+    [
+      "admin",
+      "cv"
+    ],
+    [
+      "admin",
+      "event"
+    ],
+    [
+      "admin",
+      "job"
+    ],
+    [
+      "admin",
+      "suspension"
+    ],
+    [
+      "admin",
+      "taxonomy"
+    ],
+    [
+      "admin",
+      "user"
+    ],
+    [
+      "ai",
+      "auth"
+    ],
+    [
+      "ai",
+      "candidate"
+    ],
+    [
+      "ai",
+      "common"
+    ],
+    [
+      "ai",
+      "company"
+    ],
+    [
+      "ai",
+      "cv"
+    ],
+    [
+      "ai",
+      "event"
+    ],
+    [
+      "ai",
+      "github"
+    ],
+    [
+      "ai",
+      "job"
+    ],
+    [
+      "ai",
+      "taxonomy"
+    ],
+    [
+      "ai",
+      "user"
+    ],
+    [
+      "ai",
+      "worker"
+    ],
+    [
+      "application",
+      "candidate"
+    ],
+    [
+      "application",
+      "common"
+    ],
+    [
+      "application",
+      "communication"
+    ],
+    [
+      "application",
+      "company"
+    ],
+    [
+      "application",
+      "cv"
+    ],
+    [
+      "application",
+      "embedding"
+    ],
+    [
+      "application",
+      "job"
+    ],
+    [
+      "application",
+      "matching"
+    ],
+    [
+      "application",
+      "product"
+    ],
+    [
+      "application",
+      "suspension"
+    ],
+    [
+      "application",
+      "user"
+    ],
+    [
+      "auth",
+      "candidate"
+    ],
+    [
+      "auth",
+      "common"
+    ],
+    [
+      "auth",
+      "company"
+    ],
+    [
+      "auth",
+      "document"
+    ],
+    [
+      "auth",
+      "email"
+    ],
+    [
+      "auth",
+      "user"
+    ],
+    [
+      "candidate",
+      "ai"
+    ],
+    [
+      "candidate",
+      "common"
+    ],
+    [
+      "candidate",
+      "cv"
+    ],
+    [
+      "candidate",
+      "matching"
+    ],
+    [
+      "candidate",
+      "user"
+    ],
+    [
+      "candidate",
+      "worker"
+    ],
+    [
+      "communication",
+      "application"
+    ],
+    [
+      "communication",
+      "common"
+    ],
+    [
+      "communication",
+      "job"
+    ],
+    [
+      "communication",
+      "user"
+    ],
+    [
+      "company",
+      "admin"
+    ],
+    [
+      "company",
+      "common"
+    ],
+    [
+      "company",
+      "job"
+    ],
+    [
+      "company",
+      "suspension"
+    ],
+    [
+      "company",
+      "user"
+    ],
+    [
+      "config",
+      "auth"
+    ],
+    [
+      "config",
+      "common"
+    ],
+    [
+      "config",
+      "user"
+    ],
+    [
+      "cv",
+      "ai"
+    ],
+    [
+      "cv",
+      "auth"
+    ],
+    [
+      "cv",
+      "candidate"
+    ],
+    [
+      "cv",
+      "common"
+    ],
+    [
+      "cv",
+      "document"
+    ],
+    [
+      "cv",
+      "embedding"
+    ],
+    [
+      "cv",
+      "matching"
+    ],
+    [
+      "cv",
+      "user"
+    ],
+    [
+      "document",
+      "common"
+    ],
+    [
+      "document",
+      "event"
+    ],
+    [
+      "document",
+      "worker"
+    ],
+    [
+      "embedding",
+      "ai"
+    ],
+    [
+      "embedding",
+      "common"
+    ],
+    [
+      "embedding",
+      "cv"
+    ],
+    [
+      "embedding",
+      "document"
+    ],
+    [
+      "embedding",
+      "job"
+    ],
+    [
+      "embedding",
+      "worker"
+    ],
+    [
+      "event",
+      "cv"
+    ],
+    [
+      "file",
+      "common"
+    ],
+    [
+      "github",
+      "candidate"
+    ],
+    [
+      "github",
+      "common"
+    ],
+    [
+      "job",
+      "common"
+    ],
+    [
+      "job",
+      "communication"
+    ],
+    [
+      "job",
+      "company"
+    ],
+    [
+      "job",
+      "embedding"
+    ],
+    [
+      "job",
+      "matching"
+    ],
+    [
+      "job",
+      "suspension"
+    ],
+    [
+      "job",
+      "user"
+    ],
+    [
+      "matching",
+      "application"
+    ],
+    [
+      "matching",
+      "candidate"
+    ],
+    [
+      "matching",
+      "common"
+    ],
+    [
+      "matching",
+      "company"
+    ],
+    [
+      "matching",
+      "cv"
+    ],
+    [
+      "matching",
+      "document"
+    ],
+    [
+      "matching",
+      "embedding"
+    ],
+    [
+      "matching",
+      "github"
+    ],
+    [
+      "matching",
+      "job"
+    ],
+    [
+      "matching",
+      "product"
+    ],
+    [
+      "matching",
+      "suspension"
+    ],
+    [
+      "matching",
+      "taxonomy"
+    ],
+    [
+      "matching",
+      "user"
+    ],
+    [
+      "matching",
+      "worker"
+    ],
+    [
+      "product",
+      "admin"
+    ],
+    [
+      "product",
+      "ai"
+    ],
+    [
+      "product",
+      "application"
+    ],
+    [
+      "product",
+      "common"
+    ],
+    [
+      "product",
+      "company"
+    ],
+    [
+      "product",
+      "job"
+    ],
+    [
+      "product",
+      "user"
+    ],
+    [
+      "screening",
+      "common"
+    ],
+    [
+      "screening",
+      "document"
+    ],
+    [
+      "screening",
+      "event"
+    ],
+    [
+      "screening",
+      "user"
+    ],
+    [
+      "screening",
+      "worker"
+    ],
+    [
+      "suspension",
+      "admin"
+    ],
+    [
+      "suspension",
+      "common"
+    ],
+    [
+      "suspension",
+      "company"
+    ],
+    [
+      "suspension",
+      "job"
+    ],
+    [
+      "suspension",
+      "user"
+    ],
+    [
+      "taxonomy",
+      "common"
+    ],
+    [
+      "taxonomy",
+      "user"
+    ],
+    [
+      "user",
+      "admin"
+    ],
+    [
+      "user",
+      "common"
+    ],
+    [
+      "user",
+      "suspension"
+    ],
+    [
+      "worker",
+      "ai"
+    ],
+    [
+      "worker",
+      "common"
+    ],
+    [
+      "worker",
+      "cv"
+    ],
+    [
+      "worker",
+      "document"
+    ],
+    [
+      "worker",
+      "embedding"
+    ],
+    [
+      "worker",
+      "event"
+    ],
+    [
+      "worker",
+      "github"
+    ],
+    [
+      "worker",
+      "matching"
+    ],
+    [
+      "worker",
+      "taxonomy"
+    ]
+  ],
+  "cross_module_repository_access": [
+    "admin/AdminBootstrapRunner.java -> user.UserRepository",
+    "admin/service/AdminService.java -> application.ApplicationRepository",
+    "admin/service/AdminService.java -> candidate.CandidateProfileRepository",
+    "admin/service/AdminService.java -> cv.CVRepository",
+    "admin/service/AdminService.java -> job.JobRepository",
+    "admin/service/AdminService.java -> suspension.SuspensionRecordRepository",
+    "admin/service/AdminService.java -> user.UserRepository",
+    "ai/AiProcessingController.java -> candidate.CandidateProfileRepository",
+    "ai/ProcessingLifecycleService.java -> candidate.CandidateProfileRepository",
+    "ai/ProcessingLifecycleService.java -> company.RecruiterProfileRepository",
+    "ai/ProcessingLifecycleService.java -> cv.CVRepository",
+    "ai/ProcessingLifecycleService.java -> cv.CVSectionRepository",
+    "ai/ProcessingLifecycleService.java -> cv.CVVersionRepository",
+    "application/ApplicationService.java -> candidate.CandidateProfileRepository",
+    "application/ApplicationService.java -> company.RecruiterProfileRepository",
+    "application/ApplicationService.java -> cv.CVRepository",
+    "application/ApplicationService.java -> cv.CVVersionRepository",
+    "application/ApplicationService.java -> job.JobRepository",
+    "application/ApplicationService.java -> matching.MatchResultRepository",
+    "auth/AuthService.java -> candidate.CandidateProfileRepository",
+    "auth/AuthService.java -> candidate.CandidateTargetIndustryRepository",
+    "auth/AuthService.java -> company.CompanyRepository",
+    "auth/AuthService.java -> company.RecruiterProfileRepository",
+    "auth/AuthService.java -> user.UserRepository",
+    "auth/AuthSessionService.java -> user.UserRepository",
+    "auth/OAuthService.java -> candidate.CandidateProfileRepository",
+    "auth/OAuthService.java -> user.UserRepository",
+    "candidate/CandidateMatchController.java -> cv.CVRepository",
+    "candidate/CandidateMatchController.java -> cv.CVVersionRepository",
+    "company/service/CompanyVerificationService.java -> job.JobRepository",
+    "company/service/CompanyVerificationService.java -> suspension.SuspensionRecordRepository",
+    "config/JwtAuthenticationFilter.java -> user.UserRepository",
+    "cv/CVService.java -> candidate.CandidateProfileRepository",
+    "cv/CVService.java -> matching.MatchResultRepository",
+    "job/JobService.java -> company.RecruiterProfileRepository",
+    "matching/GitHubScoringService.java -> github.GitHubAssessmentRepository",
+    "matching/GitHubScoringService.java -> github.GitHubProfileRepository",
+    "matching/GitHubScoringService.java -> github.GitHubRepository",
+    "matching/GitHubScoringService.java -> github.GitHubRepositoryLanguageRepository",
+    "matching/GitHubScoringService.java -> github.GitHubRepositoryRepository",
+    "matching/JobMatchingPolicyService.java -> application.ApplicationRepository",
+    "matching/JobMatchingPolicyService.java -> company.RecruiterProfileRepository",
+    "matching/JobMatchingPolicyService.java -> job.JobRepository",
+    "matching/MatchingController.java -> application.ApplicationRepository",
+    "matching/MatchingController.java -> company.RecruiterProfileRepository",
+    "matching/MatchingController.java -> job.JobRepository",
+    "matching/MatchingEngineService.java -> application.ApplicationRepository",
+    "matching/MatchingEngineService.java -> candidate.CandidateProfileRepository",
+    "matching/MatchingEngineService.java -> cv.CVRepository",
+    "matching/MatchingEngineService.java -> cv.CVVersionRepository",
+    "matching/MatchingEngineService.java -> github.GitHubProfileRepository",
+    "matching/MatchingEngineService.java -> job.JobRepository",
+    "matching/MatchingEngineService.java -> job.JobRequirementRepository",
+    "product/RecruiterEntitlements.java -> user.UserRepository",
+    "suspension/SuspensionAppealService.java -> company.CompanyRepository",
+    "suspension/SuspensionAppealService.java -> company.RecruiterProfileRepository",
+    "suspension/SuspensionAppealService.java -> job.JobRepository",
+    "suspension/SuspensionAppealService.java -> user.UserRepository",
+    "suspension/SuspensionGuard.java -> company.RecruiterProfileRepository",
+    "suspension/SuspensionNoticeController.java -> company.RecruiterProfileRepository",
+    "suspension/SuspensionService.java -> company.CompanyRepository",
+    "suspension/SuspensionService.java -> job.JobRepository",
+    "suspension/SuspensionService.java -> user.UserRepository",
+    "user/AccountService.java -> suspension.SuspensionRecordRepository",
+    "worker/PipelineWorker.java -> cv.CVRepository",
+    "worker/PipelineWorker.java -> cv.CVSectionRepository",
+    "worker/PipelineWorker.java -> cv.CVVersionRepository"
+  ],
+  "cycles": [
+    [
+      "admin",
+      "ai",
+      "application",
+      "auth",
+      "candidate",
+      "communication",
+      "company",
+      "cv",
+      "document",
+      "embedding",
+      "event",
+      "github",
+      "job",
+      "matching",
+      "product",
+      "suspension",
+      "taxonomy",
+      "user",
+      "worker"
+    ]
+  ]
+}

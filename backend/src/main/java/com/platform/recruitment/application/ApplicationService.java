@@ -38,19 +38,19 @@ import java.util.ArrayList;
 public class ApplicationService {
 
     private com.platform.recruitment.product.RecruiterEntitlements entitlements;
-    @Autowired(required = false)
+    @Autowired
     public void setEntitlements(com.platform.recruitment.product.RecruiterEntitlements entitlements) {
         this.entitlements = entitlements;
     }
 
     private com.platform.recruitment.product.AiScreeningAccessService aiScreeningAccess;
-    @Autowired(required = false)
+    @Autowired
     public void setAiScreeningAccess(com.platform.recruitment.product.AiScreeningAccessService access) {
         this.aiScreeningAccess = access;
     }
 
     private com.platform.recruitment.product.RecruiterFeatureAccess featureAccess;
-    @Autowired(required = false)
+    @Autowired
     public void setFeatureAccess(com.platform.recruitment.product.RecruiterFeatureAccess featureAccess) {
         this.featureAccess = featureAccess;
     }
@@ -62,7 +62,7 @@ public class ApplicationService {
 
     private com.platform.recruitment.communication.InboxService inbox;
     @Autowired public void setInbox(com.platform.recruitment.communication.InboxService inbox) { this.inbox=inbox; }
-    @Autowired(required = false)
+    @Autowired
     private com.platform.recruitment.embedding.VersionedEmbeddingLifecycle vectorLifecycle;
 
     private final ApplicationRepository applicationRepository;

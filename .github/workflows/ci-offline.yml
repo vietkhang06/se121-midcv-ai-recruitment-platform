@@ -48,6 +48,8 @@ jobs:
           java-version: "21"
           distribution: temurin
           cache: maven
+      - name: Check module dependency regressions
+        run: python scripts/check_module_boundaries.py
       - name: Run backend tests
         id: tests
         working-directory: backend

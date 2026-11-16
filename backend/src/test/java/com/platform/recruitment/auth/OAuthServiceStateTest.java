@@ -59,7 +59,22 @@ class OAuthServiceStateTest {
     }
 
     @Test void onlySupportedProvidersCanStart() {
-        assertEquals("unsupported_provider", assertThrows(OAuthFlowException.class, () -> service.authorizationUrl("linkedin", null, null)).getReason());
+        assertEquals("unsupported_provider", assertThrows(OAuthFlowException.class, () -> service.authorizationUrl("unsupported", null, null)).getReason());
+    }
+
+    @Test void linkedinRequiresConfigurationAndUsesOidcNonce() {
+        assertEquals("provider_not_configured", assertThrows(OAuthFlowException.class,
+                () -> service.authorizationUrl("linkedin", null, null)).getReason());
+        ReflectionTestUtils.setField(service, "linkedinClientId", "linkedin-test-client");
+        ReflectionTestUtils.setField(service, "linkedinClientSecret", "linkedin-test-secret");
+        URI uri = URI.create(service.authorizationUrl("linkedin", null, null));
+        assertEquals("www.linkedin.com", uri.getHost());
+        assertEquals("/oauth/v2/authorization", uri.getPath());
+        String query = URLDecoder.decode(uri.getRawQuery(), StandardCharsets.UTF_8);
+        assertTrue(query.contains("scope=openid profile email"));
+        assertTrue(query.contains("nonce="));
+        assertTrue(query.contains("/linkedin/callback"));
+        assertFalse(query.contains("linkedin-test-secret"));
     }
 
     @Test void githubOwnershipIsBoundToTheLinkedUserAndExactProviderLogin() {
