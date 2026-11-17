@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { GitHubAssessmentData } from '@/types';
-import { GitBranch, Star, GitFork, ExternalLink, Code, Activity, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-react';
+import { GitBranch, Star, GitFork, ExternalLink, Activity } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface GitHubAssessmentCardProps {
@@ -71,15 +71,6 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
     );
   }
 
-  // Generate a commit grid heatmap representation for visual fidelity
-  const heatmapWeeks = Array.from({ length: 16 }, (_, weekIdx) =>
-    Array.from({ length: 4 }, (_, dayIdx) => {
-      const active = (weekIdx * 3 + dayIdx * 7) % 5 !== 0;
-      const intensity = (weekIdx + dayIdx) % 3;
-      return { active, intensity };
-    })
-  );
-
   return (
     <div data-testid="github-assessment" className="bg-[var(--retro-deep)] border border-[var(--border)] rounded-xl p-6 sm:p-7 shadow-xl space-y-6 text-xs text-white font-sans">
       {/* Header matching Figma Screen 08 */}
@@ -99,7 +90,9 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
 
         <div className="flex items-center gap-3">
           <span data-testid="github-status" className="px-3 py-1 rounded-xl bg-[var(--retro-deep)] border border-blue-400/30 text-[var(--primary)] font-sans text-[11px] font-bold">
-            Public GitHub Signal: Verified
+            {assessment.ownershipStatus === 'OWNED'
+              ? (locale === 'vi' ? 'Chủ sở hữu đã xác minh' : 'Ownership verified')
+              : (locale === 'vi' ? 'Hồ sơ công khai chưa xác minh' : 'Public profile, ownership unverified')}
           </span>
           <a
             href={`https://github.com/${assessment.username}`}
@@ -113,43 +106,20 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
         </div>
       </div>
 
-      {/* 2-Column Section: Heatmap & Verified Language Index */}
+      <div className="flex flex-wrap gap-3 text-[11px] text-slate-200">
+        <span>{locale === 'vi' ? 'Chủ sở hữu:' : 'Ownership:'} {assessment.ownershipStatus || 'UNKNOWN'}</span>
+        <span>{locale === 'vi' ? 'Đồng bộ:' : 'Sync:'} {assessment.status || 'UNKNOWN'}</span>
+        <span>{locale === 'vi' ? 'Đủ điều kiện chấm điểm:' : 'Scoring eligible:'} {assessment.scoringEligible ? (locale === 'vi' ? 'Có' : 'Yes') : (locale === 'vi' ? 'Không' : 'No')}</span>
+      </div>
+
+      {/* Public signals are reported only when supplied by the sync service. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-        {/* Left: Code Commits Density & Heatmap */}
         <div className="space-y-3 bg-[var(--retro-deep)] border border-[var(--border)] p-4 rounded-xl">
           <span className="text-[10px] font-bold text-amber-400 tracking-wider uppercase block">
-            CODE COMMITS DENSITY &amp; HEATMAP
+            {locale === 'vi' ? 'Trạng thái đồng bộ công khai' : 'Public sync status'}
           </span>
-          <div className="flex gap-1.5 overflow-x-auto py-1">
-            {heatmapWeeks.map((week, wIdx) => (
-              <div key={wIdx} className="flex flex-col gap-1.5">
-                {week.map((day, dIdx) => (
-                  <div
-                    key={dIdx}
-                    className={`w-3.5 h-3.5 rounded-xl transition-all ${
-                      !day.active
-                        ? 'bg-[var(--retro-deep)]'
-                        : day.intensity === 2
-                        ? 'bg-amber-400 shadow-sm shadow-amber-400/40'
-                        : day.intensity === 1
-                        ? 'bg-[var(--primary)]'
-                        : 'bg-blue-900'
-                    }`}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center justify-between text-[10px] text-slate-300 pt-1">
-            <span>{locale === 'vi' ? 'Tần suất commit thấp' : 'Low commit volume'}</span>
-            <div className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-xs bg-[var(--retro-deep)]" />
-              <span className="w-2.5 h-2.5 rounded-xs bg-blue-900" />
-              <span className="w-2.5 h-2.5 rounded-xs bg-[var(--primary)]" />
-              <span className="w-2.5 h-2.5 rounded-xs bg-amber-400" />
-            </div>
-            <span>{locale === 'vi' ? 'Tần suất commit cao' : 'High commit volume'}</span>
-          </div>
+          <p className="text-sm text-slate-100">{assessment.status || 'UNKNOWN'}</p>
+          <p className="text-[11px] text-slate-300">{assessment.ownershipStatus || (locale === 'vi' ? 'Chưa có trạng thái quyền sở hữu' : 'Ownership not reported')}</p>
         </div>
 
         {/* Right: Verified Language Index */}
@@ -186,7 +156,7 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-3.5 rounded-xl bg-[var(--retro-deep)] border border-[var(--border)] space-y-1">
           <span className="text-slate-300 block text-[11px]">{locale === 'vi' ? 'Tổng số Repositories Công khai' : 'Total Public Repositories'}</span>
-          <span className="text-xl font-bold text-white font-sans">{assessment.publicRepoCount || 0} Repos</span>
+          <span className="text-xl font-bold text-white font-sans">{assessment.publicRepoCount ?? '—'} Repos</span>
         </div>
 
         <div data-testid="github-activity-signal" className="p-3.5 rounded-xl bg-[var(--retro-deep)] border border-[var(--border)] space-y-1">
@@ -195,7 +165,7 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
             assessment.activitySignal === 'HIGH' ? 'text-[var(--primary)]' : 'text-amber-400'
           }`}>
             <Activity className="w-4 h-4" />
-            <strong className="font-sans">{assessment.activitySignal || 'LIMITED_OBSERVABLE_ACTIVITY'}</strong>
+            <strong className="font-sans">{assessment.activitySignal || (locale === 'vi' ? 'Chưa có dữ liệu' : 'No data reported')}</strong>
           </span>
         </div>
 

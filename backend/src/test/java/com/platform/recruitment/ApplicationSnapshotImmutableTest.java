@@ -19,6 +19,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
@@ -57,6 +59,9 @@ class ApplicationSnapshotImmutableTest {
     @Mock
     private MatchingEngineService matchingEngineService;
 
+    @Mock
+    private JdbcTemplate jdbcTemplate;
+
     @InjectMocks
     private ApplicationService applicationService;
 
@@ -67,6 +72,7 @@ class ApplicationSnapshotImmutableTest {
 
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(applicationService, "jdbcTemplate", jdbcTemplate);
         candidateUser = User.builder()
                 .email("candidate@example.com")
                 .passwordHash("hashed")
@@ -137,6 +143,10 @@ class ApplicationSnapshotImmutableTest {
 
         ApplicationCVSnapshot capturedSnapshot = snapshotCaptor.getValue();
         assertEquals("Original Java CV v1.0", capturedSnapshot.getCvTitle());
+
+        ArgumentCaptor<Object[]> pageSnapshotArgs = ArgumentCaptor.forClass(Object[].class);
+        verify(jdbcTemplate).update(contains("INSERT INTO application_cv_snapshot_pages"), pageSnapshotArgs.capture());
+        assertArrayEquals(new Object[]{applicationId(response), versionId()}, pageSnapshotArgs.getValue());
         assertEquals("Skill: Java 17, Spring Boot. Experience: 2 Years.", capturedSnapshot.getRawTextSnapshot());
 
         // Simulate Candidate modifying CV in library later
@@ -147,4 +157,7 @@ class ApplicationSnapshotImmutableTest {
         assertEquals("Skill: Java 17, Spring Boot. Experience: 2 Years.", capturedSnapshot.getRawTextSnapshot());
         assertEquals("Original Java CV v1.0", capturedSnapshot.getCvTitle());
     }
+
+    private UUID applicationId(ApplicationResponse response) { return response.getId(); }
+    private UUID versionId() { return cvVersionRepository.findByCvIdOrderByVersionNumberDesc(originalCV.getId()).get(0).getId(); }
 }

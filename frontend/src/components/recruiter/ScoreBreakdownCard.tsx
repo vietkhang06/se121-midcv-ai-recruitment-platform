@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { MatchInspectionData } from '@/types';
-import { CheckCircle2, Sparkles, GitBranch, ShieldCheck, HelpCircle, Calculator, FileCheck, Layers } from 'lucide-react';
+import { CheckCircle2, GitBranch, ShieldCheck, Calculator, FileCheck, Layers } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { staggerDelay } from '@/components/motion';
 
@@ -203,24 +203,33 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
             <span>{locale === 'vi' ? 'Chi tiết Thành phần & Tái dựng Điểm (Explainable Factor Breakdown)' : 'Explainable Match Factors Breakdown'}</span>
           </h3>
           <span className="text-[11px] text-slate-500 dark:text-slate-400 font-sans">
-            {locale === 'vi' ? 'Công thức: Score = ∑(Score_i × EffectiveWeight_i)' : 'Formula: Score = ∑(Score_i × EffectiveWeight_i)'}
+            {locale === 'vi' ? 'Điểm đóng góp đã áp dụng trọng số Core/GitHub và quy tắc làm tròn của engine' : 'Contributions include Core/GitHub weights and engine rounding'}
           </span>
         </div>
 
         <div className="space-y-3">
           {data.matchFactors.map((factor, idx) => {
-            const isNotAvailable = factor.status === 'NOT_AVAILABLE' || factor.score === null;
+            const isNotAvailable = factor.score === null || factor.status === 'PENDING' || factor.status === 'NOT_APPLICABLE' || factor.status === 'INSUFFICIENT_EVIDENCE' || factor.status === 'LEGACY_MISSING_DATA' || factor.status === 'ACCESS_RESTRICTED';
+            const statusLabel: Record<string, string> = {
+              PENDING: locale === 'vi' ? 'Đang chờ' : 'Pending',
+              NOT_APPLICABLE: locale === 'vi' ? 'Không áp dụng' : 'Not applicable',
+              INSUFFICIENT_EVIDENCE: locale === 'vi' ? 'Chưa đủ bằng chứng' : 'Insufficient evidence',
+              MISSING_EVIDENCE: locale === 'vi' ? 'Thiếu bằng chứng (điểm 0)' : 'No evidence (score 0)',
+              LEGACY_MISSING_DATA: locale === 'vi' ? 'Thiếu dữ liệu bản cũ' : 'Legacy missing data',
+              ACCESS_RESTRICTED: locale === 'vi' ? 'Bị giới hạn quyền truy cập' : 'Access restricted',
+              AVAILABLE: locale === 'vi' ? 'Có dữ liệu' : 'Available',
+            };
             return (
               <div key={idx} className="p-4 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] space-y-2 text-xs transition-colors">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-900 dark:text-white font-sans text-sm">{factor.factorName}</span>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-sans font-bold ${
-                      isNotAvailable
+                      isNotAvailable || factor.status === 'MISSING_EVIDENCE' || factor.status === 'ERROR'
                         ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
                         : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
                     }`}>
-                      {factor.status || (isNotAvailable ? 'NOT_AVAILABLE' : 'AVAILABLE')}
+                      {statusLabel[factor.status] || factor.status || (isNotAvailable ? 'NOT_AVAILABLE' : 'AVAILABLE')}
                     </span>
                     {factor.calculationMethod && (
                       <span className="hidden sm:inline-block text-[10px] text-slate-500 dark:text-slate-400 font-sans bg-white dark:bg-[var(--surface)] px-1.5 py-0.5 rounded border border-slate-200 dark:border-[var(--border)]">
@@ -233,7 +242,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <span className="text-[10px] text-slate-400 block font-sans">Điểm thô / Normalized</span>
-                      {isNotAvailable ? (
+                      {factor.score === null ? (
                         <span className="font-sans text-xs font-semibold text-slate-400 italic">Chưa có dữ liệu</span>
                       ) : (
                         <span className="font-sans font-bold text-slate-900 dark:text-white">{factor.score?.toFixed(1)}%</span>
@@ -243,7 +252,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                       <div className="text-right pl-3 border-l border-slate-200 dark:border-[var(--border)]">
                         <span className="text-[10px] text-slate-400 block font-sans">Đóng góp (+pts)</span>
                         <span className="font-sans font-bold text-emerald-600 dark:text-emerald-400">
-                          +{factor.weightedContribution.toFixed(2)}
+                          {factor.weightedContribution.toFixed(2)}
                         </span>
                       </div>
                     )}
@@ -261,7 +270,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                   </div>
                 )}
 
-                <p className="text-slate-600 dark:text-slate-300">{factor.explanation}</p>
+                {factor.explanation && <p className="text-slate-600 dark:text-slate-300">{factor.explanation}</p>}
                 {factor.evidence && (
                   <div className="text-[11px] text-slate-800 dark:text-slate-200 font-sans bg-white dark:bg-[var(--surface)] p-2.5 rounded-xl border border-slate-200 dark:border-[var(--border)] flex items-start gap-2">
                     <FileCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
@@ -328,7 +337,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                     {locale === 'vi' ? 'Trích đoạn văn bản gốc (Verbatim Quote):' : 'Verbatim Quote:'}
                   </span>
                   <p className="text-slate-800 dark:text-slate-200 italic font-sans leading-relaxed">
-                    "{ev.snippet}"
+                    &quot;{ev.snippet}&quot;
                   </p>
                 </div>
 

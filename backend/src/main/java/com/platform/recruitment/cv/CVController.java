@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -20,6 +21,54 @@ public class CVController {
 
     private final CVService cvService;
     private final CvProcessingSseService cvProcessingSseService;
+    private final CVImageSetService cvImageSetService;
+
+    public record ReorderImagePagesRequest(List<UUID> pageIds) {}
+
+    @PostMapping(value = "/image-sets", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createImageSet(
+            @AuthenticationPrincipal User currentUser,
+            @RequestParam(value = "title", required = false) String title,
+            @RequestParam("files") List<org.springframework.web.multipart.MultipartFile> files) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(cvImageSetService.create(currentUser, title, files)));
+    }
+
+    @GetMapping("/image-sets/{setId}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getImageSet(@AuthenticationPrincipal User currentUser, @PathVariable UUID setId) {
+        return ResponseEntity.ok(ApiResponse.success(cvImageSetService.get(currentUser, setId)));
+    }
+
+    @GetMapping("/image-sets/{setId}/pages/{pageId}/content")
+    public ResponseEntity<byte[]> getImagePage(@AuthenticationPrincipal User currentUser, @PathVariable UUID setId, @PathVariable UUID pageId) {
+        DownloadResult result = cvImageSetService.pageContentForCandidate(currentUser, setId, pageId);
+        return ResponseEntity.ok().header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "private, no-store")
+                .header("X-Content-Type-Options", "nosniff").contentType(org.springframework.http.MediaType.parseMediaType(result.contentType())).body(result.data());
+    }
+
+    @PostMapping("/image-sets/{setId}/pages/{pageId}/retry")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> retryImagePage(@AuthenticationPrincipal User currentUser, @PathVariable UUID setId, @PathVariable UUID pageId) {
+        return ResponseEntity.ok(ApiResponse.success(cvImageSetService.retry(currentUser, setId, pageId)));
+    }
+
+    @PutMapping(value = "/image-sets/{setId}/pages/{pageId}", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> replaceImagePage(@AuthenticationPrincipal User currentUser, @PathVariable UUID setId, @PathVariable UUID pageId, @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        return ResponseEntity.ok(ApiResponse.success(cvImageSetService.replace(currentUser, setId, pageId, file)));
+    }
+
+    @DeleteMapping("/image-sets/{setId}/pages/{pageId}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> removeImagePage(@AuthenticationPrincipal User currentUser, @PathVariable UUID setId, @PathVariable UUID pageId) {
+        return ResponseEntity.ok(ApiResponse.success(cvImageSetService.remove(currentUser, setId, pageId)));
+    }
+
+    @PutMapping("/image-sets/{setId}/order")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> reorderImagePages(@AuthenticationPrincipal User currentUser, @PathVariable UUID setId, @RequestBody ReorderImagePagesRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(cvImageSetService.reorder(currentUser, setId, request.pageIds())));
+    }
+
+    @PostMapping("/image-sets/{setId}/draft")
+    public ResponseEntity<ApiResponse<CVUploadAsyncResponse>> createImageSetDraft(@AuthenticationPrincipal User currentUser, @PathVariable UUID setId, @RequestParam(defaultValue = "false") Boolean isDefault) {
+        return ResponseEntity.accepted().body(ApiResponse.success(cvImageSetService.createDraft(currentUser, setId, isDefault)));
+    }
 
     @PostMapping(consumes = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<CVResponse>> createCV(

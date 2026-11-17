@@ -111,6 +111,7 @@ public class CandidateRankingAndRecruiterDecisionIntegrationTest {
                 .job(job)
                 .candidate(cand1)
                 .appliedCv(cv1)
+                .aiAnalysisConsent(true)
                 .status(ApplicationStatus.SUBMITTED)
                 .build();
         app1.setId(UUID.randomUUID());
@@ -133,6 +134,7 @@ public class CandidateRankingAndRecruiterDecisionIntegrationTest {
                 .job(job)
                 .candidate(cand2)
                 .appliedCv(cv2)
+                .aiAnalysisConsent(true)
                 .status(ApplicationStatus.SUBMITTED)
                 .build();
         app2.setId(UUID.randomUUID());

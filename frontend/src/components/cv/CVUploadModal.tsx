@@ -5,7 +5,7 @@ import { CV, CVQuota } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
 import { AnimatedModalShell, AnimatedStatus } from '@/components/motion';
-import { uploadCandidateCV, fetchCVProcessingStatus, retryCVExtraction, subscribeCVProcessingEvents } from '@/lib/api';
+import { uploadCandidateCV, fetchCVProcessingStatus, retryCVExtraction, subscribeCVProcessingEvents, createCVImageSet, createCVImageSetDraft, retryCVImagePage, replaceCVImagePage, removeCVImagePage, reorderCVImagePages, fetchCVImagePage, CVImageSet } from '@/lib/api';
 import { waitForProcessing } from '@/lib/processingWait';
 import {
   X,
@@ -16,6 +16,7 @@ import {
   AlertCircle,
   RefreshCw,
   ArrowRight,
+  ChevronUp, ChevronDown, Trash2,
 } from 'lucide-react';
 
 interface CVUploadModalProps {
@@ -36,6 +37,11 @@ const asRecord = (value: unknown): Record<string, unknown> | null =>
 export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, onUploadSuccess, onSuccess, quota }) => {
   const { t } = useLanguage();
   const [file, setFile] = useState<File | null>(null);
+  const [imageMode, setImageMode] = useState(false);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imageSet, setImageSet] = useState<CVImageSet | null>(null);
+  const [imagePreviews, setImagePreviews] = useState<Record<string,string>>({});
+  const [localImagePreviews, setLocalImagePreviews] = useState<string[]>([]);
   const [uploadedCv, setUploadedCv] = useState<CV | null>(null);
   const [status, setStatus] = useState<ProcessingStatus>('IDLE');
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -43,6 +49,15 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
   const [processingStageMessage, setProcessingStageMessage] = useState<string>('');
 
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    let active = true; const urls: string[] = [];
+    if (imageSet) void Promise.all(imageSet.pages.filter(p => p.status !== 'REMOVED').map(async page => {
+      try { const blob = await fetchCVImagePage(imageSet.id, page.id); const url = URL.createObjectURL(blob); if (active) { urls.push(url); setImagePreviews(old => ({ ...old, [page.id]: url })); } else URL.revokeObjectURL(url); }
+      catch { /* Page metadata remains visible when preview retrieval is unavailable. */ }
+    }));
+    return () => { active = false; urls.forEach(URL.revokeObjectURL); };
+  }, [imageSet]);
 
   // Extracted fields editable
   const [cvTitle, setCvTitle] = useState<string>('');
@@ -54,6 +69,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
+    localImagePreviews.forEach(URL.revokeObjectURL);
     onClose();
   };
 
@@ -228,6 +244,35 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
     }
   };
 
+  const selectImages = (list: FileList | null) => {
+    if (!list) return;
+    const selected = Array.from(list);
+    if (selected.some(f => !f.type.startsWith('image/') || f.size > 10 * 1024 * 1024) || selected.reduce((n, f) => n + f.size, 0) > 30 * 1024 * 1024 || selected.length > 10) {
+      setErrorMessage('Chọn tối đa 10 ảnh thật, mỗi ảnh tối đa 10MB và tổng dung lượng tối đa 30MB.'); return;
+    }
+    localImagePreviews.forEach(URL.revokeObjectURL);
+    setLocalImagePreviews(selected.map(selectedFile => URL.createObjectURL(selectedFile)));
+    setImageFiles(selected); setImageSet(null); setErrorMessage('');
+  };
+  const startImageFlow = async () => {
+    if (!imageFiles.length) return;
+    try { setStatus('UPLOADING'); setProcessingStageMessage('Đang lưu ảnh và nhận dạng từng trang...');
+      const result = await createCVImageSet(imageFiles, cvTitle || 'CV nhiều trang'); setImageSet(result); setStatus('IDLE');
+    } catch (error) { setStatus('IDLE'); setErrorMessage(mapErrorMessage(error)); }
+  };
+  const mutateImageSet = async (operation: () => Promise<CVImageSet>) => {
+    try { setImageSet(await operation()); setErrorMessage(''); } catch (error) { setErrorMessage(mapErrorMessage(error)); }
+  };
+  const finishImageFlow = async () => {
+    if (!imageSet || imageSet.pages.filter(p => p.status !== 'REMOVED').some(p => p.status !== 'READY')) return;
+    const controller = new AbortController(); abortControllerRef.current = controller;
+    try { setStatus('PROCESSING'); setProcessingStageMessage('Đang tạo bản CV từ các trang đã sẵn sàng...');
+      const result = await createCVImageSetDraft(imageSet.id, false, controller.signal);
+      const cv = { id: result.cvId, title: imageSet.title, jobId: result.jobId } as unknown as CV;
+      setUploadedCv(cv); await pollProcessingStatus(cv.id, cv, controller.signal);
+    } catch (error) { if (!controller.signal.aborted) { setStatus('IDLE'); setErrorMessage(mapErrorMessage(error)); } }
+  };
+
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSaveParsedCV = async () => {
@@ -299,8 +344,24 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
         )}
 
         {/* STEP: IDLE */}
-        {status === 'IDLE' && (
+        {status === 'IDLE' && imageMode && (
+          <div className="space-y-4">
+            <div><label className="block text-xs font-semibold mb-2">Tên CV</label><input value={cvTitle} onChange={e => setCvTitle(e.target.value)} className="w-full rounded border p-2 text-sm" /></div>
+            {!imageSet && <><input type="file" accept="image/*" multiple onChange={e => selectImages(e.target.files)} className="block w-full text-sm" />
+              <div className="space-y-2">{imageFiles.map((f,i) => <div key={`${f.name}-${i}`} className="flex items-center gap-3 border rounded p-2"><img src={localImagePreviews[i] || ''} alt={`Page ${i+1} preview`} className="h-16 w-12 object-cover"/><span>Trang {i+1}: {f.name}</span></div>)}</div>
+              <button onClick={startImageFlow} disabled={!imageFiles.length || Boolean(quota && !quota.canUpload)} className="w-full rounded bg-[var(--primary)] p-3 text-white disabled:opacity-50">Tải ảnh lên và nhận dạng</button></>}
+            {imageSet && <><ol className="space-y-3">{imageSet.pages.filter(p=>p.status !== 'REMOVED').map((page,index) => <li key={page.id} className="border rounded p-3"><div className="flex items-center gap-3"><img src={imagePreviews[page.id] || ''} alt={`Trang ${index+1}`} className="h-20 w-16 object-contain"/><div className="flex-1"><b>Trang {index+1}: {page.filename}</b><div className="text-xs">OCR: {page.status === 'READY' ? 'Sẵn sàng' : 'Thất bại'}</div></div>
+              <button aria-label="Di chuyển lên" disabled={!index} onClick={() => { const ids=imageSet.pages.filter(p=>p.status!=='REMOVED').map(p=>p.id); [ids[index-1],ids[index]]=[ids[index],ids[index-1]]; void mutateImageSet(()=>reorderCVImagePages(imageSet.id,ids)); }}><ChevronUp/></button><button aria-label="Di chuyển xuống" disabled={index===imageSet.pages.filter(p=>p.status!=='REMOVED').length-1} onClick={() => { const ids=imageSet.pages.filter(p=>p.status!=='REMOVED').map(p=>p.id); [ids[index],ids[index+1]]=[ids[index+1],ids[index]]; void mutateImageSet(()=>reorderCVImagePages(imageSet.id,ids)); }}><ChevronDown/></button><button aria-label="Hapus halaman" onClick={()=>void mutateImageSet(()=>removeCVImagePage(imageSet.id,page.id))}><Trash2/></button>
+              <label className="cursor-pointer text-xs">Ganti<input type="file" accept="image/*" className="hidden" onChange={e=>{const f=e.target.files?.[0]; if(f) void mutateImageSet(()=>replaceCVImagePage(imageSet.id,page.id,f));}}/></label>{page.status==='FAILED'&&<button onClick={()=>void mutateImageSet(()=>retryCVImagePage(imageSet.id,page.id))}>Coba lagi</button>}</div>
+              {page.extracted_text && <pre className="mt-2 max-h-20 overflow-auto whitespace-pre-wrap text-xs">{page.extracted_text}</pre>}</li>)}</ol>
+              <div className="rounded bg-slate-50 p-3 text-xs whitespace-pre-wrap">{imageSet.pages.filter(p=>p.status!=='REMOVED').map(p=>p.extracted_text||'').join('\n\n')}</div>
+              <button onClick={finishImageFlow} disabled={!imageSet.pages.some(p=>p.status!=='REMOVED')||imageSet.pages.filter(p=>p.status!=='REMOVED').some(p=>p.status!=='READY')} className="w-full rounded bg-[var(--primary)] p-3 text-white disabled:opacity-50">Xác nhận nội dung và tạo CV</button></>}
+            <button onClick={()=>{localImagePreviews.forEach(URL.revokeObjectURL);setLocalImagePreviews([]);setImageMode(false);setImageSet(null);setImageFiles([]);}} className="text-xs underline">Quay lại tải một tệp</button>
+          </div>
+        )}
+        {status === 'IDLE' && !imageMode && (
           <form onSubmit={handleStartProcessing} className="space-y-5">
+            <button type="button" onClick={()=>setImageMode(true)} className="text-xs underline">Tạo CV từ nhiều ảnh theo thứ tự</button>
             {quota && !quota.canUpload && (
               <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />

@@ -77,6 +77,8 @@ public class ApplicationService {
     private final MatchResultRepository matchResultRepository;
     private final ApplicationAuditLogRepository auditLogRepository;
     private final com.platform.recruitment.suspension.SuspensionGuard suspensionGuard;
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+    @Autowired private com.platform.recruitment.cv.CVImageSetService cvImageSetService;
 
     @Autowired
     public ApplicationService(
@@ -199,6 +201,13 @@ public class ApplicationService {
                 .structuredJsonSnapshot(jsonSnapshotContent)
                 .build();
         snapshotRepository.save(snapshot);
+        // Pin image originals in the same transaction as the application snapshot.
+        if (jdbcTemplate != null) jdbcTemplate.update("""
+                INSERT INTO application_cv_snapshot_pages(application_id,source_page_id,source_document_version_id,page_order,filename_snapshot,media_type_snapshot,size_bytes_snapshot,sha256_snapshot,extracted_text_snapshot)
+                SELECT ?,p.id,v.id,s.page_order,v.filename,v.media_type,v.size_bytes,v.source_sha,p.extracted_text
+                FROM cv_version_source_pages s JOIN cv_source_pages p ON p.id=s.source_page_id
+                JOIN document_versions v ON v.id=p.document_version_id WHERE s.cv_version_id=? ORDER BY s.page_order
+                """, savedApplication.getId(), appliedVersion.getId());
 
         // Immediate matching persistence (match_results, match_factors, evidences)
         // Matching failure propagates: the transaction rolls back application and snapshot together.
@@ -526,6 +535,18 @@ public class ApplicationService {
         if (entitlements != null) entitlements.view(recruiterUser, applicationId);
         if(inbox!=null) inbox.view(application,recruiterUser);
         return recruiterResponse(recruiterUser, application, snap);
+    }
+
+    @Transactional(readOnly = true)
+    public List<java.util.Map<String,Object>> getApplicationSourcePages(User recruiterUser, UUID applicationId) {
+        getApplicationById(recruiterUser, applicationId); // enforces company and entitlement access
+        return jdbcTemplate.queryForList("SELECT page_order,filename_snapshot AS filename,media_type_snapshot AS media_type,size_bytes_snapshot AS size_bytes,sha256_snapshot AS source_sha,extracted_text_snapshot AS extracted_text FROM application_cv_snapshot_pages WHERE application_id=? ORDER BY page_order", applicationId);
+    }
+
+    @Transactional(readOnly = true)
+    public com.platform.recruitment.cv.DownloadResult getApplicationSourcePage(User recruiterUser, UUID applicationId, int pageOrder) {
+        getApplicationById(recruiterUser, applicationId); // enforces company and entitlement access
+        return cvImageSetService.pageContentForApplication(applicationId, pageOrder);
     }
 
     private ApplicationResponse recruiterResponse(
