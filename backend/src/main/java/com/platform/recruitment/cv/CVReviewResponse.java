@@ -34,5 +34,6 @@ public class CVReviewResponse {
     private Boolean ocrHumanReviewRequired;
     private List<Map<String, Object>> ocrCorrections;
     private List<Map<String, Object>> pages;
+    private List<Map<String, Object>> sourcePages;
     private ZonedDateTime createdAt;
 }

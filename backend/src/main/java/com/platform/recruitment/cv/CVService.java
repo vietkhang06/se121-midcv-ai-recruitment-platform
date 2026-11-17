@@ -1053,6 +1053,10 @@ public class CVService {
                 .ocrHumanReviewRequired(ocrHumanReviewRequired)
                 .ocrCorrections(ocrCorrections)
                 .pages(pages)
+                .sourcePages(jdbcTemplate == null ? List.of() : jdbcTemplate.queryForList(
+                        "SELECT s.page_order,p.id AS page_id,v.filename,v.media_type,v.size_bytes,v.source_sha " +
+                        "FROM cv_version_source_pages s JOIN cv_source_pages p ON p.id=s.source_page_id " +
+                        "JOIN document_versions v ON v.id=p.document_version_id WHERE s.cv_version_id=? ORDER BY s.page_order", versionId))
                 .createdAt(cv.getCreatedAt())
                 .build();
     }

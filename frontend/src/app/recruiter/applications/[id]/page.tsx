@@ -12,7 +12,10 @@ import {
   fetchMatchInspection,
   fetchApplicationById,
   updateApplicationStatus,
-  fetchApplicationAuditLogs
+  fetchApplicationAuditLogs,
+  fetchApplicationCVSourcePages,
+  fetchApplicationCVSourcePage,
+  ApplicationCVSourcePage
 } from '@/lib/api';
 import { ScoreBreakdownCard } from '@/components/recruiter/ScoreBreakdownCard';
 import { GitHubAssessmentCard } from '@/components/recruiter/GitHubAssessmentCard';
@@ -117,6 +120,7 @@ export default function CandidateMatchInspectionPage({
   const [auditLogs, setAuditLogs] = useState<ApplicationAuditLogItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [cvSourcePages, setCvSourcePages] = useState<Array<ApplicationCVSourcePage & { previewUrl: string }>>([]);
 
   // Decision Modal State
   const [selectedDecision, setSelectedDecision] =
@@ -125,21 +129,21 @@ export default function CandidateMatchInspectionPage({
   const [isSubmittingDecision, setIsSubmittingDecision] =
     useState<boolean>(false);
 
-  const loadData = () => {
-    setLoading(true);
-    setFetchError(null);
-
+  useEffect(() => {
+    let active = true;
     Promise.all([
       fetchMatchInspection(resolvedParams.id).catch(() => null),
       fetchApplicationById(resolvedParams.id).catch(() => null),
       fetchApplicationAuditLogs(resolvedParams.id).catch(() => [])
     ])
       .then(([inspectionData, appData, logs]) => {
+        if (!active) return;
         setData(inspectionData);
         setApplication(appData);
         setAuditLogs(logs);
       })
       .catch((err) => {
+        if (!active) return;
         setFetchError(
           err.message ||
             (locale === 'vi'
@@ -147,11 +151,20 @@ export default function CandidateMatchInspectionPage({
               : 'Error loading candidate match inspection data.')
         );
       })
-      .finally(() => setLoading(false));
-  };
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [resolvedParams.id]);
 
   useEffect(() => {
-    loadData();
+    let active = true; const urls: string[] = [];
+    void fetchApplicationCVSourcePages(resolvedParams.id).then(async pages => {
+      const withPreviews = await Promise.all(pages.map(async page => {
+        const blob = await fetchApplicationCVSourcePage(resolvedParams.id, page.page_order);
+        const previewUrl = URL.createObjectURL(blob); urls.push(previewUrl); return { ...page, previewUrl };
+      }));
+      if (active) setCvSourcePages(withPreviews);
+    }).catch(() => { if (active) setCvSourcePages([]); });
+    return () => { active = false; urls.forEach(URL.revokeObjectURL); };
   }, [resolvedParams.id]);
 
   const handleApplyDecision = async (status: ApplicationStatus) => {
@@ -174,11 +187,10 @@ export default function CandidateMatchInspectionPage({
       // Reload audit logs
       const updatedLogs = await fetchApplicationAuditLogs(application.id);
       setAuditLogs(updatedLogs);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update application status';
       alert(
-        err?.response?.data?.message ||
-          err?.message ||
-          'Failed to update application status'
+        message
       );
     } finally {
       setIsSubmittingDecision(false);
@@ -231,7 +243,7 @@ export default function CandidateMatchInspectionPage({
           }
           description={fetchError}
           primaryCtaText={locale === 'vi' ? 'Thử lại' : 'Retry'}
-          onPrimaryCtaClick={loadData}
+          onPrimaryCtaClick={() => window.location.reload()}
         />
       </div>
     );
@@ -866,7 +878,7 @@ export default function CandidateMatchInspectionPage({
                       </div>
                       {log.decisionNote && (
                         <p className="text-slate-700 dark:text-slate-300 italic pt-0.5">
-                          "{log.decisionNote}"
+                          &ldquo;{log.decisionNote}&rdquo;
                         </p>
                       )}
                     </div>
@@ -923,6 +935,10 @@ export default function CandidateMatchInspectionPage({
                   {application.snapshot.rawTextSnapshot}
                 </div>
               )}
+              {cvSourcePages.length > 0 && <ol className="mt-4 grid gap-3 sm:grid-cols-2">{cvSourcePages.map(page => <li key={page.page_order} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[var(--surface)] p-3">
+                <div className="mb-2 text-xs font-semibold">{locale === 'vi' ? 'Trang' : 'Page'} {page.page_order} · {page.filename}</div>
+                <a href={page.previewUrl} target="_blank" rel="noreferrer"><img src={page.previewUrl} alt={`${locale === 'vi' ? 'Trang CV' : 'CV page'} ${page.page_order}`} className="max-h-96 w-full rounded object-contain" /></a>
+              </li>)}</ol>}
             </div>
           </div>
         )}

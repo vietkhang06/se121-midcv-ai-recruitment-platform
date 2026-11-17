@@ -223,7 +223,7 @@ export interface MatchFactorItem {
   status: 'AVAILABLE' | 'NOT_AVAILABLE' | 'NOT_COMPUTED' | 'HIGH' | 'MODERATE' | 'LOW' | string;
   calculationMethod?: string;
   algorithmVersion?: string;
-  explanation: string;
+  explanation?: string | null;
   evidence?: string;
 }
 
@@ -239,6 +239,7 @@ export interface GitHubRepoItem {
 
 export interface GitHubAssessmentData {
   connected: boolean;
+  scoringEligible?: boolean;
   status?: 'SYNCED' | 'NOT_CONNECTED' | 'PUBLIC_ONLY' | 'PRIVATE_ONLY' | 'API_UNAVAILABLE' | 'NOT_APPLICABLE';
   username?: string;
   publicRepoCount?: number;
@@ -486,6 +487,7 @@ export interface CVReviewData {
     requires_human_review?: boolean;
   }>;
   pages?: PageSegmentItem[];
+  sourcePages?: Array<{ page_id: string; filename: string; media_type: string; size_bytes: number; source_sha: string; page_order: number }>;
   createdAt?: string;
 }
 

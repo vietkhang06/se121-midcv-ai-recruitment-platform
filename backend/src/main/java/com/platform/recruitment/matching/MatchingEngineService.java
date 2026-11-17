@@ -595,11 +595,11 @@ public class MatchingEngineService {
                 matched = !"MISSING".equalsIgnoreCase(persistedSkillEv.getMatchStatus());
                 evidenceText = (persistedSkillEv.getSnippet() != null && !persistedSkillEv.getSnippet().isBlank())
                         ? persistedSkillEv.getSnippet()
-                        : (matched ? "Kỹ năng được ghi nhận và xác thực trong hồ sơ CV ứng viên." : "Không tìm thấy minh chứng trực tiếp trong CV.");
+                        : null;
             } else {
                 matched = skillNormalizer.matchesSkill(req.getSkillName(), cvRawText);
                 String grounded = matched ? extractGroundedSnippet(cvRawText, req.getSkillName()) : null;
-                evidenceText = grounded != null ? grounded : (matched ? "Kỹ năng được ghi nhận trong hồ sơ CV ứng viên." : "Không tìm thấy minh chứng trực tiếp trong CV.");
+                evidenceText = grounded;
             }
 
             MatchInspectionResponse.SkillItem item = MatchInspectionResponse.SkillItem.builder()
@@ -617,39 +617,71 @@ public class MatchingEngineService {
 
         List<MatchFactor> factors = matchFactorRepository.findByMatchResultId(result.getId());
         List<MatchInspectionResponse.FactorItem> factorItems = new ArrayList<>();
+        BigDecimal coreWeightForDisplay = result.getCoreWeight() != null ? result.getCoreWeight() : BigDecimal.ONE;
         for (MatchFactor f : factors) {
             String status = f.getStatus() != null ? f.getStatus() : "AVAILABLE";
-            String factorEvidence = f.getEvidenceReference();
-            if (factorEvidence == null || factorEvidence.isBlank()) {
-                if ("EXPERIENCE".equalsIgnoreCase(f.getFactorType()) && sectionEvidenceMap.containsKey("EXPERIENCE")) {
-                    factorEvidence = sectionEvidenceMap.get("EXPERIENCE").get(0).getSnippet();
-                } else if ("GITHUB_SUPPORTING".equalsIgnoreCase(f.getFactorType()) && sectionEvidenceMap.containsKey("REPOSITORIES")) {
-                    factorEvidence = sectionEvidenceMap.get("REPOSITORIES").get(0).getSnippet();
-                } else if ("SKILL_REQUIRED".equalsIgnoreCase(f.getFactorType())) {
-                    long matchedCount = reqSkillItems.stream().filter(s -> "MATCH".equals(s.getStatus())).count();
-                    factorEvidence = String.format("Xác thực %d/%d kỹ năng bắt buộc với minh chứng đối soát từ CV.", matchedCount, reqSkillItems.size());
-                } else if ("SKILL_PREFERRED".equalsIgnoreCase(f.getFactorType())) {
-                    long matchedPref = prefSkillItems.stream().filter(s -> "MATCH".equals(s.getStatus())).count();
-                    factorEvidence = String.format("Xác thực %d/%d kỹ năng ưu tiên mang lại điểm thưởng bổ trợ.", matchedPref, prefSkillItems.size());
-                }
+            String factorEvidence = null;
+            String factorType = f.getFactorType() != null ? f.getFactorType().toUpperCase() : "";
+            String evidenceSection = switch (factorType) {
+                case "EXPERIENCE" -> "EXPERIENCE";
+                case "GITHUB_SUPPORTING" -> "REPOSITORIES";
+                default -> null;
+            };
+            if (evidenceSection != null) {
+                factorEvidence = sectionEvidenceMap.getOrDefault(evidenceSection, List.of()).stream()
+                        .map(Evidence::getSnippet)
+                        .filter(snippet -> snippet != null && !snippet.isBlank())
+                        .findFirst().orElse(null);
+            } else if ("SKILL_REQUIRED".equals(factorType) || "SKILL_PREFERRED".equals(factorType)) {
+                factorEvidence = ("SKILL_REQUIRED".equals(factorType) ? reqSkillItems : prefSkillItems).stream()
+                        .map(MatchInspectionResponse.SkillItem::getEvidenceText)
+                        .filter(snippet -> snippet != null && !snippet.isBlank())
+                        .distinct().collect(Collectors.joining(" · "));
+                if (factorEvidence.isBlank()) factorEvidence = null;
+            }
+            boolean githubFactor = "GITHUB_SUPPORTING".equalsIgnoreCase(f.getFactorType());
+            BigDecimal displayWeight = f.getEffectiveWeight() != null ? f.getEffectiveWeight() : f.getWeight();
+            BigDecimal displayConfiguredWeight = f.getConfiguredWeight() != null ? f.getConfiguredWeight() : f.getWeight();
+            BigDecimal displayContribution = f.getWeightedContribution();
+            if (!githubFactor) {
+                displayWeight = displayWeight.multiply(coreWeightForDisplay).setScale(4, RoundingMode.HALF_UP);
+                displayConfiguredWeight = displayConfiguredWeight.multiply(coreWeightForDisplay).setScale(4, RoundingMode.HALF_UP);
+                if (displayContribution != null) displayContribution = displayContribution.multiply(coreWeightForDisplay).setScale(2, RoundingMode.HALF_UP);
             }
 
             factorItems.add(MatchInspectionResponse.FactorItem.builder()
                     .factorName(f.getFactorType())
                     .score(f.getScore())
                     .weight(f.getWeight())
-                    .configuredWeight(f.getConfiguredWeight() != null ? f.getConfiguredWeight() : f.getWeight())
-                    .effectiveWeight(f.getEffectiveWeight() != null ? f.getEffectiveWeight() : f.getWeight())
-                    .weightedContribution(f.getWeightedContribution())
+                    .configuredWeight(displayConfiguredWeight)
+                    .effectiveWeight(displayWeight)
+                    .weightedContribution(displayContribution)
                     .status(status)
                     .calculationMethod(f.getCalculationMethod())
                     .algorithmVersion(f.getAlgorithmVersion() != null ? f.getAlgorithmVersion() : "v2.0")
-                    .explanation(String.format("Đánh giá thành phần %s (%s) với trọng số hiệu dụng %s",
-                            f.getFactorName() != null ? f.getFactorName() : f.getFactorType(),
-                            status,
-                            f.getEffectiveWeight() != null ? f.getEffectiveWeight() : f.getWeight()))
+                    .explanation(null)
                     .evidence(factorEvidence)
                     .build());
+        }
+        // MatchResult rounds the core score before applying its Core/GitHub split. Allocate only
+        // that final rounding remainder to the last core factor so the displayed points add up
+        // exactly to the persisted overall score without changing any factor score or weight.
+        if (result.getOverallScore() != null && !factorItems.isEmpty()) {
+            MatchInspectionResponse.FactorItem lastCore = null;
+            BigDecimal githubContribution = BigDecimal.ZERO.setScale(2);
+            BigDecimal coreContributionSum = BigDecimal.ZERO.setScale(2);
+            for (MatchInspectionResponse.FactorItem item : factorItems) {
+                if ("GITHUB_SUPPORTING".equalsIgnoreCase(item.getFactorName())) {
+                    if (item.getWeightedContribution() != null) githubContribution = githubContribution.add(item.getWeightedContribution());
+                } else if (item.getEffectiveWeight() != null && item.getEffectiveWeight().signum() > 0) {
+                    lastCore = item;
+                    if (item.getWeightedContribution() != null) coreContributionSum = coreContributionSum.add(item.getWeightedContribution());
+                }
+            }
+            if (lastCore != null) {
+                BigDecimal desiredCore = result.getOverallScore().subtract(githubContribution).max(BigDecimal.ZERO);
+                lastCore.setWeightedContribution(lastCore.getWeightedContribution().add(desiredCore.subtract(coreContributionSum)).setScale(2, RoundingMode.HALF_UP));
+            }
         }
 
         // Map persisted evidences to EvidenceItem DTOs
@@ -682,31 +714,23 @@ public class MatchingEngineService {
         Optional<com.platform.recruitment.github.GitHubProfile> ghProfileOpt = gitHubProfileRepository != null
                 ? gitHubProfileRepository.findByCandidateId(candidateId)
                 : Optional.empty();
-        if (ghProfileOpt.isPresent() && Boolean.TRUE.equals(result.getIsGithubActive()) && result.getGithubScore() != null) {
+        if (ghProfileOpt.isPresent()) {
             com.platform.recruitment.github.GitHubProfile gh = ghProfileOpt.get();
+            boolean scoringEligible = Boolean.TRUE.equals(result.getIsGithubActive()) && result.getGithubScore() != null;
             ghInfo = MatchInspectionResponse.GitHubAssessmentInfo.builder()
                     .connected(true)
-                    .status("SYNCED")
-                    .username(gh.getUsername())
-                    .ownershipStatus(gh.getOwnershipStatus())
-                    .publicRepoCount(gh.getPublicReposCount())
-                    .activitySignal(gh.getActivitySignal() != null ? gh.getActivitySignal().name() : "HIGH")
-                    .overallAssessment("Ứng viên có tài khoản GitHub công khai liên kết với hồ sơ tuyển dụng.")
-                    .build();
-        } else if (ghProfileOpt.isPresent()) {
-            com.platform.recruitment.github.GitHubProfile gh = ghProfileOpt.get();
-            ghInfo = MatchInspectionResponse.GitHubAssessmentInfo.builder()
-                    .connected(false)
-                    .status("PUBLIC_ONLY")
+                    .scoringEligible(scoringEligible)
+                    .status(gh.getStatus() != null ? gh.getStatus() : "LEGACY_MISSING_DATA")
                     .username(gh.getUsername())
                     .ownershipStatus(gh.getOwnershipStatus())
                     .publicRepoCount(gh.getPublicReposCount())
                     .activitySignal(gh.getActivitySignal() != null ? gh.getActivitySignal().name() : null)
-                    .overallAssessment("Tín hiệu hồ sơ công khai chưa được dùng làm năng lực đã xác minh vì chưa xác nhận quyền sở hữu tài khoản.")
+                    .overallAssessment(null)
                     .build();
         } else {
             ghInfo = MatchInspectionResponse.GitHubAssessmentInfo.builder()
                     .connected(false)
+                    .scoringEligible(false)
                     .status("NOT_CONNECTED")
                     .build();
         }

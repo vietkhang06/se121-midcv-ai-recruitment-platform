@@ -176,38 +176,61 @@ public class GithubClient {
   }
 
   private JsonNode get(String path) {
-    try {
-      var builder =
-          HttpRequest.newBuilder(URI.create("https://api.github.com" + path))
-              .timeout(Duration.ofSeconds(12))
-              .header("Accept", "application/vnd.github+json")
-              .header("User-Agent", "midCV-DoAn1")
-              .header("X-GitHub-Api-Version", "2022-11-28");
-      if (token != null && !token.isBlank()) builder.header("Authorization", "Bearer " + token);
-      var r = client.send(builder.GET().build(), HttpResponse.BodyHandlers.ofString());
-      if (r.statusCode() == 404)
-        throw new CustomException(
-            ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy tài khoản hoặc repo công khai.");
-      if (r.statusCode() == 403 || r.statusCode() == 429)
-        throw new CustomException(
-            ErrorCode.RATE_LIMIT_EXCEEDED,
-            "GitHub giới hạn lượt gọi hoặc từ chối truy cập. Điểm JD–CV vẫn được giữ.");
-      if (r.statusCode() != 200)
-        throw new CustomException(
-            ErrorCode.INTERNAL_SERVER_ERROR, "GitHub trả HTTP " + r.statusCode() + ".");
-      if (r.body().length() > 4_000_000)
-        throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Dữ liệu GitHub vượt giới hạn.");
-      return mapper.readTree(r.body());
-    } catch (CustomException e) {
-      throw e;
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Worker bị ngắt khi đọc GitHub.");
-    } catch (Exception e) {
-      throw new CustomException(
-          ErrorCode.INTERNAL_SERVER_ERROR,
-          "Chưa kết nối được GitHub. Kết quả dùng dữ liệu JD–CV hiện có.");
+    for (int attempt = 0; attempt < 3; attempt++) {
+      try {
+        var builder =
+            HttpRequest.newBuilder(URI.create("https://api.github.com" + path))
+                .timeout(Duration.ofSeconds(12))
+                .header("Accept", "application/vnd.github+json")
+                .header("User-Agent", "midCV-DoAn1")
+                .header("X-GitHub-Api-Version", "2022-11-28");
+        if (token != null && !token.isBlank()) builder.header("Authorization", "Bearer " + token);
+        var r = client.send(builder.GET().build(), HttpResponse.BodyHandlers.ofString());
+        if (r.statusCode() == 200) {
+          if (r.body().length() > 4_000_000)
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Dữ liệu GitHub vượt giới hạn.");
+          return mapper.readTree(r.body());
+        }
+        if (r.statusCode() == 404)
+          throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy tài khoản hoặc repo công khai.");
+        if ((r.statusCode() == 403 || r.statusCode() == 429) && attempt < 2) {
+          long wait = retryDelayMillis(r);
+          if (wait > 0) Thread.sleep(wait);
+          continue;
+        }
+        if (r.statusCode() == 403 || r.statusCode() == 429)
+          throw new CustomException(ErrorCode.RATE_LIMIT_EXCEEDED,
+              "GitHub giới hạn lượt gọi hoặc từ chối truy cập. Điểm JD–CV vẫn được giữ.");
+        if ((r.statusCode() == 500 || r.statusCode() == 502 || r.statusCode() == 503 || r.statusCode() == 504) && attempt < 2) {
+          Thread.sleep(200L * (attempt + 1));
+          continue;
+        }
+        throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "GitHub trả HTTP " + r.statusCode() + ".");
+      } catch (CustomException e) {
+        throw e;
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Worker bị ngắt khi đọc GitHub.");
+      } catch (Exception e) {
+        if (attempt < 2) {
+          try { Thread.sleep(200L * (attempt + 1)); }
+          catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Worker bị ngắt khi đọc GitHub.");
+          }
+          continue;
+        }
+        throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR,
+            "Chưa kết nối được GitHub sau số lần thử có giới hạn. Kết quả dùng dữ liệu JD–CV hiện có.");
+      }
     }
+    throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Chưa kết nối được GitHub. Kết quả dùng dữ liệu JD–CV hiện có.");
+  }
+
+  private long retryDelayMillis(HttpResponse<?> response) {
+    String retryAfter = response.headers().firstValue("Retry-After").orElse("");
+    try { return Math.max(0, Math.min(1000, Long.parseLong(retryAfter) * 1000)); }
+    catch (NumberFormatException ignored) { return 250; }
   }
 
   private static Map<String, Object> map(Object... pairs) {

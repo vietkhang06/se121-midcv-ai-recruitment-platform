@@ -19,6 +19,21 @@ public class ApplicationController {
 
     private final ApplicationService applicationService;
 
+    @GetMapping("/recruiter/applications/{applicationId}/cv-pages")
+    public ResponseEntity<ApiResponse<List<java.util.Map<String,Object>>>> getApplicationCvPages(
+            @AuthenticationPrincipal User currentUser, @PathVariable UUID applicationId) {
+        return ResponseEntity.ok(ApiResponse.success(applicationService.getApplicationSourcePages(currentUser, applicationId)));
+    }
+
+    @GetMapping("/recruiter/applications/{applicationId}/cv-pages/{pageOrder}")
+    public ResponseEntity<byte[]> getApplicationCvPage(@AuthenticationPrincipal User currentUser,
+            @PathVariable UUID applicationId, @PathVariable int pageOrder) {
+        var result = applicationService.getApplicationSourcePage(currentUser, applicationId, pageOrder);
+        return ResponseEntity.ok().header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "private, no-store")
+                .header("X-Content-Type-Options", "nosniff")
+                .contentType(org.springframework.http.MediaType.parseMediaType(result.contentType())).body(result.data());
+    }
+
     @PostMapping("/candidate/applications")
     public ResponseEntity<ApiResponse<ApplicationResponse>> submitApplication(
             @AuthenticationPrincipal User currentUser,

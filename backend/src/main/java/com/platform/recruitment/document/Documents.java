@@ -277,7 +277,7 @@ public class Documents {
     };
   }
 
-  private void validateMagic(byte[] b, String ext) {
+  public void validateMagic(byte[] b, String ext) {
     if (!Set.of("pdf", "docx", "doc", "txt", "md", "png", "jpg", "jpeg", "webp").contains(ext))
       throw new CustomException(ErrorCode.INVALID_FILE, "UNSUPPORTED_FILE_TYPE: Chỉ hỗ trợ PDF, DOCX, DOC, TXT, MD, PNG, JPG và WEBP.");
     boolean valid =
@@ -296,6 +296,35 @@ public class Documents {
         };
     if (!valid)
       throw new CustomException(ErrorCode.INVALID_FILE, "UNSUPPORTED_FILE_TYPE: Nội dung tệp không khớp phần mở rộng.");
+  }
+
+  /** Stores an immutable CV source image without enqueueing a separate document pipeline job. */
+  @Transactional(rollbackFor = Exception.class)
+  public Saved uploadSourceImage(UUID owner, String title, MultipartFile file) throws IOException {
+    if (file == null || file.isEmpty() || file.getSize() > 10L * 1024 * 1024)
+      throw new CustomException(file == null || file.isEmpty() ? ErrorCode.INVALID_FILE : ErrorCode.FILE_SIZE_EXCEEDED,
+          "Ảnh CV phải có nội dung và không vượt quá 10 MB.");
+    String filename = sanitizeFilename(file.getOriginalFilename());
+    String ext = extensionOf(filename);
+    if (!Set.of("png", "jpg", "jpeg", "webp").contains(ext))
+      throw new CustomException(ErrorCode.INVALID_FILE, "Chỉ nhận ảnh PNG, JPG, JPEG hoặc WEBP.");
+    byte[] bytes = file.getBytes();
+    validateMagic(bytes, ext);
+    UUID documentId = createDocument(owner, "CV_SOURCE_PAGE", title);
+    int versionNo = next(documentId);
+    UUID versionId = UUID.randomUUID();
+    String key = versionId + "." + ext;
+    Path target = path(key);
+    Files.createDirectories(directory);
+    try {
+      Files.write(target, bytes, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+      jdbc.update("INSERT INTO document_versions(id,document_id,version_no,filename,storage_key,media_type,size_bytes,source_sha,state,extraction_method) VALUES (?,?,?,?,?,?,?,?, 'READY','source-image')",
+          versionId, documentId, versionNo, filename, key, mime(ext), bytes.length, shaHex(bytes));
+    } catch (IOException | RuntimeException e) {
+      try { Files.deleteIfExists(target); } catch (IOException ignored) {}
+      throw e;
+    }
+    return new Saved(documentId, versionId, null, versionNo, key, mime(ext), filename);
   }
 
   private boolean starts(byte[] b, String v) {

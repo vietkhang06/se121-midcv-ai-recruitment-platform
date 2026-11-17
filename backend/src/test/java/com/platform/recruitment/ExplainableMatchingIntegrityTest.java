@@ -198,6 +198,16 @@ class ExplainableMatchingIntegrityTest {
             assertNotNull(factorItem.getWeightedContribution());
             assertEquals("v2.0", factorItem.getAlgorithmVersion());
         }
+        BigDecimal displayedContribution = inspection.getMatchFactors().stream()
+                .map(MatchInspectionResponse.FactorItem::getWeightedContribution)
+                .filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        assertEquals(inspection.getOverallScore().setScale(2, RoundingMode.HALF_UP),
+                displayedContribution.setScale(2, RoundingMode.HALF_UP),
+                "Displayed factor contributions must reconcile to the persisted overall score using engine rounding");
+        assertEquals("Java developer with 3 years of hands-on Spring Boot experience.",
+                inspection.getMatchFactors().get(0).getEvidence(),
+                "Inspection factor evidence must come from the persisted, grounded CV snippet");
 
         // Phase 2: Assert persisted evidences mapped to DTO
         assertNotNull(inspection.getEvidences(), "Evidences list must not be null in inspection response");

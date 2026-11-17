@@ -144,6 +144,7 @@ public class MatchInspectionResponse {
     @AllArgsConstructor
     public static class GitHubAssessmentInfo {
         private boolean connected;
+        private boolean scoringEligible;
         private String status;
         private String username;
         private String ownershipStatus;

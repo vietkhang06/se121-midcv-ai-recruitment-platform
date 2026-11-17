@@ -666,6 +666,37 @@ export interface ApiClient {
   loginAccount(email: string, password: string): Promise<LoginResponse>;
 }
 
+export interface CVImagePage { id: string; page_order: number; revision: number; status: 'READY' | 'FAILED' | 'REMOVED'; extracted_text?: string | null; error_code?: string | null; filename: string; media_type: string; size_bytes: number; source_sha: string }
+export interface CVImageSet { id: string; title: string; status: string; pages: CVImagePage[] }
+export interface ApplicationCVSourcePage { page_order: number; filename: string; media_type: string; size_bytes: number; source_sha: string; extracted_text: string }
+const cvImageRequest = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
+  const token = getAuthToken();
+  if (!token) throw new ApiError(init.method || 'GET', path, 401, 'UNAUTHORIZED', 'Chưa đăng nhập hoặc token đã hết hạn.');
+  const response = await apiRequest<ApiEnvelope<T>>(path, { ...init, headers: { ...init.headers, Authorization: `Bearer ${token}` } });
+  return response.data;
+};
+export const createCVImageSet = (files: File[], title: string, signal?: AbortSignal) => {
+  const form = new FormData(); files.forEach(file => form.append('files', file)); form.append('title', title);
+  return cvImageRequest<CVImageSet>('/api/v1/candidate/cvs/image-sets', { method: 'POST', body: form, signal });
+};
+export const retryCVImagePage = (setId: string, pageId: string) => cvImageRequest<CVImageSet>(`/api/v1/candidate/cvs/image-sets/${setId}/pages/${pageId}/retry`, { method: 'POST' });
+export const replaceCVImagePage = (setId: string, pageId: string, file: File) => { const form = new FormData(); form.append('file', file); return cvImageRequest<CVImageSet>(`/api/v1/candidate/cvs/image-sets/${setId}/pages/${pageId}`, { method: 'PUT', body: form }); };
+export const removeCVImagePage = (setId: string, pageId: string) => cvImageRequest<CVImageSet>(`/api/v1/candidate/cvs/image-sets/${setId}/pages/${pageId}`, { method: 'DELETE' });
+export const reorderCVImagePages = (setId: string, pageIds: string[]) => cvImageRequest<CVImageSet>(`/api/v1/candidate/cvs/image-sets/${setId}/order`, { method: 'PUT', body: JSON.stringify({ pageIds }) });
+export const createCVImageSetDraft = (setId: string, isDefault = false, signal?: AbortSignal) => cvImageRequest<{ cvId: string; versionId: string; jobId: string }>(`/api/v1/candidate/cvs/image-sets/${setId}/draft?isDefault=${isDefault}`, { method: 'POST', signal });
+export const fetchCVImagePage = async (setId: string, pageId: string, signal?: AbortSignal): Promise<Blob> => {
+  const token = getAuthToken(); if (!token) throw new Error('Chưa đăng nhập.');
+  const response = await fetch(`${BASE_URL}/api/v1/candidate/cvs/image-sets/${setId}/pages/${pageId}/content`, { headers: { Authorization: `Bearer ${token}` }, signal });
+  if (!response.ok) throw new Error('Không thể tải ảnh CV.'); return response.blob();
+};
+export const fetchApplicationCVSourcePages = (applicationId: string) => cvImageRequest<ApplicationCVSourcePage[]>(`/api/v1/recruiter/applications/${applicationId}/cv-pages`);
+export const fetchApplicationCVSourcePage = async (applicationId: string, pageOrder: number): Promise<Blob> => {
+  const token = getAuthToken(); if (!token) throw new Error('Chưa đăng nhập.');
+  const path = `/api/v1/recruiter/applications/${applicationId}/cv-pages/${pageOrder}`;
+  const response = await fetch(`${BASE_URL}${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!response.ok) throw new Error('Không thể tải ảnh CV trong hồ sơ đã nộp.'); return response.blob();
+};
+
 // ============================================================
 // 5. PRODUCTION REAL API CLIENT IMPLEMENTATION
 // ============================================================
