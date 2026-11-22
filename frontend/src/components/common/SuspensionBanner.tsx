@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { getMyActiveSuspension, submitSuspensionAppeal, cancelSuspensionAppeal } from '@/lib/api';
 import { SuspensionNotice } from '@/types';
@@ -19,21 +19,50 @@ export const SuspensionBanner: React.FC = () => {
   const [subject, setSubject] = useState<string>('');
   const [content, setContent] = useState<string>('');
   const [evidenceUrl, setEvidenceUrl] = useState<string>('');
+  const noticeRequestId = useRef(0);
 
-  const fetchNotice = async () => {
+  const fetchNotice = useCallback(async () => {
+    const requestId = ++noticeRequestId.current;
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       const data = await getMyActiveSuspension();
-      setNotice(data);
+      if (requestId === noticeRequestId.current) {
+        setNotice(data);
+      }
     } catch {
-      setNotice(null);
+      if (requestId === noticeRequestId.current) {
+        setNotice(null);
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId === noticeRequestId.current) {
+        setIsLoading(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchNotice();
+    const requestId = ++noticeRequestId.current;
+    void getMyActiveSuspension()
+      .then((data) => {
+        if (requestId === noticeRequestId.current) {
+          setNotice(data);
+        }
+      })
+      .catch(() => {
+        if (requestId === noticeRequestId.current) {
+          setNotice(null);
+        }
+      })
+      .finally(() => {
+        if (requestId === noticeRequestId.current) {
+          setIsLoading(false);
+        }
+      });
+    return () => {
+      if (requestId === noticeRequestId.current) {
+        noticeRequestId.current += 1;
+      }
+    };
   }, []);
 
   if (isLoading || !notice || !notice.hasActiveSuspension) {
@@ -69,8 +98,8 @@ export const SuspensionBanner: React.FC = () => {
       setSuccessMsg('Đã gửi khiếu nại thành công! Ban quản trị sẽ sớm xem xét.');
       setShowAppealModal(false);
       await fetchNotice();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Có lỗi xảy ra khi gửi khiếu nại.');
+    } catch (error: unknown) {
+      setErrorMsg(error instanceof Error && error.message ? error.message : 'Có lỗi xảy ra khi gửi khiếu nại.');
     } finally {
       setIsSubmitting(false);
     }
@@ -84,8 +113,8 @@ export const SuspensionBanner: React.FC = () => {
       await cancelSuspensionAppeal(notice.appealId, 'Người dùng tự hủy khiếu nại qua portal');
       setShowCancelModal(false);
       await fetchNotice();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Không thể hủy khiếu nại.');
+    } catch (error: unknown) {
+      setErrorMsg(error instanceof Error && error.message ? error.message : 'Không thể hủy khiếu nại.');
     } finally {
       setIsSubmitting(false);
     }

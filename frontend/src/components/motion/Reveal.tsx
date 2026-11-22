@@ -1,8 +1,12 @@
 'use client';
 
-import React, { CSSProperties, ReactNode, useEffect, useRef, useState } from 'react';
+import React, { CSSProperties, ReactNode, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 type RevealDirection = 'up' | 'down' | 'left' | 'right' | 'none';
+
+const subscribeToHydration = () => () => {};
+const getClientHydrationSnapshot = () => true;
+const getServerHydrationSnapshot = () => false;
 
 interface RevealProps {
   children: ReactNode;
@@ -24,16 +28,18 @@ export function Reveal({
   threshold = 0.08,
 }: RevealProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    subscribeToHydration,
+    getClientHydrationSnapshot,
+    getServerHydrationSnapshot,
+  );
   const [revealed, setRevealed] = useState(false);
+  const hasIntersectionObserver = typeof IntersectionObserver !== 'undefined';
+  const isRevealed = revealed || (mounted && !hasIntersectionObserver);
 
   useEffect(() => {
-    setMounted(true);
     const node = ref.current;
-    if (!node || typeof IntersectionObserver === 'undefined') {
-      setRevealed(true);
-      return;
-    }
+    if (!node || !hasIntersectionObserver) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -51,7 +57,7 @@ export function Reveal({
     return () => {
       observer.disconnect();
     };
-  }, [once, threshold]);
+  }, [hasIntersectionObserver, once, threshold]);
 
   const boundedDelay = Math.min(Math.max(delay, 0), 240);
   const boundedDuration = Math.min(Math.max(duration, 150), 600);
@@ -67,9 +73,9 @@ export function Reveal({
       className={`motion-reveal ${className}`}
       data-direction={direction}
       data-mounted={mounted ? 'true' : 'false'}
-      data-revealed={revealed ? 'true' : 'false'}
+      data-revealed={isRevealed ? 'true' : 'false'}
       data-motion-ready={mounted ? 'true' : 'false'}
-      data-visible={revealed ? 'true' : 'false'}
+      data-visible={isRevealed ? 'true' : 'false'}
       style={style}
     >
       {children}

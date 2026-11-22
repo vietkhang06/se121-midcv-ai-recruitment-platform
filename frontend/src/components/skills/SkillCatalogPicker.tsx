@@ -1,30 +1,24 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useId } from 'react';
 import {
   Search,
   Star,
   Plus,
   X,
-  Filter,
   Check,
-  Sparkles,
   AlertCircle,
-  Folder,
   Briefcase,
-  ChevronDown
 } from 'lucide-react';
 import {
   TAXONOMY_INDUSTRIES,
-  TAXONOMY_SKILLS,
   searchTaxonomyCatalog
 } from '@/lib/taxonomyCatalog';
 import { TaxonomyCatalogSkill } from '@/types';
 import {
   fetchFavoriteSkills,
   addFavoriteSkill,
-  removeFavoriteSkill,
-  searchTaxonomySkills
+  removeFavoriteSkill
 } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -36,6 +30,16 @@ export interface SelectedSkillCriteria {
   category?: string;
   requirementType?: 'REQUIRED' | 'PREFERRED';
   minYearsExperience?: number;
+}
+
+let fallbackCriteriaId = 0;
+
+function createCriteriaId(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return `req-${globalThis.crypto.randomUUID()}`;
+  }
+  fallbackCriteriaId += 1;
+  return `req-${Date.now()}-${fallbackCriteriaId}`;
 }
 
 interface SkillCatalogPickerProps {
@@ -57,10 +61,8 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
   selectedSkills = [],
   onAddSkill,
   allowRequirementType = false,
-  allowExperienceYears = false,
   placeholder = 'Tìm kỹ năng (VD: Java, React, Docker, Python, Figma...)',
   className = '',
-  compact = false
 }) => {
   const { isAuthenticated } = useAuth();
   const { locale } = useLanguage();
@@ -71,7 +73,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [selectedIndustry, setSelectedIndustry] = useState<string>('ALL');
-  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const selectedCategory = 'ALL';
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 
   // Rubric Criterion Draft Inputs
@@ -86,28 +88,31 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = useId();
 
   // Load user favorites on mount if authenticated
-  const loadFavorites = useCallback(async () => {
-    if (!isAuthenticated) return;
-    try {
-      const favs = await fetchFavoriteSkills();
-      if (Array.isArray(favs)) {
-        setFavoriteSkillIds(favs.map((f: any) => f.id || f.canonicalName));
-        setFavoriteSkillsList(favs.map((f: any) => ({
-          id: f.id,
-          name: f.canonicalName || f.name,
-          category: f.category
-        })));
-      }
-    } catch {
-      // Graceful fallback to local catalog state
-    }
-  }, [isAuthenticated]);
-
   useEffect(() => {
-    loadFavorites();
-  }, [loadFavorites]);
+    if (!isAuthenticated) return;
+    let active = true;
+    const loadFavorites = async () => {
+      try {
+        const favorites = await fetchFavoriteSkills();
+        if (!active) return;
+        setFavoriteSkillIds(favorites.map((favorite) => favorite.id || favorite.canonicalName));
+        setFavoriteSkillsList(favorites.map((favorite) => ({
+          id: favorite.id,
+          name: favorite.canonicalName,
+          category: favorite.category
+        })));
+      } catch {
+        // Graceful fallback to local catalog state
+      }
+    };
+    void loadFavorites();
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated]);
 
   // Click outside listener
   useEffect(() => {
@@ -159,8 +164,9 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
         setFavoriteSkillIds((prev) => [...prev, skill.id]);
         setFavoriteSkillsList((prev) => [...prev, { id: skill.id, name: skill.canonicalName, category: skill.category }]);
       }
-    } catch (err: any) {
-      setFavoriteMessage(err?.message || (isVi ? 'Lỗi khi cập nhật kỹ năng yêu thích.' : 'Failed to update favorite.'));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : undefined;
+      setFavoriteMessage(message || (isVi ? 'Lỗi khi cập nhật kỹ năng yêu thích.' : 'Failed to update favorite.'));
     } finally {
       setIsUpdatingFavorite(false);
     }
@@ -174,7 +180,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
 
     if (onSelectCriteria) {
       onSelectCriteria({
-        id: `req-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        id: createCriteriaId(),
         skillName: canonicalName,
         canonicalId: skillId,
         category: cat,
@@ -327,6 +333,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
               ref={inputRef}
               type="text"
               role="combobox"
+              aria-controls={listboxId}
               aria-expanded={isOpen}
               aria-autocomplete="list"
               value={query}
@@ -356,7 +363,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
 
           {/* Autocomplete Dropdown List */}
           {isOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[var(--surface)] border border-blue-200 dark:border-[var(--border)] rounded-xl shadow-xl z-50 max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-[var(--border)] animate-fade-in">
+            <div id={listboxId} role="listbox" className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[var(--surface)] border border-blue-200 dark:border-[var(--border)] rounded-xl shadow-xl z-50 max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-[var(--border)] animate-fade-in">
               {suggestions.length === 0 ? (
                 <div className="p-3.5 text-center text-xs text-slate-500 dark:text-slate-400 space-y-1">
                   <p>{isVi ? 'Không tìm thấy kỹ năng có sẵn khớp từ khóa.' : 'No catalog skills found matching query.'}</p>
@@ -379,6 +386,8 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
                   return (
                     <div
                       key={skill.id}
+                      role="option"
+                      aria-selected={isSelected}
                       onClick={() => handleChooseSkill(skill)}
                       onMouseEnter={() => setSelectedIndex(idx)}
                       className={`px-3.5 py-2.5 flex items-center justify-between gap-3 text-xs cursor-pointer transition ${

@@ -1,12 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   FileText,
   ArrowLeft,
-  Search,
-  ShieldAlert,
   Loader2,
   RefreshCw,
   AlertTriangle,
@@ -18,6 +16,10 @@ import {
 import { adminApi } from '@/lib/api';
 import { AdminAuditLogDto } from '@/types';
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 export default function AdminAuditLogsPage() {
   const [logs, setLogs] = useState<AdminAuditLogDto[]>([]);
   const [totalPages, setTotalPages] = useState(0);
@@ -26,29 +28,60 @@ export default function AdminAuditLogsPage() {
   const [targetTypeFilter, setTargetTypeFilter] = useState<string>('ALL');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestId = useRef(0);
+
+  const getLogs = useCallback(() => adminApi.getAuditLogs({
+    targetType: targetTypeFilter === 'ALL' ? undefined : targetTypeFilter,
+    page: currentPage,
+    size: 15
+  }), [currentPage, targetTypeFilter]);
 
   const fetchLogs = useCallback(async () => {
+    const activeRequestId = ++requestId.current;
     setLoading(true);
     setError(null);
     try {
-      const res = await adminApi.getAuditLogs({
-        targetType: targetTypeFilter === 'ALL' ? undefined : targetTypeFilter,
-        page: currentPage,
-        size: 15
-      });
+      const res = await getLogs();
+      if (activeRequestId !== requestId.current) return;
       setLogs(res.content || []);
       setTotalPages(res.totalPages || 0);
       setTotalElements(res.totalElements || 0);
-    } catch (err: any) {
-      setError(err?.message || 'Không thể tải nhật ký quản trị.');
+    } catch (error: unknown) {
+      if (activeRequestId === requestId.current) {
+        setError(getErrorMessage(error, 'Không thể tải nhật ký quản trị.'));
+      }
     } finally {
-      setLoading(false);
+      if (activeRequestId === requestId.current) {
+        setLoading(false);
+      }
     }
-  }, [currentPage, targetTypeFilter]);
+  }, [getLogs]);
 
   useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+    const activeRequestId = ++requestId.current;
+    void getLogs()
+      .then((res) => {
+        if (activeRequestId !== requestId.current) return;
+        setLogs(res.content || []);
+        setTotalPages(res.totalPages || 0);
+        setTotalElements(res.totalElements || 0);
+      })
+      .catch((error: unknown) => {
+        if (activeRequestId === requestId.current) {
+          setError(getErrorMessage(error, 'Không thể tải nhật ký quản trị.'));
+        }
+      })
+      .finally(() => {
+        if (activeRequestId === requestId.current) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      if (activeRequestId === requestId.current) {
+        requestId.current += 1;
+      }
+    };
+  }, [getLogs]);
 
   return (
     <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 transition-colors">
@@ -95,6 +128,10 @@ export default function AdminAuditLogsPage() {
               <button
                 key={t}
                 onClick={() => {
+                  if (targetTypeFilter !== t || currentPage !== 0) {
+                    setLoading(true);
+                    setError(null);
+                  }
                   setTargetTypeFilter(t);
                   setCurrentPage(0);
                 }}
@@ -204,14 +241,28 @@ export default function AdminAuditLogsPage() {
                 </span>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
-                    onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                    onClick={() => {
+                      const nextPage = Math.max(0, currentPage - 1);
+                      if (nextPage !== currentPage) {
+                        setLoading(true);
+                        setError(null);
+                        setCurrentPage(nextPage);
+                      }
+                    }}
                     disabled={currentPage === 0}
                     className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+                    onClick={() => {
+                      const nextPage = Math.min(totalPages - 1, currentPage + 1);
+                      if (nextPage !== currentPage) {
+                        setLoading(true);
+                        setError(null);
+                        setCurrentPage(nextPage);
+                      }
+                    }}
                     disabled={currentPage >= totalPages - 1}
                     className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
                   >

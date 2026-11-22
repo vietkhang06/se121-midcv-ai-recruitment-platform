@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Industry, EmploymentType, Job, Company, RequirementType } from '@/types';
@@ -9,11 +9,9 @@ import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader'
 import { SkillCatalogPicker } from '@/components/skills/SkillCatalogPicker';
 import { useLanguage } from '@/context/LanguageContext';
 import {
-  ArrowLeft,
   Sparkles,
   Save,
   Send,
-  Plus,
   Trash2,
   AlertTriangle,
   CheckCircle2,
@@ -22,7 +20,6 @@ import {
   Building2,
   MapPin,
   DollarSign,
-  ShieldCheck,
   Award
 } from 'lucide-react';
 
@@ -35,9 +32,14 @@ interface SkillRequirementItem {
 
 export function JobEditor({ jobId }: { jobId?: string }) {
   const router = useRouter();
-  const { t, locale } = useLanguage();
+  const { locale } = useLanguage();
+  const localeRef = useRef(locale);
+  useEffect(() => {
+    localeRef.current = locale;
+  }, [locale]);
   const [company, setCompany] = useState<Company | null>(null);
-  const [loadingJob, setLoadingJob] = useState(Boolean(jobId));
+  const [loadedJobId, setLoadedJobId] = useState<string | null>(null);
+  const loadingJob = Boolean(jobId && loadedJobId !== jobId);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [originalStatus, setOriginalStatus] = useState<Job['status']>('DRAFT');
 
@@ -63,9 +65,6 @@ export function JobEditor({ jobId }: { jobId?: string }) {
     { id: 'req-2', skillName: 'Spring Boot', requirementType: 'REQUIRED', minYearsExperience: 2 },
     { id: 'req-3', skillName: 'Docker', requirementType: 'PREFERRED', minYearsExperience: 1 }
   ]);
-  const [newSkillName, setNewSkillName] = useState<string>('');
-  const [newSkillType, setNewSkillType] = useState<RequirementType>('REQUIRED');
-  const [newSkillYears, setNewSkillYears] = useState<number>(1);
 
   // UI State
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
@@ -82,10 +81,9 @@ export function JobEditor({ jobId }: { jobId?: string }) {
   useEffect(() => {
     if (!jobId) return;
     let active = true;
-    setLoadingJob(true);
     void fetchRecruiterJobById(jobId).then((job) => {
       if (!active) return;
-      const amount = (value: number | null | undefined) => value == null ? '' : new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { maximumFractionDigits: 2 }).format(value);
+      const amount = (value: number | null | undefined) => value == null ? '' : new Intl.NumberFormat(localeRef.current === 'vi' ? 'vi-VN' : 'en-US', { maximumFractionDigits: 2 }).format(value);
       setTitle(job.title); setIndustry(job.industryOther ? 'OTHER' : job.industry); setIndustryOther(job.industryOther || '');
       setSeniority(job.seniorityOther ? 'OTHER' : job.seniority); setSeniorityOther(job.seniorityOther || '');
       setEmploymentType(job.employmentTypeOther ? 'OTHER' : job.employmentType); setEmploymentTypeOther(job.employmentTypeOther || '');
@@ -96,29 +94,9 @@ export function JobEditor({ jobId }: { jobId?: string }) {
       setRequirements((job.requirements || []).map((req) => ({ id: req.id, skillName: req.skillName,
         requirementType: req.requirementType, minYearsExperience: req.minYearsExperience ?? req.minExperienceYears ?? 0 })));
     }).catch((error) => { if (active) setLoadError(error instanceof Error ? error.message : 'Không thể tải tin tuyển dụng.'); })
-      .finally(() => { if (active) setLoadingJob(false); });
+      .finally(() => { if (active) setLoadedJobId(jobId); });
     return () => { active = false; };
   }, [jobId]);
-
-  const handleAddSkill = () => {
-    if (!newSkillName.trim()) return;
-    const exists = requirements.some(
-      (r) => r.skillName.toLowerCase() === newSkillName.trim().toLowerCase()
-    );
-    if (exists) {
-      alert(locale === 'vi' ? 'Kỹ năng này đã có trong danh sách rubric.' : 'Skill already in rubric.');
-      return;
-    }
-    const item: SkillRequirementItem = {
-      id: `req-${Date.now()}`,
-      skillName: newSkillName.trim(),
-      requirementType: newSkillType,
-      minYearsExperience: Math.max(0, newSkillYears)
-    };
-    setRequirements((prev) => [...prev, item]);
-    setNewSkillName('');
-    setNewSkillYears(1);
-  };
 
   const handleRemoveSkill = (id: string) => {
     setRequirements((prev) => prev.filter((r) => r.id !== id));

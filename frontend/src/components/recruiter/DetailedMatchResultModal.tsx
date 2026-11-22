@@ -3,20 +3,96 @@
 import React from 'react';
 import {
   X,
-  Award,
-  CheckCircle2,
-  AlertCircle,
   Sparkles,
   GitBranch,
   ExternalLink,
   BookOpen,
-  Briefcase,
-  GraduationCap,
   FolderGit2,
-  FileText,
   ShieldCheck,
   Quote
 } from 'lucide-react';
+
+interface MatchEvidenceItem {
+  name?: string;
+  status?: string;
+  jd_evidence?: string | null;
+  cv_evidence?: string | null;
+  repo?: string;
+  url?: string;
+  skill?: string;
+  source?: string;
+}
+
+interface MatchCriterion {
+  id?: string;
+  weight?: number | null;
+  score?: number | null;
+  status?: string;
+  evidence?: MatchEvidenceItem[] | { note?: string; method?: string };
+}
+
+interface MatchResultDetails {
+  algorithm?: string;
+  criteria?: MatchCriterion[];
+  github_evidence?: MatchEvidenceItem[];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function asEvidenceItem(value: unknown): MatchEvidenceItem | null {
+  if (!isRecord(value)) return null;
+  const item: MatchEvidenceItem = {};
+  for (const key of ['name', 'status', 'jd_evidence', 'cv_evidence', 'repo', 'url', 'skill', 'source'] as const) {
+    const field = value[key];
+    if (key === 'jd_evidence' || key === 'cv_evidence') {
+      if (typeof field === 'string' || field === null) item[key] = field;
+    } else if (typeof field === 'string') {
+      item[key] = field;
+    }
+  }
+  return item;
+}
+
+function asDetails(value: unknown): MatchResultDetails {
+  if (!isRecord(value)) return {};
+  const criteria = Array.isArray(value.criteria)
+    ? value.criteria.flatMap((candidate): MatchCriterion[] => {
+        if (!isRecord(candidate)) return [];
+        const evidence = candidate.evidence;
+        const parsedEvidence = Array.isArray(evidence)
+          ? evidence.flatMap((item) => {
+              const parsed = asEvidenceItem(item);
+              return parsed ? [parsed] : [];
+            })
+          : isRecord(evidence)
+            ? {
+                ...(typeof evidence.note === 'string' ? { note: evidence.note } : {}),
+                ...(typeof evidence.method === 'string' ? { method: evidence.method } : {})
+              }
+            : undefined;
+        return [{
+          ...(typeof candidate.id === 'string' ? { id: candidate.id } : {}),
+          ...(typeof candidate.weight === 'number' || candidate.weight === null ? { weight: candidate.weight } : {}),
+          ...(typeof candidate.score === 'number' || candidate.score === null ? { score: candidate.score } : {}),
+          ...(typeof candidate.status === 'string' ? { status: candidate.status } : {}),
+          ...(parsedEvidence !== undefined ? { evidence: parsedEvidence } : {})
+        }];
+      })
+    : undefined;
+  const githubEvidence = Array.isArray(value.github_evidence)
+    ? value.github_evidence.flatMap((item) => {
+        const parsed = asEvidenceItem(item);
+        return parsed ? [parsed] : [];
+      })
+    : undefined;
+  return {
+    ...(typeof value.algorithm === 'string' ? { algorithm: value.algorithm } : {}),
+    ...(criteria ? { criteria } : {}),
+    ...(githubEvidence ? { github_evidence: githubEvidence } : {})
+  };
+}
 
 interface DetailedMatchResultModalProps {
   isOpen: boolean;
@@ -28,8 +104,8 @@ interface DetailedMatchResultModalProps {
     coverage?: number;
     semantic_score?: number;
     algorithm_version?: string;
-    details?: any;
-    github?: any;
+    details?: unknown;
+    github?: unknown;
     created_at?: string;
   } | null;
   candidateTitle?: string;
@@ -45,10 +121,9 @@ export function DetailedMatchResultModal({
 }: DetailedMatchResultModalProps) {
   if (!isOpen || !result) return null;
 
-  const details = result.details || {};
-  const criteria: any[] = details.criteria || [];
+  const details = asDetails(result.details);
+  const criteria = details.criteria || [];
   const githubEvidence = details.github_evidence || [];
-  const githubStatus = result.github?.status;
   const overallScore = Number(result.score || 0);
   const baseScore = Number(result.base_score != null ? result.base_score : overallScore);
   const githubBonus = Number(result.github_bonus || 0);
@@ -201,7 +276,7 @@ export function DetailedMatchResultModal({
                   {/* Criteria Evidence Details */}
                   {Array.isArray(c.evidence) && c.evidence.length > 0 && (
                     <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                      {c.evidence.map((ev: any, idx: number) => (
+                      {c.evidence.map((ev, idx) => (
                         <div
                           key={idx}
                           className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 text-xs space-y-1.5 border border-slate-100 dark:border-slate-800/60"
@@ -270,7 +345,7 @@ export function DetailedMatchResultModal({
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {githubEvidence.map((ge: any, idx: number) => (
+                {githubEvidence.map((ge, idx) => (
                   <div
                     key={idx}
                     className="p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/40 dark:bg-indigo-950/20 text-xs space-y-1.5"

@@ -24,13 +24,29 @@ import {
 import { adminApi } from '@/lib/api';
 import { CompanyAdminDto, CompanyVerificationState, CompanyReviewAction } from '@/types';
 
+type CompanyStatusFilter = 'ALL' | CompanyVerificationState;
+
+const COMPANY_STATUS_FILTERS: { id: CompanyStatusFilter; label: string }[] = [
+  { id: 'ALL', label: 'Tất cả' },
+  { id: 'PENDING', label: 'Chờ duyệt' },
+  { id: 'UNDER_REVIEW', label: 'Đang thẩm định' },
+  { id: 'VERIFIED', label: 'Đã xác minh' },
+  { id: 'CHANGES_REQUESTED', label: 'Yêu cầu sửa đổi' },
+  { id: 'REJECTED', label: 'Từ chối' },
+  { id: 'SUSPENDED', label: 'Đình chỉ' }
+];
+
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 export default function AdminCompaniesPage() {
   const [companies, setCompanies] = useState<CompanyAdminDto[]>([]);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('ALL');
+  const [filterStatus, setFilterStatus] = useState<CompanyStatusFilter>('ALL');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,15 +70,22 @@ export default function AdminCompaniesPage() {
       setCompanies(res.content || []);
       setTotalPages(res.totalPages || 0);
       setTotalElements(res.totalElements || 0);
-    } catch (err: any) {
-      setError(err?.message || 'Không thể tải danh sách doanh nghiệp.');
+    } catch (error: unknown) {
+      setError(errorMessage(error, 'Không thể tải danh sách doanh nghiệp.'));
     } finally {
       setLoading(false);
     }
   }, [currentPage, filterStatus, searchTerm]);
 
   useEffect(() => {
-    fetchCompanies();
+    let active = true;
+    const loadCompanies = () => {
+      if (active) void fetchCompanies();
+    };
+    void Promise.resolve().then(loadCompanies);
+    return () => {
+      active = false;
+    };
   }, [fetchCompanies]);
 
   const handleOpenActionModal = (company: CompanyAdminDto, action: CompanyReviewAction) => {
@@ -98,10 +121,10 @@ export default function AdminCompaniesPage() {
       setSelectedCompany(null);
       setActionType(null);
       fetchCompanies();
-    } catch (err: any) {
+    } catch (error: unknown) {
       setFeedback({
         type: 'error',
-        text: err?.message || 'Lỗi khi cập nhật trạng thái doanh nghiệp.'
+        text: errorMessage(error, 'Lỗi khi cập nhật trạng thái doanh nghiệp.')
       });
     } finally {
       setSubmittingAction(false);
@@ -229,15 +252,7 @@ export default function AdminCompaniesPage() {
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
-            {[
-              { id: 'ALL', label: 'Tất cả' },
-              { id: 'PENDING', label: 'Chờ duyệt' },
-              { id: 'UNDER_REVIEW', label: 'Đang thẩm định' },
-              { id: 'VERIFIED', label: 'Đã xác minh' },
-              { id: 'CHANGES_REQUESTED', label: 'Yêu cầu sửa đổi' },
-              { id: 'REJECTED', label: 'Từ chối' },
-              { id: 'SUSPENDED', label: 'Đình chỉ' },
-            ].map((st) => (
+            {COMPANY_STATUS_FILTERS.map((st) => (
               <button
                 key={st.id}
                 onClick={() => {
@@ -322,7 +337,7 @@ export default function AdminCompaniesPage() {
                     </td>
                     <td className="py-4 px-4 text-slate-600 dark:text-slate-300">
                       <p className="font-medium">{c.industry || 'Chưa cập nhật'}</p>
-                      <p className="text-[11px] text-slate-400">{c.location || 'N/A'}</p>
+                      <p className="text-[11px] text-slate-400">N/A</p>
                     </td>
                     <td className="py-4 px-4">
                       {renderStatusBadge(c.verificationStatus)}

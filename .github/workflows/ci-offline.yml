@@ -183,17 +183,20 @@ jobs:
           lint_code=${PIPESTATUS[0]}
           npm run test:contracts 2>&1 | tee -a ../frontend-test.log
           contract_code=${PIPESTATUS[0]}
+          npm run typecheck 2>&1 | tee -a ../frontend-test.log
+          typecheck_code=${PIPESTATUS[0]}
           npm run build 2>&1 | tee -a ../frontend-test.log
           build_code=${PIPESTATUS[0]}
           {
             echo "lint_code=$lint_code"
             echo "contract_code=$contract_code"
+            echo "typecheck_code=$typecheck_code"
             echo "build_code=$build_code"
           } >> "$GITHUB_OUTPUT"
           cd ..
           python scripts/ci/verify_debt_baseline.py frontend frontend-test.log
           baseline_code=$?
-          exit $((baseline_code || contract_code || build_code))
+          exit $((baseline_code || contract_code || typecheck_code || build_code))
       - name: Build frontend evidence
         if: always()
         shell: bash
@@ -206,6 +209,7 @@ jobs:
           - Commit: ${GITHUB_SHA}
           - Lint exit code: ${{ steps.tests.outputs.lint_code || 'NOT_RUN' }}
           - Contract exit code: ${{ steps.tests.outputs.contract_code || 'NOT_RUN' }}
+          - TypeScript exit code: ${{ steps.tests.outputs.typecheck_code || 'NOT_RUN' }}
           - Build exit code: ${{ steps.tests.outputs.build_code || 'NOT_RUN' }}
           - Browser/API runtime: not part of this offline job
           EOF

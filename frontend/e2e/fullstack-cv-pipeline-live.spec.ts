@@ -72,7 +72,7 @@ test.describe('W4-QA-01 — real CV processing to HR ranking (no API mocks)', ()
     expect(priorApplications.status()).toBe(200);
     const priorPage = await bodyData(priorApplications);
     const priorItems = Array.isArray(priorPage?.content) ? priorPage.content : [];
-    expect(priorItems.some((item: any) => String(item.jobId) === jobId),
+    expect(priorItems.some((item) => String(item.jobId) === jobId),
       'Use a fresh published test job; candidate already has an application for this job').toBe(false);
 
     const fixturePath = fileURLToPath(new URL('../../test-fixtures/synthetic/01_single_column_tech_cv.pdf', import.meta.url));
@@ -92,7 +92,7 @@ test.describe('W4-QA-01 — real CV processing to HR ranking (no API mocks)', ()
     const cvId = String(uploaded?.cvId || uploaded?.id || '');
     expect(cvId, 'Upload response must contain cvId').toMatch(/^[0-9a-f-]{36}$/i);
 
-    let processing: any;
+    let processing: LiveResponseData | null = null;
     let ready = false;
     for (let attempt = 0; attempt < 90; attempt += 1) {
       const response = await request.get(`${apiBase}/api/v1/candidate/cvs/${cvId}/processing-status`, {
@@ -159,7 +159,7 @@ test.describe('W4-QA-01 — real CV processing to HR ranking (no API mocks)', ()
     const rankingData = await bodyData(ranking);
     const candidates = Array.isArray(rankingData?.content) ? rankingData.content : [];
     const ranked = candidates.find(
-      (item: any) => String(item.applicationId) === applicationId
+      (item) => String(item.applicationId) === applicationId
     );
 
     if (ranked === undefined) {
@@ -207,7 +207,7 @@ test.describe('W3-AI-01 — live Vietnamese OCR correction persistence (no API m
     const cvId = String(uploaded?.cvId || uploaded?.id || '');
     expect(cvId).toMatch(/^[0-9a-f-]{36}$/i);
 
-    let processing: any;
+    let processing: LiveResponseData | null = null;
     let ready = false;
     for (let attempt = 0; attempt < 90; attempt += 1) {
       const response = await request.get(`${apiBase}/api/v1/candidate/cvs/${cvId}/processing-status`, {

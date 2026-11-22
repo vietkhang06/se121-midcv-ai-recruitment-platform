@@ -1,12 +1,35 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Company, Job } from '@/types';
 import { fetchRecruiterCompany, saveCompanyProfile, submitCompanyVerification, fetchRecruiterJobs } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
 import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
 import { CompanyVerificationBanner } from '@/components/recruiter/CompanyVerificationBanner';
-import { Building2, Globe, Mail, Phone, Users, ShieldCheck, Save, CheckCircle2, Briefcase, FileText, Send, AlertCircle } from 'lucide-react';
+import { Building2, Save, CheckCircle2, Send, AlertCircle } from 'lucide-react';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (isRecord(error) && isRecord(error.response) && isRecord(error.response.data)) {
+    const responseMessage = error.response.data.message;
+    if (typeof responseMessage === 'string' && responseMessage) {
+      return responseMessage;
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (isRecord(error) && typeof error.message === 'string' && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
 
 export default function CompanyProfilePage() {
   const { t, locale } = useLanguage();
@@ -17,25 +40,47 @@ export default function CompanyProfilePage() {
   const [isSubmittingVerification, setIsSubmittingVerification] = useState<boolean>(false);
   const [verificationFeedback, setVerificationFeedback] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const requestId = useRef(0);
 
   const loadData = React.useCallback(() => {
+    const activeRequestId = ++requestId.current;
     setLoadError(null);
     Promise.all([
       fetchRecruiterCompany(),
       fetchRecruiterJobs()
     ])
       .then(([comp, jobList]) => {
+        if (activeRequestId !== requestId.current) return;
         setCompany(comp);
         setJobs(jobList || []);
       })
-      .catch((err: any) => {
-        setLoadError(err?.message || 'Không thể tải thông tin doanh nghiệp.');
+      .catch((error: unknown) => {
+        if (activeRequestId === requestId.current) {
+          setLoadError(getErrorMessage(error, 'Không thể tải thông tin doanh nghiệp.'));
+        }
       });
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    const activeRequestId = ++requestId.current;
+    void Promise.all([
+      fetchRecruiterCompany(),
+      fetchRecruiterJobs()
+    ])
+      .then(([comp, jobList]) => {
+        if (activeRequestId !== requestId.current) return;
+        setCompany(comp);
+        setJobs(jobList || []);
+      })
+      .catch((error: unknown) => {
+        if (activeRequestId === requestId.current) {
+          setLoadError(getErrorMessage(error, 'Không thể tải thông tin doanh nghiệp.'));
+        }
+      });
+    return () => {
+      requestId.current += 1;
+    };
+  }, []);
 
   if (loadError && !company) {
     return (
@@ -75,8 +120,8 @@ export default function CompanyProfilePage() {
       setCompany(updated);
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err: any) {
-      alert(err?.response?.data?.message || err?.message || 'Failed to update company profile');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, 'Failed to update company profile'));
     } finally {
       setIsSaving(false);
     }
@@ -100,8 +145,8 @@ export default function CompanyProfilePage() {
       setCompany(updated);
       setVerificationFeedback('Hồ sơ thẩm định doanh nghiệp đã được gửi đến Ban Quản Trị thành công!');
       setTimeout(() => setVerificationFeedback(null), 5000);
-    } catch (err: any) {
-      alert(err?.response?.data?.message || err?.message || 'Lỗi khi gửi yêu cầu thẩm định doanh nghiệp');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, 'Lỗi khi gửi yêu cầu thẩm định doanh nghiệp'));
     } finally {
       setIsSubmittingVerification(false);
     }

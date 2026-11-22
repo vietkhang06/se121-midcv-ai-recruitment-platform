@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   Users,
@@ -23,6 +23,10 @@ import {
 import { adminApi } from '@/lib/api';
 import { UserAdminDto, UserRole } from '@/types';
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserAdminDto[]>([]);
   const [totalPages, setTotalPages] = useState(0);
@@ -35,6 +39,7 @@ export default function AdminUsersPage() {
   >('ALL');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestId = useRef(0);
 
   // Modal State for Moderation
   const [selectedUser, setSelectedUser] = useState<UserAdminDto | null>(null);
@@ -48,32 +53,60 @@ export default function AdminUsersPage() {
     text: string;
   } | null>(null);
 
+  const getUsers = useCallback(() => adminApi.getUsers({
+    role: roleFilter === 'ALL' ? undefined : roleFilter,
+    status: statusFilter === 'ALL' ? undefined : statusFilter,
+    search: searchTerm.trim() || undefined,
+    page: currentPage,
+    size: 10
+  }), [currentPage, roleFilter, statusFilter, searchTerm]);
+
   const fetchUsers = useCallback(async () => {
+    const activeRequestId = ++requestId.current;
     setLoading(true);
     setError(null);
-
     try {
-      const res = await adminApi.getUsers({
-        role: roleFilter === 'ALL' ? undefined : roleFilter,
-        status: statusFilter === 'ALL' ? undefined : statusFilter,
-        search: searchTerm.trim() || undefined,
-        page: currentPage,
-        size: 10
-      });
-
+      const res = await getUsers();
+      if (activeRequestId !== requestId.current) return;
       setUsers(res.content || []);
       setTotalPages(res.totalPages || 0);
       setTotalElements(res.totalElements || 0);
-    } catch (err: any) {
-      setError(err?.message || 'Không thể tải danh sách tài khoản.');
+    } catch (error: unknown) {
+      if (activeRequestId === requestId.current) {
+        setError(getErrorMessage(error, 'Không thể tải danh sách tài khoản.'));
+      }
     } finally {
-      setLoading(false);
+      if (activeRequestId === requestId.current) {
+        setLoading(false);
+      }
     }
-  }, [currentPage, roleFilter, statusFilter, searchTerm]);
+  }, [getUsers]);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    const activeRequestId = ++requestId.current;
+    void getUsers()
+      .then((res) => {
+        if (activeRequestId !== requestId.current) return;
+        setUsers(res.content || []);
+        setTotalPages(res.totalPages || 0);
+        setTotalElements(res.totalElements || 0);
+      })
+      .catch((error: unknown) => {
+        if (activeRequestId === requestId.current) {
+          setError(getErrorMessage(error, 'Không thể tải danh sách tài khoản.'));
+        }
+      })
+      .finally(() => {
+        if (activeRequestId === requestId.current) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      if (activeRequestId === requestId.current) {
+        requestId.current += 1;
+      }
+    };
+  }, [getUsers]);
 
   const handleOpenModeration = (
     user: UserAdminDto,
@@ -115,10 +148,10 @@ export default function AdminUsersPage() {
       setSelectedUser(null);
       setModerationAction(null);
       fetchUsers();
-    } catch (err: any) {
+    } catch (error: unknown) {
       setFeedback({
         type: 'error',
-        text: err?.message || 'Có lỗi xảy ra khi cập nhật tài khoản.'
+        text: getErrorMessage(error, 'Có lỗi xảy ra khi cập nhật tài khoản.')
       });
     } finally {
       setSubmittingAction(false);
@@ -187,6 +220,10 @@ export default function AdminUsersPage() {
               type="text"
               value={searchTerm}
               onChange={(e) => {
+                if (e.target.value !== searchTerm || currentPage !== 0) {
+                  setLoading(true);
+                  setError(null);
+                }
                 setSearchTerm(e.target.value);
                 setCurrentPage(0);
               }}
@@ -202,6 +239,10 @@ export default function AdminUsersPage() {
                 <button
                   key={r}
                   onClick={() => {
+                    if (roleFilter !== r || currentPage !== 0) {
+                      setLoading(true);
+                      setError(null);
+                    }
                     setRoleFilter(r);
                     setCurrentPage(0);
                   }}
@@ -228,6 +269,10 @@ export default function AdminUsersPage() {
                 <button
                   key={s}
                   onClick={() => {
+                    if (statusFilter !== s || currentPage !== 0) {
+                      setLoading(true);
+                      setError(null);
+                    }
                     setStatusFilter(s);
                     setCurrentPage(0);
                   }}
@@ -411,16 +456,28 @@ export default function AdminUsersPage() {
                 </span>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                    onClick={() => {
+                      const nextPage = Math.max(0, currentPage - 1);
+                      if (nextPage !== currentPage) {
+                        setLoading(true);
+                        setError(null);
+                        setCurrentPage(nextPage);
+                      }
+                    }}
                     disabled={currentPage === 0}
                     className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() =>
-                      setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
-                    }
+                    onClick={() => {
+                      const nextPage = Math.min(totalPages - 1, currentPage + 1);
+                      if (nextPage !== currentPage) {
+                        setLoading(true);
+                        setError(null);
+                        setCurrentPage(nextPage);
+                      }
+                    }}
                     disabled={currentPage >= totalPages - 1}
                     className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-40"
                   >

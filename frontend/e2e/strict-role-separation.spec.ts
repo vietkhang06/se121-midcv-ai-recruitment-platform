@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 test.describe('Strict Role Separation Suite: HR (Recruiter) vs Candidate', () => {
 
@@ -133,8 +133,8 @@ test.describe('Strict Role Separation Suite: HR (Recruiter) vs Candidate', () =>
     status: 'PUBLISHED'
   };
 
-  const setupJobMock = async (page: any) => {
-    await page.route(/\/api\/v1\/jobs/, async (route: any) => {
+  const setupJobMock = async (page: Page) => {
+    await page.route(/\/api\/v1\/jobs/, async (route) => {
       const url = route.request().url();
       if (url.includes('/api/v1/jobs/')) {
         await route.fulfill({

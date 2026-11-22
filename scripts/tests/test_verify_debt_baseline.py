@@ -23,5 +23,6 @@ def test_backend_ratchet(tmp_path):
 
 
 def test_frontend_ratchet(tmp_path):
-    assert run(tmp_path, "frontend", "✖ 217 problems (72 errors, 145 warnings)") == 0
-    assert run(tmp_path, "frontend", "✖ 218 problems (73 errors, 145 warnings)") == 1
+    assert run(tmp_path, "frontend", "✖ 209 problems (66 errors, 143 warnings)") == 0
+    assert run(tmp_path, "frontend", "✖ 210 problems (67 errors, 143 warnings)") == 1
+    assert run(tmp_path, "frontend", "✖ 210 problems (66 errors, 144 warnings)") == 1

@@ -1,18 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-const STORAGE_KEYS = {
-  JOBS: 'airecruit_persistent_jobs',
-  CVS: 'airecruit_persistent_cvs',
-  APPLICATIONS: 'airecruit_persistent_applications',
-  PROFILE: 'airecruit_persistent_profile',
-  COMPANY: 'airecruit_persistent_company',
-  RANKINGS: 'airecruit_persistent_rankings'
-};
-
 test.describe('WP-DATA-01: Runtime Data Purification & Empty-State Integrity Tests', () => {
 
-  let mockJobsResponse: any[] = [];
-  let mockRecruiterJobsResponse: any[] = [];
+  let mockJobsResponse: unknown[] = [];
+  let mockRecruiterJobsResponse: unknown[] = [];
 
   test.beforeEach(async ({ page }) => {
     mockJobsResponse = [];
