@@ -33,6 +33,7 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchRequestIdRef = useRef(0);
 
   // Normalize current skills into objects
   const normalizedSkills: SkillItem[] = skills.map((s) =>
@@ -41,26 +42,35 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
 
   // Debounce search query 250-350ms
   useEffect(() => {
-    if (!query.trim()) {
-      setSuggestions([]);
-      setIsLoading(false);
-      return;
-    }
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery) return;
 
-    setIsLoading(true);
-    const handler = setTimeout(async () => {
-      try {
-        const results = await searchTaxonomySkills(query.trim(), 8);
-        setSuggestions(results || []);
-      } catch (err) {
-        console.warn('Taxonomy skill search failed:', err);
-        setSuggestions([]);
-      } finally {
-        setIsLoading(false);
-      }
+    const requestId = searchRequestIdRef.current;
+    let active = true;
+    const handler = setTimeout(() => {
+      void searchTaxonomySkills(normalizedQuery, 8)
+        .then((results) => {
+          if (active && requestId === searchRequestIdRef.current) {
+            setSuggestions(results || []);
+          }
+        })
+        .catch((error: unknown) => {
+          if (active && requestId === searchRequestIdRef.current) {
+            console.warn('Taxonomy skill search failed:', error);
+            setSuggestions([]);
+          }
+        })
+        .finally(() => {
+          if (active && requestId === searchRequestIdRef.current) {
+            setIsLoading(false);
+          }
+        });
     }, 280);
 
-    return () => clearTimeout(handler);
+    return () => {
+      active = false;
+      clearTimeout(handler);
+    };
   }, [query]);
 
   // Click outside listener to close dropdown
@@ -82,7 +92,10 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
   const handleAddSkill = (name: string, isCustom = false, category?: string) => {
     const cleanName = name.trim();
     if (!cleanName || isDuplicate(cleanName)) {
+      searchRequestIdRef.current += 1;
       setQuery('');
+      setSuggestions([]);
+      setIsLoading(false);
       setIsOpen(false);
       return;
     }
@@ -94,7 +107,10 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
     };
 
     onChange([...normalizedSkills, newSkill]);
+    searchRequestIdRef.current += 1;
     setQuery('');
+    setSuggestions([]);
+    setIsLoading(false);
     setIsOpen(false);
     setSelectedIndex(-1);
     inputRef.current?.focus();
@@ -180,7 +196,16 @@ export const SkillAutocomplete: React.FC<SkillAutocompleteProps> = ({
             type="text"
             value={query}
             onChange={(e) => {
-              setQuery(e.target.value);
+              const nextQuery = e.target.value;
+              searchRequestIdRef.current += 1;
+              setQuery(nextQuery);
+              setSelectedIndex(-1);
+              if (nextQuery.trim()) {
+                setIsLoading(true);
+              } else {
+                setSuggestions([]);
+                setIsLoading(false);
+              }
               setIsOpen(true);
             }}
             onFocus={() => {

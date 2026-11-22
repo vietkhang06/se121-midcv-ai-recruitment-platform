@@ -8,19 +8,15 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { BrandLogo } from '@/components/common/BrandLogo';
 import {
-  ShieldCheck,
   CheckCircle2,
   AlertCircle,
   Clock,
   RefreshCw,
-  Mail,
   ArrowRight,
-  Sparkles,
-  Lock,
-  ExternalLink
 } from 'lucide-react';
 
 type VerifyState = 'VERIFYING' | 'SUCCESS' | 'EXPIRED' | 'INVALID' | 'ALREADY_USED' | 'ERROR';
+type VerificationResult = { token: string; status: VerifyState; message: string };
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
@@ -29,51 +25,68 @@ function VerifyEmailContent() {
   const { openAuthModal } = useAuth();
   const { t } = useLanguage();
 
-  const [status, setStatus] = useState<VerifyState>('VERIFYING');
-  const [statusMessage, setStatusMessage] = useState<string>('Đang thẩm định mã xác thực số hóa...');
+  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [resendEmail, setResendEmail] = useState<string>('');
   const [resendStatus, setResendStatus] = useState<string | null>(null);
   const [resendLoading, setResendLoading] = useState<boolean>(false);
-  const verifiedRef = useRef<string | null>(null);
+  const verificationRequestRef = useRef<{ token: string; promise: Promise<VerificationResult> } | null>(null);
+
+  const status: VerifyState = token === null
+    ? 'INVALID'
+    : verificationResult?.token === token
+      ? verificationResult.status
+      : 'VERIFYING';
+  const statusMessage = token === null
+    ? 'Không tìm thấy token xác thực trong đường dẫn. Vui lòng kiểm tra email của bạn.'
+    : verificationResult?.token === token
+      ? verificationResult.message
+      : 'Đang thẩm định mã xác thực số hóa...';
 
   useEffect(() => {
-    if (!token) {
-      setStatus('INVALID');
-      setStatusMessage('Không tìm thấy token xác thực trong đường dẫn. Vui lòng kiểm tra email của bạn.');
-      return;
+    if (token === null) return;
+
+    let request = verificationRequestRef.current;
+    if (!request || request.token !== token) {
+      const promise = verifyEmailToken(token)
+        .then((res): VerificationResult => {
+          if (res.success) {
+            return {
+              token,
+              status: 'SUCCESS',
+              message: res.message || 'Email đã được xác thực thành công. Bạn có thể đăng nhập ngay bây giờ.'
+            };
+          }
+
+          const msg = (res.message || '').toLowerCase();
+          const resultStatus: VerifyState = msg.includes('expired') || msg.includes('hết hạn')
+            ? 'EXPIRED'
+            : msg.includes('already') || msg.includes('đã được sử dụng')
+              ? 'ALREADY_USED'
+              : 'INVALID';
+          return { token, status: resultStatus, message: res.message || 'Mã xác thực không hợp lệ.' };
+        })
+        .catch((error: unknown): VerificationResult => {
+          const message = error instanceof Error ? error.message : '';
+          const msg = message.toLowerCase();
+          const resultStatus: VerifyState = msg.includes('expired') || msg.includes('hết hạn')
+            ? 'EXPIRED'
+            : msg.includes('already') || msg.includes('đã được')
+              ? 'ALREADY_USED'
+              : 'INVALID';
+          return { token, status: resultStatus, message: message || 'Mã xác thực không hợp lệ hoặc lỗi kết nối.' };
+        });
+      request = { token, promise };
+      verificationRequestRef.current = request;
     }
 
-    if (verifiedRef.current === token) return;
-    verifiedRef.current = token;
+    let active = true;
+    void request.promise.then((result) => {
+      if (active && verificationRequestRef.current === request) setVerificationResult(result);
+    });
 
-    verifyEmailToken(token)
-      .then((res) => {
-        if (res.success) {
-          setStatus('SUCCESS');
-          setStatusMessage(res.message || 'Email đã được xác thực thành công. Bạn có thể đăng nhập ngay bây giờ.');
-        } else {
-          const msg = (res.message || '').toLowerCase();
-          if (msg.includes('expired') || msg.includes('hết hạn')) {
-            setStatus('EXPIRED');
-          } else if (msg.includes('already') || msg.includes('đã được sử dụng')) {
-            setStatus('ALREADY_USED');
-          } else {
-            setStatus('INVALID');
-          }
-          setStatusMessage(res.message || 'Mã xác thực không hợp lệ.');
-        }
-      })
-      .catch((err) => {
-        const msg = (err.message || '').toLowerCase();
-        if (msg.includes('expired') || msg.includes('hết hạn')) {
-          setStatus('EXPIRED');
-        } else if (msg.includes('already') || msg.includes('đã được')) {
-          setStatus('ALREADY_USED');
-        } else {
-          setStatus('INVALID');
-        }
-        setStatusMessage(err.message || 'Mã xác thực không hợp lệ hoặc lỗi kết nối.');
-      });
+    return () => {
+      active = false;
+    };
   }, [token]);
 
   const handleResendSubmit = async (e: React.FormEvent) => {
@@ -84,8 +97,8 @@ function VerifyEmailContent() {
     try {
       const res = await resendVerificationToken(resendEmail.trim());
       setResendStatus(res.message);
-    } catch (err: any) {
-      setResendStatus(err.message || 'Không thể gửi lại email xác thực.');
+    } catch (error: unknown) {
+      setResendStatus(error instanceof Error && error.message ? error.message : 'Không thể gửi lại email xác thực.');
     } finally {
       setResendLoading(false);
     }

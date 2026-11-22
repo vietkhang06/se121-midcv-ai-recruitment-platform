@@ -1,45 +1,68 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { fetchRecruiterProfile } from '@/lib/api';
 import { RecruiterProfile } from '@/types';
 import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
 import {
-  User,
   Mail,
   Building2,
   ShieldCheck,
-  KeyRound,
-  CheckCircle2,
-  Calendar,
-  Lock
 } from 'lucide-react';
 import { EmptyState } from '@/components/common/EmptyState';
 import { DeactivateAccountSection } from '@/components/common/DeactivateAccountSection';
 
 export default function RecruiterProfilePage() {
   const { user } = useAuth();
-  const { t, locale } = useLanguage();
+  const { locale } = useLanguage();
   const [profile, setProfile] = useState<RecruiterProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
+  const localeRef = useRef(locale);
+
+  useEffect(() => {
+    localeRef.current = locale;
+  }, [locale]);
 
   const loadData = () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     fetchRecruiterProfile()
-      .then(setProfile)
-      .catch((err: any) => {
-        console.error('Failed to load recruiter profile:', err);
-        setError(err?.message || (locale === 'vi' ? 'Không thể tải thông tin hồ sơ nhà tuyển dụng' : 'Failed to load recruiter profile'));
+      .then((nextProfile) => {
+        if (requestId === requestIdRef.current) setProfile(nextProfile);
       })
-      .finally(() => setLoading(false));
+      .catch((err: unknown) => {
+        if (requestId !== requestIdRef.current) return;
+        console.error('Failed to load recruiter profile:', err);
+        setError(err instanceof Error ? err.message : (localeRef.current === 'vi' ? 'Không thể tải thông tin hồ sơ nhà tuyển dụng' : 'Failed to load recruiter profile'));
+      })
+      .finally(() => {
+        if (requestId === requestIdRef.current) setLoading(false);
+      });
   };
 
   useEffect(() => {
-    loadData();
+    const requestId = ++requestIdRef.current;
+    fetchRecruiterProfile()
+      .then((nextProfile) => {
+        if (requestId === requestIdRef.current) setProfile(nextProfile);
+      })
+      .catch((err: unknown) => {
+        if (requestId !== requestIdRef.current) return;
+        console.error('Failed to load recruiter profile:', err);
+        setError(err instanceof Error ? err.message : (localeRef.current === 'vi' ? 'Không thể tải thông tin hồ sơ nhà tuyển dụng' : 'Failed to load recruiter profile'));
+      })
+      .finally(() => {
+        if (requestId === requestIdRef.current) setLoading(false);
+      });
+
+    return () => {
+      if (requestId === requestIdRef.current) requestIdRef.current += 1;
+    };
   }, []);
 
   if (loading) {

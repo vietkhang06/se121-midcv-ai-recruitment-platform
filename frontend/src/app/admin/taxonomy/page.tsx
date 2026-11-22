@@ -21,6 +21,10 @@ import {
 import { adminApi } from '@/lib/api';
 import { TaxonomySkillAdminDto } from '@/types';
 
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 export default function AdminTaxonomyPage() {
   const [skills, setSkills] = useState<TaxonomySkillAdminDto[]>([]);
   const [totalPages, setTotalPages] = useState(0);
@@ -53,15 +57,22 @@ export default function AdminTaxonomyPage() {
       setSkills(res.content || []);
       setTotalPages(res.totalPages || 0);
       setTotalElements(res.totalElements || 0);
-    } catch (err: any) {
-      setError(err?.message || 'Không thể tải danh mục kỹ năng.');
+    } catch (error: unknown) {
+      setError(errorMessage(error, 'Không thể tải danh mục kỹ năng.'));
     } finally {
       setLoading(false);
     }
   }, [currentPage, activeFilter, searchTerm]);
 
   useEffect(() => {
-    fetchSkills();
+    let active = true;
+    const loadSkills = () => {
+      if (active) void fetchSkills();
+    };
+    void Promise.resolve().then(loadSkills);
+    return () => {
+      active = false;
+    };
   }, [fetchSkills]);
 
   const handleToggleActive = async (skill: TaxonomySkillAdminDto) => {
@@ -74,10 +85,10 @@ export default function AdminTaxonomyPage() {
         text: `Đã ${skill.active ? 'ngừng hoạt động' : 'kích hoạt lại'} kỹ năng "${skill.name}".`
       });
       fetchSkills();
-    } catch (err: any) {
+    } catch (error: unknown) {
       setFeedback({
         type: 'error',
-        text: err?.message || 'Lỗi khi cập nhật trạng thái kỹ năng.'
+        text: errorMessage(error, 'Lỗi khi cập nhật trạng thái kỹ năng.')
       });
     } finally {
       setTogglingId(null);
@@ -106,10 +117,10 @@ export default function AdminTaxonomyPage() {
       setNewSkillName('');
       setNewSkillCategory('');
       fetchSkills();
-    } catch (err: any) {
+    } catch (error: unknown) {
       setFeedback({
         type: 'error',
-        text: err?.message || 'Lỗi khi tạo mới kỹ năng taxonomy.'
+        text: errorMessage(error, 'Lỗi khi tạo mới kỹ năng taxonomy.')
       });
     } finally {
       setCreating(false);

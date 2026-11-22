@@ -42,8 +42,8 @@ export const AppealModal: React.FC<AppealModalProps> = ({ isOpen, onClose, onSuc
         onSuccess?.();
         onClose();
       }, 1500);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Không thể gửi khiếu nại. Vui lòng thử lại sau.');
+    } catch (error: unknown) {
+      setErrorMessage(error instanceof Error ? error.message : 'Không thể gửi khiếu nại. Vui lòng thử lại sau.');
     } finally {
       setIsSubmitting(false);
     }

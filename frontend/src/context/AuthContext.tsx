@@ -12,7 +12,7 @@ interface QuickOnboardingData {
 export interface IntendedAction {
   type: 'APPLY' | 'NAVIGATE';
   target?: string;
-  data?: any;
+  data?: unknown;
 }
 
 interface AuthContextType {
@@ -49,7 +49,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // 1. Mark first visit as seen so user always sees the public home page on initial visit
     localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
-    setHasSeenFirstVisit(true);
 
     let active = true;
     void ensureAuthToken().then(token => {

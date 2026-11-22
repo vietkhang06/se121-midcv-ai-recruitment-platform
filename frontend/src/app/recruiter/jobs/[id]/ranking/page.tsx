@@ -1,14 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { Job, CandidateRankingItem, MatchInspectionData } from '@/types';
 import { fetchRecruiterJobById, fetchCandidateRankings, fetchMatchInspection } from '@/lib/api';
-import { RecruiterNavbar } from '@/components/recruiter/RecruiterNavbar';
 import { CandidateRankingTable } from '@/components/recruiter/CandidateRankingTable';
 import { CandidateCompareModal } from '@/components/recruiter/CandidateCompareModal';
-import { EmptyCandidatesIllustration } from '@/components/illustrations/Illustrations';
-import { Award, ArrowLeft, Filter, Search, ShieldCheck, Sparkles, Layers, GitBranch, ArrowRight, UserCheck, CheckCircle2 } from 'lucide-react';
+import { Award, ArrowLeft, Layers, GitBranch } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Reveal } from '@/components/motion/Reveal';
@@ -18,8 +16,10 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
   const { t, locale } = useLanguage();
   const [job, setJob] = useState<Job | null>(null);
   const [rankings, setRankings] = useState<CandidateRankingItem[]>([]);
-  const [filteredRankings, setFilteredRankings] = useState<CandidateRankingItem[]>([]);
-  const [topInspection, setTopInspection] = useState<MatchInspectionData | null>(null);
+  const [topInspectionResult, setTopInspectionResult] = useState<{
+    applicationId: string;
+    data: MatchInspectionData | null;
+  } | null>(null);
   
   const [minScoreFilter, setMinScoreFilter] = useState<number>(0);
   const [onlyFullRequired, setOnlyFullRequired] = useState<boolean>(false);
@@ -27,8 +27,12 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
   const [isCompareModalOpen, setIsCompareModalOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [loadedJobId, setLoadedJobId] = useState<string | null>(null);
+  const rankingRequestIdRef = useRef(0);
+  const inspectionRequestIdRef = useRef(0);
 
   const loadData = () => {
+    const requestId = ++rankingRequestIdRef.current;
     setIsLoading(true);
     setFetchError(null);
     Promise.all([
@@ -36,44 +40,90 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
       fetchCandidateRankings(resolvedParams.id),
     ])
       .then(([j, data]) => {
+        if (requestId !== rankingRequestIdRef.current) return;
         setJob(j);
         setRankings(data);
-        setFilteredRankings(data);
+        setFetchError(null);
+        setLoadedJobId(resolvedParams.id);
       })
-      .catch((err) => {
-        setFetchError(err.message || 'Không thể tải Bảng Xếp Hạng AI.');
+      .catch((error: unknown) => {
+        if (requestId !== rankingRequestIdRef.current) return;
+        setFetchError(error instanceof Error ? error.message : 'Không thể tải Bảng Xếp Hạng AI.');
+        setLoadedJobId(resolvedParams.id);
       })
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (requestId === rankingRequestIdRef.current) setIsLoading(false);
+      });
   };
 
   useEffect(() => {
-    loadData();
+    const requestId = ++rankingRequestIdRef.current;
+    Promise.all([
+      fetchRecruiterJobById(resolvedParams.id),
+      fetchCandidateRankings(resolvedParams.id),
+    ])
+      .then(([nextJob, nextRankings]) => {
+        if (requestId !== rankingRequestIdRef.current) return;
+        setJob(nextJob);
+        setRankings(nextRankings);
+        setFetchError(null);
+        setLoadedJobId(resolvedParams.id);
+      })
+      .catch((error: unknown) => {
+        if (requestId !== rankingRequestIdRef.current) return;
+        setFetchError(error instanceof Error ? error.message : 'Không thể tải Bảng Xếp Hạng AI.');
+        setLoadedJobId(resolvedParams.id);
+      })
+      .finally(() => {
+        if (requestId === rankingRequestIdRef.current) setIsLoading(false);
+      });
+
+    return () => {
+      rankingRequestIdRef.current += 1;
+    };
   }, [resolvedParams.id]);
 
   const topCandidate = rankings.length > 0 ? rankings[0] : null;
+  const topApplicationId = topCandidate?.applicationId;
 
   useEffect(() => {
-    if (topCandidate?.applicationId) {
-      fetchMatchInspection(topCandidate.applicationId)
-        .then(setTopInspection)
-        .catch(() => setTopInspection(null));
-    } else {
-      setTopInspection(null);
-    }
-  }, [topCandidate?.applicationId]);
+    if (!topApplicationId) return;
 
-  useEffect(() => {
-    let result = [...rankings];
+    const requestId = ++inspectionRequestIdRef.current;
+    fetchMatchInspection(topApplicationId)
+      .then((data) => {
+        if (requestId === inspectionRequestIdRef.current) {
+          setTopInspectionResult({ applicationId: topApplicationId, data });
+        }
+      })
+      .catch(() => {
+        if (requestId === inspectionRequestIdRef.current) {
+          setTopInspectionResult({ applicationId: topApplicationId, data: null });
+        }
+      });
+
+    return () => {
+      inspectionRequestIdRef.current += 1;
+    };
+  }, [topApplicationId]);
+
+  const filteredRankings = useMemo(() => {
+    let result = rankings;
     if (minScoreFilter > 0) {
       result = result.filter((r) => r.overallMatchScore >= minScoreFilter);
     }
     if (onlyFullRequired) {
       result = result.filter((r) => r.requiredSkillsMissingNames.length === 0);
     }
-    setFilteredRankings(result);
+    return result;
   }, [minScoreFilter, onlyFullRequired, rankings]);
 
-  if (isLoading) {
+  const topInspection = topInspectionResult && topInspectionResult.applicationId === topApplicationId
+    ? topInspectionResult.data
+    : null;
+  const pageIsLoading = isLoading || loadedJobId !== resolvedParams.id;
+
+  if (pageIsLoading) {
     return (
       <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center p-16">
         <EmptyState

@@ -1,25 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useRef } from 'react';
 import Link from 'next/link';
 import { Job, Application, ApplicationStatus } from '@/types';
 import { fetchRecruiterJobById, fetchJobApplications, updateApplicationStatus } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
 import {
   ArrowLeft,
-  Users,
   Award,
-  Filter,
   Search,
-  CheckCircle2,
-  ExternalLink,
   ChevronRight,
-  FileText,
-  Calendar,
-  Sparkles,
   ArrowUpDown,
-  ThumbsDown,
-  UserCheck
 } from 'lucide-react';
 import { EmptyState } from '@/components/common/EmptyState';
 
@@ -34,7 +25,7 @@ const STATUS_TABS: { key: string; labelVi: string; labelEn: string; status?: App
 
 export default function JobApplicationsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const { t, locale } = useLanguage();
+  const { locale } = useLanguage();
   const [job, setJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [activeTab, setActiveTab] = useState<string>('ALL');
@@ -43,8 +34,18 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [updatingAppId, setUpdatingAppId] = useState<string | null>(null);
+  const [loadedJobId, setLoadedJobId] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
+  const statusRequestIdsRef = useRef(new Map<string, number>());
+  const statusRequestSequenceRef = useRef(0);
+  const localeRef = useRef(locale);
+
+  useEffect(() => {
+    localeRef.current = locale;
+  }, [locale]);
 
   const loadData = () => {
+    const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setFetchError(null);
     Promise.all([
@@ -52,32 +53,70 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
       fetchJobApplications(resolvedParams.id),
     ])
       .then(([j, apps]) => {
+        if (requestId !== requestIdRef.current) return;
         setJob(j);
         setApplications(apps);
+        setLoadedJobId(resolvedParams.id);
       })
-      .catch((err) => {
-        setFetchError(err.message || (locale === 'vi' ? 'Không thể tải dữ liệu tuyển dụng.' : 'Failed to load recruitment data.'));
+      .catch((err: unknown) => {
+        if (requestId !== requestIdRef.current) return;
+        setFetchError(err instanceof Error ? err.message : (locale === 'vi' ? 'Không thể tải dữ liệu tuyển dụng.' : 'Failed to load recruitment data.'));
+        setLoadedJobId(resolvedParams.id);
       })
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (requestId === requestIdRef.current) setIsLoading(false);
+      });
   };
 
   useEffect(() => {
-    loadData();
+    const requestId = ++requestIdRef.current;
+    const statusRequestIds = statusRequestIdsRef.current;
+    Promise.all([
+      fetchRecruiterJobById(resolvedParams.id),
+      fetchJobApplications(resolvedParams.id),
+    ])
+      .then(([nextJob, nextApplications]) => {
+        if (requestId !== requestIdRef.current) return;
+        setJob(nextJob);
+        setApplications(nextApplications);
+        setFetchError(null);
+        setLoadedJobId(resolvedParams.id);
+      })
+      .catch((err: unknown) => {
+        if (requestId !== requestIdRef.current) return;
+        setFetchError(err instanceof Error ? err.message : (localeRef.current === 'vi' ? 'Không thể tải dữ liệu tuyển dụng.' : 'Failed to load recruitment data.'));
+        setLoadedJobId(resolvedParams.id);
+      })
+      .finally(() => {
+        if (requestId === requestIdRef.current) setIsLoading(false);
+      });
+
+    return () => {
+      statusRequestIds.clear();
+      if (requestId === requestIdRef.current) requestIdRef.current += 1;
+    };
   }, [resolvedParams.id]);
 
+  const pageIsLoading = isLoading || loadedJobId !== resolvedParams.id;
+
   const handleQuickStatusChange = async (appId: string, newStatus: ApplicationStatus) => {
+    const jobId = resolvedParams.id;
+    const statusRequestId = ++statusRequestSequenceRef.current;
+    statusRequestIdsRef.current.set(appId, statusRequestId);
     setUpdatingAppId(appId);
     try {
       const updated = await updateApplicationStatus(appId, newStatus, 'Cập nhật nhanh từ Pipeline');
+      if (statusRequestIdsRef.current.get(appId) !== statusRequestId || loadedJobId !== jobId || resolvedParams.id !== jobId) return;
       setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: updated.status } : a));
-    } catch (err: any) {
-      alert(err?.response?.data?.message || err?.message || 'Failed to update status');
+    } catch (err: unknown) {
+      if (statusRequestIdsRef.current.get(appId) !== statusRequestId || resolvedParams.id !== jobId) return;
+      alert(err instanceof Error ? err.message : 'Failed to update status');
     } finally {
-      setUpdatingAppId(null);
+      if (statusRequestIdsRef.current.get(appId) === statusRequestId) setUpdatingAppId(null);
     }
   };
 
-  if (isLoading) {
+  if (pageIsLoading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] p-12 text-center text-slate-500 flex items-center justify-center">
         <EmptyState

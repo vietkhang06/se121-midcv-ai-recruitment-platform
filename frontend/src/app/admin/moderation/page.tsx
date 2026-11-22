@@ -31,6 +31,29 @@ import {
 import { JobAdminDto, ReportAdminDto, ReportStatus, ReportTargetType, SuspensionAppeal } from '@/types';
 import { ConfirmActionDialog } from '@/components/common/ConfirmActionDialog';
 
+type JobStatusFilter = 'ALL' | 'PUBLISHED' | 'SUSPENDED' | 'DRAFT';
+type AppealStatusFilter = 'ALL' | SuspensionAppeal['status'];
+
+const JOB_STATUS_FILTERS: { id: JobStatusFilter; label: string }[] = [
+  { id: 'ALL', label: 'Tất cả' },
+  { id: 'PUBLISHED', label: 'Đang hiển thị' },
+  { id: 'SUSPENDED', label: 'Bị đình chỉ' },
+  { id: 'DRAFT', label: 'Bản nháp' }
+];
+
+const APPEAL_STATUS_FILTERS: { id: AppealStatusFilter; label: string }[] = [
+  { id: 'ALL', label: 'Tất cả' },
+  { id: 'SUBMITTED', label: 'Mới gửi' },
+  { id: 'UNDER_REVIEW', label: 'Đang xét duyệt' },
+  { id: 'APPROVED', label: 'Đã chấp thuận' },
+  { id: 'REJECTED', label: 'Đã từ chối' },
+  { id: 'CANCELLED', label: 'Đã hủy' }
+];
+
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 export default function AdminModerationPage() {
   const [activeTab, setActiveTab] = useState<'JOBS' | 'REPORTS' | 'APPEALS'>('JOBS');
 
@@ -39,7 +62,7 @@ export default function AdminModerationPage() {
   const [jobsTotalPages, setJobsTotalPages] = useState(0);
   const [jobsTotalElements, setJobsTotalElements] = useState(0);
   const [jobsPage, setJobsPage] = useState(0);
-  const [jobsStatusFilter, setJobsStatusFilter] = useState<'ALL' | 'PUBLISHED' | 'SUSPENDED' | 'DRAFT'>('ALL');
+  const [jobsStatusFilter, setJobsStatusFilter] = useState<JobStatusFilter>('ALL');
   const [jobsSearch, setJobsSearch] = useState('');
   const [jobsLoading, setJobsLoading] = useState(true);
   const [jobsError, setJobsError] = useState<string | null>(null);
@@ -59,7 +82,7 @@ export default function AdminModerationPage() {
   const [appealsTotalPages, setAppealsTotalPages] = useState(0);
   const [appealsTotalElements, setAppealsTotalElements] = useState(0);
   const [appealsPage, setAppealsPage] = useState(0);
-  const [appealsStatusFilter, setAppealsStatusFilter] = useState<'ALL' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED'>('ALL');
+  const [appealsStatusFilter, setAppealsStatusFilter] = useState<AppealStatusFilter>('ALL');
   const [appealsLoading, setAppealsLoading] = useState(true);
   const [appealsError, setAppealsError] = useState<string | null>(null);
 
@@ -95,8 +118,8 @@ export default function AdminModerationPage() {
       setJobs(res.content || []);
       setJobsTotalPages(res.totalPages || 0);
       setJobsTotalElements(res.totalElements || 0);
-    } catch (err: any) {
-      setJobsError(err?.message || 'Không thể tải danh sách tin tuyển dụng.');
+    } catch (error: unknown) {
+      setJobsError(errorMessage(error, 'Không thể tải danh sách tin tuyển dụng.'));
     } finally {
       setJobsLoading(false);
     }
@@ -116,8 +139,8 @@ export default function AdminModerationPage() {
       setReports(res.content || []);
       setReportsTotalPages(res.totalPages || 0);
       setReportsTotalElements(res.totalElements || 0);
-    } catch (err: any) {
-      setReportsError(err?.message || 'Không thể tải danh sách báo cáo vi phạm.');
+    } catch (error: unknown) {
+      setReportsError(errorMessage(error, 'Không thể tải danh sách báo cáo vi phạm.'));
     } finally {
       setReportsLoading(false);
     }
@@ -136,21 +159,29 @@ export default function AdminModerationPage() {
       setAppeals(res.content || []);
       setAppealsTotalPages(res.totalPages || 0);
       setAppealsTotalElements(res.totalElements || 0);
-    } catch (err: any) {
-      setAppealsError(err?.message || 'Không thể tải danh sách khiếu nại đình chỉ.');
+    } catch (error: unknown) {
+      setAppealsError(errorMessage(error, 'Không thể tải danh sách khiếu nại đình chỉ.'));
     } finally {
       setAppealsLoading(false);
     }
   }, [appealsPage, appealsStatusFilter]);
 
   useEffect(() => {
-    if (activeTab === 'JOBS') {
-      fetchJobs();
-    } else if (activeTab === 'REPORTS') {
-      fetchReports();
-    } else if (activeTab === 'APPEALS') {
-      fetchAppeals();
-    }
+    let active = true;
+    const loadActiveTab = () => {
+      if (!active) return;
+      if (activeTab === 'JOBS') {
+        void fetchJobs();
+      } else if (activeTab === 'REPORTS') {
+        void fetchReports();
+      } else if (activeTab === 'APPEALS') {
+        void fetchAppeals();
+      }
+    };
+    void Promise.resolve().then(loadActiveTab);
+    return () => {
+      active = false;
+    };
   }, [activeTab, fetchJobs, fetchReports, fetchAppeals]);
 
   // Handle Review Appeal
@@ -161,8 +192,8 @@ export default function AdminModerationPage() {
       await startReviewAdminAppeal(appeal.id);
       setFeedback({ type: 'success', text: 'Đã chuyển đơn khiếu nại sang trạng thái đang xét duyệt.' });
       fetchAppeals();
-    } catch (err: any) {
-      setFeedback({ type: 'error', text: err?.message || 'Không thể cập nhật trạng thái khiếu nại.' });
+    } catch (error: unknown) {
+      setFeedback({ type: 'error', text: errorMessage(error, 'Không thể cập nhật trạng thái khiếu nại.') });
     } finally {
       setSubmitting(false);
     }
@@ -191,8 +222,8 @@ export default function AdminModerationPage() {
       setAppealAction(null);
       setAppealResolutionNote('');
       fetchAppeals();
-    } catch (err: any) {
-      setFeedback({ type: 'error', text: err?.message || 'Lỗi khi xử lý quyết định khiếu nại.' });
+    } catch (error: unknown) {
+      setFeedback({ type: 'error', text: errorMessage(error, 'Lỗi khi xử lý quyết định khiếu nại.') });
     } finally {
       setSubmitting(false);
     }
@@ -221,8 +252,8 @@ export default function AdminModerationPage() {
       setSelectedJob(null);
       setJobAction(null);
       fetchJobs();
-    } catch (err: any) {
-      setFeedback({ type: 'error', text: err?.message || 'Lỗi khi cập nhật trạng thái tin.' });
+    } catch (error: unknown) {
+      setFeedback({ type: 'error', text: errorMessage(error, 'Lỗi khi cập nhật trạng thái tin.') });
     } finally {
       setSubmitting(false);
     }
@@ -246,8 +277,8 @@ export default function AdminModerationPage() {
       setSelectedReport(null);
       setReportAction(null);
       fetchReports();
-    } catch (err: any) {
-      setFeedback({ type: 'error', text: err?.message || 'Lỗi khi xử lý báo cáo.' });
+    } catch (error: unknown) {
+      setFeedback({ type: 'error', text: errorMessage(error, 'Lỗi khi xử lý báo cáo.') });
     } finally {
       setSubmitting(false);
     }
@@ -361,16 +392,11 @@ export default function AdminModerationPage() {
               </div>
 
               <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
-                {[
-                  { id: 'ALL', label: 'Tất cả' },
-                  { id: 'PUBLISHED', label: 'Đang hiển thị' },
-                  { id: 'SUSPENDED', label: 'Bị đình chỉ' },
-                  { id: 'DRAFT', label: 'Bản nháp' },
-                ].map((s) => (
+                {JOB_STATUS_FILTERS.map((s) => (
                   <button
                     key={s.id}
                     onClick={() => {
-                      setJobsStatusFilter(s.id as any);
+                      setJobsStatusFilter(s.id);
                       setJobsPage(0);
                     }}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${jobsStatusFilter === s.id
@@ -724,18 +750,11 @@ export default function AdminModerationPage() {
             {/* Filter Bar */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 shadow-xs">
               <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
-                {[
-                  { id: 'ALL', label: 'Tất cả' },
-                  { id: 'SUBMITTED', label: 'Mới gửi' },
-                  { id: 'UNDER_REVIEW', label: 'Đang xét duyệt' },
-                  { id: 'APPROVED', label: 'Đã chấp thuận' },
-                  { id: 'REJECTED', label: 'Đã từ chối' },
-                  { id: 'CANCELLED', label: 'Đã hủy' },
-                ].map((s) => (
+                {APPEAL_STATUS_FILTERS.map((s) => (
                   <button
                     key={s.id}
                     onClick={() => {
-                      setAppealsStatusFilter(s.id as any);
+                      setAppealsStatusFilter(s.id);
                       setAppealsPage(0);
                     }}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${appealsStatusFilter === s.id

@@ -580,7 +580,6 @@ export interface CompanyAdminDto {
   website?: string;
   size?: string;
   industry?: string;
-  location?: string;
   description?: string;
   verificationStatus: CompanyVerificationState;
   reviewedById?: string;

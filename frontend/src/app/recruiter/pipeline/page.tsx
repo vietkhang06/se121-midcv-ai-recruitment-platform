@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { Job, Application, ApplicationStatus } from '@/types';
 import { fetchRecruiterJobs, fetchJobApplications, updateApplicationStatus } from '@/lib/api';
@@ -27,8 +27,13 @@ export default function RecruiterPipelinePage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const localeRef = useRef(locale);
 
-  const loadData = () => {
+  useEffect(() => {
+    localeRef.current = locale;
+  }, [locale]);
+
+  const loadData = useCallback(() => {
     setLoading(true);
     setError(null);
     fetchRecruiterJobs()
@@ -38,19 +43,19 @@ export default function RecruiterPipelinePage() {
         const results = await Promise.all(appsPromises);
         setAllApplications(results.flat());
       })
-      .catch((err: any) => {
-        console.error('Failed to load pipeline:', err);
-        setError(err?.message || (locale === 'vi' ? 'Không thể tải quy trình tuyển dụng' : 'Failed to load hiring pipeline'));
+      .catch((error: unknown) => {
+        console.error('Failed to load pipeline:', error);
+        setError(error instanceof Error && error.message ? error.message : (localeRef.current === 'vi' ? 'Không thể tải quy trình tuyển dụng' : 'Failed to load hiring pipeline'));
       })
       .finally(() => setLoading(false));
-  };
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       loadData();
     }, 0);
     return () => clearTimeout(timer);
-  }, []);
+  }, [loadData]);
 
   const handleAdvanceStatus = async (appId: string, nextStatus: ApplicationStatus) => {
     setUpdatingId(appId);

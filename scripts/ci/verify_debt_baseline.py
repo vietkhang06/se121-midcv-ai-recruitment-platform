@@ -45,7 +45,7 @@ def main() -> int:
         return 2
     _, errors, warnings = map(int, match.groups())
     print(f"FRONTEND_LINT errors={errors} warnings={warnings}")
-    if errors > 72 or warnings > 145:
+    if errors > 66 or warnings > 143:
         print("ERROR: frontend lint debt baseline regressed")
         return 1
     return 0

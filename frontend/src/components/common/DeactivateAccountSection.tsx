@@ -29,8 +29,8 @@ export const DeactivateAccountSection: React.FC = () => {
       setIsOpen(false);
       logout();
       router.push('/login?message=account_deactivated');
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Không thể vô hiệu hóa tài khoản. Vui lòng kiểm tra lại mật khẩu.');
+    } catch (error: unknown) {
+      setErrorMsg(error instanceof Error && error.message ? error.message : 'Không thể vô hiệu hóa tài khoản. Vui lòng kiểm tra lại mật khẩu.');
     } finally {
       setIsSubmitting(false);
     }
