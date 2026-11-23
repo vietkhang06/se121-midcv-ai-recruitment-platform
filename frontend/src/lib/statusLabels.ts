@@ -53,6 +53,7 @@ const labels: Record<string, readonly [string, string]> = {
   CHANGES_REQUESTED: ['Cần bổ sung', 'Changes requested'],
   REQUEST_INFO: ['Cần bổ sung thông tin', 'More information requested'],
   VERIFIED: ['Đã xác minh', 'Verified'],
+  SOURCE_EXCERPT_NOT_REQUIREMENT_VERIFIED: ['Có trích đoạn để tham khảo', 'Source excerpt for reference'],
   UNVERIFIED: ['Chưa xác minh', 'Unverified'],
   APPROVED: ['Đã duyệt', 'Approved'],
   RESOLVED: ['Đã giải quyết', 'Resolved'],

@@ -1,189 +1,65 @@
 'use client';
 
-import { statusLabel } from '@/lib/statusLabels';
-import React, { useState, useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { AccountProfileCard, profileButton, profilePanel } from '@/components/account/AccountProfileCard';
+import { DeactivateAccountSection } from '@/components/common/DeactivateAccountSection';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { fetchRecruiterProfile } from '@/lib/api';
-import { RecruiterProfile } from '@/types';
-import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
-import {
-  Mail,
-  Building2,
-  ShieldCheck,
-} from 'lucide-react';
-import { EmptyState } from '@/components/common/EmptyState';
-import { DeactivateAccountSection } from '@/components/common/DeactivateAccountSection';
+import { statusLabel } from '@/lib/statusLabels';
+import type { RecruiterProfile } from '@/types';
 
 export default function RecruiterProfilePage() {
   const { user } = useAuth();
   const { locale } = useLanguage();
-  const [profile, setProfile] = useState<RecruiterProfile | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const requestIdRef = useRef(0);
-  const localeRef = useRef(locale);
+  const vi = locale === 'vi';
+  const [profile, setProfile] = useState<RecruiterProfile>();
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    localeRef.current = locale;
-  }, [locale]);
+    let active = true;
+    void fetchRecruiterProfile().then(result => {
+      if (active) setProfile(result);
+    }).catch(() => { if (active) setFailed(true); });
+    return () => { active = false; };
+  }, [attempt]);
 
-  const loadData = () => {
-    const requestId = ++requestIdRef.current;
-    setLoading(true);
-    setError(null);
-    fetchRecruiterProfile()
-      .then((nextProfile) => {
-        if (requestId === requestIdRef.current) setProfile(nextProfile);
-      })
-      .catch((err: unknown) => {
-        if (requestId !== requestIdRef.current) return;
-        console.error('Failed to load recruiter profile:', err);
-        setError(err instanceof Error ? err.message : (localeRef.current === 'vi' ? 'Không thể tải thông tin hồ sơ nhà tuyển dụng' : 'Failed to load recruiter profile'));
-      })
-      .finally(() => {
-        if (requestId === requestIdRef.current) setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    const requestId = ++requestIdRef.current;
-    fetchRecruiterProfile()
-      .then((nextProfile) => {
-        if (requestId === requestIdRef.current) setProfile(nextProfile);
-      })
-      .catch((err: unknown) => {
-        if (requestId !== requestIdRef.current) return;
-        console.error('Failed to load recruiter profile:', err);
-        setError(err instanceof Error ? err.message : (localeRef.current === 'vi' ? 'Không thể tải thông tin hồ sơ nhà tuyển dụng' : 'Failed to load recruiter profile'));
-      })
-      .finally(() => {
-        if (requestId === requestIdRef.current) setLoading(false);
-      });
-
-    return () => {
-      if (requestId === requestIdRef.current) requestIdRef.current += 1;
-    };
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] p-12 text-center text-slate-500 flex items-center justify-center">
-        <EmptyState
-          type="LOADING"
-          title={locale === 'vi' ? 'Đang tải hồ sơ nhà tuyển dụng...' : 'Loading recruiter profile...'}
-          description={locale === 'vi' ? 'Hệ thống đang đồng bộ thông tin tài khoản...' : 'Synchronizing account credentials...'}
-        />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] p-12 text-center flex flex-col items-center justify-center space-y-4">
-        <EmptyState
-          type="ERROR"
-          title={locale === 'vi' ? 'Lỗi tải hồ sơ' : 'Profile Load Error'}
-          description={error}
-        />
-        <button
-          onClick={loadData}
-          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition"
-        >
-          {locale === 'vi' ? 'Thử lại' : 'Retry'}
-        </button>
-      </div>
-    );
-  }
-
-  const displayName = profile?.fullName || user?.fullName || user?.email?.split('@')[0] || (locale === 'vi' ? 'Nhà tuyển dụng' : 'Recruiter');
-  const email = profile?.email || user?.email || '';
-  const companyName = profile?.company?.name || (locale === 'vi' ? 'Chưa liên kết doanh nghiệp' : 'No company linked');
+  const name = user?.fullName || profile?.fullName || (vi ? 'Nhà tuyển dụng' : 'Recruiter');
+  const email = profile?.email || user?.email;
+  const company = profile?.company;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-20 w-full min-w-0">
-      <main className="flex-1 w-full max-w-4xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <RecruiterPageHeader
-          title={locale === 'vi' ? 'Hồ Sơ Nhà Tuyển Dụng' : 'Recruiter Account Profile'}
-          subtitle={locale === 'vi' ? 'Thông tin định danh quản trị viên tuyển dụng và quyền hạn doanh nghiệp' : 'Manage your recruiter credentials, company association, and account security'}
-          categoryTag="Enterprise Account"
-        />
-
-        {/* User Card */}
-        <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center gap-6">
-          <div className="w-16 h-16 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-2xl flex-shrink-0">
-            {displayName.charAt(0).toUpperCase()}
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{displayName}</h2>
-              <span className="px-2.5 py-0.5 rounded-xl text-[10px] font-bold font-sans bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                RECRUITER
-              </span>
-              <span className="px-2.5 py-0.5 rounded-xl text-[10px] font-bold font-sans bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                VERIFIED EMAIL
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 font-sans">
-              <Mail className="w-3.5 h-3.5 text-slate-400" />
-              <span>{email}</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Account Details & Organization */}
-        <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-8 shadow-xs space-y-6">
-          <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4">
-            <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              {locale === 'vi' ? 'Tổ Chức & Quyền Hạn Doanh Nghiệp' : 'Organization & Permissions'}
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-xs">
-            <div>
-              <span className="text-slate-400 block mb-1 font-semibold">{locale === 'vi' ? 'Doanh nghiệp quản lý:' : 'Associated Company:'}</span>
-              <span className="text-sm font-bold text-slate-900 dark:text-white">{companyName}</span>
-            </div>
-
-            <div>
-              <span className="text-slate-400 block mb-1 font-semibold">{locale === 'vi' ? 'Trạng thái xác minh doanh nghiệp:' : 'Company Verification:'}</span>
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold font-sans ${
-                profile?.company?.verificationStatus === 'VERIFIED'
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                  : profile?.company?.verificationStatus === 'UNDER_REVIEW'
-                  ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
-                  : profile?.company?.verificationStatus === 'CHANGES_REQUESTED'
-                  ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
-                  : profile?.company?.verificationStatus === 'REJECTED' || profile?.company?.verificationStatus === 'SUSPENDED'
-                  ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
-                  : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-              }`}>
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>{statusLabel(profile?.company?.verificationStatus, locale)}</span>
-              </span>
-            </div>
-
-            <div>
-              <span className="text-slate-400 block mb-1 font-semibold">{locale === 'vi' ? 'Quyền hạn tài khoản:' : 'Account Privileges:'}</span>
-              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                {locale === 'vi'
-                  ? 'Được quyền tạo, chỉnh sửa, xuất bản tin tuyển dụng; xem hồ sơ và thực hiện quyết định tuyển dụng đối với các ứng viên ứng tuyển vào doanh nghiệp.'
-                  : 'Authorized to create, publish, and close job postings; evaluate candidates and record hiring decisions.'}
-              </p>
-            </div>
-
-            <div>
-              <span className="text-slate-400 block mb-1 font-semibold">{locale === 'vi' ? 'Bảo mật tài khoản:' : 'Security & Session:'}</span>
-              <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
-                JWT Authentication • Active Session • Role-based Access Control
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <DeactivateAccountSection />
-      </main>
-    </div>
+    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-7 sm:px-6 sm:py-10">
+      <header className="space-y-2">
+        <Link href="/recruiter" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary)] hover:underline">
+          <ArrowLeft className="size-4" /> {vi ? 'Trang tuyển dụng' : 'Recruiter dashboard'}
+        </Link>
+        <h1 className="text-2xl font-bold text-[var(--heading)] sm:text-3xl">{vi ? 'Hồ sơ nhà tuyển dụng' : 'Recruiter profile'}</h1>
+      </header>
+      <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <section className={`${profilePanel} space-y-4`}>
+          <h2 className="text-lg font-bold text-[var(--heading)]">{vi ? 'Doanh nghiệp' : 'Company'}</h2>
+          {failed ? <div className="space-y-3">
+            <p role="alert" className="text-sm">{vi ? 'Không thể tải thông tin doanh nghiệp.' : 'Could not load company details.'}</p>
+            <button type="button" className={profileButton} onClick={() => {
+              setFailed(false);
+              setAttempt(value => value + 1);
+            }}>{vi ? 'Thử lại' : 'Retry'}</button>
+          </div> : !profile ? <p role="status" className="text-sm">{vi ? 'Đang tải…' : 'Loading…'}</p> : <>
+            <p className="break-words font-medium">{company?.name || (vi ? 'Chưa liên kết doanh nghiệp.' : 'No company linked.')}</p>
+            {company?.verificationStatus && <p className="text-sm text-[var(--text-secondary)]">{statusLabel(company.verificationStatus, locale)}</p>}
+          </>}
+          <Link href="/recruiter/company" className={profileButton}>{vi ? 'Quản lý doanh nghiệp' : 'Manage company'}</Link>
+        </section>
+        <AccountProfileCard name={name} email={email} />
+      </div>
+      <DeactivateAccountSection />
+      <Link href="/help" className="inline-flex min-h-10 items-center text-sm font-semibold text-[var(--primary)] underline sm:hidden">
+        {vi ? 'Trợ giúp' : 'Help'}
+      </Link>
+    </main>
   );
 }

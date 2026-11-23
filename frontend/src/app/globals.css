@@ -540,7 +540,6 @@ h1, h2, h3, .font-editorial {
   border-radius: 1rem;
   display: flex;
   flex-direction: column;
-  min-width: 260px;
 }
 
 .kanban-card {

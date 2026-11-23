@@ -196,11 +196,11 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
                   <div className="flex items-center gap-3 text-slate-300 font-sans text-[11px]">
                     <span className="flex items-center gap-1">
                       <Star className="w-3.5 h-3.5 text-amber-400" />
-                      {repo.stars}
+                      {repo.stars ?? '—'}
                     </span>
                     <span className="flex items-center gap-1">
                       <GitFork className="w-3.5 h-3.5" />
-                      {repo.forks}
+                      {repo.forks ?? '—'}
                     </span>
                   </div>
                 </div>

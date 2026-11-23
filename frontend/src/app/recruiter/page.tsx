@@ -1,8 +1,9 @@
 'use client';
 
+import { AccountAvatar } from '@/components/account/AccountAvatar';
 import { displayJobStatus } from '@/lib/jobDeadline';
 import { statusLabel } from '@/lib/statusLabels';
-import { HIGH_MATCH_THRESHOLD, loadApplicationsForJobs, summarizeMatchScores } from '@/lib/applicationWorkflow';
+import { applicationsLoadMessage, loadApplicationsForJobs } from '@/lib/applicationWorkflow';
 
 import React, { useState, useEffect, useCallback } from 'react';
 
@@ -12,6 +13,7 @@ import { Job, Company, Application } from '@/types';
 
 import { fetchRecruiterJobs, fetchRecruiterCompany, fetchJobApplications } from '@/lib/api';
 
+import { MatchMetricsCard } from '@/components/recruiter/MatchMetricsCard';
 import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
 import { CompanyVerificationBanner } from '@/components/recruiter/CompanyVerificationBanner';
 import { formatSalary } from '@/lib/i18n';
@@ -69,11 +71,11 @@ export default function HRDashboardPage() {
       })
 
       .catch((err) => {
-        setFetchError(err.message || (isVi ? 'Không thể tải dữ liệu tuyển dụng.' : 'Unable to load recruitment data.'));
+        setFetchError(applicationsLoadMessage(err, locale));
       })
 
       .finally(() => setIsLoading(false));
-  }, [isVi]);
+  }, [locale]);
 
   useEffect(() => {
 
@@ -90,10 +92,6 @@ export default function HRDashboardPage() {
   const publishedJobs = jobs.filter((j) => displayJobStatus(j) === 'PUBLISHED');
   const draftJobs = jobs.filter((j) => j.status === 'DRAFT');
   const recentApplications = [...applications].slice(0, 6);
-
-  // Real AI matching evaluations based on applicant pool
-  const { average, highCount: highMatchCount } = summarizeMatchScores(applications);
-  const avgMatchScore = average === null ? null : Math.round(average);
 
   if (fetchError && !isLoading && jobs.length === 0) {
 
@@ -276,19 +274,7 @@ export default function HRDashboardPage() {
             </Reveal>
 
             <Reveal delay={staggerDelay(3)}>
-              <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-5 shadow-xs space-y-1">
-                <span className="text-[10px] font-sans font-semibold uppercase text-slate-500 dark:text-slate-400">
-                  {isVi ? 'ĐỐI SÁNH AI & VECTOR' : 'AI MATCH ENGINE'}
-                </span>
-                <div className="text-3xl font-editorial font-bold text-[var(--success)] dark:text-[var(--retro-sky)]">
-                  {avgMatchScore !== null ? `${avgMatchScore}%` : (isVi ? 'Sẵn sàng' : 'Ready')}
-                </div>
-                <div className="text-[11px] text-[var(--success)] dark:text-[var(--retro-sky)] font-medium pt-1 truncate" title={avgMatchScore !== null ? (isVi ? `${highMatchCount} ứng viên phù hợp cao (≥${HIGH_MATCH_THRESHOLD}%)` : `${highMatchCount} high-fit candidates (≥${HIGH_MATCH_THRESHOLD}%)`) : (isVi ? 'Chờ hồ sơ ứng tuyển để đối sánh' : 'Awaiting candidate applications')}>
-                  {avgMatchScore !== null
-                    ? (isVi ? `${highMatchCount} ứng viên phù hợp cao (≥${HIGH_MATCH_THRESHOLD}%)` : `${highMatchCount} high-fit candidates (≥${HIGH_MATCH_THRESHOLD}%)`)
-                    : (isVi ? 'Chờ hồ sơ ứng tuyển để đối sánh' : 'Awaiting candidate applications')}
-                </div>
-              </div>
+              <MatchMetricsCard applications={applications} locale={locale} />
             </Reveal>
           </div>
 
@@ -448,7 +434,8 @@ export default function HRDashboardPage() {
                         className="p-3 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200/80 dark:border-[var(--border)] hover:border-[var(--border)] dark:hover:border-[var(--border)] hover:bg-slate-100/60 dark:hover:bg-[var(--surface)] shadow-2xs transition block space-y-1.5 group cursor-pointer"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[var(--primary)] dark:group-hover:text-[var(--retro-sky)] transition truncate">
+                          <AccountAvatar name={app.candidateName} avatarId={app.candidateAvatarId} className="size-7 text-[10px]" />
+                          <span className="mr-auto text-xs font-bold text-slate-900 dark:text-white group-hover:text-[var(--primary)] dark:group-hover:text-[var(--retro-sky)] transition truncate">
                             {app.candidateName || (isVi ? 'Ứng viên' : 'Candidate')}
                           </span>
                           <span

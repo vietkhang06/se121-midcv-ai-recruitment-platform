@@ -1,5 +1,6 @@
 'use client';
 
+import { evidencePresentation } from '@/lib/evidencePresentation';
 import { statusLabel } from '@/lib/statusLabels';
 import React from 'react';
 import { MatchInspectionData } from '@/types';
@@ -24,7 +25,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
             {locale === 'vi' ? 'Mô hình Đánh giá Minh bạch:' : 'Explainable Audit Model:'}
           </span>
           <span className="font-sans px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold text-[11px]">
-            {data.algorithmVersion || 'v2.0 Grounded'}
+            {data.algorithmVersion || '—'}
           </span>
           {data.calculationStatus && (
             <span className={`font-sans px-2 py-0.5 rounded font-semibold text-[10px] ${data.calculationStatus === 'PGVECTOR_READY' ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300'}`}>
@@ -43,13 +44,13 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
         <p className="font-semibold text-slate-800 dark:text-slate-200">
           {locale === 'vi' ? 'Phương pháp so khớp ngữ nghĩa thực tế: ' : 'Actual semantic matching method: '}
           <span className={data.calculationStatus === 'PGVECTOR_READY' && data.semanticMethod === 'PGVECTOR_COSINE_SIMILARITY' ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}>
-            {data.semanticMethod || 'NOT_REPORTED'}
+            {data.semanticMethod || (locale === 'vi' ? 'Chưa có thông tin' : 'Unavailable')}
           </span>
         </p>
-        {data.calculationStatus !== 'PGVECTOR_READY' && (
+        {(data.calculationStatus === 'FALLBACK_USED' || data.calculationStatus === 'PENDING_VECTOR') && (
           <p className="text-amber-700 dark:text-amber-300">
             {locale === 'vi'
-              ? 'Chưa xác thực Pgvector cho kết quả này; đang dùng phương pháp dự phòng được ghi rõ.'
+              ? 'Kết quả này là điểm tạm trong khi phương pháp đối sánh chính chưa hoàn tất.'
               : 'Pgvector is not verified for this result; the reported fallback method is being used.'}
           </p>
         )}
@@ -300,7 +301,9 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
 
         {data.evidences && data.evidences.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {data.evidences.map((ev, idx) => (
+            {data.evidences.map((ev, idx) => {
+              const source = evidencePresentation(ev, locale);
+              return (
               <div
                 key={ev.id || idx}
                 className="p-4 rounded-xl bg-slate-50/80 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] space-y-2.5 text-xs transition-colors"
@@ -308,7 +311,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
                     <span className="px-2 py-0.5 rounded text-[10px] font-sans font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700">
-                      {ev.sourceType}
+                      {source.source}
                     </span>
                     <span className="px-2 py-0.5 rounded text-[10px] font-sans font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                       {ev.section}
@@ -320,32 +323,33 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                     )}
                   </div>
                   <span className="text-[10px] font-sans font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
-                    {statusLabel(ev.validationStatus || 'VERIFIED', locale)}
+                    {ev.validationStatus ? statusLabel(ev.validationStatus, locale) : (locale === 'vi' ? 'Chưa rõ trạng thái xác minh' : 'Verification status unavailable')}
                   </span>
                 </div>
 
                 <div className="p-3 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] space-y-1">
                   <span className="text-[10px] uppercase font-sans text-slate-400 block font-semibold">
-                    {locale === 'vi' ? 'Trích đoạn văn bản gốc (Verbatim Quote):' : 'Verbatim Quote:'}
+                    {source.verbatim ? (locale === 'vi' ? 'Trích dẫn nguyên văn từ nguồn đã lưu' : 'Verbatim excerpt from the saved source') : (locale === 'vi' ? 'Chưa có trích dẫn nguyên văn' : 'Verbatim excerpt unavailable')}
                   </span>
                   <p className="text-slate-800 dark:text-slate-200 italic font-sans leading-relaxed">
-                    &quot;{ev.snippet}&quot;
+                    {source.verbatim ? `“${ev.snippet}”` : ev.snippet}
                   </p>
                 </div>
 
                 {ev.normalizedValue !== undefined && (
                   <div className="flex items-center justify-between text-[11px] font-sans text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200/60 dark:border-[var(--border)]">
-                    <span>Trạng thái: <strong className="text-emerald-600 dark:text-emerald-400">{statusLabel(ev.matchStatus || 'MATCH', locale)}</strong></span>
-                    <span>Độ tin cậy: <strong>{ev.normalizedValue}%</strong></span>
+                    <span>Trạng thái: <strong className="text-emerald-600 dark:text-emerald-400">{ev.matchStatus ? statusLabel(ev.matchStatus, locale) : '—'}</strong></span>
+                    <span>{locale === 'vi' ? 'Giá trị đã lưu' : 'Recorded value'} · <strong>{ev.normalizedValue}%</strong></span>
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="p-6 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-dashed border-slate-300 dark:border-[var(--border)] text-center text-xs text-slate-500 space-y-1">
             <p className="font-medium">
-              {locale === 'vi' ? 'Chưa có bản ghi minh chứng nào được lưu trong bảng evidences.' : 'No persisted evidence records found in evidences table.'}
+              {locale === 'vi' ? 'Chưa có minh chứng được lưu cho kết quả này.' : 'No evidence has been saved for this result.'}
             </p>
             <p className="text-[11px] text-slate-400">
               {locale === 'vi' ? 'Hệ thống đang sử dụng dữ liệu đối soát trực tiếp từ snapshot CV.' : 'System is using real-time grounding from CV snapshot.'}

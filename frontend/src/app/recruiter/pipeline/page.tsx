@@ -1,28 +1,16 @@
 'use client';
 
-import { APPLICATION_STATUS_LABELS, loadApplicationsForJobs } from '@/lib/applicationWorkflow';
+import { APPLICATION_STATUS_LABELS, APPLICATION_STATUSES, IncompleteApplicationsError, loadApplicationsForJobs } from '@/lib/applicationWorkflow';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Job, Application, ApplicationStatus } from '@/types';
-import { fetchRecruiterJobs, fetchJobApplications, updateApplicationStatus } from '@/lib/api';
+import { fetchRecruiterJobs, fetchJobApplications, updateApplicationStatus, ApiError } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
 import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
-import {
-  ChevronRight
-} from 'lucide-react';
+import { PipelineCandidateCard } from '@/components/recruiter/PipelineCandidateCard';
 import { EmptyState } from '@/components/common/EmptyState';
 
-const PIPELINE_COLUMNS: { status: ApplicationStatus; titleVi: string; titleEn: string; color: string; badge: string }[] = [
-  { status: 'SUBMITTED', titleVi: 'Mới nộp', titleEn: 'Submitted', color: 'border-blue-400', badge: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300' },
-  { status: 'REVIEWED', titleVi: 'Đã xem', titleEn: 'Reviewed', color: 'border-indigo-400', badge: 'bg-[var(--surface-secondary)]' },
-  { status: 'MATCHED', titleVi: 'Đã đối sánh (lịch sử)', titleEn: 'Matched (legacy)', color: 'border-cyan-400', badge: 'bg-[var(--surface-secondary)]' },
-  { status: 'SHORTLISTED', titleVi: 'Đã vào danh sách chọn', titleEn: 'Shortlisted', color: 'border-emerald-400', badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' },
-  { status: 'INTERVIEWING', titleVi: 'Đang phỏng vấn', titleEn: 'Interviewing', color: 'border-purple-400', badge: 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300' },
-  { status: 'HIRED', titleVi: 'Đã tuyển', titleEn: 'Hired', color: 'border-green-500', badge: 'bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300' },
-  { status: 'REJECTED', titleVi: 'Đã từ chối', titleEn: 'Rejected', color: 'border-rose-400', badge: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300' },
-  { status: 'UNKNOWN', titleVi: APPLICATION_STATUS_LABELS.UNKNOWN[0], titleEn: APPLICATION_STATUS_LABELS.UNKNOWN[1], color: 'border-amber-400', badge: 'bg-[var(--surface-secondary)]' },
-];
+const PIPELINE_COLUMNS = [...APPLICATION_STATUSES, 'UNKNOWN'] as const;
 
 export default function RecruiterPipelinePage() {
   const { locale } = useLanguage();
@@ -30,14 +18,12 @@ export default function RecruiterPipelinePage() {
   const [allApplications, setAllApplications] = useState<Application[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<string>('ALL');
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [decisionError, setDecisionError] = useState<string | null>(null);
+  const [error, setError] = useState<{ jobs?: string[] } | null>(null);
+  const [decisionError, setDecisionError] = useState<{ id: string; conflict: boolean } | null>(null);
+  const [openActionsId, setOpenActionsId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const localeRef = useRef(locale);
-
-  useEffect(() => {
-    localeRef.current = locale;
-  }, [locale]);
+  const vi = locale === 'vi';
+  const label = (status: ApplicationStatus) => APPLICATION_STATUS_LABELS[status][vi ? 0 : 1];
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -49,7 +35,7 @@ export default function RecruiterPipelinePage() {
       })
       .catch((error: unknown) => {
         console.error('Failed to load pipeline:', error);
-        setError(error instanceof Error && error.message ? error.message : (localeRef.current === 'vi' ? 'Không thể tải quy trình tuyển dụng' : 'Failed to load hiring pipeline'));
+        setError(error instanceof IncompleteApplicationsError ? { jobs: error.jobTitles } : {});
       })
       .finally(() => setLoading(false));
   }, []);
@@ -64,13 +50,13 @@ export default function RecruiterPipelinePage() {
   const handleAdvanceStatus = async (application: Application, nextStatus: ApplicationStatus) => {
     const appId = application.id;
     setDecisionError(null);
+    setOpenActionsId(null);
     setUpdatingId(appId);
     try {
-      const updated = await updateApplicationStatus(appId, nextStatus, 'Chuyển vòng từ Kanban Pipeline', application.status);
+      const updated = await updateApplicationStatus(appId, nextStatus, undefined, application.status);
       setAllApplications(prev => prev.map(a => a.id === appId ? { ...a, status: updated.status } : a));
     } catch (err: unknown) {
-      const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
-      setDecisionError(errorObj?.response?.data?.message || errorObj?.message || 'Failed to update status');
+      setDecisionError({ id: appId, conflict: err instanceof ApiError && err.status === 409 });
     } finally {
       setUpdatingId(null);
     }
@@ -94,14 +80,13 @@ export default function RecruiterPipelinePage() {
         <EmptyState
           type="ERROR"
           title={locale === 'vi' ? 'Lỗi tải quy trình tuyển dụng' : 'Pipeline Load Error'}
-          description={error}
+          description={error.jobs
+            ? `${vi ? 'Chưa tải được hồ sơ của' : 'Could not load applications for'} ${error.jobs.join(', ')}`
+            : vi ? 'Chưa tải được danh sách tin tuyển dụng.' : 'Could not load job openings.'}
+          primaryCtaText={vi ? 'Thử lại' : 'Retry'}
+          onPrimaryCtaClick={loadData}
         />
-        <button
-          onClick={loadData}
-          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition"
-        >
-          {locale === 'vi' ? 'Thử lại' : 'Retry'}
-        </button>
+
       </div>
     );
   }
@@ -122,12 +107,16 @@ export default function RecruiterPipelinePage() {
           />
 
           {/* Job Filter Selector */}
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">{locale === 'vi' ? 'Lọc theo tin:' : 'Job Filter:'}</span>
+          <div className="flex max-w-full min-w-0 items-center gap-2 self-start sm:self-auto">
+            <label htmlFor="pipeline-job-filter" className="shrink-0 text-xs font-semibold text-slate-500 dark:text-slate-400">{locale === 'vi' ? 'Lọc theo tin:' : 'Job Filter:'}</label>
             <select
+              id="pipeline-job-filter"
               value={selectedJobId}
-              onChange={(e) => setSelectedJobId(e.target.value)}
-              className="px-3 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={event => {
+                setSelectedJobId(event.target.value);
+                setOpenActionsId(null);
+              }}
+              className="min-w-0 truncate px-3 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">{locale === 'vi' ? 'Tất cả vị trí tuyển dụng' : 'All Job Openings'} ({allApplications.length})</option>
               {jobs.map(j => {
@@ -143,14 +132,6 @@ export default function RecruiterPipelinePage() {
         </div>
 
         {/* Kanban Board */}
-        {decisionError && (
-          <div role="alert" className="rounded-xl border border-[var(--border)] p-4">
-            {decisionError}{' '}
-            <button type="button" onClick={() => { setDecisionError(null); loadData(); }} className="underline">
-              {locale === 'vi' ? 'Tải lại hồ sơ' : 'Reload applications'}
-            </button>
-          </div>
-        )}
         {filteredApps.length === 0 ? (
           <EmptyState
             type="EMPTY"
@@ -158,25 +139,23 @@ export default function RecruiterPipelinePage() {
             description={locale === 'vi' ? 'Vị trí tuyển dụng được chọn chưa nhận được đơn ứng tuyển nào.' : 'The selected job opening has no applicants yet.'}
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start overflow-x-auto pb-4 w-full min-w-0">
-            {PIPELINE_COLUMNS.map((col, cIdx) => {
-              const colApps = filteredApps.filter(a => a.status === col.status);
+          <div
+            role="region"
+            aria-label={vi ? 'Bảng quy trình tuyển dụng' : 'Hiring pipeline board'}
+            tabIndex={0}
+            className="grid w-full min-w-0 grid-cols-1 items-start gap-4 overflow-x-auto pb-4 focus-visible:outline-2 focus-visible:outline-[var(--primary)] md:flex"
+          >
+            {PIPELINE_COLUMNS.map((status) => {
+              const colApps = filteredApps.filter(a => a.status === status);
               return (
                 <div
-                  key={col.status}
-                  className="kanban-col p-3.5 space-y-3 min-w-[260px] shadow-xs"
+                  key={status}
+                  className="kanban-col min-w-0 space-y-3 p-3.5 shadow-xs md:flex-[1_0_245px]"
                 >
                   {/* Column Header */}
-                  <div className="flex items-center justify-between px-1">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center text-[10px] font-bold font-sans">
-                        {cIdx + 1}
-                      </span>
-                      <span className="font-bold text-xs text-slate-900 dark:text-white">
-                        {locale === 'vi' ? col.titleVi : col.titleEn}
-                      </span>
-                    </div>
-                    <span className={`px-2 py-0.5 rounded-xl text-[10px] font-sans font-bold ${col.badge}`}>
+                  <div className="flex items-center justify-between gap-2 px-1">
+                    <h2 className="text-sm font-semibold text-[var(--heading)]">{label(status)}</h2>
+                    <span className="shrink-0 rounded-lg bg-[var(--surface-secondary)] px-2 py-1 text-xs">
                       {colApps.length}
                     </span>
                   </div>
@@ -188,94 +167,24 @@ export default function RecruiterPipelinePage() {
                         {locale === 'vi' ? 'Chưa có hồ sơ' : 'No records'}
                       </div>
                     ) : (
-                      colApps.map(app => {
-                        const score = app.matchScore != null ? Math.round(app.matchScore) : null;
-                        const candidateInitials = (app.candidateName || 'UV')
-                          .split(' ')
-                          .map(w => w[0])
-                          .slice(-2)
-                          .join('')
-                          .toUpperCase();
-
-                        return (
-                          <div
-                            key={app.id}
-                            className="kanban-card space-y-2.5"
-                          >
-                            <div className="space-y-1.5">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <div className="w-7 h-7 rounded-xl bg-[var(--surface-secondary)] dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] border border-[var(--border-soft)] dark:border-[var(--border)] flex items-center justify-center text-[10px] font-bold shrink-0">
-                                    {candidateInitials}
-                                  </div>
-                                  <span className="font-bold text-xs text-slate-900 dark:text-white block line-clamp-1">
-                                    {app.candidateName || 'Ứng viên'}
-                                  </span>
-                                </div>
-                                {score !== null && (
-                                  <span className={`px-1.5 py-0.5 rounded-xl text-[10px] font-sans font-bold flex-shrink-0 ${
-                                    score >= 80
-                                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                                      : 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-900'
-                                  }`}>
-                                    {score}%
-                                  </span>
-                                )}
-                              </div>
-                              <span className="text-[11px] text-slate-500 dark:text-slate-400 block line-clamp-1 pl-9">
-                                {app.job?.title || 'Vị trí'}
-                              </span>
-                            </div>
-
-                            <div className="text-[10px] text-slate-400 font-sans pl-9">
-                              {locale === 'vi' ? 'Nộp ngày:' : 'Applied:'} {app.appliedDate || 'Gần đây'}
-                            </div>
-
-                            {/* Card Footer Actions */}
-                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-1">
-                              <Link
-                                href={`/recruiter/applications/${app.id}`}
-                                className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 cursor-pointer"
-                              >
-                                <span>Chi tiết</span>
-                                <ChevronRight className="w-3 h-3" />
-                              </Link>
-
-                              {/* Stage Advancement Quick Action */}
-                              {(['SUBMITTED', 'REVIEWED', 'MATCHED'].includes(col.status)) && (
-                                <button
-                                  type="button"
-                                  disabled={updatingId === app.id}
-                                  onClick={() => handleAdvanceStatus(app, 'SHORTLISTED')}
-                                  className="text-[10px] px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 font-semibold cursor-pointer transition"
-                                >
-                                  Duyệt →
-                                </button>
-                              )}
-                              {col.status === 'SHORTLISTED' && (
-                                <button
-                                  type="button"
-                                  disabled={updatingId === app.id}
-                                  onClick={() => handleAdvanceStatus(app, 'INTERVIEWING')}
-                                  className="text-[10px] px-2.5 py-1 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 font-semibold cursor-pointer transition"
-                                >
-                                  Phỏng vấn →
-                                </button>
-                              )}
-                              {col.status === 'INTERVIEWING' && (
-                                <button
-                                  type="button"
-                                  disabled={updatingId === app.id}
-                                  onClick={() => handleAdvanceStatus(app, 'HIRED')}
-                                  className="text-[10px] px-2.5 py-1 rounded-xl bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300 border border-green-300 dark:border-green-800 hover:bg-green-200 font-semibold cursor-pointer transition"
-                                >
-                                  Tuyển →
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })
+                      colApps.map(app => (
+                        <PipelineCandidateCard
+                          key={app.id}
+                          application={app}
+                          locale={locale}
+                          actionsOpen={openActionsId === app.id}
+                          updating={updatingId === app.id}
+                          updatesDisabled={updatingId !== null || (decisionError?.id === app.id && decisionError.conflict)}
+                          error={decisionError?.id === app.id ? decisionError : undefined}
+                          onToggleActions={() => setOpenActionsId(current => current === app.id ? null : app.id)}
+                          onCloseActions={() => setOpenActionsId(current => current === app.id ? null : current)}
+                          onAdvance={next => handleAdvanceStatus(app, next)}
+                          onReload={() => {
+                            setDecisionError(null);
+                            loadData();
+                          }}
+                        />
+                      ))
                     )}
                   </div>
                 </div>

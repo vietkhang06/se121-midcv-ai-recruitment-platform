@@ -28,12 +28,14 @@ export default function JobsPage() {
 function JobsPageContent() {
   const { user, isAuthenticated } = useAuth();
   const { t, locale } = useLanguage();
+  const isCandidate = isAuthenticated && user?.role === 'CANDIDATE';
   const searchParams = useSearchParams();
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [profileFetchError, setProfileFetchError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState(false);
+  const [profileFetchError, setProfileFetchError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   // Filters State
   const [searchKeyword, setSearchKeyword] = useState<string>(() => searchParams.get('keyword') ?? '');
@@ -54,7 +56,9 @@ function JobsPageContent() {
 
   const [serverSearch, setServerSearch] = useState({ query: searchKeyword, location: locationKeyword });
   useEffect(() => {
-    const timer = window.setTimeout(() => setServerSearch({ query: searchKeyword, location: locationKeyword }), 300);
+    const timer = window.setTimeout(() => setServerSearch(current =>
+      current.query === searchKeyword && current.location === locationKeyword
+        ? current : { query: searchKeyword, location: locationKeyword }), 300);
     return () => window.clearTimeout(timer);
   }, [searchKeyword, locationKeyword]);
 
@@ -63,30 +67,30 @@ function JobsPageContent() {
 
   const requestJobs = useCallback(() => Promise.allSettled([
       fetchJobCatalog(serverSearch.query, serverSearch.location),
-      isAuthenticated && user?.role === 'CANDIDATE' ? fetchCandidateProfile() : Promise.resolve(null),
-  ]), [isAuthenticated, user, serverSearch]);
+      isCandidate ? fetchCandidateProfile() : Promise.resolve(null),
+  ]), [isCandidate, serverSearch]);
 
   const applyJobResults = useCallback((requests: Awaited<ReturnType<typeof requestJobs>>) => {
     const [jobsResult, profileResult] = requests;
 
     if (jobsResult.status === 'fulfilled') {
       setJobs(jobsResult.value.filter((job) => job.status === 'PUBLISHED' && !isJobExpired(job.applicationDeadline)));
-      setFetchError(null);
+      setFetchError(false);
     } else {
-      setFetchError('Unable to load the jobs catalog. Please try again.');
+      setFetchError(true);
     }
 
     if (profileResult.status === 'fulfilled') {
       const profile = profileResult.value;
       setCandidateIndustries(profile?.targetIndustries?.length ? profile.targetIndustries : profile?.targetIndustry ? [profile.targetIndustry] : []);
       setCandidateLocation(profile?.location?.trim() ?? '');
-      setProfileFetchError(null);
+      setProfileFetchError(false);
     } else {
-      setProfileFetchError(t('errors.generic', 'Candidate recommendations could not be loaded.'));
+      setProfileFetchError(true);
     }
 
     setIsLoading(false);
-  }, [t]);
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -94,12 +98,12 @@ function JobsPageContent() {
       if (isActive) applyJobResults(requests);
     });
     return () => { isActive = false; };
-  }, [applyJobResults, requestJobs]);
+  }, [applyJobResults, requestJobs, loadAttempt]);
 
   const retryJobs = () => {
-    setFetchError(null);
+    setFetchError(false);
     setIsLoading(true);
-    void requestJobs().then(applyJobResults);
+    setLoadAttempt(previous => previous + 1);
   };
 
   // Real Functional Filtering Engine
@@ -318,7 +322,7 @@ function JobsPageContent() {
                   </p>
                 </div>
               )}
-              {profileFetchError ? <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">{profileFetchError}</p> : null}
+              {profileFetchError ? <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">{t('errors.generic', 'Candidate recommendations could not be loaded.')}</p> : null}
               {user?.role === 'CANDIDATE' && (candidateLocation ? (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 dark:border-emerald-900/60 dark:bg-emerald-950/20">
                   <label className="flex cursor-pointer items-start gap-2.5">
@@ -495,7 +499,7 @@ function JobsPageContent() {
               <EmptyState
                 type="ERROR"
                 title={t('emptyStates.jobs.errorTitle', 'Không thể tải danh sách việc làm')}
-                description={fetchError}
+                description={t('emptyStates.jobs.errorDesc', 'Vui lòng thử tải lại danh sách việc làm.')}
                 primaryCtaText={t('common.retry', 'Thử lại')}
                 onPrimaryCtaClick={retryJobs}
               />
@@ -505,8 +509,8 @@ function JobsPageContent() {
                 type="EMPTY"
                 title={t('emptyStates.jobs.emptyTitle', 'Chưa có việc làm')}
                 description={t('emptyStates.jobs.emptyDesc', 'Hiện tại chưa có vị trí tuyển dụng nào trên hệ thống.')}
-                primaryCtaText={t('recruiterNav.createJob', 'Tạo Bài Tuyển Dụng')}
-                primaryCtaHref="/recruiter/jobs/new"
+                primaryCtaText={user?.role === 'RECRUITER' ? t('recruiterNav.createJob', 'Tạo Bài Tuyển Dụng') : undefined}
+                primaryCtaHref={user?.role === 'RECRUITER' ? '/recruiter/jobs/new' : undefined}
               />
             ) : filteredJobs.length > 0 ? (
               filteredJobs.map((job, idx) => (
@@ -514,7 +518,6 @@ function JobsPageContent() {
                   <JobCard
                     job={job}
                     onApplyClick={(j) => setApplyJob(j)}
-                    matchStatus={isAuthenticated && user?.role === 'CANDIDATE' ? 'INSUFFICIENT_DATA' : undefined}
                   />
                 </Reveal>
               ))

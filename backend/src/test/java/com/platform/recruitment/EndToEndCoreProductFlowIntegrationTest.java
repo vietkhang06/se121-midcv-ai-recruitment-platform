@@ -165,6 +165,7 @@ public class EndToEndCoreProductFlowIntegrationTest {
                 .candidate(candidateProfile)
                 .appliedCv(candidateCv)
                 .appliedCvVersion(confirmedVersion)
+                .aiAnalysisConsent(true)
                 .status(ApplicationStatus.SUBMITTED)
                 .build();
         submittedApp.setId(appResp.getId());
@@ -175,7 +176,7 @@ public class EndToEndCoreProductFlowIntegrationTest {
                 .coreScore(new BigDecimal("92.00"))
                 .githubScore(new BigDecimal("86.67"))
                 .requiredSkillsMissing(0)
-                .status("HIGH")
+                .status("PGVECTOR_READY")
                 .build();
 
         when(candidateRankingService.getRankedCandidatesForJob(backendJob.getId(), null))
@@ -186,13 +187,14 @@ public class EndToEndCoreProductFlowIntegrationTest {
         List<ApplicationResponse> ranked = applicationService.getRankedApplicationsForJob(recruiterUser, backendJob.getId(), null);
         assertEquals(1, ranked.size());
         assertEquals(new BigDecimal("91.20"), ranked.get(0).getMatchScore());
-        assertEquals("HIGH", ranked.get(0).getMatchStatus());
+        assertEquals("PGVECTOR_READY", ranked.get(0).getMatchStatus());
 
         // Step 3: Recruiter makes human decision (SHORTLISTED)
         when(applicationRepository.findByIdForUpdate(submittedApp.getId())).thenReturn(Optional.of(submittedApp));
 
         UpdateApplicationStatusRequest shortlistReq = UpdateApplicationStatusRequest.builder()
                 .status(ApplicationStatus.SHORTLISTED)
+                .expectedStatus(ApplicationStatus.SUBMITTED)
                 .decisionNote("Excellent architectural experience, 0 missing mandatory skills.")
                 .build();
 

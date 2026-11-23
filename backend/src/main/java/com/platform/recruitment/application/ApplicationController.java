@@ -1,6 +1,12 @@
 package com.platform.recruitment.application;
 
 import com.platform.recruitment.common.ApiResponse;
+import com.platform.recruitment.cv.CvOfficePreview;
+import com.platform.recruitment.cv.DownloadResult;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import java.nio.charset.StandardCharsets;
 import com.platform.recruitment.user.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +24,30 @@ import java.util.UUID;
 public class ApplicationController {
 
     private final ApplicationService applicationService;
+    private final CvOfficePreview officePreview;
+
+    @GetMapping("/recruiter/applications/{applicationId}/cv-original")
+    public ResponseEntity<byte[]> getApplicationOriginalCv(
+            @AuthenticationPrincipal User currentUser, @PathVariable UUID applicationId) {
+        return cvFile(applicationService.getApplicationOriginalCv(currentUser, applicationId), false);
+    }
+
+    @GetMapping("/recruiter/applications/{applicationId}/cv-preview")
+    public ResponseEntity<byte[]> getApplicationCvPreview(
+            @AuthenticationPrincipal User currentUser, @PathVariable UUID applicationId) {
+        var original = applicationService.getApplicationOriginalCv(currentUser, applicationId);
+        return cvFile(officePreview.toPdf(original), true);
+    }
+
+    private ResponseEntity<byte[]> cvFile(DownloadResult file, boolean inline) {
+        var disposition = (inline ? ContentDisposition.inline() : ContentDisposition.attachment())
+                .filename(file.filename(), StandardCharsets.UTF_8).build();
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+                .header("X-Content-Type-Options", "nosniff")
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .contentType(MediaType.parseMediaType(file.contentType()))
+                .body(file.data());
+    }
 
     @GetMapping("/recruiter/applications/{applicationId}/cv-pages")
     public ResponseEntity<ApiResponse<List<java.util.Map<String,Object>>>> getApplicationCvPages(

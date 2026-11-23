@@ -125,12 +125,12 @@ class SkillGapService:
         ]
         cand_skill_names = [item.canonical_name for item in cand_norm_map.values()]
 
-        related_to_learn: Set[str] = set()
+        related_to_learn: List[str] = []
         for s in missing_skills + cand_skill_names[:3]:
             for rel in RELATED_SKILLS_MAP.get(s, []):
                 norm_rel = self.normalizer._normalize_single_skill(rel)
-                if norm_rel.canonical_id not in seen_canonical and norm_rel.canonical_id not in cand_norm_map:
-                    related_to_learn.add(norm_rel.canonical_name)
+                if norm_rel.canonical_id not in seen_canonical and norm_rel.canonical_id not in cand_norm_map and norm_rel.canonical_name not in related_to_learn:
+                    related_to_learn.append(norm_rel.canonical_name)
                     if len(related_to_learn) >= 2:
                         break
             if len(related_to_learn) >= 2:
@@ -156,7 +156,8 @@ class SkillGapService:
             target_job_title=request.target_job_title or "Target Position",
             missing_mandatory=[i.skill_name for i in gap_items if i.category == "MISSING_MANDATORY"],
             missing_preferred=[i.skill_name for i in gap_items if i.category == "MISSING_PREFERRED"],
-            evidence_missing=[i.skill_name for i in gap_items if i.category == "EVIDENCE_MISSING"]
+            evidence_missing=[i.skill_name for i in gap_items if i.category == "EVIDENCE_MISSING"],
+            locale=request.locale
         )
 
         return SkillGapAnalysisResponse(
@@ -182,59 +183,45 @@ class SkillGapService:
         target_job_title: str,
         missing_mandatory: List[str],
         missing_preferred: List[str],
-        evidence_missing: List[str]
+        evidence_missing: List[str],
+        locale: str,
     ) -> List[RoadmapMilestone]:
-        """Builds a structured 3-milestone actionable learning path targeting gap skills."""
-        milestones: List[RoadmapMilestone] = []
-
-        # Milestone 1: Mandatory Foundations
-        m1_skills = missing_mandatory[:2] if missing_mandatory else (missing_preferred[:2] if missing_preferred else ["Kiến thức chuyên sâu"])
-        m1_title = f"Giai đoạn 1: Nền tảng kỹ năng cốt lõi cho {target_job_title}"
-        milestones.append(RoadmapMilestone(
-            milestone_number=1,
-            title=m1_title,
-            target_skills=m1_skills,
-            estimated_weeks=3,
-            learning_objectives=[
-                f"Nắm vững cú pháp và kiến trúc căn bản của {', '.join(m1_skills)}",
-                "Hiểu rõ quy chuẩn thiết kế và best practices chuẩn công nghiệp",
-                "Hoàn thành các bài tập lập trình cơ bản có kiểm thử unit test"
-            ],
-            practice_project=f"Xây dựng module dịch vụ mẫu áp dụng {', '.join(m1_skills)} và cấu hình CI tự động."
-        ))
-
-        # Milestone 2: Advanced Integration & Evidence Building
-        m2_skills = missing_preferred[:2] if missing_preferred else evidence_missing[:2]
-        if not m2_skills:
-            m2_skills = ["Tối ưu hiệu năng và giám sát"]
-        milestones.append(RoadmapMilestone(
-            milestone_number=2,
-            title=f"Giai đoạn 2: Tích hợp hệ thống và xây dựng bằng chứng năng lực",
-            target_skills=m2_skills,
-            estimated_weeks=4,
-            learning_objectives=[
-                f"Tích hợp {', '.join(m2_skills)} vào quy trình nghiệp vụ thực tế",
-                "Thiết lập cơ chế xử lý lỗi, logging tập trung và đo lường độ trễ",
-                "Đẩy mã nguồn sạch lên GitHub với README tài liệu hóa đầy đủ"
-            ],
-            practice_project=f"Triển khai dự án tích hợp {', '.join(m2_skills)} có tài liệu kiến trúc và hướng dẫn cài đặt."
-        ))
-
-        # Milestone 3: Production Capstone & Full Architecture
-        all_gap_skills = (missing_mandatory + missing_preferred)[:3]
-        if not all_gap_skills:
-            all_gap_skills = ["Microservices Architecture", "Cloud Deployment"]
-        milestones.append(RoadmapMilestone(
-            milestone_number=3,
-            title=f"Giai đoạn 3: Dự án thực chiến Capstone theo tiêu chuẩn tuyển dụng",
-            target_skills=all_gap_skills,
-            estimated_weeks=5,
-            learning_objectives=[
-                "Thiết kế kiến trúc phân tán đáp ứng tải thực tế",
-                "Đóng gói container Docker và cấu hình kịch bản tự động hóa",
-                "Tạo báo cáo kỹ thuật và video demo sản phẩm hoàn thiện"
-            ],
-            practice_project=f"Xây dựng hệ thống hoàn chỉnh phục vụ vị trí {target_job_title}, đóng gói Docker và publish repository công khai."
-        ))
-
-        return milestones
+        """Build practice steps for recorded gaps across industries."""
+        gaps = list(dict.fromkeys(missing_mandatory + missing_preferred + evidence_missing))
+        if not gaps:
+            return []
+        vi = locale == "vi"
+        priority = missing_mandatory or missing_preferred or evidence_missing
+        stages = [
+            (
+                "Học các kỹ năng ưu tiên" if vi else "Learn the priority skills",
+                priority, 2,
+                ["Tìm tài liệu nhập môn theo từng kỹ năng.", "Thực hành một nhiệm vụ nhỏ và tự đánh giá."]
+                if vi else ["Find an introductory resource for each skill.", "Practise a small task and assess your result."],
+                "Tạo một sản phẩm mẫu cho từng kỹ năng ưu tiên."
+                if vi else "Create one work sample for each priority skill.",
+            ),
+            (
+                "Áp dụng vào công việc" if vi else "Apply the skills at work",
+                gaps, 3,
+                ["Chọn một nhiệm vụ từ JD và xác định đầu ra.", "Ghi lại cách áp dụng từng kỹ năng."]
+                if vi else ["Select a task from the JD and define the deliverable.", "Record how you applied each skill."],
+                f"Mô phỏng một nhiệm vụ của vị trí {target_job_title}."
+                if vi else f"Simulate a task from the {target_job_title} role.",
+            ),
+            (
+                "Hoàn thiện minh chứng" if vi else "Document your evidence",
+                gaps, 2,
+                ["Xin phản hồi về sản phẩm mẫu.", "Ghi lại vai trò, kết quả và minh chứng có thể chia sẻ."]
+                if vi else ["Ask for feedback on the work sample.", "Record your role, outcome and shareable evidence."],
+                "Hoàn thiện một hồ sơ minh chứng ngắn từ bài thực hành."
+                if vi else "Assemble a short portfolio entry from the practice task.",
+            ),
+        ]
+        return [
+            RoadmapMilestone(
+                milestone_number=index, title=title, target_skills=skills, estimated_weeks=weeks,
+                learning_objectives=objectives, practice_project=project
+            )
+            for index, (title, skills, weeks, objectives, project) in enumerate(stages, start=1)
+        ]

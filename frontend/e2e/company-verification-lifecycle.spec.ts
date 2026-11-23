@@ -120,7 +120,7 @@ test.describe('Company Verification & Publishing Gating Lifecycle Suite', () => 
     await page.addInitScript(setupRecruiterSession);
     await page.goto('/recruiter/profile');
 
-    await expect(page.locator('h1')).toContainText('Hồ Sơ Nhà Tuyển Dụng');
+    await expect(page.locator('h1')).toContainText('Hồ sơ nhà tuyển dụng');
     await expect(page.locator('text=Trạng thái xác minh doanh nghiệp:')).toBeVisible();
   });
 });

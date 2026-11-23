@@ -147,7 +147,7 @@ class AuthServiceTest {
                 .usedAt(null)
                 .build();
 
-        when(emailVerificationTokenRepository.findByTokenHash(tokenString)).thenReturn(Optional.of(token));
+        when(emailVerificationTokenRepository.findByTokenHash(com.platform.recruitment.document.Documents.shaHex(tokenString))).thenReturn(Optional.of(token));
 
         String result = authService.verifyEmail(tokenString);
 
@@ -169,7 +169,7 @@ class AuthServiceTest {
                 .usedAt(null)
                 .build();
 
-        when(emailVerificationTokenRepository.findByTokenHash(tokenString)).thenReturn(Optional.of(token));
+        when(emailVerificationTokenRepository.findByTokenHash(com.platform.recruitment.document.Documents.shaHex(tokenString))).thenReturn(Optional.of(token));
 
         CustomException ex = assertThrows(CustomException.class, () -> authService.verifyEmail(tokenString));
         assertEquals(ErrorCode.TOKEN_EXPIRED, ex.getErrorCode());
@@ -186,7 +186,7 @@ class AuthServiceTest {
                 .usedAt(ZonedDateTime.now().minusHours(1))
                 .build();
 
-        when(emailVerificationTokenRepository.findByTokenHash(tokenString)).thenReturn(Optional.of(token));
+        when(emailVerificationTokenRepository.findByTokenHash(com.platform.recruitment.document.Documents.shaHex(tokenString))).thenReturn(Optional.of(token));
 
         CustomException ex = assertThrows(CustomException.class, () -> authService.verifyEmail(tokenString));
         assertEquals(ErrorCode.TOKEN_INVALID, ex.getErrorCode());
@@ -194,7 +194,7 @@ class AuthServiceTest {
 
     @Test
     void testVerifyEmail_InvalidToken_ThrowsException() {
-        when(emailVerificationTokenRepository.findByTokenHash("non-existent")).thenReturn(Optional.empty());
+        when(emailVerificationTokenRepository.findByTokenHash(com.platform.recruitment.document.Documents.shaHex("non-existent"))).thenReturn(Optional.empty());
 
         CustomException ex = assertThrows(CustomException.class, () -> authService.verifyEmail("non-existent"));
         assertEquals(ErrorCode.TOKEN_INVALID, ex.getErrorCode());

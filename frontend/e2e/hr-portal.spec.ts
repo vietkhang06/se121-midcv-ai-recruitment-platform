@@ -80,7 +80,7 @@ test.describe('Phase 6 HR Experience & AI Ranking Real Browser Integration Tests
     await expect(page.getByText('90.5%').first()).toBeVisible();
     await expect(page.getByText('90.8%').first()).toBeVisible();
     await expect(page.getByText('88.8%').first()).toBeVisible();
-    await expect(page.getByText('Giải thích Trí tuệ Nhân tạo').first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Giải thích kết quả đối sánh' })).toBeVisible();
     await expect(page.getByText('1. Kỹ năng Bắt buộc (Required Skills').first()).toBeVisible();
     await page.screenshot({ path: 'e2e/screenshots/test-07-score-breakdown.png' });
   });

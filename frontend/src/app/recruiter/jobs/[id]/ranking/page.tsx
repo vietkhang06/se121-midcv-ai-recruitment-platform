@@ -1,10 +1,13 @@
 'use client';
 
+import { AccountAvatar } from '@/components/account/AccountAvatar';
+import { formatMatchScore } from '@/lib/matchPresentation';
+import { MatchScoreBadge } from '@/components/recruiter/MatchScoreBadge';
 import { statusLabel } from '@/lib/statusLabels';
 import React, { useState, useEffect, use, useMemo, useRef } from 'react';
 import Link from 'next/link';
-import { Job, CandidateRankingItem, MatchInspectionData } from '@/types';
-import { fetchRecruiterJobById, fetchCandidateRankings, fetchMatchInspection } from '@/lib/api';
+import { Job, Application, CandidateRankingItem, MatchInspectionData } from '@/types';
+import { fetchRecruiterJobById, fetchCandidateRankings, fetchMatchInspection, fetchJobApplications } from '@/lib/api';
 import { CandidateRankingTable } from '@/components/recruiter/CandidateRankingTable';
 import { CandidateCompareModal } from '@/components/recruiter/CandidateCompareModal';
 import { Award, ArrowLeft, Layers, GitBranch } from 'lucide-react';
@@ -16,6 +19,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
   const resolvedParams = use(params);
   const { t, locale } = useLanguage();
   const [job, setJob] = useState<Job | null>(null);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [rankings, setRankings] = useState<CandidateRankingItem[]>([]);
   const [topInspectionResult, setTopInspectionResult] = useState<{
     applicationId: string;
@@ -39,11 +43,13 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
     Promise.all([
       fetchRecruiterJobById(resolvedParams.id),
       fetchCandidateRankings(resolvedParams.id),
+      fetchJobApplications(resolvedParams.id),
     ])
-      .then(([j, data]) => {
+      .then(([j, data, apps]) => {
         if (requestId !== rankingRequestIdRef.current) return;
         setJob(j);
         setRankings(data);
+        setApplications(apps);
         setFetchError(null);
         setLoadedJobId(resolvedParams.id);
       })
@@ -62,11 +68,13 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
     Promise.all([
       fetchRecruiterJobById(resolvedParams.id),
       fetchCandidateRankings(resolvedParams.id),
+      fetchJobApplications(resolvedParams.id),
     ])
-      .then(([nextJob, nextRankings]) => {
+      .then(([nextJob, nextRankings, apps]) => {
         if (requestId !== rankingRequestIdRef.current) return;
         setJob(nextJob);
         setRankings(nextRankings);
+        setApplications(apps);
         setFetchError(null);
         setLoadedJobId(resolvedParams.id);
       })
@@ -84,7 +92,19 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
     };
   }, [resolvedParams.id]);
 
-  const topCandidate = rankings.length > 0 ? rankings[0] : null;
+  const verifiedRankings = useMemo(() => rankings.filter(row =>
+    row.calculationStatus === 'PGVECTOR_READY' && row.overallMatchScore !== null), [rankings]);
+  const topCandidate = verifiedRankings[0] ?? null;
+  const unranked = useMemo(() => {
+    const rankedIds = new Set(verifiedRankings.map(row => row.applicationId));
+    const rankingById = new Map(rankings.map(row => [row.applicationId, row]));
+    return applications.filter(app => !rankedIds.has(app.id)).map(app => {
+      const ranking = rankingById.get(app.id);
+      return { app, result: ranking
+        ? { matchScore: ranking.overallMatchScore, matchStatus: ranking.calculationStatus, aiAnalysisConsent: app.aiAnalysisConsent }
+        : app };
+    });
+  }, [applications, rankings, verifiedRankings]);
   const topApplicationId = topCandidate?.applicationId;
 
   useEffect(() => {
@@ -109,15 +129,15 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
   }, [topApplicationId]);
 
   const filteredRankings = useMemo(() => {
-    let result = rankings;
+    let result = verifiedRankings;
     if (minScoreFilter > 0) {
-      result = result.filter((r) => r.overallMatchScore >= minScoreFilter);
+      result = result.filter((r) => r.overallMatchScore !== null && r.overallMatchScore >= minScoreFilter);
     }
     if (onlyFullRequired) {
-      result = result.filter((r) => r.requiredSkillsMissingNames.length === 0);
+      result = result.filter((r) => r.requiredSkillsTotal !== null && r.requiredSkillsMatched === r.requiredSkillsTotal);
     }
     return result;
-  }, [minScoreFilter, onlyFullRequired, rankings]);
+  }, [minScoreFilter, onlyFullRequired, verifiedRankings]);
 
   const topInspection = topInspectionResult && topInspectionResult.applicationId === topApplicationId
     ? topInspectionResult.data
@@ -129,8 +149,8 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
       <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 transition-colors flex items-center justify-center p-16">
         <EmptyState
           type="LOADING"
-          title={locale === 'vi' ? 'Đang tải Bảng Xếp Hạng AI Engine...' : 'Loading AI Ranking Engine...'}
-          description={locale === 'vi' ? 'Hệ thống đang truy vấn các vector điểm số đối sánh...' : 'Querying match vector scores...'}
+          title={locale === 'vi' ? 'Đang tải bảng xếp hạng…' : 'Loading rankings…'}
+          description=""
         />
       </div>
     );
@@ -193,11 +213,11 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
           </div>
         </Reveal>
 
-        {rankings.length === 0 ? (
+        {verifiedRankings.length === 0 ? (
           <EmptyState
             type="EMPTY"
             title={t('emptyStates.candidates.emptyTitle', "Chưa có ứng viên trong bảng xếp hạng")}
-            description={t('emptyStates.candidates.emptyDesc', "Vị trí tuyển dụng này chưa có ứng viên nào nộp hồ sơ để đối sánh và xếp hạng AI.")}
+            description={locale === 'vi' ? 'Chưa có hồ sơ với điểm hoàn tất mà bạn có quyền xem.' : 'No applications have a completed score available to you.'}
             primaryCtaText={locale === 'vi' ? "Xem ứng viên đã nộp đơn" : "View Applicants"}
             primaryCtaHref={`/recruiter/jobs/${job.id}/applications`}
             secondaryCtaText={locale === 'vi' ? "Quay lại quản lý bài đăng" : "Back to Job Management"}
@@ -210,35 +230,30 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
               <section className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-sans font-bold text-slate-900 dark:text-white">Match Report Evaluation</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {locale === 'vi' ? 'Đánh giá đa chiều dựa trên mô hình đối sánh ngữ nghĩa và năng lực kỹ thuật' : 'Multidimensional evaluation based on semantic matching and technical skills'}
-                    </p>
+                    <h2 className="text-xl font-semibold text-[var(--heading)]">{locale === 'vi' ? 'Kết quả đối sánh' : 'Match results'}</h2>
                   </div>
                   <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-xl">
-                    {locale === 'vi' ? 'Ứng viên dẫn đầu (Spotlight)' : 'Top Candidate (Spotlight)'}
+                    {locale === 'vi' ? 'Ứng viên xếp đầu' : 'Top-ranked candidate'}
                   </span>
                 </div>
 
                 {/* Candidate Spotlight Banner */}
                 <div className="bg-gradient-to-r from-[var(--retro-deep)] via-[var(--retro-deep)] to-[var(--retro-deep)] border border-blue-900/30 rounded-xl p-6 sm:p-7 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-5">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-xl bg-white/10 border-2 border-blue-400 flex items-center justify-center font-bold text-xl text-white shadow-inner">
-                      {topCandidate.candidateName.charAt(0)}
-                    </div>
+                    <AccountAvatar name={topCandidate.candidateName} avatarId={topCandidate.candidateAvatarId} className="size-14 text-xl" />
                     <div>
                       <h3 className="text-2xl font-bold text-white tracking-tight">
                         {topCandidate.candidateName}
                       </h3>
                       <p className="text-xs text-blue-200/90 font-medium">
-                        {topCandidate.headline || topInspection?.candidateName || (locale === 'vi' ? 'Ứng viên tiềm năng' : 'Qualified Candidate')}
+                        {topCandidate.headline || (locale === 'vi' ? 'Chưa có chức danh' : 'Headline unavailable')}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <span className="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs tracking-wider uppercase font-sans">
-                      {topCandidate.overallMatchScore.toFixed(1)}% MATCH
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs tracking-wider uppercase font-sans">
+                      {formatMatchScore(topCandidate.overallMatchScore, locale)}
                     </span>
                     <Link
                       href={`/recruiter/applications/${topCandidate.applicationId}`}
@@ -284,8 +299,8 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                           ))
                         ) : (
                           <div className="space-y-2 text-slate-600 dark:text-slate-300">
-                            <p>{locale === 'vi' ? 'Số năm kinh nghiệm liên quan:' : 'Relevant experience years:'} <strong className="text-slate-900 dark:text-white">{topCandidate.relevantExperienceYears} {locale === 'vi' ? 'năm' : 'years'}</strong></p>
-                            <p>{locale === 'vi' ? 'Điểm tương quan hồ sơ gốc (Core Match):' : 'Core JD-CV Match score:'} <strong className="text-slate-900 dark:text-white">{topCandidate.coreJdCvScore.toFixed(1)}%</strong></p>
+                            <p>{locale === 'vi' ? 'Số năm kinh nghiệm liên quan:' : 'Relevant experience years:'} <strong className="text-slate-900 dark:text-white">{topCandidate.relevantExperienceYears == null ? '—' : `${topCandidate.relevantExperienceYears} ${locale === 'vi' ? 'năm' : 'years'}`}</strong></p>
+                            <p>{locale === 'vi' ? 'Điểm tương quan hồ sơ gốc (Core Match):' : 'Core JD-CV Match score:'} <strong className="text-slate-900 dark:text-white">{formatMatchScore(topCandidate.coreJdCvScore, locale)}</strong></p>
                             <p>{locale === 'vi' ? 'Trạng thái nộp đơn:' : 'Application status:'} <span className="font-semibold text-emerald-600 dark:text-emerald-400">{statusLabel(topCandidate.status, locale)}</span></p>
                             <p className="text-slate-400">{locale === 'vi' ? 'Thời gian ứng tuyển:' : 'Applied on:'} {new Date(topCandidate.appliedDate).toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-US')}</p>
                           </div>
@@ -311,7 +326,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                             <div className="p-3 rounded-xl bg-[var(--retro-deep)] border border-[var(--border)]">
                               <span className="text-[10px] text-emerald-200/70 block uppercase font-bold">Public Repositories</span>
                               <span className="text-lg font-extrabold text-[var(--warning)] font-sans">
-                                {topInspection.githubAssessment.publicRepoCount ?? 0} repos
+                                {topInspection.githubAssessment.publicRepoCount ?? '—'}
                               </span>
                             </div>
 
@@ -320,7 +335,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                                 {locale === 'vi' ? 'Tín hiệu hoạt động' : 'Activity Signal'}
                               </span>
                               <span className="text-lg font-extrabold text-[var(--warning)] font-sans">
-                                {topInspection.githubAssessment.activitySignal || 'ACTIVE'}
+                                {topInspection.githubAssessment.activitySignal || '—'}
                               </span>
                             </div>
                           </div>
@@ -342,8 +357,8 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                       ) : (
                         <p className="text-[11px] text-emerald-100/70 leading-relaxed">
                           {locale === 'vi'
-                            ? 'Ứng viên này chưa liên kết tài khoản GitHub công khai. Điểm xếp hạng được tính toán dựa hoàn toàn trên kinh nghiệm thực tế và kỹ năng đối sánh trong hồ sơ CV.'
-                            : 'This candidate has not connected a public GitHub account. Scores are calculated strictly from verified resume experience and competencies.'}
+                            ? 'Chưa có dữ liệu GitHub hiển thị cho kết quả này.'
+                            : 'GitHub data is unavailable for this result.'}
                         </p>
                       )}
                     </div>
@@ -358,7 +373,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                           {locale === 'vi' ? 'Kỹ Năng Đối Sánh Với Yêu Cầu JD' : 'Skills Alignment with Job Criteria'}
                         </h4>
                         <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-                          {topCandidate.requiredSkillsMatched} / {topCandidate.requiredSkillsTotal} {locale === 'vi' ? 'Kỹ năng bắt buộc' : 'Required skills'}
+                          {topCandidate.requiredSkillsMatched ?? '—'} / {topCandidate.requiredSkillsTotal ?? '—'} {locale === 'vi' ? 'Kỹ năng bắt buộc' : 'Required skills'}
                         </span>
                       </div>
 
@@ -424,13 +439,13 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                         Rank Alignment Audit
                       </h4>
                       <span className="text-sm font-bold text-[var(--primary)] dark:text-blue-400 block font-sans">
-                        {locale === 'vi' ? `Xếp hạng #${topCandidate.rank || 1} trên tổng số ${rankings.length} ứng viên` : `Rank #${topCandidate.rank || 1} of ${rankings.length} candidates`}
+                        {locale === 'vi' ? `Xếp hạng #${topCandidate.rank || 1} trên tổng số ${verifiedRankings.length} ứng viên` : `Rank #${topCandidate.rank || 1} of ${verifiedRankings.length} candidates`}
                       </span>
                       <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                         {topInspection?.humanReadableExplanation ||
                           (locale === 'vi' 
-                            ? `Kết quả xếp hạng được tổng hợp tự động bởi thuật toán Matching Engine. Điểm số dựa trên sự tương thích giữa CV, yêu cầu JD (${topCandidate.coreJdCvScore.toFixed(1)}%) và các chỉ số kỹ thuật bổ trợ.`
-                            : `Ranking outcome synthesized by the Matching Engine algorithm. Score based on CV-JD correlation (${topCandidate.coreJdCvScore.toFixed(1)}%) and auxiliary telemetry.`)}
+                            ? `Kết quả xếp hạng được tổng hợp tự động bởi thuật toán Matching Engine. Điểm số dựa trên sự tương thích giữa CV, yêu cầu JD (${formatMatchScore(topCandidate.coreJdCvScore, locale)}) và các chỉ số kỹ thuật bổ trợ.`
+                            : `Ranking outcome synthesized by the Matching Engine algorithm. Score based on CV-JD correlation (${formatMatchScore(topCandidate.coreJdCvScore, locale)}) and auxiliary telemetry.`)}
                       </p>
                     </div>
                   </div>
@@ -455,7 +470,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                       <option value={70}>≥ 70.0% ({locale === 'vi' ? 'Tốt' : 'Good'})</option>
                       <option value={80}>≥ 80.0% ({locale === 'vi' ? 'Rất cao' : 'High'})</option>
                       <option value={85}>≥ 85.0% ({locale === 'vi' ? 'Xuất sắc' : 'Excellent'})</option>
-                      <option value={90}>≥ 90.0% ({locale === 'vi' ? 'Top 1%' : 'Top 1%'})</option>
+                      <option value={90}>≥ 90.0%</option>
                     </select>
                   </div>
 
@@ -471,7 +486,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                 </div>
 
                 <span className="text-slate-500 dark:text-slate-400 font-medium">
-                  {locale === 'vi' ? 'Hiển thị' : 'Showing'} <strong className="text-slate-900 dark:text-white">{filteredRankings.length} / {rankings.length}</strong> {locale === 'vi' ? 'ứng viên trong danh sách xếp hạng' : 'candidates in ranking list'}
+                  {locale === 'vi' ? 'Hiển thị' : 'Showing'} <strong className="text-slate-900 dark:text-white">{filteredRankings.length} / {verifiedRankings.length}</strong> {locale === 'vi' ? 'ứng viên trong danh sách xếp hạng' : 'candidates in ranking list'}
                 </span>
               </div>
 
@@ -497,6 +512,19 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
           </>
         )}
 
+
+        {unranked.length > 0 && <section className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-6">
+          <h2 className="text-lg font-semibold">{locale === 'vi' ? 'Hồ sơ ngoài bảng xếp hạng' : 'Applications outside the ranking'}</h2>
+          <ul className="divide-y divide-[var(--border-soft)]">
+            {unranked.map(({ app, result }) => <li key={app.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+              <Link className="flex min-w-0 items-center gap-2 break-words font-semibold text-[var(--primary)] underline" href={`/recruiter/applications/${app.id}`}>
+                <AccountAvatar name={app.candidateName} avatarId={app.candidateAvatarId} className="size-8 text-xs" />
+                {app.candidateName || (locale === 'vi' ? 'Ứng viên' : 'Candidate')}
+              </Link>
+              <MatchScoreBadge application={result} locale={locale} />
+            </li>)}
+          </ul>
+        </section>}
 
         {/* Candidate Comparison Modal */}
         <CandidateCompareModal

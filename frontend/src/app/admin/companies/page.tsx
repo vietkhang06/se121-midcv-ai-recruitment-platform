@@ -23,6 +23,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
+import { AnimatedModalShell } from '@/components/motion/AnimatedModalShell';
 import { adminApi } from '@/lib/api';
 import { CompanyAdminDto, CompanyVerificationState, CompanyReviewAction } from '@/types';
 
@@ -38,12 +39,22 @@ const COMPANY_STATUS_FILTERS: { id: CompanyStatusFilter; label: string }[] = [
   { id: 'SUSPENDED', label: 'Đình chỉ' }
 ];
 
+const actionLabels: Record<CompanyReviewAction, readonly [string, string]> = {
+  START_REVIEW: ['Bắt đầu thẩm định', 'Start review'],
+  VERIFY: ['Xác minh doanh nghiệp', 'Verify company'],
+  REQUEST_CHANGES: ['Yêu cầu bổ sung', 'Request changes'],
+  REJECT: ['Từ chối xác minh', 'Reject verification'],
+  SUSPEND: ['Đình chỉ doanh nghiệp', 'Suspend company'],
+  RESTORE: ['Khôi phục hoạt động', 'Restore operations'],
+};
+
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
 export default function AdminCompaniesPage() {
   const { locale } = useLanguage();
+  const vi = locale === 'vi';
   const [companies, setCompanies] = useState<CompanyAdminDto[]>([]);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
@@ -105,7 +116,7 @@ export default function AdminCompaniesPage() {
     if (['REQUEST_CHANGES', 'REJECT', 'SUSPEND'].includes(actionType) && !actionNotes.trim()) {
       setFeedback({
         type: 'error',
-        text: 'Vui lòng nhập lý do cụ thể cho thao tác này.'
+        text: vi ? 'Vui lòng nhập lý do cụ thể cho thao tác này.' : 'Enter a reason for this decision.'
       });
       return;
     }
@@ -119,7 +130,7 @@ export default function AdminCompaniesPage() {
       });
       setFeedback({
         type: 'success',
-        text: `Thao tác [${actionType}] với doanh nghiệp "${selectedCompany.name}" thành công.`
+        text: `${actionLabels[actionType][vi ? 0 : 1]} · ${selectedCompany.name}`
       });
       setSelectedCompany(null);
       setActionType(null);
@@ -221,7 +232,7 @@ export default function AdminCompaniesPage() {
         </div>
 
         {/* Feedback Alert */}
-        {feedback && (
+        {feedback && !selectedCompany && (
           <div
             className={`p-4 rounded-xl flex items-center gap-3 text-sm font-medium transition-all ${
               feedback.type === 'success'
@@ -311,45 +322,44 @@ export default function AdminCompaniesPage() {
 
         {/* Company Table */}
         {!loading && !error && companies.length > 0 && (
-          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[var(--surface)] shadow-xs">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-[var(--surface)] text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider">
+          <div className="min-w-0 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
+            <table className="block w-full text-left text-xs md:table">
+              <thead className="hidden border-b border-[var(--border)] bg-[var(--surface-secondary)] text-[var(--heading)] md:table-header-group">
                 <tr>
-                  <th className="py-3.5 px-4">Tên Doanh Nghiệp</th>
-                  <th className="py-3.5 px-4">Mã Số Thuế</th>
-                  <th className="py-3.5 px-4">Lĩnh Vực / Địa Điểm</th>
-                  <th className="py-3.5 px-4">Trạng Thái</th>
-                  <th className="py-3.5 px-4">Ghi Chú Xét Duyệt</th>
-                  <th className="py-3.5 px-4 text-right">Thao Tác Thẩm Định</th>
+                  <th className="py-3.5 px-4">{vi ? 'Doanh nghiệp' : 'Company'}</th>
+                  <th className="py-3.5 px-4">{vi ? 'Mã số thuế' : 'Tax ID'}</th>
+                  <th className="py-3.5 px-4">{vi ? 'Lĩnh vực' : 'Industry'}</th>
+                  <th className="py-3.5 px-4">{vi ? 'Trạng thái' : 'Status'}</th>
+                  <th className="py-3.5 px-4">{vi ? 'Ghi chú xét duyệt' : 'Review note'}</th>
+                  <th className="py-3.5 px-4 text-right">{vi ? 'Thao tác' : 'Actions'}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+              <tbody className="block divide-y divide-[var(--border)] md:table-row-group">
                 {companies.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
-                    <td className="py-4 px-4 font-bold text-slate-900 dark:text-white">
+                  <tr key={c.id} className="block px-2 py-3 transition hover:bg-[var(--surface-secondary)] md:table-row md:p-0">
+                    <td className="block px-3 py-2 font-bold text-[var(--heading)] md:table-cell md:px-4 md:py-4">
                       <div className="flex items-center gap-2">
                         <Building2 className="w-4 h-4 text-indigo-500 shrink-0" />
                         <span>{c.name}</span>
                       </div>
                       <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400 block ml-6">
-                        Website: {c.website || 'Chưa cung cấp'}
+                        {c.website && <span className="break-all">{c.website}</span>}
                       </span>
                     </td>
-                    <td className="py-4 px-4 font-sans text-slate-700 dark:text-slate-300">
-                      {c.taxCode || 'Chưa có'}
+                    <td className={`px-3 py-1.5 text-[var(--text-secondary)] md:table-cell md:px-4 md:py-4 ${c.taxCode ? 'block' : 'hidden'}`}>
+                      <span className="font-semibold md:hidden">{vi ? 'Mã số thuế' : 'Tax ID'} · </span>{c.taxCode || '—'}
                     </td>
-                    <td className="py-4 px-4 text-slate-600 dark:text-slate-300">
-                      <p className="font-medium">{c.industry || 'Chưa cập nhật'}</p>
-                      <p className="text-[11px] text-slate-400">N/A</p>
+                    <td className={`px-3 py-1.5 text-[var(--text-secondary)] md:table-cell md:px-4 md:py-4 ${c.industry ? 'block' : 'hidden'}`}>
+                      <span className="font-semibold md:hidden">{vi ? 'Lĩnh vực' : 'Industry'} · </span>{c.industry || '—'}
                     </td>
-                    <td className="py-4 px-4">
+                    <td className="block px-3 py-2 md:table-cell md:px-4 md:py-4">
                       {renderStatusBadge(c.verificationStatus)}
                     </td>
-                    <td className="py-4 px-4 max-w-xs truncate text-[11px] text-slate-500 dark:text-slate-400">
-                      {c.reviewNotes || '—'}
+                    <td className={`break-words px-3 py-1.5 text-xs text-[var(--text-secondary)] md:table-cell md:max-w-xs md:px-4 md:py-4 ${c.reviewNotes ? 'block' : 'hidden'}`}>
+                      <span className="font-semibold md:hidden">{vi ? 'Ghi chú' : 'Review note'} · </span>{c.reviewNotes || '—'}
                     </td>
-                    <td className="py-4 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                    <td className="block px-3 py-2 md:table-cell md:px-4 md:py-4">
+                      <div className="flex flex-wrap items-center gap-1.5 md:justify-end">
                         {c.verificationStatus === 'PENDING' && (
                           <button
                             onClick={() => handleOpenActionModal(c, 'START_REVIEW')}
@@ -442,41 +452,50 @@ export default function AdminCompaniesPage() {
         )}
 
         {/* Action Confirmation Modal */}
-        {selectedCompany && actionType && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-            <div className="w-full max-w-md rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 p-6 shadow-xl space-y-4">
+        <AnimatedModalShell isOpen={Boolean(selectedCompany && actionType)}
+          titleId="company-action-title"
+          onRequestClose={() => {
+            if (!submittingAction) { setSelectedCompany(null); setActionType(null); }
+          }}
+          panelClassName="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-6 shadow-xl space-y-4">
+          {selectedCompany && actionType && <>
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                    Xác nhận thao tác: {actionType}
+                  <h3 id="company-action-title" className="text-base font-bold text-[var(--heading)]">
+                    {actionLabels[actionType][vi ? 0 : 1]}
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Doanh nghiệp: <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedCompany.name}</span>
+                    {vi ? 'Doanh nghiệp' : 'Company'} · <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedCompany.name}</span>
                   </p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Lý do / Ghi chú thẩm định {['REQUEST_CHANGES', 'REJECT', 'SUSPEND'].includes(actionType) && <span className="text-rose-500">*</span>}
+                <label htmlFor="company-action-reason" className="mb-1 block text-sm font-semibold text-[var(--heading)]">
+                  {vi ? 'Lý do hoặc ghi chú thẩm định' : 'Reason or review note'} {['REQUEST_CHANGES', 'REJECT', 'SUSPEND'].includes(actionType) && <span className="text-rose-500">*</span>}
                 </label>
                 <textarea
+                  id="company-action-reason"
+                  data-autofocus="true"
+                  aria-required={['REQUEST_CHANGES', 'REJECT', 'SUSPEND'].includes(actionType)}
+                  aria-invalid={feedback?.type === 'error' && !actionNotes.trim()}
                   rows={3}
                   value={actionNotes}
                   onChange={(e) => setActionNotes(e.target.value)}
                   placeholder={
                     ['REQUEST_CHANGES', 'REJECT', 'SUSPEND'].includes(actionType)
-                      ? 'Bắt buộc ghi rõ lý do đưa ra quyết định này...'
-                      : 'Ghi chú nội bộ bổ sung (tùy chọn)...'
+                      ? (vi ? 'Nhập lý do' : 'Enter the reason')
+                      : (vi ? 'Ghi chú tùy chọn' : 'Optional note')
                   }
-                  className="w-full p-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] p-2.5 text-sm text-[var(--heading)] focus-visible:outline-2 focus-visible:outline-[var(--primary)] aria-invalid:border-[var(--danger)]"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
+              {feedback?.type === 'error' && <p role="alert" className="text-sm text-[var(--danger)]">{feedback.text}</p>}
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
                 <button
                   onClick={() => {
                     setSelectedCompany(null);
@@ -485,20 +504,19 @@ export default function AdminCompaniesPage() {
                   disabled={submittingAction}
                   className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition"
                 >
-                  Hủy
+                  {vi ? 'Hủy' : 'Cancel'}
                 </button>
                 <button
                   onClick={handleExecuteAction}
                   disabled={submittingAction}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl bg-[var(--primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)] text-white text-xs font-bold transition flex items-center gap-1.5"
                 >
                   {submittingAction && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Xác nhận thực hiện
+                  {vi ? 'Xác nhận' : 'Confirm'}
                 </button>
               </div>
-            </div>
-          </div>
-        )}
+          </>}
+        </AnimatedModalShell>
 
       </main>
     </div>

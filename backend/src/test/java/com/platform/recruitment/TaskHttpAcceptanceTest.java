@@ -52,6 +52,7 @@ class TaskHttpAcceptanceTest {
     @Autowired JobRepository jobs; @Autowired CVRepository cvs; @Autowired CVVersionRepository versions;
     @Autowired ApplicationRepository applications; @Autowired MatchResultRepository results;
     @Autowired SystemReportRepository reports;
+    @Autowired Documents documents;
     User user; CandidateProfile candidate;
     final String password="Task-Fixture#2026";
     @BeforeEach void fixture() {
@@ -200,6 +201,152 @@ class TaskHttpAcceptanceTest {
                 .rawTextContent("Java backend").structuredJsonContent("{\"summary\":\"Java Spring Boot backend\",\"skills\":[{\"name\":\"Java\"}]}").build());
         return new Hiring(hr,company,job,cv,version);
     }
+    @Test void recruiterCvPageRequestsCanRecordViewsAndReturnSubmittedImages() throws Exception {
+        Hiring h = hiring("CONFIRMED");
+        var applied = call(HttpMethod.POST, "/api/v1/candidate/applications",
+                Map.of("jobId", h.job().getId(), "cvId", h.cv().getId()), access());
+        assertEquals(201, applied.getStatusCode().value());
+        UUID applicationId = UUID.fromString(data(applied).path("id").asText());
+        String path = "/api/v1/recruiter/applications/" + applicationId + "/cv-pages";
+        String hrToken = login(h.hr()).path("accessToken").asText();
+
+        var empty = call(HttpMethod.GET, path, null, hrToken);
+        assertEquals(200, empty.getStatusCode().value(), empty.getBody());
+        assertTrue(data(empty).isArray());
+        assertEquals(0, data(empty).size());
+
+        try (var image = new java.io.ByteArrayOutputStream()) {
+            javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(1, 1,
+                    java.awt.image.BufferedImage.TYPE_INT_RGB), "png", image);
+            byte[] bytes = image.toByteArray();
+            var document = documents.uploadSourceImage(user.getId(), "CV image",
+                    new org.springframework.mock.web.MockMultipartFile("file", "page.png", "image/png", bytes));
+            UUID set = UUID.randomUUID();
+            UUID page = UUID.randomUUID();
+            db.update("INSERT INTO cv_source_page_sets(id,owner_id,title,status) VALUES(?,?,?,'UPLOADED')",
+                    set, user.getId(), "CV image");
+            db.update("INSERT INTO cv_source_pages(id,set_id,document_id,document_version_id,page_order,status) "
+                            + "VALUES(?,?,?,?,1,'READY')",
+                    page, set, document.documentId(), document.versionId());
+            db.update("INSERT INTO application_cv_snapshot_pages(application_id,source_page_id,source_document_version_id,"
+                            + "page_order,filename_snapshot,media_type_snapshot,size_bytes_snapshot,sha256_snapshot,extracted_text_snapshot) "
+                            + "VALUES(?,?,?,1,?,?,?,?,?)",
+                    applicationId, page, document.versionId(), "page.png", "image/png", (long) bytes.length,
+                    Documents.shaHex(bytes), "Java backend");
+
+            var pages = call(HttpMethod.GET, path, null, hrToken);
+            assertEquals(200, pages.getStatusCode().value(), pages.getBody());
+            assertEquals(1, data(pages).size());
+            assertEquals(1, data(pages).get(0).path("page_order").asInt());
+            assertEquals("page.png", data(pages).get(0).path("filename").asText());
+
+            var headers = new HttpHeaders();
+            headers.setBearerAuth(hrToken);
+            var downloaded = http.exchange(path + "/1", HttpMethod.GET, new HttpEntity<>(headers), byte[].class);
+            assertEquals(200, downloaded.getStatusCode().value());
+            assertEquals(MediaType.IMAGE_PNG, downloaded.getHeaders().getContentType());
+            assertArrayEquals(bytes, downloaded.getBody());
+        }
+        assertEquals(404, call(HttpMethod.GET, path + "/2", null, hrToken).getStatusCode().value());
+        assertEquals(1, db.queryForObject("SELECT count(*) FROM company_cv_views WHERE company_id=? AND application_id=?",
+                Integer.class, h.company().getId(), applicationId));
+    }
+
+    @Test void accountAvatarsRespectOwnershipAndApplicationAccess() throws Exception {
+        String endpoint = "/api/v1/account/avatar";
+        byte[] png = Files.readAllBytes(Path.of("../test-fixtures/synthetic/04_cv_image.png"));
+        String candidateToken = access();
+        var uploaded = uploadAvatar(endpoint, candidateToken, png);
+        assertEquals(200, uploaded.getStatusCode().value(), uploaded.getBody());
+        String avatarId = data(uploaded).path("avatarId").asText();
+        assertFalse(avatarId.isBlank());
+        assertEquals(avatarId, data(call(HttpMethod.GET, endpoint, null, candidateToken)).path("avatarId").asText());
+        assertEquals(401, call(HttpMethod.GET, endpoint + "/" + avatarId, null, null).getStatusCode().value());
+
+        Hiring hiring = hiring("CONFIRMED");
+        String hrToken = login(hiring.hr()).path("accessToken").asText();
+        assertEquals(404, call(HttpMethod.GET, endpoint + "/" + avatarId, null, hrToken).getStatusCode().value());
+        var application = call(HttpMethod.POST, "/api/v1/candidate/applications",
+                Map.of("jobId", hiring.job().getId(), "cvId", hiring.cv().getId()), candidateToken);
+        assertEquals(201, application.getStatusCode().value(), application.getBody());
+        String applicationId = data(application).path("id").asText();
+        var hrApplication = call(HttpMethod.GET, "/api/v1/recruiter/applications/" + applicationId, null, hrToken);
+        assertEquals(200, hrApplication.getStatusCode().value(), hrApplication.getBody());
+        assertEquals(avatarId, data(hrApplication).path("candidateAvatarId").asText());
+
+        var headers = new HttpHeaders();
+        headers.setBearerAuth(hrToken);
+        var photo = http.exchange(endpoint + "/" + avatarId, HttpMethod.GET, new HttpEntity<>(headers), byte[].class);
+        assertEquals(200, photo.getStatusCode().value());
+        assertEquals(MediaType.IMAGE_JPEG, photo.getHeaders().getContentType());
+        assertTrue(photo.getHeaders().getCacheControl().contains("no-store"));
+
+        var hrUpload = uploadAvatar(endpoint, hrToken, png);
+        assertEquals(200, hrUpload.getStatusCode().value(), hrUpload.getBody());
+        String hrAvatar = data(hrUpload).path("avatarId").asText();
+        var thread = call(HttpMethod.POST, "/api/v1/inbox/conversations", Map.of("applicationId", applicationId), hrToken);
+        assertEquals(200, thread.getStatusCode().value(), thread.getBody());
+        var detail = call(HttpMethod.GET, "/api/v1/inbox/conversations/" + data(thread).path("id").asText(), null, candidateToken);
+        assertEquals(hrAvatar, data(detail).path("peer_avatar_id").asText(), detail.getBody());
+
+        assertEquals(400, uploadAvatar(endpoint, candidateToken, new byte[]{1, 2, 3, 4}).getStatusCode().value());
+        assertEquals(avatarId, data(call(HttpMethod.GET, endpoint, null, candidateToken)).path("avatarId").asText());
+        var replacement = uploadAvatar(endpoint, candidateToken, png);
+        assertEquals(200, replacement.getStatusCode().value(), replacement.getBody());
+        String replacementId = data(replacement).path("avatarId").asText();
+        assertNotEquals(avatarId, replacementId);
+        assertEquals(404, call(HttpMethod.GET, endpoint + "/" + avatarId, null, hrToken).getStatusCode().value());
+        assertEquals(200, call(HttpMethod.DELETE, endpoint, null, candidateToken).getStatusCode().value());
+        assertEquals(404, call(HttpMethod.GET, endpoint + "/" + replacementId, null, hrToken).getStatusCode().value());
+    }
+
+    private ResponseEntity<String> uploadAvatar(String endpoint, String token, byte[] content) {
+        var headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        var parts = new LinkedMultiValueMap<String, Object>();
+        parts.add("file", new ByteArrayResource(content) {
+            @Override public String getFilename() { return "avatar.png"; }
+        });
+        return http.exchange(endpoint, HttpMethod.PUT, new HttpEntity<>(parts, headers), String.class);
+    }
+
+    @Test void recruiterOriginalCvUsesSubmittedVersionAndCompanyAccess() throws Exception {
+        Hiring hiring = hiring("CONFIRMED");
+        byte[] submitted = Files.readAllBytes(Path.of("../test-fixtures/synthetic/01_single_column_tech_cv.pdf"));
+        byte[] newer = Files.readAllBytes(Path.of("../test-fixtures/synthetic/02_two_column_cv.pdf"));
+        db.update("INSERT INTO documents(id,owner_id,kind,title) VALUES(?,?,'CV',?)",
+                hiring.cv().getId(), user.getId(), "Business CV");
+        storeOriginalCv(hiring.cv().getId(), hiring.version().getId(), 1, "cv-nop.pdf", submitted);
+
+        var applied = call(HttpMethod.POST, "/api/v1/candidate/applications",
+                Map.of("jobId", hiring.job().getId(), "cvId", hiring.cv().getId()), access());
+        assertEquals(201, applied.getStatusCode().value(), applied.getBody());
+        String path = "/api/v1/recruiter/applications/" + data(applied).path("id").asText() + "/cv-original";
+        storeOriginalCv(hiring.cv().getId(), UUID.randomUUID(), 2, "cv-moi.pdf", newer);
+
+        var headers = new HttpHeaders();
+        headers.setBearerAuth(login(hiring.hr()).path("accessToken").asText());
+        var downloaded = http.exchange(path, HttpMethod.GET, new HttpEntity<>(headers), byte[].class);
+        assertEquals(200, downloaded.getStatusCode().value());
+        assertEquals(MediaType.APPLICATION_PDF, downloaded.getHeaders().getContentType());
+        assertEquals("cv-nop.pdf", downloaded.getHeaders().getContentDisposition().getFilename());
+        assertTrue(downloaded.getHeaders().getCacheControl().contains("no-store"));
+        assertArrayEquals(submitted, downloaded.getBody());
+
+        Hiring otherCompany = hiring("CONFIRMED");
+        var denied = call(HttpMethod.GET, path, null, login(otherCompany.hr()).path("accessToken").asText());
+        assertEquals(403, denied.getStatusCode().value(), denied.getBody());
+    }
+
+    private void storeOriginalCv(UUID cvId, UUID versionId, int number, String filename, byte[] bytes) throws Exception {
+        String key = versionId + ".pdf";
+        Files.write(storage.resolve(key), bytes);
+        db.update("INSERT INTO document_versions(id,document_id,version_no,filename,storage_key,media_type,size_bytes,source_sha) "
+                        + "VALUES(?,?,?,?,?,'application/pdf',?,?)",
+                versionId, cvId, number, filename, key, (long) bytes.length, Documents.shaHex(bytes));
+    }
+
     @Test void businessConcurrentApplyHasOneWinnerAndImmutableSnapshot() throws Exception {
         Hiring h=hiring("CONFIRMED");String token=access();var body=Map.of("jobId",h.job().getId(),"cvId",h.cv().getId());
         try(var pool=java.util.concurrent.Executors.newFixedThreadPool(6)) {
@@ -232,7 +379,55 @@ class TaskHttpAcceptanceTest {
         assertEquals(1,db.queryForObject("SELECT COUNT(*) FROM application_audit_logs WHERE application_id=?",Integer.class,id));
         assertEquals("SUBMITTED",db.queryForObject("SELECT previous_status FROM application_audit_logs WHERE application_id=?",String.class,id));
         assertEquals("SHORTLISTED",db.queryForObject("SELECT new_status FROM application_audit_logs WHERE application_id=?",String.class,id));
+        String detailPath = "/api/v1/candidate/applications/" + id;
+        var detail = call(HttpMethod.GET, detailPath, null, token);
+        assertEquals(200, detail.getStatusCode().value());
+        assertTrue(detail.getHeaders().getCacheControl().contains("no-store"));
+        assertEquals("SHORTLISTED", data(detail).path("status").asText());
+        assertEquals("CV v1", data(detail).path("cv").path("title").asText());
+        assertEquals("Java", data(detail).path("cv").path("declaredSkills").get(0).asText());
+        assertFalse(data(detail).path("aiConsent").asBoolean());
+        assertEquals(400, call(HttpMethod.GET, detailPath + "/skill-gap", null, token).getStatusCode().value());
+        var history = call(HttpMethod.GET, detailPath + "/history", null, token);
+        assertEquals("SHORTLISTED", data(history).path("items").get(0).path("to").asText());
+        assertFalse(history.getBody().contains("HR reviewed evidence"));
+        String otherCandidate = login(actor(Role.CANDIDATE)).path("accessToken").asText();
+        for (String suffix : List.of("", "/history", "/skill-gap")) {
+            assertEquals(404, call(HttpMethod.GET, detailPath + suffix, null, otherCandidate).getStatusCode().value());
+            assertEquals(403, call(HttpMethod.GET, detailPath + suffix, null, hr).getStatusCode().value());
+        }
     }
+    @Test
+    @EnabledIfEnvironmentVariable(named = "MIDCV_TASK_WORKER", matches = "true")
+    void candidateRoadmapReadsPinnedVersionsViaRealWorker() throws Exception {
+        Hiring fixture = hiring("CONFIRMED");
+        db.update("INSERT INTO job_requirements(id,job_id,skill_name,requirement_type,min_years_exp) VALUES (?,?,?,?,?)",
+                UUID.randomUUID(), fixture.job().getId(), "Docker", "REQUIRED", 0);
+        String token = access();
+        var response = call(HttpMethod.POST, "/api/v1/candidate/applications",
+                Map.of("jobId", fixture.job().getId(), "cvId", fixture.cv().getId(), "aiAnalysisConsent", true), token);
+        assertEquals(201, response.getStatusCode().value(), response.getBody());
+        String path = "/api/v1/candidate/applications/" + data(response).path("id").asText();
+        assertEquals(1, db.update("UPDATE job_requirements SET skill_name='Kubernetes' WHERE job_id=?", fixture.job().getId()));
+        assertEquals(200, call(HttpMethod.PUT, "/api/v1/candidate/cvs/" + fixture.cv().getId() + "/draft",
+                Map.of("summary", Map.of("value", "Edited later")), token).getStatusCode().value());
+        var detail = data(call(HttpMethod.GET, path, null, token));
+        assertEquals(fixture.version().getId().toString(), detail.path("cv").path("versionId").asText());
+        assertEquals("Docker", detail.path("pinnedJd").path("requirements").get(0).path("skill").asText());
+        assertTrue(detail.path("skillGapAvailable").asBoolean());
+        var gap = call(HttpMethod.GET, path + "/skill-gap?locale=en", null, token);
+        assertEquals(200, gap.getStatusCode().value(), gap.getBody());
+        assertTrue(gap.getBody().contains("MISSING_MANDATORY"));
+        assertTrue(gap.getBody().contains("Docker"));
+        assertTrue(gap.getBody().contains("Learn the priority skills"));
+        var requiredGaps = new ArrayList<String>();
+        for (var item : data(gap).path("gap_breakdown")) {
+            if ("MISSING_MANDATORY".equals(item.path("category").asText())) requiredGaps.add(item.path("skill_name").asText());
+        }
+        assertEquals(List.of("Docker"), requiredGaps);
+        assertFalse(gap.getBody().contains("Edited later"));
+    }
+
     @Test void businessChatRetryBlockReadAndCompanyOwnership() throws Exception {
         Hiring h=hiring("CONFIRMED");String candidateToken=access();
         var submitted=call(HttpMethod.POST,"/api/v1/candidate/applications",Map.of("jobId",h.job().getId(),"cvId",h.cv().getId()),candidateToken);assertEquals(201,submitted.getStatusCode().value());
@@ -405,6 +600,10 @@ class TaskHttpAcceptanceTest {
         String hrToken = login(hrUser).path("accessToken").asText();
         String adminToken = login(adminUser).path("accessToken").asText();
         String adminCompanyPath = "/api/v1/admin/companies/" + company.getId();
+        Job draft = jobs.saveAndFlush(Job.builder().company(company).title("Marketing assistant")
+                .description("Prepare and review the campaign report").industry("MARKETING").seniority("JUNIOR").status(JobStatus.DRAFT)
+                .vacancyCount(1).applicationDeadline(java.time.LocalDate.now().plusDays(5)).build());
+        String publishPath = "/api/v1/jobs/" + draft.getId() + "/publish";
 
         var initial = call(HttpMethod.GET, "/api/v1/recruiter/company", null, hrToken);
         assertEquals(200, initial.getStatusCode().value());
@@ -425,6 +624,11 @@ class TaskHttpAcceptanceTest {
                 Map.of("reason", "Please add a complete business website and company profile"), adminToken).getStatusCode().value());
         assertEquals("CHANGES_REQUESTED", db.queryForObject(
                 "SELECT verification_status FROM companies WHERE id=?", String.class, company.getId()));
+        var requestedChanges = call(HttpMethod.GET, "/api/v1/recruiter/company", null, hrToken);
+        assertEquals(200, requestedChanges.getStatusCode().value());
+        assertEquals("Please add a complete business website and company profile",
+                data(requestedChanges).path("verificationReason").asText());
+        assertEquals(403, call(HttpMethod.POST, publishPath, null, hrToken).getStatusCode().value());
 
         assertEquals(200, call(HttpMethod.PUT, "/api/v1/recruiter/company",
                 Map.of("website", "https://onboarding-fixture.invalid", "description", "Updated verification evidence"), hrToken).getStatusCode().value());
@@ -450,6 +654,10 @@ class TaskHttpAcceptanceTest {
         assertEquals(200, recruiterCompany.getStatusCode().value());
         assertEquals("VERIFIED", data(recruiterCompany).path("verificationStatus").asText());
         assertFalse(recruiterCompany.getBody().contains("hibernateLazyInitializer"));
+        var published = call(HttpMethod.POST, publishPath, null, hrToken);
+        assertEquals(200, published.getStatusCode().value());
+        assertEquals("PUBLISHED", data(published).path("status").asText());
+        assertEquals(200, call(HttpMethod.GET, "/api/v1/jobs/" + draft.getId(), null, null).getStatusCode().value());
 
         assertEquals(5L, db.queryForObject(
                 "SELECT COUNT(*) FROM admin_audit_logs WHERE target_type='COMPANY' AND target_id=? " +

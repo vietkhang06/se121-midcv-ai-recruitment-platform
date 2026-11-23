@@ -1,0 +1,177 @@
+.card:global(.kanban-card) {
+  --card-accent: var(--primary);
+  display: grid;
+  gap: 0.625rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border-color: var(--border-soft);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+  transform: none;
+}
+
+:global(html.dark) .card {
+  --card-accent: var(--retro-sky);
+}
+
+.card:global(.kanban-card):hover,
+.card:global(.kanban-card):focus-within {
+  border-color: var(--border);
+  box-shadow: 0 2px 5px rgb(0 0 0 / 10%);
+}
+
+.identity {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.625rem;
+}
+
+.identityText {
+  min-width: 0;
+}
+
+.name,
+.job {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.card .name {
+  color: var(--heading);
+  font-size: 0.9375rem;
+  text-wrap: wrap;
+}
+
+.job {
+  margin-top: 0.125rem;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.metadata {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3125rem 0.625rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.date,
+.score,
+.details,
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+}
+
+.date svg,
+.footer svg {
+  flex: none;
+}
+
+.score {
+  max-width: 100%;
+  padding: 0.1875rem 0.375rem;
+  border-radius: 0.375rem;
+  background: var(--surface-secondary);
+  font-weight: 600;
+}
+
+.score[data-phase='FINAL'] {
+  color: var(--card-accent);
+}
+
+.score[data-phase='PROVISIONAL'] {
+  background: var(--warning-bg);
+  color: var(--heading);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  padding-top: 0.3125rem;
+  border-top: 1px solid var(--border-soft);
+}
+
+.card :is(.details, .trigger, .reload, .action) {
+  min-height: 2rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.details {
+  color: var(--card-accent);
+}
+
+.details:hover,
+.reload:hover {
+  text-decoration: underline;
+}
+
+.trigger {
+  padding-inline: 0.5rem;
+  background: var(--surface-secondary);
+  color: var(--heading);
+}
+
+.trigger[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+.trigger:disabled {
+  opacity: 0.7;
+}
+
+.actions {
+  padding: 0.25rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 0.625rem;
+  background: var(--surface-secondary);
+}
+
+.action {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  color: var(--heading);
+  text-align: start;
+}
+
+.action[data-danger='true'] {
+  color: var(--danger);
+}
+
+.action:enabled:hover,
+.trigger:enabled:hover {
+  background: color-mix(in srgb, var(--card-accent) 9%, var(--surface-secondary));
+}
+
+.hint,
+.error {
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.hint {
+  color: var(--text-secondary);
+}
+
+.error {
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background: var(--danger-bg);
+  color: var(--heading);
+}
+
+.reload {
+  color: var(--card-accent);
+}

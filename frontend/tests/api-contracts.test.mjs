@@ -8,7 +8,11 @@ const source = readFileSync(new URL('../src/lib/api.ts', import.meta.url), 'utf8
 const sseSource = readFileSync(new URL('../src/lib/sse.ts', import.meta.url), 'utf8');
 const sseJavascript = ts.transpileModule(sseSource, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText;
 const sseUrl = `data:text/javascript;base64,${Buffer.from(sseJavascript).toString('base64')}`;
-const workflow = ts.transpileModule(readFileSync(new URL('../src/lib/applicationWorkflow.ts', import.meta.url), 'utf8'), {
+const scoreJavascript = ts.transpileModule(readFileSync(new URL('../src/lib/matchPresentation.ts', import.meta.url), 'utf8'), {
+  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
+}).outputText;
+const scoreUrl = `data:text/javascript;base64,${Buffer.from(scoreJavascript).toString('base64')}`;
+const workflow = ts.transpileModule(readFileSync(new URL('../src/lib/applicationWorkflow.ts', import.meta.url), 'utf8').replace("'./matchPresentation'", JSON.stringify(scoreUrl)), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
 }).outputText;
 const workflowUrl = `data:text/javascript;base64,${Buffer.from(workflow).toString('base64')}`;

@@ -46,7 +46,7 @@ class CandidateRankingFetchContractTest {
 
         var page = new CandidateRankingService(repository)
                 .getRankedCandidatesPage(jobId, null, 0, 20, null, null);
-        String json = new ObjectMapper().writeValueAsString(page);
+        String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(page);
 
         assertTrue(fetchQueryCalled[0]);
         assertEquals(1, page.getContent().size());

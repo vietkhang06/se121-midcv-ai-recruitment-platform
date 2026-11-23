@@ -13,6 +13,10 @@ import lombok.*;
 @AllArgsConstructor
 public class User extends BaseEntity {
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @Column(name = "avatar_id", insertable = false, updatable = false)
+    private java.util.UUID avatarId;
+
     @Column(name = "auth_invalid_before")
     private java.time.Instant authInvalidBefore;
     @Column(name = "email", nullable = false, unique = true)

@@ -14,6 +14,7 @@ export interface Thread {
   candidate_user_id: string;
   recruiter_user_id: string;
   peer_name: string;
+  peer_avatar_id?: string;
   job_title: string;
   accepted: boolean;
   blocked_by: string | null;
@@ -63,6 +64,7 @@ export interface Letter {
 export interface ProfileView {
   id: string;
   recruiter_name: string;
+  recruiter_avatar_id?: string;
   company_name: string;
   viewed_at: string;
 }

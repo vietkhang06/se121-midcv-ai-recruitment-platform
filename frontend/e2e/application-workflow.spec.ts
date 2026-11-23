@@ -10,7 +10,7 @@ const submitted = [
   { id: 'r1', candidateName: 'Reviewed Person', appliedCvFullName: 'Reviewed Person', status: 'REVIEWED', matchScore: 0 },
   { id: 'm1', candidateName: 'Matched Person', status: 'MATCHED', matchScore: 80 },
   { id: 'u1', candidateName: 'Unknown Person', status: 'UNDER_REVIEW', matchScore: null },
-].map(row => ({ ...row, jobId: 'marketing', jobTitle: jobs[0].title, appliedAt: '2026-11-22T10:00:00Z' }));
+].map(row => ({ ...row, jobId: 'marketing', jobTitle: jobs[0].title, matchStatus: row.matchScore !== null ? 'PGVECTOR_READY' : null, appliedAt: '2026-11-22T10:00:00Z' }));
 
 async function useRecruiterFixture(page: Page) {
   const fixture = { failJob: false, failAudit: false, stale: false, updates: 0 };
@@ -49,13 +49,13 @@ for (const path of ['/recruiter', '/recruiter/analytics', '/recruiter/pipeline']
     const fixture = await useRecruiterFixture(page);
     fixture.failJob = true;
     await page.goto(path);
-    await expect(page.getByText('Engineering', { exact: true })).toBeVisible();
+    await expect(page.getByText(/Chưa tải được hồ sơ.*Engineering/)).toBeVisible();
     fixture.failJob = false;
     await page.getByRole('button', { name: 'Thử lại', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Thử lại', exact: true })).toHaveCount(0);
     if (path.endsWith('/analytics')) {
       await expect(page.getByText('Phân bố hồ sơ hiện tại', { exact: true })).toBeVisible();
-      await expect(page.getByText('40.0%', { exact: true })).toBeVisible();
+      await expect(page.getByText('40,0%', { exact: true })).toBeVisible();
     }
     if (path.endsWith('/pipeline')) {
       for (const app of submitted) await expect(page.getByText(app.candidateName, { exact: true })).toHaveCount(1);
@@ -68,9 +68,36 @@ test('pipeline preserves the old card after an optimistic concurrency rejection'
   fixture.stale = true;
   await page.goto('/recruiter/pipeline');
   const card = page.locator('.kanban-card').filter({ hasText: 'Reviewed Person' });
-  await card.getByRole('button', { name: 'Duyệt →' }).click();
-  await expect(page.getByRole('alert').filter({ hasText: 'Trạng thái đơn đã thay đổi' })).toBeVisible();
+  const trigger = card.getByRole('button', { name: 'Thao tác' });
+  await expect(card.getByRole('button', { name: 'Đưa vào danh sách chọn' })).toBeHidden();
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  await expect(card.getByRole('button', { name: 'Từ chối hồ sơ' })).toBeVisible();
+  await page.keyboard.press('Tab');
+  await expect(card.getByRole('button', { name: 'Đưa vào danh sách chọn' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(trigger).toBeFocused();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  await trigger.click();
+  await card.getByRole('button', { name: 'Đưa vào danh sách chọn' }).click();
+  await expect(card.getByRole('alert')).toContainText('Hồ sơ đã được cập nhật ở nơi khác');
+  await expect(trigger).toBeDisabled();
   await expect(card).toBeVisible();
+  expect(fixture.updates).toBe(1);
+});
+
+test('a pipeline card opens its application and moves to the selected stage', async ({ page }) => {
+  const fixture = await useRecruiterFixture(page);
+  await page.goto('/recruiter/pipeline');
+  const card = page.getByRole('article', { name: 'Reviewed Person' });
+  await expect(card.getByRole('link', { name: 'Xem hồ sơ' })).toHaveAttribute('href', '/recruiter/applications/r1');
+  await expect(card).toContainText('Đã chấm · 0,0%');
+  await card.getByRole('button', { name: 'Thao tác' }).click();
+  await card.getByRole('button', { name: 'Đưa vào danh sách chọn' }).click();
+  const shortlist = page.locator('.kanban-col').filter({ has: page.getByRole('heading', { name: 'Đã vào danh sách chọn', exact: true }) });
+  await expect(shortlist.getByRole('article', { name: 'Reviewed Person' })).toHaveCount(1);
+  await expect(card.getByRole('button', { name: 'Chuyển sang phỏng vấn' })).toBeHidden();
   expect(fixture.updates).toBe(1);
 });
 
@@ -83,4 +110,32 @@ test('decision history can fail and be retried while the application remains vis
   fixture.failAudit = false;
   await page.getByRole('button', { name: 'Thử lại', exact: true }).click();
   await expect(page.getByText('Chưa có lượt chuyển trạng thái nào được ghi nhận.')).toBeVisible();
+});
+
+test('pipeline columns keep their width and scroll within the board on larger screens', async ({ page }) => {
+  await useRecruiterFixture(page);
+  await page.goto('/recruiter/pipeline');
+  const columns = page.locator('.kanban-col');
+  await expect(columns).toHaveCount(8);
+  const board = columns.first().locator('..');
+
+  for (const width of [768, 1024, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    const dimensions = await columns.evaluateAll(items => items.map(item => item.getBoundingClientRect().toJSON()));
+    expect(dimensions.every(column => column.width >= 245), `column widths at ${width}px: ${dimensions.map(column => column.width)}`).toBe(true);
+    expect(new Set(dimensions.map(column => column.top)).size).toBe(1);
+    expect(await board.evaluate(element => element.scrollWidth)).toBeGreaterThan(await board.evaluate(element => element.clientWidth));
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  }
+
+  await board.evaluate(element => { element.scrollLeft = element.scrollWidth; });
+  const lastHeading = columns.last().getByRole('heading', { level: 2 });
+  await expect(lastHeading).toBeInViewport();
+
+  await page.setViewportSize({ width: 375, height: 812 });
+  const mobile = await columns.evaluateAll(items => items.slice(0, 2).map(item => item.getBoundingClientRect().toJSON()));
+  expect(mobile[0].width).toBeGreaterThan(245);
+  expect(mobile[0].width).toBe(mobile[1].width);
+  expect(mobile[1].top).toBeGreaterThan(mobile[0].bottom);
+  expect(await board.evaluate(element => element.scrollWidth)).toBe(await board.evaluate(element => element.clientWidth));
 });

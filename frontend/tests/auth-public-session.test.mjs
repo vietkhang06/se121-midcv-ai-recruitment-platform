@@ -7,7 +7,9 @@ import ts from 'typescript';
 const compile = input => ts.transpileModule(input, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText;
 const dataUrl = input => `data:text/javascript;base64,${Buffer.from(input).toString('base64')}`;
 const sseUrl = dataUrl(compile(readFileSync(new URL('../src/lib/sse.ts', import.meta.url), 'utf8')));
-const workflowUrl = dataUrl(compile(readFileSync(new URL('../src/lib/applicationWorkflow.ts', import.meta.url), 'utf8')));
+const scoreUrl = dataUrl(compile(readFileSync(new URL('../src/lib/matchPresentation.ts', import.meta.url), 'utf8')));
+const workflowUrl = dataUrl(compile(readFileSync(new URL('../src/lib/applicationWorkflow.ts', import.meta.url), 'utf8')
+  .replace("'./matchPresentation'", JSON.stringify(scoreUrl))));
 const api = await import(dataUrl(compile(readFileSync(new URL('../src/lib/api.ts', import.meta.url), 'utf8').replace("'./sse'", JSON.stringify(sseUrl)).replace("'@/lib/applicationWorkflow'", JSON.stringify(workflowUrl)))));
 const store = new Map();
 globalThis.window = { dispatchEvent() {} };

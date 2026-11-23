@@ -1,4 +1,5 @@
 "use client";
+import { AccountAvatar } from '@/components/account/AccountAvatar';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Send } from "lucide-react";
@@ -159,7 +160,8 @@ export function MessagesWorkspace() {
               className={`inbox-thread ${selected === t.id ? "selected" : ""}`}
               onClick={() => setSelected(t.id)}
             >
-              <strong>
+              <strong className="flex items-center gap-2">
+                <AccountAvatar name={t.peer_name} avatarId={t.peer_avatar_id} className="size-8 text-xs" />
                 {t.peer_name}
                 {t.unread > 0 && (
                   <span className="inbox-count">{t.unread}</span>
@@ -354,11 +356,14 @@ function ChatThread({
         <button className="inbox-mobile-back" onClick={onClose}>
           {vi ? "← Cuộc trò chuyện" : "← Conversations"}
         </button>
-        <div>
+        <div className="flex min-w-0 items-center gap-2">
+          {thread && <AccountAvatar name={thread.peer_name} avatarId={thread.peer_avatar_id} className="size-9 text-xs" />}
+          <div>
           <strong>
             {thread?.peer_name || (vi ? "Cuộc trò chuyện" : "Conversation")}
           </strong>
           <small className="inbox-block">{thread?.job_title}</small>
+          </div>
         </div>
         <div className="inbox-row">
           {thread && !thread.accepted && user?.role === "CANDIDATE" && (

@@ -193,13 +193,13 @@ test.describe('MidCV motion system', () => {
     });
 
     await page.goto('/candidate/profile');
-    await expect(page.getByText(/TRẠNG THÁI: BẢN THẢO \(DRAFT\)/i)).toBeVisible();
+    await expect(page.getByText(/· Bản nháp/i)).toBeVisible();
     await expect(page.getByText(/Hồ sơ đã được xác nhận thành công/i)).toHaveCount(0);
     expect(confirmRequestCount).toBe(0);
 
     await page.getByRole('button', { name: /Xác Nhận Hồ Sơ/i }).click();
 
-    await expect(page.getByText(/TRẠNG THÁI: ĐÃ XÁC NHẬN \(CONFIRMED\)/i)).toBeVisible();
+    await expect(page.getByText(/· Đã xác nhận/i)).toBeVisible();
     await expect(page.getByText(/Hồ sơ đã được xác nhận thành công/i)).toBeVisible();
     expect(confirmRequestCount).toBe(1);
   });
