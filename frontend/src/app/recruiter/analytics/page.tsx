@@ -2,7 +2,7 @@
 
 import { displayJobStatus } from '@/lib/jobDeadline';
 import { statusLabel } from '@/lib/statusLabels';
-import { APPLICATION_STATUS_LABELS, APPLICATION_STATUSES, HIGH_MATCH_THRESHOLD, loadApplicationsForJobs, summarizeMatchScores } from '@/lib/applicationWorkflow';
+import { APPLICATION_STATUS_LABELS, APPLICATION_STATUSES, applicationsLoadMessage, loadApplicationsForJobs } from '@/lib/applicationWorkflow';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -10,13 +10,13 @@ import { Job, Application } from '@/types';
 import { fetchRecruiterJobs, fetchJobApplications } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
 import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
+import { MatchMetricsCard } from '@/components/recruiter/MatchMetricsCard';
 import { MetricCard } from '@/components/recruiter/MetricCard';
 import {
   TrendingUp,
   Users,
   Award,
   Calendar,
-  Sparkles,
   Briefcase,
   ArrowRight
 } from 'lucide-react';
@@ -39,7 +39,7 @@ export default function RecruiterAnalyticsPage() {
       setAllApplications(applications);
     } catch (error: unknown) {
       console.error('Failed to load analytics:', error);
-      setError(error instanceof Error ? error.message : (locale === 'vi' ? 'Không thể tải dữ liệu phân tích tuyển dụng' : 'Failed to load recruitment analytics'));
+      setError(applicationsLoadMessage(error, locale));
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ export default function RecruiterAnalyticsPage() {
       } catch (error: unknown) {
         if (!active) return;
         console.error('Failed to load analytics:', error);
-        setError(error instanceof Error ? error.message : (locale === 'vi' ? 'Không thể tải dữ liệu phân tích tuyển dụng' : 'Failed to load recruitment analytics'));
+        setError(applicationsLoadMessage(error, locale));
       } finally {
         if (active) setLoading(false);
       }
@@ -68,7 +68,7 @@ export default function RecruiterAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] p-12 text-center text-slate-500 flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--surface-secondary)] p-12 text-center text-slate-500 flex items-center justify-center">
         <EmptyState
           type="LOADING"
           title={locale === 'vi' ? 'Đang phân tích dữ liệu tuyển dụng...' : 'Calculating recruitment analytics...'}
@@ -80,7 +80,7 @@ export default function RecruiterAnalyticsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] p-12 text-center flex flex-col items-center justify-center space-y-4">
+      <div className="min-h-screen bg-[var(--surface-secondary)] p-12 text-center flex flex-col items-center justify-center space-y-4">
         <EmptyState
           type="ERROR"
           title={locale === 'vi' ? 'Lỗi tải phân tích' : 'Analytics Load Error'}
@@ -88,7 +88,7 @@ export default function RecruiterAnalyticsPage() {
         />
         <button
           onClick={loadData}
-          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition"
+          className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--primary)] focus-visible:outline-2 focus-visible:outline-[var(--primary)]"
         >
           {locale === 'vi' ? 'Thử lại' : 'Retry'}
         </button>
@@ -105,17 +105,13 @@ export default function RecruiterAnalyticsPage() {
   const interviewRate = totalApps > 0 ? ((interviewingCount / totalApps) * 100).toFixed(1) : '0';
   const hireRate = totalApps > 0 ? ((hiredCount / totalApps) * 100).toFixed(1) : '0';
 
-  // AI Matching Analytics
-  const { average, highCount: highMatchCount } = summarizeMatchScores(allApplications);
-  const avgScore = average === null ? '–' : `${average.toFixed(1)}%`;
-
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-20 w-full min-w-0">
+    <div className="min-h-screen bg-[var(--surface-secondary)] text-[var(--heading)] flex flex-col transition-colors pb-20 w-full min-w-0">
       <main className="flex-1 w-full max-w-7xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Recruiter Header */}
         <RecruiterPageHeader
           title={locale === 'vi' ? 'Phân Tích & Hiệu Suất Tuyển Dụng' : 'Recruitment Analytics & Insights'}
-          subtitle={locale === 'vi' ? 'Theo dõi phân bố hồ sơ hiện tại hồ sơ, hiệu quả đối sánh AI và năng lực đáp ứng của ứng viên' : 'View current application distribution and match scores'}
+          subtitle={locale === 'vi' ? 'Theo dõi phân bố hồ sơ hiện tại, hiệu quả đối sánh AI và năng lực đáp ứng của ứng viên' : 'View current application distribution and match scores'}
           categoryTag="Talent Intelligence"
         />
 
@@ -131,7 +127,7 @@ export default function RecruiterAnalyticsPage() {
           <MetricCard
             label={locale === 'vi' ? 'Tỷ trọng đang ở danh sách chọn' : 'Current shortlist share'}
             value={`${shortlistRate}%`}
-            subtext={locale === 'vi' ? `${shortlistedCount} ứng viên đạt chuẩn` : `${shortlistedCount} candidates`}
+            subtext={locale === 'vi' ? `${shortlistedCount} hồ sơ ở vòng này` : `${shortlistedCount} candidates`}
             icon={TrendingUp}
             variant="success"
           />
@@ -171,33 +167,17 @@ export default function RecruiterAnalyticsPage() {
 
         {/* AI Match Quality Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-3">
-            <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                {locale === 'vi' ? 'Chất Lượng Đối Sánh AI (Semantic Match Quality)' : 'AI Semantic Match Quality'}
-              </h4>
-            </div>
-            <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-extrabold text-blue-600 dark:text-blue-400 font-sans">{avgScore}</span>
-              <span className="text-xs text-slate-500">Điểm tương thích trung bình toàn bộ hồ sơ</span>
-            </div>
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              {locale === 'vi'
-                ? `Có ${highMatchCount} ứng viên đạt ngưỡng Match Cao (≥${HIGH_MATCH_THRESHOLD}%).`
-                : `${highMatchCount} candidates achieved High Match threshold (≥${HIGH_MATCH_THRESHOLD}%).`}
-            </p>
-          </div>
+          <MatchMetricsCard applications={allApplications} locale={locale} />
 
-          <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-3">
-            <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <Briefcase className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 shadow-xs space-y-3">
+            <div className="flex items-center gap-2 border-b border-[var(--border-soft)] pb-3">
+              <Briefcase className="w-5 h-5 text-[var(--primary)]" />
               <h4 className="text-sm font-bold text-slate-900 dark:text-white">
                 {locale === 'vi' ? 'Năng Lực Tuyển Dụng Doanh Nghiệp' : 'Recruitment Capacity'}
               </h4>
             </div>
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 font-sans">{jobs.length}</span>
+              <span className="text-3xl font-extrabold text-[var(--primary)] font-sans">{jobs.length}</span>
               <span className="text-xs text-slate-500">Tổng số tin tuyển dụng đã tạo</span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -209,8 +189,8 @@ export default function RecruiterAnalyticsPage() {
         </div>
 
         {/* Job Performance Breakdown Table */}
-        <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
-          <div className="p-5 border-b border-slate-100 dark:border-slate-800">
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xs overflow-hidden">
+          <div className="p-5 border-b border-[var(--border-soft)]">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               {locale === 'vi' ? 'Hiệu Suất Tuyển Dụng Từng Vị Trí' : 'Performance by Job Opening'}
             </h3>
@@ -219,7 +199,7 @@ export default function RecruiterAnalyticsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50 dark:bg-[var(--surface)] border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-sans uppercase text-[11px]">
+                <tr className="bg-[var(--surface-secondary)] border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-sans uppercase text-[11px]">
                   <th className="py-3 px-5">Vị trí tuyển dụng</th>
                   <th className="py-3 px-5 text-center">Trạng thái</th>
                   <th className="py-3 px-5 text-center">Tổng đơn nộp</th>
@@ -250,11 +230,11 @@ export default function RecruiterAnalyticsPage() {
                       </td>
                       <td className="py-4 px-5 text-center font-sans font-bold">{jobApps.length}</td>
                       <td className="py-4 px-5 text-center font-sans text-emerald-600 dark:text-emerald-400 font-bold">{shortlisted}</td>
-                      <td className="py-4 px-5 text-center font-sans text-blue-600 dark:text-blue-400 font-bold">{hired}</td>
+                      <td className="py-4 px-5 text-center font-sans text-[var(--primary)] font-bold">{hired}</td>
                       <td className="py-4 px-5 text-right">
                         <Link
                           href={`/recruiter/jobs/${job.id}/applications`}
-                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-semibold text-xs"
+                          className="inline-flex items-center gap-1 text-[var(--primary)] hover:underline font-semibold text-xs"
                         >
                           <span>Xem Pipeline</span>
                           <ArrowRight className="w-3.5 h-3.5" />

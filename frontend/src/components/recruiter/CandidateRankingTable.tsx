@@ -1,10 +1,13 @@
 'use client';
 
+import { AccountAvatar } from '@/components/account/AccountAvatar';
 import React from 'react';
+import { formatMatchScore } from '@/lib/matchPresentation';
+import { MatchScoreBadge } from './MatchScoreBadge';
 import Link from 'next/link';
 import { CandidateRankingItem } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
-import { Award, CheckCircle2, AlertCircle, Eye, GitBranch, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { Award, CheckCircle2, AlertCircle, Eye, GitBranch, ArrowRight, ShieldCheck } from 'lucide-react';
 import { staggerDelay } from '@/components/motion';
 
 interface CandidateRankingTableProps {
@@ -20,16 +23,16 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
   const isVi = locale === 'vi';
 
   return (
-    <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl shadow-xs overflow-hidden transition-colors">
+    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xs overflow-hidden transition-colors">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-50 dark:bg-[var(--surface)] border-b border-slate-200 dark:border-[var(--border)] text-slate-800 dark:text-slate-200 font-bold uppercase tracking-wider text-[11px] font-sans">
+            <tr className="bg-[var(--surface-secondary)] border-b border-[var(--border)] text-[var(--heading)] font-bold text-[11px] font-sans">
               <th className="py-4 px-4 text-center w-16">{isVi ? 'Hạng' : 'Rank'}</th>
               <th className="py-4 px-4">{isVi ? 'Ứng viên & Chức danh' : 'Candidate & Headline'}</th>
-              <th className="py-4 px-4 text-center w-48">Overall Match (S_overall)</th>
+              <th className="py-4 px-4 text-center w-48">{isVi ? 'Điểm tổng thể' : 'Overall score'}</th>
               <th className="py-4 px-4 text-center">Core JD-CV</th>
-              <th className="py-4 px-4 text-center">GitHub Signal</th>
+              <th className="py-4 px-4 text-center">{isVi ? 'Tín hiệu GitHub' : 'GitHub signal'}</th>
               <th className="py-4 px-4">{isVi ? 'Kỹ năng Bắt buộc (Gating)' : 'Required Skills (Gating)'}</th>
               <th className="py-4 px-4 text-center">{isVi ? 'Kinh nghiệm' : 'Experience'}</th>
               <th className="py-4 px-4 text-right">{isVi ? 'Thao tác' : 'Actions'}</th>
@@ -37,9 +40,8 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-[var(--border)] text-slate-700 dark:text-slate-200">
             {rankings.map((item, index) => {
-              const hasMissingRequired = item.requiredSkillsMissingNames.length > 0;
-              const isHighMatch = item.overallMatchScore >= 85;
-              const isGoodMatch = item.overallMatchScore >= 70 && item.overallMatchScore < 85;
+              const missing = item.requiredSkillsMatched !== null && item.requiredSkillsTotal !== null ? item.requiredSkillsTotal - item.requiredSkillsMatched : null;
+
 
               return (
                 <tr
@@ -68,6 +70,7 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                   <td className="py-4 px-4">
                     <div>
                       <div className="flex items-center gap-1.5">
+                        <AccountAvatar name={item.candidateName} avatarId={item.candidateAvatarId} className="size-8 text-xs" />
                         <Link
                           href={`/recruiter/applications/${item.applicationId}`}
                           className="font-bold text-sm text-slate-900 dark:text-white hover:text-[var(--primary)] dark:hover:text-[var(--retro-sky)] transition"
@@ -76,7 +79,6 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                         </Link>
                         {item.rank === 1 && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-bold flex items-center gap-1">
-                            <Sparkles className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                             <span>Top 1</span>
                           </span>
                         )}
@@ -87,37 +89,12 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
 
                   {/* Overall Match Score with Progress Bar */}
                   <td className="py-4 px-4">
-                    <div className="space-y-1.5 w-40 mx-auto">
-                      <div className="flex items-center justify-between font-sans text-xs">
-                        <span className="font-extrabold text-slate-900 dark:text-white">{item.overallMatchScore.toFixed(1)}%</span>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                          isHighMatch
-                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                            : isGoodMatch
-                            ? 'bg-blue-50 dark:bg-blue-950/60 text-[var(--primary)] border border-blue-200 dark:border-blue-800'
-                            : 'bg-slate-100 dark:bg-[var(--surface)] text-slate-600 dark:text-slate-400'
-                        }`}>
-                          {isHighMatch ? 'High' : isGoodMatch ? 'Good' : 'Moderate'}
-                        </span>
-                      </div>
-                      <div className="w-full h-2 rounded-xl bg-slate-100 dark:bg-[var(--surface)] overflow-hidden border border-slate-200 dark:border-[var(--border)]">
-                        <div
-                          className={`h-full rounded-xl origin-left transition-transform ${
-                            isHighMatch
-                              ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
-                              : isGoodMatch
-                              ? 'bg-gradient-to-r from-[var(--primary)] to-blue-400'
-                              : 'bg-slate-400'
-                          }`}
-                          style={{ transform: `scaleX(${Math.min(100, item.overallMatchScore) / 100})` }}
-                        />
-                      </div>
-                    </div>
+                    <MatchScoreBadge application={{ matchScore: item.overallMatchScore, matchStatus: item.calculationStatus }} locale={locale} />
                   </td>
 
                   {/* Core JD-CV Score */}
                   <td className="py-4 px-4 text-center font-sans font-bold text-slate-700 dark:text-slate-300">
-                    {item.coreJdCvScore.toFixed(1)}%
+                    {formatMatchScore(item.coreJdCvScore, locale)}
                   </td>
 
                   {/* GitHub Supporting Score */}
@@ -128,7 +105,7 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                         {item.githubSupportingScore.toFixed(1)}%
                       </span>
                     ) : (
-                      <span className="text-slate-400 dark:text-slate-500 text-[11px] italic">Not connected / Non-tech</span>
+                      <span className="text-slate-400 dark:text-slate-500 text-[11px] italic">—</span>
                     )}
                   </td>
 
@@ -136,7 +113,7 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                   <td className="py-4 px-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-1.5">
-                        {!hasMissingRequired ? (
+                        {missing === null ? '—' : missing === 0 ? (
                           <span className="text-[11px] font-semibold text-[var(--success)] dark:text-[var(--success)] flex items-center gap-1">
                             <CheckCircle2 className="w-3.5 h-3.5 text-[var(--success)]" />
                             {isVi
@@ -147,12 +124,12 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                           <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1">
                             <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
                             {isVi
-                              ? `Thiếu ${item.requiredSkillsMissingNames.length} bắt buộc (Gated)`
-                              : `Missing ${item.requiredSkillsMissingNames.length} required (Gated)`}
+                              ? `Thiếu ${missing} bắt buộc (Gated)`
+                              : `Missing ${missing} required (Gated)`}
                           </span>
                         )}
                       </div>
-                      {hasMissingRequired && (
+                      {item.requiredSkillsMissingNames.length > 0 && (
                         <p className="text-[10px] text-rose-500 dark:text-rose-400 line-clamp-1 font-sans">
                           {isVi ? 'Thiếu: ' : 'Missing: '}{item.requiredSkillsMissingNames.join(', ')}
                         </p>
@@ -162,7 +139,7 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
 
                   {/* Years of Experience */}
                   <td className="py-4 px-4 text-center text-slate-600 dark:text-slate-300 font-medium">
-                    {item.relevantExperienceYears} {isVi ? 'năm' : 'yrs'}
+                    {item.relevantExperienceYears == null ? '—' : `${item.relevantExperienceYears} ${isVi ? 'năm' : 'yrs'}`}
                   </td>
 
                   {/* Actions */}

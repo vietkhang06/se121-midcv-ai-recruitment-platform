@@ -1,5 +1,6 @@
 'use client';
 
+import { AccountAvatar } from '@/components/account/AccountAvatar';
 import { AccountTools } from '@/components/inbox/AccountTools';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -23,7 +24,6 @@ import {
   HelpCircle,
   Menu,
   X,
-  Sparkles,
   ChevronDown
 } from 'lucide-react';
 
@@ -327,9 +327,7 @@ export const Navbar: React.FC = () => {
           {isAuthenticated ? (
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[var(--border)]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-[var(--surface)] text-[var(--primary)] dark:text-[var(--retro-sky)] text-xs font-bold flex items-center justify-center">
-                  {user?.fullName ? user.fullName.trim().charAt(0).toUpperCase() : 'U'}
-                </div>
+                <AccountAvatar name={user?.fullName} avatarId={user?.avatarId} className="size-8 text-xs" />
                 <div>
                   <span className="text-xs font-bold text-slate-900 dark:text-white block">{user?.fullName}</span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400">{user?.email}</span>
@@ -434,7 +432,6 @@ export const Navbar: React.FC = () => {
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-[var(--heading)] dark:text-[var(--text-secondary)] hover:bg-[var(--surface)] dark:hover:bg-[var(--surface)] transition"
                     >
-                      <Sparkles className="w-4 h-4 text-[var(--primary)] dark:text-[var(--retro-sky)]" />
                       <span>{t('nav.features', 'Tính Năng')}</span>
                     </a>
                     <Link

@@ -1,5 +1,7 @@
 package com.platform.recruitment.auth;
 
+import com.platform.recruitment.document.Documents;
+
 import com.platform.recruitment.candidate.CandidateProfile;
 import com.platform.recruitment.candidate.CandidateProfileRepository;
 import com.platform.recruitment.candidate.CandidateTargetIndustry;
@@ -208,7 +210,7 @@ public class AuthService {
     public String verifyEmail(String token) {
         EmailVerificationToken verificationToken =
                 emailVerificationTokenRepository
-                        .findByTokenHash(token)
+                        .findByTokenHash(Documents.shaHex(token))
                         .orElseThrow(
                                 () -> new CustomException(
                                         ErrorCode.TOKEN_INVALID,
@@ -360,7 +362,7 @@ public class AuthService {
         EmailVerificationToken verificationToken =
                 EmailVerificationToken.builder()
                         .user(user)
-                        .tokenHash(token)
+                        .tokenHash(Documents.shaHex(token))
                         .expiresAt(
                                 ZonedDateTime.now().plusHours(24)
                         )

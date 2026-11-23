@@ -84,6 +84,7 @@ interface BackendApplicationDto {
   appliedCvVersionNumber?: number | null;
   appliedCvVersionId?: string | null;
   candidateName?: string | null;
+  candidateAvatarId?: string | null;
   candidateEmail?: string | null;
   candidatePhone?: string | null;
   candidateHeadline?: string | null;
@@ -96,6 +97,7 @@ interface BackendApplicationDto {
   status?: string | null;
   matchScore?: number | null;
   matchStatus?: string | null;
+  matchCalculationStatus?: string | null;
   matchClassification?: string | null;
   aiAnalysisConsent?: boolean | null;
   proDetailAvailable?: boolean | null;
@@ -243,7 +245,7 @@ function readString(value: unknown, fallback = ''): string {
 }
 
 function readNumber(value: unknown): number | null {
-  if (typeof value !== 'string' && typeof value !== 'number') return null;
+  if (typeof value !== 'number' && (typeof value !== 'string' || !value.trim())) return null;
   const result = Number(value);
   return Number.isFinite(result) ? result : null;
 }
@@ -424,6 +426,39 @@ export async function authorizedFetch(url: string, options: RequestInit = {}): P
     }
   }
   return response;
+}
+
+const accountAvatarEndpoint = `${BASE_URL}/api/v1/account/avatar`;
+
+export async function fetchAccountIdentity(signal: AbortSignal): Promise<Pick<Partial<User>, 'avatarId' | 'fullName' | 'emailVerified'>> {
+  const response = await authorizedFetch(accountAvatarEndpoint, { signal, cache: 'no-store' });
+  if (!response.ok) throw new Error('Account unavailable.');
+  const { data } = await response.json();
+  return {
+    avatarId: typeof data?.avatarId === 'string' ? data.avatarId : undefined,
+    ...(typeof data?.fullName === 'string' && data.fullName.trim() ? { fullName: data.fullName } : {}),
+    ...(typeof data?.emailVerified === 'boolean' ? { emailVerified: data.emailVerified } : {}),
+  };
+}
+
+export async function saveAccountAvatar(file: File | null): Promise<string | undefined> {
+  const body = file ? new FormData() : undefined;
+  if (file) body?.append('file', file);
+  const response = await authorizedFetch(accountAvatarEndpoint, {
+    method: file ? 'PUT' : 'DELETE', body, cache: 'no-store',
+  });
+  if (!response.ok) throw new Error('Avatar request failed.');
+  const { data } = await response.json();
+  if (file && typeof data?.avatarId !== 'string') throw new Error('Missing avatar ID.');
+  return data?.avatarId ?? undefined;
+}
+
+export async function fetchAccountAvatar(avatarId: string, signal: AbortSignal): Promise<Blob> {
+  const response = await authorizedFetch(`${accountAvatarEndpoint}/${encodeURIComponent(avatarId)}`, { signal, cache: 'no-store' });
+  if (!response.ok) throw new Error('Avatar image unavailable.');
+  const image = await response.blob();
+  if (image.type !== 'image/jpeg') throw new Error('Unexpected avatar media type.');
+  return image;
 }
 
 // These routes are explicitly public in SecurityConfig. Do not attach stale
@@ -727,13 +762,32 @@ export const fetchCVImagePage = async (setId: string, pageId: string, signal?: A
   const response = await fetch(`${BASE_URL}/api/v1/candidate/cvs/image-sets/${setId}/pages/${pageId}/content`, { headers: { Authorization: `Bearer ${token}` }, signal });
   if (!response.ok) throw new Error('Không thể tải ảnh CV.'); return response.blob();
 };
-export const fetchApplicationCVSourcePages = (applicationId: string) => cvImageRequest<ApplicationCVSourcePage[]>(`/api/v1/recruiter/applications/${applicationId}/cv-pages`);
-export const fetchApplicationCVSourcePage = async (applicationId: string, pageOrder: number): Promise<Blob> => {
-  const token = getAuthToken(); if (!token) throw new Error('Chưa đăng nhập.');
-  const path = `/api/v1/recruiter/applications/${applicationId}/cv-pages/${pageOrder}`;
-  const response = await fetch(`${BASE_URL}${path}`, { headers: { Authorization: `Bearer ${token}` } });
-  if (!response.ok) throw new Error('Không thể tải ảnh CV trong hồ sơ đã nộp.'); return response.blob();
+const applicationCvPath = (applicationId: string) => `/api/v1/recruiter/applications/${encodeURIComponent(applicationId)}`;
+export const fetchApplicationCVSourcePages = (applicationId: string, signal?: AbortSignal) =>
+  cvImageRequest<ApplicationCVSourcePage[]>(`${applicationCvPath(applicationId)}/cv-pages`, { signal });
+
+const fetchSubmittedCvFile = async (path: string, signal?: AbortSignal) => {
+  const response = await authorizedFetch(`${BASE_URL}${path}`, { signal, cache: 'no-store' });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new ApiError('GET', path, response.status, response.statusText, 'Could not load the submitted CV file.');
+  const blob = await response.blob();
+  const header = response.headers.get('content-disposition') ?? '';
+  const encoded = header.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  let filename = header.match(/filename="([^"]+)"/i)?.[1] || 'cv-original';
+  if (encoded) {
+    try { filename = decodeURIComponent(encoded); } catch { /* Keep the plain filename. */ }
+  }
+  return { blob, filename };
 };
+
+export const fetchApplicationOriginalCV = (applicationId: string, signal?: AbortSignal) =>
+  fetchSubmittedCvFile(`${applicationCvPath(applicationId)}/cv-original`, signal);
+
+export const fetchApplicationCVPreview = (applicationId: string, signal?: AbortSignal) =>
+  fetchSubmittedCvFile(`${applicationCvPath(applicationId)}/cv-preview`, signal);
+
+export const fetchApplicationCVSourcePage = (applicationId: string, pageOrder: number, signal?: AbortSignal) =>
+  fetchSubmittedCvFile(`${applicationCvPath(applicationId)}/cv-pages/${pageOrder}`, signal);
 
 // ============================================================
 // 5. PRODUCTION REAL API CLIENT IMPLEMENTATION
@@ -847,7 +901,7 @@ export class RealApiClient implements ApiClient {
       bio: p.bio || '',
       primaryIndustry: toIndustry(p.targetIndustry || user?.targetIndustry),
       targetIndustry: toIndustry(p.targetIndustry || user?.targetIndustry),
-      targetIndustries: p.targetIndustries || [toIndustry(p.targetIndustry)],
+      targetIndustries: [...new Set([toIndustry(p.targetIndustry || user?.targetIndustry), ...(p.targetIndustries || []).map(toIndustry)])],
       skills: p.skills || [],
       githubUrl: p.githubUrl || '',
       portfolioUrl: p.portfolioUrl || ''
@@ -1254,12 +1308,13 @@ export class RealApiClient implements ApiClient {
       id: String(app.id),
       job: mapApplicationJob(app),
       appliedCvId: String(app.appliedCvId || ''),
-      appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
+      appliedCvTitle: app.snapshot?.cvTitle ?? '',
       appliedCvVersion: app.appliedCvVersionNumber ?? null,
       appliedCvVersionId: app.appliedCvVersionId ?? undefined,
+      candidateAvatarId: app.candidateAvatarId ?? undefined,
       candidateName: app.candidateName || user?.fullName || '',
-      matchStatus: app.matchStatus ?? undefined,
-      aiAnalysisConsent: app.aiAnalysisConsent === true,
+      matchStatus: app.matchCalculationStatus ?? app.matchStatus ?? undefined,
+      aiAnalysisConsent: app.aiAnalysisConsent ?? undefined,
       status: toApplicationStatus(app.status),
       appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : ''
     }));
@@ -1310,13 +1365,14 @@ export class RealApiClient implements ApiClient {
       appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
       appliedCvVersion: app.appliedCvVersionNumber ?? null,
       appliedCvVersionId: app.appliedCvVersionId ?? undefined,
+      candidateAvatarId: app.candidateAvatarId ?? undefined,
       candidateName: app.candidateName || '',
       candidateEmail: app.candidateEmail ?? undefined,
       candidatePhone: app.candidatePhone ?? undefined,
       candidateHeadline: app.candidateHeadline ?? undefined,
       status: toApplicationStatus(app.status),
-      matchScore: app.matchScore != null ? Number(app.matchScore) : undefined,
-      matchStatus: app.matchStatus ?? undefined,
+      matchScore: readNumber(app.matchScore) ?? undefined,
+      matchStatus: app.matchCalculationStatus ?? app.matchStatus ?? undefined,
       matchClassification: app.matchClassification ?? undefined,
       aiAnalysisConsent: app.aiAnalysisConsent ?? undefined,
       proDetailAvailable: app.proDetailAvailable ?? undefined,
@@ -1351,6 +1407,7 @@ export class RealApiClient implements ApiClient {
       appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
       appliedCvVersion: app.appliedCvVersionNumber ?? null,
       appliedCvVersionId: app.appliedCvVersionId ?? undefined,
+      candidateAvatarId: app.candidateAvatarId ?? undefined,
       candidateName: app.candidateName || '',
       candidateEmail: app.candidateEmail ?? undefined,
       candidatePhone: app.candidatePhone ?? undefined,
@@ -1362,8 +1419,8 @@ export class RealApiClient implements ApiClient {
       appliedCvHeadline: app.appliedCvHeadline ?? undefined,
       appliedCvGithubUrl: app.appliedCvGithubUrl ?? undefined,
       status: toApplicationStatus(app.status),
-      matchScore: app.matchScore != null ? Number(app.matchScore) : undefined,
-      matchStatus: app.matchStatus ?? undefined,
+      matchScore: readNumber(app.matchScore) ?? undefined,
+      matchStatus: app.matchCalculationStatus ?? app.matchStatus ?? undefined,
       matchClassification: app.matchClassification ?? undefined,
       aiAnalysisConsent: app.aiAnalysisConsent ?? undefined,
       proDetailAvailable: app.proDetailAvailable ?? undefined,
@@ -1405,14 +1462,15 @@ export class RealApiClient implements ApiClient {
       appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
       appliedCvVersion: app.appliedCvVersionNumber ?? null,
       appliedCvVersionId: app.appliedCvVersionId ?? undefined,
+      candidateAvatarId: app.candidateAvatarId ?? undefined,
       candidateName: app.candidateName || '',
       candidateEmail: app.candidateEmail ?? undefined,
       candidatePhone: app.candidatePhone ?? undefined,
       candidateHeadline: app.candidateHeadline ?? undefined,
       githubUrl: app.candidateGithubUrl ?? undefined,
       status: toApplicationStatus(app.status),
-      matchScore: app.matchScore != null ? Number(app.matchScore) : undefined,
-      matchStatus: app.matchStatus ?? undefined,
+      matchScore: readNumber(app.matchScore) ?? undefined,
+      matchStatus: app.matchCalculationStatus ?? app.matchStatus ?? undefined,
       appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
       snapshot: app.snapshot ? {
         cvTitle: app.snapshot.cvTitle ?? undefined,
@@ -1642,16 +1700,12 @@ export class RealApiClient implements ApiClient {
       throw new ApiError('GET', `/api/v1/matching/jobs/${jobId}/rankings`, 401, 'UNAUTHORIZED', 'Chưa đăng nhập tài khoản nhà tuyển dụng.');
     }
 
-    const json = await apiRequest<unknown>(`/api/v1/matching/jobs/${jobId}/rankings`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    const rawList = getApiRows(json).filter(isRecord);
+    const rawList = (await fetchAllApiRows(`/api/v1/matching/jobs/${jobId}/rankings`)).filter(isRecord);
     return rawList.map((item, idx) => {
       const app = isRecord(item.application) ? item.application : null;
       const cand = app && isRecord(app.candidate) ? app.candidate : null;
       const fallbackCandidate = isRecord(item.candidate) ? item.candidate : null;
-      const appliedAt = app ? readString(app.appliedAt) : '';
+      const appliedAt = readString(app?.appliedAt ?? item.appliedAt);
       const requiredMissing = Array.isArray(item.requiredSkillsMissingNames)
         ? item.requiredSkillsMissingNames.filter((name): name is string => typeof name === 'string')
         : [];
@@ -1667,16 +1721,18 @@ export class RealApiClient implements ApiClient {
         applicationId: String(app?.id || item.applicationId || item.id || ''),
         candidateId: String(cand?.id || item.candidateId || ''),
         candidateName: readString(cand?.fullName) || readString(item.candidateName) || readString(fallbackCandidate?.fullName),
+        candidateAvatarId: readString(item.candidateAvatarId) || undefined,
         headline: readString(cand?.headline) || readString(item.headline),
-        overallMatchScore: overall || 0,
-        coreJdCvScore: core || 0,
+        overallMatchScore: overall,
+        calculationStatus: readString(item.calculationStatus ?? item.status) || undefined,
+        coreJdCvScore: core,
         githubSupportingScore: githubScore ?? undefined,
-        requiredSkillsMatched: requiredMatched || 0,
-        requiredSkillsTotal: requiredTotal || 0,
+        requiredSkillsMatched: requiredMatched,
+        requiredSkillsTotal: requiredTotal,
         requiredSkillsMissingNames: requiredMissing,
-        relevantExperienceYears: experienceYears || 0,
+        relevantExperienceYears: experienceYears,
         appliedDate: appliedAt ? appliedAt.split('T')[0] : readString(item.appliedDate),
-        status: toApplicationStatus(app?.status || item.status),
+        status: toApplicationStatus(app?.status ?? item.applicationStatus),
         gitHubConnected: !!(item.gitHubConnected ?? (item.isGithubActive && item.githubScore != null))
       };
     });
@@ -1726,7 +1782,7 @@ export class RealApiClient implements ApiClient {
       candidateName: readString(data.candidateName),
       overallScore: readNumber(data.overallScore),
       coreScore: readNumber(data.coreScore),
-      githubScore: data.githubScore != null ? Number(data.githubScore) : undefined,
+      githubScore: readNumber(data.githubScore),
       githubScoreActive: !!data.githubScoreActive,
       algorithmVersion: readString(data.algorithmVersion) || undefined,
       calculationStatus: readString(data.calculationStatus) || undefined,
@@ -1758,11 +1814,30 @@ export class RealApiClient implements ApiClient {
         weightedContribution: readNumber(factor.weightedContribution) ?? undefined,
         calculationMethod: readString(factor.calculationMethod) || undefined,
         algorithmVersion: readString(factor.algorithmVersion) || undefined,
-        status: readString(factor.status) || 'MODERATE',
+        status: readString(factor.status),
         explanation: readString(factor.explanation),
         evidence: readString(factor.evidence) || undefined
       })),
       humanReadableExplanation: readString(data.humanReadableExplanation),
+      evidences: getObjectRows(data.evidences).map(evidence => ({
+        id: readString(evidence.id) || undefined,
+        sourceType: readString(evidence.sourceType),
+        sourceId: readString(evidence.sourceId) || undefined,
+        sourceVersionId: readString(evidence.sourceVersionId) || undefined,
+        provenance: readString(evidence.provenance) || undefined,
+        contentSha256: readString(evidence.contentSha256) || undefined,
+        quoteStartOffset: readNumber(evidence.quoteStartOffset) ?? undefined,
+        quoteEndOffset: readNumber(evidence.quoteEndOffset) ?? undefined,
+        section: readString(evidence.section),
+        snippet: readString(evidence.snippet),
+        requirementText: readString(evidence.requirementText) || undefined,
+        requirementId: readString(evidence.requirementId) || undefined,
+        candidateValue: readString(evidence.candidateValue) || undefined,
+        matchStatus: readString(evidence.matchStatus) || undefined,
+        similarityConfidence: readNumber(evidence.similarityConfidence) ?? undefined,
+        validationStatus: readString(evidence.validationStatus) || undefined,
+        normalizedValue: readNumber(evidence.normalizedValue) ?? undefined,
+      })),
       githubAssessment: github ? {
         connected: github.connected === true,
         status: toGitHubStatus(github.status || (github.connected ? 'SYNCED' : 'NOT_CONNECTED')),
@@ -1772,15 +1847,15 @@ export class RealApiClient implements ApiClient {
         languageDistribution: distribution,
         activitySignal: github.activitySignal === 'HIGH' || github.activitySignal === 'LOW' || github.activitySignal === 'MODERATE' || github.activitySignal === 'LIMITED_OBSERVABLE_ACTIVITY'
           ? github.activitySignal
-          : (github.connected ? 'MODERATE' : 'LIMITED_OBSERVABLE_ACTIVITY'),
+          : undefined,
         latestActivityDaysAgo: readNumber(github.latestActivityDaysAgo) ?? undefined,
         repos: getObjectRows(github.repos).map((repo) => ({
           name: readString(repo.name),
           description: readString(repo.description),
           primaryLanguage: readString(repo.primaryLanguage),
-          stars: readNumber(repo.stars) ?? 0,
-          forks: readNumber(repo.forks) ?? 0,
-          updatedDaysAgo: readNumber(repo.updatedDaysAgo) ?? 0,
+          stars: readNumber(repo.stars),
+          forks: readNumber(repo.forks),
+          updatedDaysAgo: readNumber(repo.updatedDaysAgo),
           relevanceExplanation: readString(repo.relevanceExplanation)
         })),
         overallAssessment: readString(github.overallAssessment) || undefined

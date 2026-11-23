@@ -13,6 +13,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class UserAdminDto {
     private UUID id;
+    private UUID avatarId;
     private String email;
     private Role role;
     private Boolean isActive;

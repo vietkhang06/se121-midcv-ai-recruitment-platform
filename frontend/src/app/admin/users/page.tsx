@@ -1,5 +1,6 @@
 'use client';
 
+import { AccountAvatar } from '@/components/account/AccountAvatar';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
@@ -20,7 +21,6 @@ import {
   UserCheck,
   ChevronLeft,
   ChevronRight,
-  Mail
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { UserAdminDto, UserRole } from '@/types';
@@ -358,7 +358,7 @@ export default function AdminUsersPage() {
                   >
                     <td className="py-4 px-4 font-sans font-medium text-slate-900 dark:text-white">
                       <div className="flex items-center gap-1.5">
-                        <Mail className="w-3.5 h-3.5 text-slate-400" />
+                        <AccountAvatar name={u.fullName || u.email} avatarId={u.avatarId} className="size-8 text-xs" />
                         <span>{u.email}</span>
                       </div>
                     </td>

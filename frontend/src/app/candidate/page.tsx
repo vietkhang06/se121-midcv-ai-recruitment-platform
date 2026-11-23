@@ -1,5 +1,6 @@
 'use client';
 
+import { AccountAvatar } from '@/components/account/AccountAvatar';
 import { statusLabel } from '@/lib/statusLabels';
 import { isJobExpired } from '@/lib/jobDeadline';
 import React, { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
@@ -361,12 +362,9 @@ export default function CandidateDashboardPage() {
             <div aria-hidden="true" className="pointer-events-none absolute -bottom-32 left-[38%] h-72 w-72 rounded-xl bg-emerald-200/30 opacity-0 dark:bg-emerald-500/10" />
             <div className="relative grid items-center gap-8 p-5 sm:p-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)] lg:p-10">
               <div className="space-y-5">
-                <div className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white/80 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.15em] text-[var(--primary)] shadow-sm dark:border-[var(--border)] dark:bg-[var(--surface)]/80 dark:text-[var(--retro-sky)]">
-                  <Sparkles className="h-3.5 w-3.5" /> midCV · Career workspace
-                </div>
                 <div className="max-w-3xl space-y-3">
                   <h1 className="text-3xl font-black leading-[1.12] tracking-tight text-[var(--heading)] dark:text-white sm:text-4xl lg:text-[46px]">
-                    {isVi ? <>Tìm cơ hội phù hợp.<br /><span className="text-[var(--primary)] dark:text-[var(--retro-sky)]">Tiến xa hơn cùng midCV.</span></> : <>Find your next opportunity.<br /><span className="text-[var(--primary)] dark:text-[var(--retro-sky)]">Move forward with midCV.</span></>}
+                    {isVi ? 'Tìm việc làm' : 'Find jobs'}
                   </h1>
                   <p className="max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300 sm:text-base">
                     {isVi ? 'Khám phá việc làm đang tuyển, quản lý CV và theo dõi hồ sơ ứng tuyển trong một không gian thống nhất.' : 'Explore published opportunities, manage your CVs, and track applications in one workspace.'}
@@ -424,7 +422,7 @@ export default function CandidateDashboardPage() {
                 <div className="rounded-xl border border-white/80 bg-white/85 p-5 shadow-lg backdrop-blur-sm dark:border-[var(--border)] dark:bg-[var(--surface)]/90">
                   <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-4 dark:border-[var(--border)]">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-[var(--primary)] dark:bg-[var(--surface)] dark:text-[var(--retro-sky)]"><UserRound className="h-5 w-5" /></div>
+                      <AccountAvatar name={displayName} avatarId={user?.avatarId} className="size-11 text-sm" />
                       <div className="min-w-0">
                         <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">{isVi ? 'Không gian ứng viên' : 'Candidate workspace'}</p>
                         <p className="mt-0.5 max-w-[200px] truncate text-sm font-extrabold text-[var(--heading)] dark:text-white">{displayName}</p>
@@ -563,8 +561,7 @@ export default function CandidateDashboardPage() {
             <div aria-hidden="true" className="absolute bottom-0 right-[25%] h-24 w-24 rounded-xl bg-[var(--success)]/20 opacity-0" />
             <div className="relative grid items-center gap-7 lg:grid-cols-[minmax(0,1fr)_auto]">
               <div className="max-w-3xl">
-                <span className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-blue-100"><Sparkles className="h-3.5 w-3.5" />{isVi ? 'Bắt đầu từ hồ sơ của bạn' : 'Start with your profile'}</span>
-                <h2 className="mt-4 text-2xl font-black tracking-tight sm:text-3xl">{isVi ? 'Một CV rõ ràng giúp bạn sẵn sàng cho cơ hội tiếp theo.' : 'A clear CV helps you prepare for your next opportunity.'}</h2>
+                <h2 className="mt-4 text-2xl font-black tracking-tight sm:text-3xl">{isVi ? 'Thêm CV' : 'Add a CV'}</h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100">{isVi ? 'Tải CV có sẵn để hệ thống trích xuất và rà soát, hoặc tạo CV mới bằng công cụ hiện có của midCV.' : 'Upload an existing CV for extraction and review, or create a new one using the current midCV builder.'}</p>
                 <div className="mt-5 flex flex-wrap gap-3">
                   <button type="button" onClick={() => setUploadOpen(true)} className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-extrabold text-[var(--heading)] transition hover:bg-blue-50 active:scale-[0.98]"><UploadCloud className="h-4 w-4 text-[var(--primary)]" />{isVi ? 'Tải CV từ thiết bị' : 'Upload a CV'}</button>

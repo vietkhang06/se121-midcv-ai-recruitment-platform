@@ -21,28 +21,28 @@ export interface MetricCardProps {
 
 const variantStyles = {
   primary: {
-    bg: 'bg-white dark:bg-[var(--surface)]',
+    bg: 'bg-[var(--surface)]',
     border: 'border-[var(--border-soft)] dark:border-[var(--border)]',
     iconBg: 'bg-[var(--surface-secondary)] dark:bg-[var(--surface)]',
     iconColor: 'text-[var(--primary)] dark:text-[var(--retro-sky)]',
     valueColor: 'text-[var(--heading)] dark:text-white',
   },
   success: {
-    bg: 'bg-white dark:bg-[var(--surface)]',
+    bg: 'bg-[var(--surface)]',
     border: 'border-[var(--border-soft)] dark:border-[var(--border)]',
     iconBg: 'bg-[var(--surface-secondary)] dark:bg-[var(--success)]/15',
     iconColor: 'text-[var(--success)] dark:text-[var(--success)]',
     valueColor: 'text-[var(--heading)] dark:text-white',
   },
   warning: {
-    bg: 'bg-white dark:bg-[var(--surface)]',
+    bg: 'bg-[var(--surface)]',
     border: 'border-[var(--border-soft)] dark:border-[var(--border)]',
     iconBg: 'bg-[var(--surface-secondary)] dark:bg-[var(--warning)]/15',
     iconColor: 'text-[var(--warning)] dark:text-[var(--warning)]',
     valueColor: 'text-[var(--heading)] dark:text-white',
   },
   neutral: {
-    bg: 'bg-white dark:bg-[var(--surface)]',
+    bg: 'bg-[var(--surface)]',
     border: 'border-[var(--border-soft)] dark:border-[var(--border)]',
     iconBg: 'bg-[var(--surface)] dark:bg-[var(--surface)]',
     iconColor: 'text-[var(--text-secondary)] dark:text-[var(--text-secondary)]',
@@ -88,7 +88,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       }`}
     >
       <div className="flex items-center justify-between gap-3 mb-2">
-        <span className="text-xs font-semibold text-[var(--text-secondary)] dark:text-[var(--text-secondary)] block truncate">
+        <span className="text-xs font-semibold text-[var(--text-secondary)] dark:text-[var(--text-secondary)] block">
           {label}
         </span>
 
@@ -128,7 +128,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       </div>
 
       {subtext && (
-        <p className="text-[11px] text-[var(--text-secondary)] dark:text-[var(--text-secondary)] leading-tight truncate">
+        <p className="text-[11px] text-[var(--text-secondary)] dark:text-[var(--text-secondary)] leading-snug">
           {subtext}
         </p>
       )}

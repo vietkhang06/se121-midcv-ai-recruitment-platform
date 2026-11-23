@@ -1,4 +1,5 @@
 "use client";
+import { AccountAvatar } from '@/components/account/AccountAvatar';
 import { statusLabel } from '@/lib/statusLabels';
 import { SessionList } from '@/components/auth/SessionList';
 import { useEffect, useState } from "react";
@@ -458,6 +459,7 @@ function AccountSection({
           )}
           {views.map((v) => (
             <article key={v.id} className="inbox-list-row">
+              <AccountAvatar name={v.recruiter_name} avatarId={v.recruiter_avatar_id} />
               <div>
                 <strong>{v.recruiter_name}</strong>
                 <span>{v.company_name}</span>
@@ -472,7 +474,10 @@ function AccountSection({
       {loaded && tab === "security" && (
         <>
           <SessionList />
-          <strong>{account?.full_name}</strong>
+          <div className="flex items-center gap-2">
+            <AccountAvatar name={user?.fullName} avatarId={user?.avatarId} />
+            <strong>{user?.fullName || account?.full_name}</strong>
+          </div>
           <p>{account?.email}</p>
           <p>
             {account?.email_verified

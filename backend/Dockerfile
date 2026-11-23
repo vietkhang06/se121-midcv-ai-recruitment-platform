@@ -12,7 +12,7 @@ ENV PORT_BACKEND=8080 \
     JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError" \
     TZ=Asia/Ho_Chi_Minh
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && apt-get install -y --no-install-recommends ca-certificates curl libreoffice-writer fonts-carlito fonts-liberation \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system --gid 10001 midcv \
     && useradd --system --uid 10001 --gid midcv --home-dir /app --shell /usr/sbin/nologin midcv \

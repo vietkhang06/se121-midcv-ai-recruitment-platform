@@ -1,0 +1,10 @@
+app:
+  email-mode: SMTP
+
+spring:
+  mail:
+    host: ${DEMO_SMTP_HOST:127.0.0.1}
+    port: ${DEMO_SMTP_PORT:1025}
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false

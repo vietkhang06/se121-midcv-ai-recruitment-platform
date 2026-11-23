@@ -20,12 +20,14 @@ public class ApplicationResponse {
     private ApplicationJobSummary job;
     private UUID candidateId;
     private String candidateName;
+    private UUID candidateAvatarId;
     private UUID appliedCvId;
     private UUID appliedCvVersionId;
     private Integer appliedCvVersionNumber;
     private ApplicationStatus status;
     private java.math.BigDecimal matchScore;
     private String matchStatus;
+    private String matchCalculationStatus;
     private Boolean aiAnalysisConsent;
     /** Effective recruiter access, separate from the persisted subscription plan. */
     private Boolean proDetailAvailable;

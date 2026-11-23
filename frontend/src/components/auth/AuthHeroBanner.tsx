@@ -120,8 +120,8 @@ export const AuthHeroBanner: React.FC<AuthHeroBannerProps> = ({ role, className 
           </h1>
           <p className="mt-3 sm:mt-4 text-xs sm:text-sm text-slate-200/90 leading-relaxed font-normal drop-shadow-sm max-w-[460px]">
             {isVi
-              ? 'Tạo tài khoản nhà tuyển dụng trên midCV để đăng tin tuyển dụng, tiếp cận ứng viên phù hợp và tối ưu quy trình tuyển dụng với công nghệ AI.'
-              : 'Create an employer account on midCV to post job opportunities, discover matched candidates, and accelerate hiring with AI.'}
+              ? 'Đăng tin tuyển dụng, xem hồ sơ ứng viên và quản lý các vòng tuyển dụng.'
+              : 'Post jobs, review applications, and manage your hiring pipeline.'}
           </p>
         </div>
       </div>

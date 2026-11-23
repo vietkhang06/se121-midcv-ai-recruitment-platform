@@ -225,6 +225,26 @@ public class AiWorkerClient {
         }
     }
 
+    public Map<String, Object> skillGap(Map<String, Object> request) {
+        String route = "/matching/skill-gap-and-roadmap";
+        String correlationId = UUID.randomUUID().toString();
+        var body = new HashMap<>(request);
+        body.put("correlation_id", correlationId);
+        try {
+            var result = restClient.post().uri(route).contentType(MediaType.APPLICATION_JSON)
+                    .body(body).retrieve().body(Map.class);
+            if (result == null || !(result.get("gap_breakdown") instanceof java.util.List<?>)
+                    || !(result.get("tailored_roadmap") instanceof java.util.List<?>)) {
+                throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE, "Skill gap response is unavailable");
+            }
+            return result;
+        } catch (CustomException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw workerFailure(route, correlationId, ex);
+        }
+    }
+
     public Map<String, Object> runtimeConfiguration() {
         try {
             return restClient.get().uri("/runtime-config").retrieve().body(Map.class);

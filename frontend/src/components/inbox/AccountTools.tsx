@@ -1,10 +1,10 @@
 "use client";
+import { AccountAvatar } from '@/components/account/AccountAvatar';
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Bell,
   MessageSquare,
-  UserRound,
   ChevronDown,
   LogOut,
 } from "lucide-react";
@@ -176,7 +176,7 @@ export function AccountTools() {
         aria-expanded={panel === "account"}
         onClick={(e) => open("account", e.currentTarget)}
       >
-        <UserRound size={18} />
+        <AccountAvatar name={user.fullName} avatarId={user.avatarId} className="size-6 text-[10px]" />
         <ChevronDown size={12} />
       </button>
       {panel && (
@@ -235,9 +235,9 @@ export function AccountTools() {
           ) : (
             <>
               <div className="inbox-identity">
-                <UserRound size={36} />
+                <AccountAvatar name={user.fullName} avatarId={user.avatarId} />
                 <div>
-                  <strong>{data?.full_name || user.fullName}</strong>
+                  <strong>{user.fullName || data?.full_name}</strong>
                   <span>
                     {(data?.email_verified ?? user.emailVerified)
                       ? vi
@@ -247,7 +247,6 @@ export function AccountTools() {
                         ? "Email chưa xác thực"
                         : "Email not verified"}
                   </span>
-                  <small>ID {data?.id || user.id}</small>
                   <span>{data?.email || user.email}</span>
                 </div>
               </div>

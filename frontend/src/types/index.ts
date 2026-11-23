@@ -17,6 +17,7 @@ export type EmailCheckStatus = 'UNKNOWN' | 'CHECKING' | 'AVAILABLE' | 'ALREADY_E
 export type AuthState = 'INITIALIZING' | 'ANONYMOUS' | 'AUTHENTICATED';
 
 export interface User {
+  avatarId?: string;
   id: string;
   email: string;
   fullName: string;
@@ -164,6 +165,7 @@ export type ApplicationStatus =
 export type ApplicationJob = Pick<Job, 'id' | 'title'> & Partial<Job>;
 
 export interface Application {
+  candidateAvatarId?: string;
   id: string;
   job: ApplicationJob;
   appliedCvId: string;
@@ -237,9 +239,9 @@ export interface GitHubRepoItem {
   name: string;
   description: string;
   primaryLanguage: string;
-  stars: number;
-  forks: number;
-  updatedDaysAgo: number;
+  stars: number | null;
+  forks: number | null;
+  updatedDaysAgo: number | null;
   relevanceExplanation: string;
 }
 
@@ -259,18 +261,20 @@ export interface GitHubAssessmentData {
 }
 
 export interface CandidateRankingItem {
+  candidateAvatarId?: string;
   rank: number;
   applicationId: string;
   candidateId: string;
   candidateName: string;
   headline: string;
-  overallMatchScore: number;
-  coreJdCvScore: number;
+  overallMatchScore: number | null;
+  calculationStatus?: string;
+  coreJdCvScore: number | null;
   githubSupportingScore?: number;
-  requiredSkillsMatched: number;
-  requiredSkillsTotal: number;
+  requiredSkillsMatched: number | null;
+  requiredSkillsTotal: number | null;
   requiredSkillsMissingNames: string[];
-  relevantExperienceYears: number;
+  relevantExperienceYears: number | null;
   appliedDate: string;
   status: ApplicationStatus;
   gitHubConnected: boolean;
@@ -289,6 +293,11 @@ export interface EvidenceItem {
   matchStatus?: string;
   similarityConfidence?: number;
   validationStatus?: string;
+  provenance?: string;
+  sourceVersionId?: string;
+  contentSha256?: string;
+  quoteStartOffset?: number;
+  quoteEndOffset?: number;
 }
 
 export interface MatchInspectionData {
@@ -602,6 +611,7 @@ export interface CompanyAdminDto {
 }
 
 export interface UserAdminDto {
+  avatarId?: string;
   id: string;
   email: string;
   role: UserRole;

@@ -167,7 +167,7 @@ public class AdminService {
             RecruiterProfile hr = u.getRole() == Role.HR
                     ? recruiterProfileRepository.findByUserId(u.getId()).orElse(null) : null;
             Company co = hr == null ? null : hr.getCompany();
-            return UserAdminDto.builder().id(u.getId()).email(u.getEmail()).role(u.getRole())
+            return UserAdminDto.builder().id(u.getId()).avatarId(u.getAvatarId()).email(u.getEmail()).role(u.getRole())
                     .isActive(u.getIsActive()).accountStatus(u.getAccountStatus())
                     .emailVerified(u.getEmailVerified()).accountPlan(u.getAccountPlan()).createdAt(u.getCreatedAt())
                     .fullName(c != null ? c.getFullName() : hr != null ? hr.getFullName() : null)

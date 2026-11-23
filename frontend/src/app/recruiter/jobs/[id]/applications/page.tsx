@@ -1,11 +1,14 @@
 'use client';
 
+import { AccountAvatar } from '@/components/account/AccountAvatar';
+import { compareMatchScores } from '@/lib/matchPresentation';
+import { MatchScoreBadge } from '@/components/recruiter/MatchScoreBadge';
 import { APPLICATION_STATUS_LABELS, APPLICATION_TRANSITIONS } from '@/lib/applicationWorkflow';
 
 import React, { useState, useEffect, use, useRef } from 'react';
 import Link from 'next/link';
 import { Job, Application, ApplicationStatus } from '@/types';
-import { fetchRecruiterJobById, fetchJobApplications, updateApplicationStatus } from '@/lib/api';
+import { ApiError, fetchRecruiterJobById, fetchJobApplications, updateApplicationStatus } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
 import {
   ArrowLeft,
@@ -35,6 +38,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
   const [sortBy, setSortBy] = useState<'date' | 'score'>('score');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<'conflict' | 'failed' | null>(null);
   const [updatingAppId, setUpdatingAppId] = useState<string | null>(null);
   const [loadedJobId, setLoadedJobId] = useState<string | null>(null);
   const requestIdRef = useRef(0);
@@ -106,6 +110,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
     const statusRequestId = ++statusRequestSequenceRef.current;
     statusRequestIdsRef.current.set(appId, statusRequestId);
     setUpdatingAppId(appId);
+    setStatusError(null);
     try {
       const current = applications.find(app => app.id === appId);
       if (!current) return;
@@ -114,7 +119,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
       setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: updated.status } : a));
     } catch (err: unknown) {
       if (statusRequestIdsRef.current.get(appId) !== statusRequestId || resolvedParams.id !== jobId) return;
-      alert(err instanceof Error ? err.message : 'Failed to update status');
+      setStatusError(err instanceof ApiError && err.status === 409 ? 'conflict' : 'failed');
     } finally {
       if (statusRequestIdsRef.current.get(appId) === statusRequestId) setUpdatingAppId(null);
     }
@@ -167,7 +172,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
   // Sort Logic
   const sortedApplications = [...filteredApplications].sort((a, b) => {
     if (sortBy === 'score') {
-      return (b.matchScore || 0) - (a.matchScore || 0);
+      return compareMatchScores(a, b);
     }
     return new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime();
   });
@@ -189,7 +194,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="px-2.5 py-0.5 rounded text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 font-sans">
-                  {job.industry || 'Technology'}
+                  {job.industry || '—'}
                 </span>
                 <span className="text-xs text-slate-400 font-sans">Job ID: #{job.id.slice(0, 8)}</span>
               </div>
@@ -276,7 +281,13 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
           </div>
         </div>
 
-        {/* Applications List */}
+        {statusError && <div role="alert" className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+          {statusError === 'conflict' ? (locale === 'vi' ? 'Hồ sơ đã được cập nhật. Hãy tải lại.' : 'The application changed. Reload before updating it.')
+            : (locale === 'vi' ? 'Chưa cập nhật được trạng thái hồ sơ.' : 'Could not update the application status.')}
+          <button type="button" className="ml-3 underline" onClick={() => { setStatusError(null); loadData(); }}>
+            {locale === 'vi' ? 'Tải lại' : 'Reload'}
+          </button>
+        </div>}
         {sortedApplications.length === 0 ? (
           <EmptyState
             type="EMPTY"
@@ -288,16 +299,13 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
         ) : (
           <div className="space-y-3">
             {sortedApplications.map(app => {
-              const score = app.matchScore != null ? Math.round(app.matchScore) : null;
               return (
                 <div
                   key={app.id}
                   className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs hover:border-blue-300 dark:hover:border-blue-800/80 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-base flex-shrink-0">
-                      {(app.candidateName || 'U').charAt(0).toUpperCase()}
-                    </div>
+                    <AccountAvatar name={app.candidateName} avatarId={app.candidateAvatarId} className="size-11 text-sm" />
                     <div className="space-y-1">
                       <div className="flex items-center gap-2.5 flex-wrap">
                         <h4 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -316,17 +324,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                         }`}>
                           {APPLICATION_STATUS_LABELS[app.status][locale === 'vi' ? 0 : 1]}
                         </span>
-                        {score !== null && (
-                          <span className={`px-2 py-0.5 rounded text-[11px] font-sans font-bold ${
-                            score >= 80
-                              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
-                              : score >= 60
-                              ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60'
-                              : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                          }`}>
-                            AI Fit: {score}%
-                          </span>
-                        )}
+                        <MatchScoreBadge application={app} locale={locale} />
                       </div>
 
                       <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 flex-wrap">

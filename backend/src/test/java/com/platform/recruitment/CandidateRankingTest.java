@@ -103,7 +103,7 @@ class CandidateRankingTest {
         when(matchResultRepository.findByApplicationJobIdWithCandidate(jobId)).thenReturn(List.of(result));
 
         var page = rankingService.getRankedCandidatesPage(jobId, null, 0, 20, null, null);
-        String json = new ObjectMapper().writeValueAsString(page);
+        String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(page);
 
         assertEquals(1, page.getContent().size());
         assertEquals("Synthetic Candidate", page.getContent().get(0).getCandidateName());

@@ -1,5 +1,6 @@
 'use client';
 
+import { AccountAvatar } from '@/components/account/AccountAvatar';
 import { AccountTools } from '@/components/inbox/AccountTools';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -214,11 +215,7 @@ export const RecruiterNavbar: React.FC = () => {
           <div className="fixed top-[56px] left-0 right-0 max-h-[calc(100vh-3.5rem)] overflow-y-auto bg-white dark:bg-[var(--surface)] border-b border-[var(--border-soft)] dark:border-[var(--border)] p-5 shadow-2xl space-y-4 z-50 md:hidden animate-fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-[var(--border-soft)] dark:border-[var(--border)]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-[var(--surface)] text-[var(--warning)] dark:text-[var(--warning)] text-xs font-bold flex items-center justify-center">
-                  {user?.fullName
-                    ? user.fullName.trim().charAt(0).toUpperCase()
-                    : 'H'}
-                </div>
+                <AccountAvatar name={user?.fullName} avatarId={user?.avatarId} className="size-8 text-xs" />
 
                 <div>
                   <span className="text-xs font-bold text-slate-900 dark:text-white block">

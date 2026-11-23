@@ -1,6 +1,7 @@
 'use client';
 
-import { APPLICATION_TRANSITIONS } from '@/lib/applicationWorkflow';
+import { AccountAvatar } from '@/components/account/AccountAvatar';
+import { APPLICATION_STATUS_LABELS, APPLICATION_TRANSITIONS } from '@/lib/applicationWorkflow';
 
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
@@ -15,26 +16,24 @@ import {
   fetchApplicationById,
   updateApplicationStatus,
   fetchApplicationAuditLogs,
-  fetchApplicationCVSourcePages,
-  fetchApplicationCVSourcePage,
-  ApplicationCVSourcePage
+  ApiError
 } from '@/lib/api';
+import { AnimatedModalShell } from '@/components/motion';
+import { formatMatchScore, matchPhaseLabels, matchPresentation } from '@/lib/matchPresentation';
+
+import { SubmittedCvViewer } from '@/components/recruiter/SubmittedCvViewer';
 import { ScoreBreakdownCard } from '@/components/recruiter/ScoreBreakdownCard';
 import { GitHubAssessmentCard } from '@/components/recruiter/GitHubAssessmentCard';
 import {
   ArrowLeft,
+  ArrowRight,
+  Copy,
+  Printer,
   FileText,
-  CheckCircle2,
-  Award,
   GitBranch,
-  Sparkles,
-  Calendar,
   ShieldCheck,
   Mail,
   Phone,
-  Share2,
-  Download,
-  ThumbsDown,
   ExternalLink,
   History
 } from 'lucide-react';
@@ -109,23 +108,38 @@ const STATUS_CONFIG: Record<
   }
 };
 
+const decisionLabels: Partial<Record<ApplicationStatus, readonly [string, string]>> = {
+  REVIEWED: ['Đánh dấu đã xem', 'Mark as reviewed'],
+  SHORTLISTED: ['Đưa vào danh sách chọn', 'Shortlist'],
+  INTERVIEWING: ['Chuyển sang phỏng vấn', 'Move to interview'],
+  HIRED: ['Đánh dấu đã tuyển', 'Mark as hired'],
+  REJECTED: ['Từ chối hồ sơ', 'Reject application'],
+};
+
 export default function CandidateMatchInspectionPage({
   params
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const resolvedParams = use(params);
+  const { id } = use(params);
+  return <CandidateMatchInspection key={id} id={id} />;
+}
+
+function CandidateMatchInspection({ id }: { id: string }) {
   const { t, locale } = useLanguage();
+  const vi = locale === 'vi';
+  const language = vi ? 0 : 1;
+  const statusLabel = (status: ApplicationStatus) => APPLICATION_STATUS_LABELS[status][language];
 
   const [data, setData] = useState<MatchInspectionData | null>(null);
   const [application, setApplication] = useState<Application | null>(null);
-  const [decisionError, setDecisionError] = useState<string | null>(null);
+  const [decisionError, setDecisionError] = useState<'conflict' | 'failed' | null>(null);
+  const [copyState, setCopyState] = useState<'copied' | 'failed' | null>(null);
   const [auditState, setAuditState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [auditRevision, setAuditRevision] = useState(0);
   const [auditLogs, setAuditLogs] = useState<ApplicationAuditLogItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [cvSourcePages, setCvSourcePages] = useState<Array<ApplicationCVSourcePage & { previewUrl: string }>>([]);
 
   // Decision Modal State
   const [selectedDecision, setSelectedDecision] =
@@ -137,8 +151,8 @@ export default function CandidateMatchInspectionPage({
   useEffect(() => {
     let active = true;
     Promise.all([
-      fetchMatchInspection(resolvedParams.id).catch(() => null),
-      fetchApplicationById(resolvedParams.id).catch(() => null)
+      fetchMatchInspection(id).catch(() => null),
+      fetchApplicationById(id)
     ])
       .then(([inspectionData, appData]) => {
         if (!active) return;
@@ -156,23 +170,11 @@ export default function CandidateMatchInspectionPage({
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [resolvedParams.id]);
-
-  useEffect(() => {
-    let active = true; const urls: string[] = [];
-    void fetchApplicationCVSourcePages(resolvedParams.id).then(async pages => {
-      const withPreviews = await Promise.all(pages.map(async page => {
-        const blob = await fetchApplicationCVSourcePage(resolvedParams.id, page.page_order);
-        const previewUrl = URL.createObjectURL(blob); urls.push(previewUrl); return { ...page, previewUrl };
-      }));
-      if (active) setCvSourcePages(withPreviews);
-    }).catch(() => { if (active) setCvSourcePages([]); });
-    return () => { active = false; urls.forEach(URL.revokeObjectURL); };
-  }, [resolvedParams.id]);
+  }, [id]);
 
   useEffect(() => {
     let active = true;
-    fetchApplicationAuditLogs(resolvedParams.id).then(logs => {
+    fetchApplicationAuditLogs(id).then(logs => {
       if (!active) return;
       setAuditLogs(logs);
       setAuditState('ready');
@@ -180,7 +182,7 @@ export default function CandidateMatchInspectionPage({
       if (active) setAuditState('error');
     });
     return () => { active = false; };
-  }, [resolvedParams.id, auditRevision]);
+  }, [id, auditRevision]);
 
   function reloadAudit() {
     setAuditState('loading');
@@ -188,7 +190,9 @@ export default function CandidateMatchInspectionPage({
   }
 
   const handleApplyDecision = async (status: ApplicationStatus) => {
-    if (!application) return;
+    if (!application || isSubmittingDecision || decisionError === 'conflict'
+      || !APPLICATION_TRANSITIONS[application.status].includes(status)
+      || (application.status === 'REJECTED' && !decisionNote.trim())) return;
 
     setDecisionError(null);
     setIsSubmittingDecision(true);
@@ -197,19 +201,18 @@ export default function CandidateMatchInspectionPage({
       const updated = await updateApplicationStatus(
         application.id,
         status,
-        decisionNote,
+        decisionNote.trim(),
         application.status
       );
 
-      setApplication(updated);
+      setApplication(current => current ? { ...current, status: updated.status } : current);
       setSelectedDecision(null);
       setDecisionNote('');
 
       // Reload audit logs
       reloadAudit();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to update application status';
-      setDecisionError(message);
+      setDecisionError(err instanceof ApiError && err.status === 409 ? 'conflict' : 'failed');
     } finally {
       setIsSubmittingDecision(false);
     }
@@ -311,7 +314,8 @@ export default function CandidateMatchInspectionPage({
   const candidateDisplayName = application?.appliedCvFullName ||
     (locale === 'vi' ? 'Không ghi trong CV đã nộp' : 'Not provided in submitted CV');
   const detailAccess = data?.detailAccess === true && application?.proDetailAvailable !== false;
-  const classificationOnly = !!data && !detailAccess && !!data.matchClassification;
+  const classification = data?.matchClassification ?? application?.matchClassification;
+  const classificationOnly = !detailAccess && !!classification;
   const classificationLabels: Record<string, string> = locale === 'vi'
     ? { PHU_HOP: 'Phù hợp', CAN_NHAC: 'Cân nhắc', KHONG_PHU_HOP: 'Không phù hợp', CHUA_KHA_DUNG: 'Chưa khả dụng' }
     : { PHU_HOP: 'Suitable', CAN_NHAC: 'Consider', KHONG_PHU_HOP: 'Not suitable', CHUA_KHA_DUNG: 'Unavailable' };
@@ -322,317 +326,196 @@ export default function CandidateMatchInspectionPage({
   const statusCfg =
     STATUS_CONFIG[currentStatus] || STATUS_CONFIG.UNKNOWN;
 
-  // An application may exist before matching has produced an inspection result.
-  // Normalize the score once so the UI safely displays N/A in that case.
-  const overallScore =
-    detailAccess &&
-    typeof data?.overallScore === 'number' &&
-    Number.isFinite(data.overallScore)
-      ? data.overallScore
-      : null;
+  const actions = application ? APPLICATION_TRANSITIONS[currentStatus] : [];
+  const needsReason = currentStatus === 'REJECTED';
+  const decisionLabel = (status: ApplicationStatus) => needsReason && status === 'REVIEWED'
+    ? (vi ? 'Mở lại hồ sơ' : 'Reopen application')
+    : (decisionLabels[status]?.[language] ?? statusLabel(status));
+  const closeDecision = () => {
+    if (isSubmittingDecision) return;
+    setSelectedDecision(null);
+    setDecisionNote('');
+    if (decisionError !== 'conflict') setDecisionError(null);
+  };
 
-  const matchedSkillsCount =
-    data?.requiredSkillsStatus?.filter((s) => s.status === 'MATCH').length || 0;
-
-  const totalSkillsCount = data?.requiredSkillsStatus?.length || 0;
+  const { phase, score } = matchPresentation({
+    matchScore: detailAccess ? data?.overallScore : null,
+    matchStatus: data?.calculationStatus ?? application?.matchStatus,
+    aiAnalysisConsent: application?.aiAnalysisConsent,
+  });
+  const matchTitle = score !== null ? formatMatchScore(score, locale)
+    : classificationOnly && classification ? (classificationLabels[classification] ?? classification)
+    : matchPhaseLabels[phase][language];
+  const matchNote = score !== null ? matchPhaseLabels[phase][language]
+    : classificationOnly
+      ? (vi ? 'Gói Standard hiển thị phân loại đối sánh.' : 'The Standard plan shows the match classification.')
+      : phase === 'FINAL' ? (vi ? 'Điểm chi tiết chưa khả dụng.' : 'The detailed score is unavailable.') : null;
+  const requiredSkills = data?.requiredSkillsStatus ?? [];
+  const matchedSkillsCount = requiredSkills.filter(skill => skill.status === 'MATCH').length;
+  const hasDetailedScore = data && detailAccess && score !== null;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors pb-20 w-full min-w-0">
-      <main className="flex-1 w-full max-w-6xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Top Back Navigation */}
-        <div className="flex items-center justify-between">
-          <Link
-            href={
-              application?.job?.id
-                ? `/recruiter/jobs/${application.job.id}/applications`
-                : '/recruiter/jobs'
-            }
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>
-              {locale === 'vi'
-                ? 'Quay lại danh sách đơn ứng tuyển của tin'
-                : 'Back to Job Applications'}
-            </span>
-          </Link>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-sans text-slate-500 dark:text-slate-400">
-              Application #{resolvedParams.id.slice(0, 8)}
-            </span>
-            <span
-              className={`px-2.5 py-0.5 rounded-xl text-xs font-bold font-sans border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}
+      <main className="flex-1 w-full max-w-6xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+        <div className="space-y-5 border-b border-[var(--border-soft)] pb-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Link
+              href={application?.job?.id ? `/recruiter/jobs/${application.job.id}/applications` : '/recruiter/jobs'}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] hover:underline"
             >
-              {locale === 'vi' ? statusCfg.labelVi : statusCfg.labelEn}
-            </span>
-          </div>
-        </div>
-
-        {/* Header: Candidate & Job Target */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
-          <div className="space-y-1.5">
-            <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 tracking-wider uppercase font-sans block">
-              EVIDENCE VERIFICATION INDEX
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-              {candidateDisplayName}{' '}
-              <span className="text-slate-400 font-normal">→</span>{' '}
-              {application?.job?.title || data?.jobTitle || 'Vị trí tuyển dụng'}
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {locale === 'vi'
-                ? 'Hệ thống đối sánh đa chiều MidCV • Phân tích độ tương thích thực tế dựa trên Grounded Evidence'
-                : 'MidCV Multi-Dimensional Match Engine • Real-time compatibility analysis based on Grounded Evidence'}
-            </p>
+              <ArrowLeft className="size-4 shrink-0" />
+              {vi ? 'Danh sách hồ sơ ứng tuyển' : 'Job applications'}
+            </Link>
+            <span className="text-xs text-[var(--text-secondary)]">{vi ? 'Hồ sơ' : 'Application'} #{id.slice(0, 8)}</span>
           </div>
 
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <button
-              onClick={async () => {
+          <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+            <div className="flex min-w-0 items-center gap-3">
+              <AccountAvatar name={candidateDisplayName} avatarId={application?.candidateAvatarId} className="size-12 text-base sm:size-14" />
+              <div className="min-w-0 space-y-1">
+              <h1 className="break-words text-2xl font-bold text-[var(--heading)] sm:text-3xl">{candidateDisplayName}</h1>
+              <p className="break-words text-sm text-[var(--text-secondary)] sm:text-base">
+                {application?.job?.title || data?.jobTitle || (vi ? 'Vị trí tuyển dụng' : 'Job opening')}
+              </p>
+              </div>
+            </div>
+            <div className="flex min-w-0 flex-wrap items-center gap-2 print:hidden">
+              {application?.snapshot && <a href="#submitted-cv" className="inline-flex min-h-10 items-center gap-2 px-2 text-sm font-semibold text-[var(--primary)] hover:underline">
+                <FileText className="size-4 shrink-0" /> {vi ? 'Xem CV' : 'View CV'}
+              </a>}
+              <button type="button" onClick={async () => {
                 try {
                   await navigator.clipboard.writeText(window.location.href);
-                  alert(
-                    locale === 'vi'
-                      ? 'Đã sao chép liên kết. Người nhận cần có quyền xem hồ sơ.'
-                      : 'Link copied. The recipient needs permission to view this application.'
-                  );
+                  setCopyState('copied');
                 } catch {
-                  alert(
-                    locale === 'vi'
-                      ? 'Không thể sao chép. Hãy sao chép URL trên thanh địa chỉ.'
-                      : 'Could not copy. Copy the URL from the address bar.'
-                  );
+                  setCopyState('failed');
                 }
-              }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[var(--surface)] text-slate-700 dark:text-slate-300 hover:bg-slate-50 font-semibold text-xs transition shadow-xs cursor-pointer"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              <span>{locale === 'vi' ? 'Chia sẻ' : 'Share'}</span>
-            </button>
-
-            <button
-              onClick={() => window.print()}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition shadow-xs cursor-pointer active:scale-95"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>
-                {locale === 'vi' ? 'In báo cáo PDF' : 'Print / Save as PDF'}
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* Top 2-Card Row: Overall Fit Index & Match Explanation Narrative */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          {/* Card 1: Overall Fit Index (Radial progress) */}
-          <div className="md:col-span-4 bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl p-6 sm:p-7 shadow-xs flex flex-col items-center justify-center text-center space-y-4 transition-colors">
-            <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider block font-sans">
-              Overall Fit Index
-            </span>
-
-            {/* Radial SVG Meter */}
-            <div
-              className="relative w-36 h-36 flex items-center justify-center"
-              role="img"
-              aria-label={`${
-                locale === 'vi' ? 'Điểm phù hợp' : 'Match score'
-              } ${
-                overallScore !== null
-                  ? `${overallScore.toFixed(1)}%`
-                  : 'N/A'
-              }`}
-            >
-              <svg
-                className="w-full h-full transform -rotate-90"
-                viewBox="0 0 100 100"
-              >
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  stroke="var(--retro-cream)"
-                  className="stroke-slate-200 dark:stroke-[var(--heading)]"
-                  strokeWidth="8"
-                  fill="transparent"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  stroke="var(--success)"
-                  strokeWidth="8"
-                  strokeDasharray="251.2"
-                  strokeDashoffset={
-                    251.2 * (1 - Math.min(100, overallScore ?? 0) / 100)
-                  }
-                  strokeLinecap="round"
-                  fill="transparent"
-                  className="motion-score-ring"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-editorial font-bold text-slate-900 dark:text-white">
-                  {overallScore !== null
-                    ? `${overallScore.toFixed(1)}%`
-                    : 'N/A'}
-                </span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold font-sans">
-                  MATCH
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                {locale === 'vi' ? 'Hiện tại:' : 'Current:'}
-              </span>
-              <span
-                className={`px-2.5 py-1 rounded-xl text-xs font-bold font-sans border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}
-              >
-                {locale === 'vi' ? statusCfg.labelVi : statusCfg.labelEn}
-              </span>
-            </div>
-          </div>
-
-          {decisionError && (
-            <div role="alert">
-              {decisionError}{' '}
-              <button type="button" className="underline" onClick={() => window.location.reload()}>
-                {locale === 'vi' ? 'Tải lại hồ sơ' : 'Reload application'}
+              }} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border)] px-3 text-sm font-semibold text-[var(--heading)]">
+                <Copy className="size-4 shrink-0" /> {vi ? 'Sao chép liên kết' : 'Copy link'}
+              </button>
+              <button type="button" onClick={() => window.print()} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border)] px-3 text-sm font-semibold text-[var(--heading)]">
+                <Printer className="size-4 shrink-0" /> {vi ? 'In hồ sơ' : 'Print application'}
               </button>
             </div>
-          )}
-          {/* Quick Decision Buttons */}
-          <div className="flex flex-wrap items-center gap-2.5 pt-1">
-            <button
-              type="button"
-              onClick={() => setSelectedDecision('SHORTLISTED')}
-              disabled={!APPLICATION_TRANSITIONS[currentStatus].includes('SHORTLISTED')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
-                currentStatus === 'SHORTLISTED'
-                  ? 'bg-emerald-600 text-white font-bold ring-2 ring-emerald-400'
-                  : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100'
-              }`}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>
-                {locale === 'vi'
-                  ? 'Duyệt hồ sơ (Shortlist)'
-                  : 'Shortlist Candidate'}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedDecision('INTERVIEWING')}
-              disabled={!APPLICATION_TRANSITIONS[currentStatus].includes('INTERVIEWING')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
-                currentStatus === 'INTERVIEWING'
-                  ? 'bg-purple-600 text-white font-bold ring-2 ring-purple-400'
-                  : 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 hover:bg-purple-100'
-              }`}
-            >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>
-                {locale === 'vi' ? 'Mời phỏng vấn' : 'Schedule Interview'}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedDecision('HIRED')}
-              disabled={!APPLICATION_TRANSITIONS[currentStatus].includes('HIRED')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
-                currentStatus === 'HIRED'
-                  ? 'bg-green-700 text-white font-bold ring-2 ring-green-500'
-                  : 'bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/60 hover:bg-green-100'
-              }`}
-            >
-              <Award className="w-3.5 h-3.5" />
-              <span>
-                {locale === 'vi' ? 'Tuyển dụng (Hired)' : 'Offer / Hire'}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedDecision('REJECTED')}
-              disabled={!APPLICATION_TRANSITIONS[currentStatus].includes('REJECTED')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
-                currentStatus === 'REJECTED'
-                  ? 'bg-rose-600 text-white font-bold ring-2 ring-rose-400'
-                  : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 hover:bg-rose-100'
-              }`}
-            >
-              <ThumbsDown className="w-3.5 h-3.5" />
-              <span>
-                {locale === 'vi' ? 'Từ chối (Reject)' : 'Reject'}
-              </span>
-            </button>
           </div>
-
-          {/* Decision Note Drawer */}
-          {currentStatus === 'REJECTED' && (
-            <button type="button" className="underline" onClick={() => setSelectedDecision('REVIEWED')}>
-              {locale === 'vi' ? 'Mở lại đơn (cần lý do)' : 'Reopen application (reason required)'}
-            </button>
-          )}
-          {selectedDecision && (
-            <div className="bg-slate-50 dark:bg-[var(--surface)] border border-blue-200 dark:border-blue-900/60 rounded-xl p-4 mt-3 space-y-3">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-800 dark:text-slate-200">
-                <span>
-                  {locale === 'vi'
-                    ? `Xác nhận chuyển sang: ${STATUS_CONFIG[selectedDecision]?.labelVi}`
-                    : `Confirm transition to: ${STATUS_CONFIG[selectedDecision]?.labelEn}`}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedDecision(null)}
-                  className="text-slate-400 hover:text-slate-600 text-xs"
-                >
-                  ✕ {locale === 'vi' ? 'Hủy' : 'Cancel'}
-                </button>
-              </div>
-
-              <textarea
-                rows={2}
-                value={decisionNote}
-                onChange={(e) => setDecisionNote(e.target.value)}
-                placeholder={
-                  locale === 'vi'
-                    ? 'Nhập ghi chú lý do / nhận xét tuyển dụng (tùy chọn)...'
-                    : 'Enter internal decision note / interview feedback (optional)...'
-                }
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[var(--surface)] text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedDecision(null)}
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800"
-                >
-                  {locale === 'vi' ? 'Hủy' : 'Cancel'}
-                </button>
-                <button
-                  type="button"
-                  disabled={isSubmittingDecision || (currentStatus === 'REJECTED' && !decisionNote.trim())}
-                  onClick={() => handleApplyDecision(selectedDecision)}
-                  className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition active:scale-95 disabled:opacity-50"
-                >
-                  {isSubmittingDecision
-                    ? locale === 'vi'
-                      ? 'Đang lưu...'
-                      : 'Saving...'
-                    : locale === 'vi'
-                      ? 'Lưu quyết định'
-                      : 'Confirm Decision'}
-                </button>
-              </div>
-            </div>
-          )}
+          {copyState && <p role="status" className="text-sm text-[var(--text-secondary)] print:hidden">
+            {copyState === 'copied'
+              ? (vi ? 'Đã sao chép. Người nhận cần quyền xem hồ sơ.' : 'Link copied. The recipient needs access to this application.')
+              : (vi ? 'Hãy sao chép liên kết trên thanh địa chỉ.' : 'Copy the link from the address bar.')}
+          </p>}
         </div>
+
+        <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+          <section className="min-w-0 space-y-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+            <h2 className="text-sm font-semibold text-[var(--text-secondary)]">{vi ? 'Đối sánh với vị trí' : 'Job match'}</h2>
+            <p className="break-words text-xl font-bold text-[var(--heading)] sm:text-2xl">{matchTitle}</p>
+            {matchNote && <p className="text-sm text-[var(--text-secondary)]">{matchNote}</p>}
+            {hasDetailedScore && score !== null && (
+              <meter className="block h-2 w-full accent-[var(--primary)]" min={0} max={100}
+                value={Math.min(100, Math.max(0, score))} aria-label={vi ? 'Điểm đối sánh' : 'Match score'} />
+            )}
+          </section>
+
+          <section className="min-w-0 space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-sm font-semibold text-[var(--text-secondary)]">{vi ? 'Trạng thái hồ sơ' : 'Application status'}</h2>
+              <span role="status" className={`rounded-lg border px-2.5 py-1 text-xs font-bold ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}>
+                {statusLabel(currentStatus)}
+              </span>
+            </div>
+
+            <div className="print:hidden">
+              {actions.length > 0 ? (
+                <>
+                  <p className="mb-2 text-sm text-[var(--text-secondary)]">{vi ? 'Bước xử lý tiếp theo' : 'Next actions'}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {actions.map((status, index) => (
+                      <button key={status} type="button"
+                        onClick={() => {
+                          setDecisionError(null);
+                          setDecisionNote('');
+                          setSelectedDecision(status);
+                        }}
+                        disabled={decisionError === 'conflict'}
+                        className={`inline-flex min-h-10 max-w-full items-center gap-1.5 rounded-lg border px-3 py-2 text-left text-sm font-semibold disabled:opacity-60 ${status === 'REJECTED'
+                          ? 'border-[var(--border-soft)] text-[var(--danger)]'
+                          : index === 0 ? 'border-[var(--primary)] bg-[var(--primary)] text-white' : 'border-[var(--border-soft)] text-[var(--heading)]'}`}
+                      >
+                        {decisionLabel(status)}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-[var(--text-secondary)]">
+                  {application ? (vi ? 'Hồ sơ hiện không có bước chuyển tiếp.' : 'No next action is available for this status.')
+                    : (vi ? 'Chưa có dữ liệu hồ sơ để chuyển vòng.' : 'Application data is unavailable for stage changes.')}
+                </p>
+              )}
+              {decisionError === 'conflict' && !selectedDecision && (
+                <button type="button" className="mt-2 text-sm font-semibold underline" onClick={() => window.location.reload()}>
+                  {vi ? 'Tải lại hồ sơ để tiếp tục' : 'Reload the application to continue'}
+                </button>
+              )}
+            </div>
+          </section>
+        </div>
+
+        <AnimatedModalShell isOpen={selectedDecision !== null} onRequestClose={closeDecision}
+          titleId="recruiter-decision-title" descriptionId="recruiter-decision-description"
+          overlayClassName="print:hidden"
+          panelClassName="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl sm:p-6">
+          {selectedDecision && (
+            <form className="space-y-4" onSubmit={event => {
+              event.preventDefault();
+              void handleApplyDecision(selectedDecision);
+            }}>
+              <div className="space-y-2">
+                <h2 id="recruiter-decision-title" className="text-xl font-bold text-[var(--heading)]">
+                  {decisionLabel(selectedDecision)}
+                </h2>
+                <p id="recruiter-decision-description" className="break-words text-sm text-[var(--text-secondary)]">{candidateDisplayName}</p>
+                <p className="flex flex-wrap items-center gap-2 rounded-lg bg-[var(--surface-secondary)] p-3 text-sm text-[var(--heading)]">
+                  <span>{statusLabel(currentStatus)}</span>
+                  <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+                  <strong>{statusLabel(selectedDecision)}</strong>
+                </p>
+              </div>
+
+              <label className="block space-y-2 text-sm font-semibold text-[var(--heading)]">
+                <span>{needsReason ? (vi ? 'Lý do mở lại hồ sơ' : 'Reason for reopening')
+                  : (vi ? 'Ghi chú nội bộ (tùy chọn)' : 'Internal note (optional)')}</span>
+                <textarea rows={3} data-autofocus="true" required={needsReason} value={decisionNote}
+                  disabled={isSubmittingDecision || decisionError === 'conflict'}
+                  onChange={event => setDecisionNote(event.target.value)}
+                  className="block w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-sm"
+                />
+              </label>
+
+              {decisionError && (
+                <div role="alert" className="space-y-2 rounded-lg bg-[var(--danger-bg)] p-3 text-sm text-[var(--heading)]">
+                  <p>{decisionError === 'conflict'
+                    ? (vi ? 'Trạng thái đã thay đổi ở nơi khác. Hãy tải lại hồ sơ trước khi tiếp tục.' : 'The status changed elsewhere. Reload the application before continuing.')
+                    : (vi ? 'Chưa lưu được quyết định. Bạn có thể thử lại.' : 'Could not save the decision. Try again.')}</p>
+                  {decisionError === 'conflict' && <button type="button" className="font-semibold underline" onClick={() => window.location.reload()}>
+                    {vi ? 'Tải lại hồ sơ' : 'Reload application'}
+                  </button>}
+                </div>
+              )}
+
+              <div className="flex flex-wrap justify-end gap-2">
+                <button type="button" onClick={closeDecision} disabled={isSubmittingDecision}
+                  className="min-h-10 rounded-lg border border-[var(--border-soft)] px-4 py-2 text-sm font-semibold text-[var(--heading)]">
+                  {vi ? 'Hủy' : 'Cancel'}
+                </button>
+                <button type="submit" disabled={isSubmittingDecision || decisionError === 'conflict' || (needsReason && !decisionNote.trim())}
+                  className={`min-h-10 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${selectedDecision === 'REJECTED' ? 'bg-rose-700' : 'bg-[var(--primary)]'}`}>
+                  {isSubmittingDecision ? (vi ? 'Đang lưu…' : 'Saving…') : (vi ? 'Xác nhận' : 'Confirm')}
+                </button>
+              </div>
+            </form>
+          )}
+        </AnimatedModalShell>
 
         {/* Real Candidate Contact & Profile Card */}
         <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-4">
@@ -652,7 +535,7 @@ export default function CandidateMatchInspectionPage({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
             <div>
               <span className="text-slate-400 block mb-0.5">
                 {locale === 'vi' ? 'Họ và tên:' : 'Full Name:'}
@@ -666,8 +549,8 @@ export default function CandidateMatchInspectionPage({
                 {locale === 'vi' ? 'Email liên hệ:' : 'Email Address:'}
               </span>
               <span className="font-semibold text-slate-900 dark:text-white flex items-center gap-1">
-                <Mail className="w-3.5 h-3.5 text-blue-500" />
-                <span className="font-sans">
+                <Mail className="w-3.5 h-3.5 shrink-0 text-blue-500" />
+                <span className="min-w-0 break-all font-sans">
                   {application?.appliedCvEmail ||
                     (locale === 'vi'
                       ? 'Chưa cung cấp email'
@@ -721,146 +604,19 @@ export default function CandidateMatchInspectionPage({
           </div>
         </div>
 
-        {/* Top 2-Card Row: Overall Fit Index & Match Explanation Narrative */}
-        {classificationOnly && (
-          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-            {locale === 'vi' ? 'Gói Standard chỉ hiển thị phân loại: ' : 'Standard plan classification: '}
-            <strong>{classificationLabels[data?.matchClassification || ''] || data?.matchClassification}</strong>
-            {locale === 'vi' ? '. Điểm và minh chứng chi tiết không được cung cấp cho gói này.' : '. Scores and detailed evidence are unavailable on this plan.'}
-          </div>
-        )}
-        {data && detailAccess && data.overallScore !== null && (
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-            {/* Card 1: Overall Fit Index */}
-            <div className="md:col-span-4 bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-7 shadow-xs flex flex-col items-center justify-center text-center space-y-4 transition-colors">
-              <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider block font-sans">
-                Overall Fit Index
-              </span>
-
-              {/* Radial SVG Meter */}
-              <div className="relative w-36 h-36 flex items-center justify-center">
-                <svg
-                  className="w-full h-full transform -rotate-90"
-                  viewBox="0 0 100 100"
-                >
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    stroke="var(--retro-cream)"
-                    className="stroke-slate-200 dark:stroke-slate-800"
-                    strokeWidth="8"
-                    fill="transparent"
-                  />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    stroke="var(--primary)"
-                    strokeWidth="8"
-                    strokeDasharray="251.2"
-                    strokeDashoffset={
-                      251.2 * (1 - Math.min(100, overallScore ?? 0) / 100)
-                    }
-                    strokeLinecap="round"
-                    fill="transparent"
-                    className="transition-all duration-1000"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-bold text-slate-900 dark:text-white font-sans">
-                    {overallScore !== null
-                      ? `${overallScore.toFixed(1)}%`
-                      : 'N/A'}
-                  </span>
-                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold font-sans">
-                    FIT SCORE
-                  </span>
-                </div>
-              </div>
-
-              <span className="text-[11px] font-sans text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                {locale === 'vi'
-                  ? 'Chưa có dữ liệu khoảng tin cậy'
-                  : 'Confidence interval unavailable'}
-              </span>
-            </div>
-
-            {/* Card 2: Match Explanation Narrative */}
-            <div className="md:col-span-8 bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-7 shadow-xs flex flex-col justify-between space-y-4 transition-colors">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold font-sans text-slate-900 dark:text-white uppercase tracking-wider">
-                    Match Explanation Narrative
-                  </h3>
-                  <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 px-2.5 py-0.5 rounded-xl font-sans">
-                    {overallScore === null
-                      ? locale === 'vi'
-                        ? 'Chưa có điểm đối sánh'
-                        : 'Match score unavailable'
-                      : overallScore >= 80
-                        ? locale === 'vi'
-                          ? 'Độ Phù Hợp Cao'
-                          : 'High Match'
-                        : locale === 'vi'
-                          ? 'Độ Phù Hợp Trung Bình'
-                          : 'Moderate Match'}
-                  </span>
-                </div>
-
-                {/* Required by test assertion: 'Giải thích Trí tuệ Nhân tạo' */}
-                <div className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-amber-500" />
-                  <span>
-                    {locale === 'vi'
-                      ? 'Giải thích Trí tuệ Nhân tạo (Grounded Evidence Explanation):'
-                      : 'AI Grounded Evidence Explanation:'}
-                  </span>
-                  <span className="sr-only">
-                    Giải thích Trí tuệ Nhân tạo
-                  </span>
-                </div>
-
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50/50 dark:bg-slate-900/30 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800/80">
-                  {data.humanReadableExplanation}
-                </p>
-              </div>
-
-              {/* Bottom KPI metrics */}
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
-                <div>
-                  <span className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 block font-sans">
-                    {overallScore !== null
-                      ? `${Math.round(overallScore)}%`
-                      : 'N/A'}
-                  </span>
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-sans">
-                    {locale === 'vi'
-                      ? 'ĐIỂM ĐỐI SÁNH TỔNG HỢP'
-                      : 'OVERALL MATCH'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400 block font-sans">
-                    {matchedSkillsCount} / {totalSkillsCount}
-                  </span>
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-sans">
-                    {locale === 'vi'
-                      ? 'KỸ NĂNG KHỚP YÊU CẦU'
-                      : 'MATCHED REQUIRED SKILLS'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Match Scores & Semantic Skills Breakdown */}
-        {data && detailAccess && data.overallScore !== null && <ScoreBreakdownCard data={data} />}
-
-        {/* GitHub Assessment Card */}
-        {data && detailAccess && data.overallScore !== null && (
-          <GitHubAssessmentCard assessment={data.githubAssessment} />
+        {hasDetailedScore && (
+          <>
+            <section className="min-w-0 space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-6">
+              <h2 className="text-base font-bold text-[var(--heading)]">{vi ? 'Giải thích kết quả đối sánh' : 'Match explanation'}</h2>
+              {data.humanReadableExplanation && <p className="break-words whitespace-pre-line text-sm leading-relaxed text-[var(--text-secondary)]">{data.humanReadableExplanation}</p>}
+              {requiredSkills.length > 0 && <p className="text-sm text-[var(--text-secondary)]">
+                <strong className="text-[var(--heading)]">{matchedSkillsCount}/{requiredSkills.length}</strong>{' '}
+                {vi ? 'kỹ năng bắt buộc phù hợp' : 'required skills matched'}
+              </p>}
+            </section>
+            <ScoreBreakdownCard data={data} />
+            <GitHubAssessmentCard assessment={data.githubAssessment} />
+          </>
         )}
 
         {/* Audit Log / Lịch sử Xét duyệt */}
@@ -869,7 +625,7 @@ export default function CandidateMatchInspectionPage({
             <History className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               {locale === 'vi'
-                ? 'Lịch Sử Xét Duyệt Hồ Sơ (Audit Trail)'
+                ? 'Lịch sử xét duyệt'
                 : 'Application Decision History & Audit Trail'}
             </h3>
           </div>
@@ -938,51 +694,8 @@ export default function CandidateMatchInspectionPage({
           )}
         </div>
 
-        {/* Snapshot CV Inspection Section */}
         {application?.snapshot && (
-          <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-7 shadow-xs space-y-4 transition-colors">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4">
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  {locale === 'vi'
-                    ? 'Bản Ghi Snapshot CV Tại Thời Điểm Nộp Đơn'
-                    : 'CV Snapshot at Time of Submission'}
-                </h3>
-              </div>
-              <span className="text-xs font-sans text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-3 py-1 rounded-xl font-semibold">
-                ✓ Immutable Snapshot Preserved
-              </span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
-              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                <span>
-                  {locale === 'vi' ? 'Tiêu đề CV:' : 'CV Title:'}{' '}
-                  <strong className="text-slate-800 dark:text-slate-200">
-                    {application.snapshot.cvTitle || 'CV Ứng tuyển'}
-                  </strong>
-                </span>
-                {application.snapshot.snapshotCreatedAt && (
-                  <span className="font-sans">
-                    {new Date(
-                      application.snapshot.snapshotCreatedAt
-                    ).toLocaleDateString()}
-                  </span>
-                )}
-              </div>
-
-              {application.snapshot.rawTextSnapshot && (
-                <div className="mt-2 max-h-60 overflow-y-auto p-3 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 font-sans text-[11px] text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
-                  {application.snapshot.rawTextSnapshot}
-                </div>
-              )}
-              {cvSourcePages.length > 0 && <ol className="mt-4 grid gap-3 sm:grid-cols-2">{cvSourcePages.map(page => <li key={page.page_order} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[var(--surface)] p-3">
-                <div className="mb-2 text-xs font-semibold">{locale === 'vi' ? 'Trang' : 'Page'} {page.page_order} · {page.filename}</div>
-                <a href={page.previewUrl} target="_blank" rel="noreferrer"><img src={page.previewUrl} alt={`${locale === 'vi' ? 'Trang CV' : 'CV page'} ${page.page_order}`} className="max-h-96 w-full rounded object-contain" /></a>
-              </li>)}</ol>}
-            </div>
-          </div>
+          <SubmittedCvViewer applicationId={id} snapshot={application.snapshot} locale={locale} />
         )}
       </main>
     </div>

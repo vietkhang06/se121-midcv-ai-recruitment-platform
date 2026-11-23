@@ -1,8 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { User, Industry, AuthState } from '@/types';
-import { loginAccount, registerCandidateAccount, registerRecruiterAccount, isJwtExpired, ensureAuthToken, saveAuthTokens, clearAuthSession, apiRequest } from '@/lib/api';
+import { loginAccount, registerCandidateAccount, registerRecruiterAccount, isJwtExpired, ensureAuthToken, saveAuthTokens, clearAuthSession, apiRequest, fetchAccountIdentity } from '@/lib/api';
 
 interface QuickOnboardingData {
   age?: number;
@@ -31,6 +31,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   clearIntendedAction: () => void;
+  updateAccountIdentity: (changes: Pick<Partial<User>, 'avatarId' | 'fullName'>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -71,6 +72,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.addEventListener('midcv:session_expired', handleSessionExpired);
     return () => { active = false; window.removeEventListener('midcv:session_expired', handleSessionExpired); };
   }, []);
+
+  const userId = user?.id;
+  const identityRevision = useRef(0);
+  useEffect(() => {
+    if (!userId) return;
+    const request = new AbortController();
+    const refresh = () => {
+      const revision = ++identityRevision.current;
+      void fetchAccountIdentity(request.signal).then(identity => {
+        if (!request.signal.aborted && revision === identityRevision.current) {
+          setUser(current => current?.id === userId ? { ...current, ...identity } : current);
+        }
+      }).catch(() => {});
+    };
+    refresh();
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === 'midcv:avatar-changed' && event.newValue?.startsWith(`${userId}:`)) refresh();
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      request.abort();
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [userId]);
+
+  const updateAccountIdentity: AuthContextType['updateAccountIdentity'] = changes => {
+    if (!userId) return;
+    identityRevision.current++;
+    setUser(current => current?.id === userId ? { ...current, ...changes } : current);
+    if ('avatarId' in changes) {
+      localStorage.setItem('midcv:avatar-changed', `${userId}:${changes.avatarId ?? 'removed'}`);
+    }
+  };
 
   const setFirstVisitChoice = (choice: 'CANDIDATE' | 'RECRUITER' | 'SKIP', data?: QuickOnboardingData) => {
     setChoice(choice);
@@ -173,7 +207,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         closeAuthModal,
         login,
         logout,
-        clearIntendedAction
+        clearIntendedAction,
+        updateAccountIdentity
       }}
     >
       {children}

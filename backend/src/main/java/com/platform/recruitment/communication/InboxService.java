@@ -363,13 +363,15 @@ public class InboxService {
     actor(u);
     return rows(
         """
-SELECT c.*,j.title job_title,CASE WHEN c.candidate_user_id=? THEN rp.full_name ELSE cp.full_name END peer_name,
+SELECT c.*,j.title job_title,CASE WHEN c.candidate_user_id=? THEN rp.full_name ELSE cp.full_name END peer_name,peer.avatar_id peer_avatar_id,
 (SELECT COUNT(*) FROM inbox_messages m WHERE m.conversation_id=c.id AND m.sender_id<>? AND m.read_at IS NULL) unread,
 (SELECT m.body FROM inbox_messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC,m.id DESC LIMIT 1) last_message
 FROM inbox_conversations c JOIN applications a ON a.id=c.application_id JOIN jobs j ON j.id=a.job_id
 JOIN recruiter_profiles rp ON rp.user_id=c.recruiter_user_id AND rp.company_id=j.company_id JOIN candidate_profiles cp ON cp.id=a.candidate_id
+JOIN users peer ON peer.id=CASE WHEN c.candidate_user_id=? THEN c.recruiter_user_id ELSE c.candidate_user_id END
 WHERE (c.candidate_user_id=? OR c.recruiter_user_id=?) AND (CAST(? AS UUID) IS NULL OR c.id=?) ORDER BY c.updated_at DESC,c.id DESC LIMIT 30 OFFSET ?
 """,
+        u.getId(),
         u.getId(),
         u.getId(),
         u.getId(),
@@ -638,9 +640,9 @@ WHERE (c.candidate_user_id=? OR c.recruiter_user_id=?) AND (CAST(? AS UUID) IS N
   public List<Map<String, Object>> views(User u, int page) {
     candidate(u);
     return rows(
-        "SELECT v.id,v.viewed_at,rp.full_name recruiter_name,co.name company_name FROM"
+        "SELECT v.id,v.viewed_at,rp.full_name recruiter_name,hr.avatar_id recruiter_avatar_id,co.name company_name FROM"
             + " candidate_profile_views v JOIN recruiter_profiles rp ON"
-            + " rp.user_id=v.recruiter_user_id JOIN applications a ON a.id=v.application_id JOIN"
+            + " rp.user_id=v.recruiter_user_id JOIN users hr ON hr.id=rp.user_id JOIN applications a ON a.id=v.application_id JOIN"
             + " jobs j ON j.id=a.job_id JOIN companies co ON co.id=j.company_id WHERE"
             + " v.candidate_user_id=? ORDER BY v.viewed_at DESC LIMIT 30 OFFSET ?",
         u.getId(),

@@ -19,6 +19,7 @@ public class CandidateRankingResponse {
     private UUID applicationId;
     private UUID candidateId;
     private String candidateName;
+    private UUID candidateAvatarId;
     private String headline;
     private BigDecimal overallScore;
     private BigDecimal coreScore;
@@ -31,6 +32,8 @@ public class CandidateRankingResponse {
     private Boolean isGithubActive;
     private Boolean githubFallbackApplied;
     private String status;
+    private String calculationStatus;
+    private com.platform.recruitment.application.ApplicationStatus applicationStatus;
     private String matchingAlgorithmVersion;
     private String aiSummary;
     private ZonedDateTime appliedAt;

@@ -33,7 +33,7 @@ public class CandidateRankingService {
 
         // Pending recomputations must not appear as fresh policy-compliant ranks.
         results = results.stream()
-                .filter(r -> !"STALE_POLICY".equals(r.getStatus()))
+                .filter(r -> !"STALE_POLICY".equals(r.getStatus()) && !"INSUFFICIENT_DATA".equals(r.getStatus()))
                 .collect(Collectors.toList());
 
         // Filter by minimum score if provided
@@ -45,7 +45,8 @@ public class CandidateRankingService {
 
         // Ranking Safety Priority Order:
         return results.stream()
-                .sorted(Comparator.comparing(MatchResult::getRequiredSkillsMissing, Comparator.nullsLast(Comparator.naturalOrder()))
+                .sorted(Comparator.<MatchResult, Boolean>comparing(r -> !"PGVECTOR_READY".equals(r.getStatus()))
+                        .thenComparing(MatchResult::getRequiredSkillsMissing, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(MatchResult::getOverallScore, Comparator.nullsLast(Comparator.reverseOrder()))
                         .thenComparing(MatchResult::getCoreScore, Comparator.nullsLast(Comparator.reverseOrder()))
                         .thenComparing(r -> r.getApplication().getCandidate().getId()))
@@ -65,7 +66,7 @@ public class CandidateRankingService {
         List<MatchResult> allRanked = getRankedCandidatesForJob(jobId, minScoreFilter);
 
         int total = allRanked.size();
-        int start = (int) pageable.getOffset();
+        int start = (int) Math.min(pageable.getOffset(), total);
         int end = Math.min(start + pageable.getPageSize(), total);
         List<MatchResult> pagedList = (start <= total) ? allRanked.subList(start, end) : List.of();
 
@@ -83,6 +84,7 @@ public class CandidateRankingService {
                     .applicationId(app != null ? app.getId() : null)
                     .candidateId(cand != null ? cand.getId() : null)
                     .candidateName(cand != null && cand.getFullName() != null ? cand.getFullName() : (user != null ? user.getEmail() : "Ứng viên"))
+                    .candidateAvatarId(user != null ? user.getAvatarId() : null)
                     .headline(cand != null ? cand.getHeadline() : null)
                     .overallScore(r.getOverallScore())
                     .coreScore(r.getCoreScore())
@@ -95,9 +97,11 @@ public class CandidateRankingService {
                     .isGithubActive(r.getIsGithubActive())
                     .githubFallbackApplied(r.getGithubFallbackApplied())
                     .status(r.getStatus())
+                    .calculationStatus(r.getStatus())
+                    .applicationStatus(app != null ? app.getStatus() : null)
                     .matchingAlgorithmVersion(r.getMatchingAlgorithmVersion())
                     .aiSummary(r.getAiSummary())
-                    .appliedAt(app != null ? app.getCreatedAt() : null)
+                    .appliedAt(app != null ? app.getAppliedAt() : null)
                     .build());
         }
 

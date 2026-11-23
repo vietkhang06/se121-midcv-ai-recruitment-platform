@@ -1,5 +1,6 @@
 "use client";
 
+import { AccountAvatar } from '@/components/account/AccountAvatar';
 import { useLanguage } from '@/context/LanguageContext';
 import { statusLabel } from '@/lib/statusLabels';
 import { useAuth } from "@/context/AuthContext";
@@ -85,9 +86,7 @@ function CandidateRow({
     <article className="grid gap-4 border-t border-[var(--border)] p-4 transition hover:bg-emerald-50/20 lg:grid-cols-[28px_minmax(210px,.9fr)_minmax(200px,.9fr)_minmax(280px,1.25fr)_190px] lg:p-5">
       <input type="checkbox" aria-label={`Chọn ${application.candidateName || application.id}`} checked={selected} onChange={(event) => onSelect(event.target.checked)} className="mt-1 h-4 w-4 accent-emerald-600" />
       <div className="flex min-w-0 gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-emerald-300 bg-emerald-50 text-sm font-black text-emerald-700">
-          {(application.candidateName || "?").trim().slice(0, 1).toUpperCase()}
-        </div>
+        <AccountAvatar name={application.candidateName} avatarId={application.candidateAvatarId} className="size-11 text-sm" />
         <div className="min-w-0">
           <Link href={`/recruiter/applications/${application.id}`} className="truncate font-bold text-[var(--heading)] hover:text-emerald-700">
             {application.candidateName || "Ứng viên"}

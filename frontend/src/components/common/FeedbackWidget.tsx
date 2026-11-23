@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { MessageSquareText, LifeBuoy, X, Copy, Check, ExternalLink } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
 export function FeedbackWidget() {
   const { locale } = useLanguage();
   const isVi = locale === 'vi';
+  const pathname = usePathname();
+  const profilePage = pathname === '/candidate/profile' || pathname === '/recruiter/profile';
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<'choices' | 'feedback'>('choices');
   const [category, setCategory] = useState('PRODUCT');
@@ -30,7 +33,7 @@ export function FeedbackWidget() {
 
   return (
     <>
-      <div className="fixed bottom-4 right-4 z-40 flex flex-col gap-2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2" aria-label={isVi ? 'Tiện ích hỗ trợ' : 'Support tools'}>
+      <div className={`fixed bottom-4 right-4 z-40 flex-col gap-2 sm:bottom-auto sm:top-1/2 sm:flex sm:-translate-y-1/2 ${profilePage ? 'hidden' : 'flex'}`} aria-label={isVi ? 'Tiện ích hỗ trợ' : 'Support tools'}>
         <button type="button" onClick={() => { setOpen(true); setMode('choices'); }} className="flex h-11 w-11 items-center justify-center rounded-full border border-blue-100 bg-white text-[var(--primary)] shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl dark:border-slate-700 dark:bg-slate-900" aria-label={isVi ? 'Góp ý và hỗ trợ' : 'Feedback and support'} title={isVi ? 'Góp ý và hỗ trợ' : 'Feedback and support'}>
           <MessageSquareText size={19} />
         </button>

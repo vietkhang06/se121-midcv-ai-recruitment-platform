@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
 
 
@@ -37,6 +37,7 @@ class SkillGapAnalysisRequest(BaseModel):
         default="Target Position",
         description="Target job title"
     )
+    locale: Literal["vi", "en"] = "vi"
     correlation_id: Optional[str] = None
 
 

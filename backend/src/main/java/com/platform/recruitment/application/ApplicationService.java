@@ -79,6 +79,7 @@ public class ApplicationService {
     private final com.platform.recruitment.suspension.SuspensionGuard suspensionGuard;
     @Autowired private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
     @Autowired private com.platform.recruitment.cv.CVImageSetService cvImageSetService;
+    @Autowired private com.platform.recruitment.document.Documents documents;
 
     @Autowired
     public ApplicationService(
@@ -533,16 +534,50 @@ public class ApplicationService {
         return recruiterResponse(recruiterUser, application, snap);
     }
 
-    @Transactional(readOnly = true)
+    // Checking access also locks rows and records the CV view.
+    @Transactional
     public List<java.util.Map<String,Object>> getApplicationSourcePages(User recruiterUser, UUID applicationId) {
         getApplicationById(recruiterUser, applicationId); // enforces company and entitlement access
         return jdbcTemplate.queryForList("SELECT page_order,filename_snapshot AS filename,media_type_snapshot AS media_type,size_bytes_snapshot AS size_bytes,sha256_snapshot AS source_sha,extracted_text_snapshot AS extracted_text FROM application_cv_snapshot_pages WHERE application_id=? ORDER BY page_order", applicationId);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public com.platform.recruitment.cv.DownloadResult getApplicationSourcePage(User recruiterUser, UUID applicationId, int pageOrder) {
         getApplicationById(recruiterUser, applicationId); // enforces company and entitlement access
         return cvImageSetService.pageContentForApplication(applicationId, pageOrder);
+    }
+
+    @Transactional
+    public com.platform.recruitment.cv.DownloadResult getApplicationOriginalCv(User recruiterUser, UUID applicationId) {
+        getApplicationById(recruiterUser, applicationId);
+        var files = jdbcTemplate.queryForList("""
+                SELECT stored.storage_key, stored.filename, stored.media_type, stored.source_sha
+                FROM applications app
+                JOIN cv_versions submitted ON submitted.id = app.applied_cv_version_id
+                JOIN candidate_profiles candidate ON candidate.id = app.candidate_id
+                JOIN documents source ON source.id = submitted.cv_id AND source.owner_id = candidate.user_id
+                JOIN document_versions stored ON stored.document_id = source.id
+                WHERE app.id = ? AND source.kind = 'CV' AND stored.storage_key IS NOT NULL
+                  AND (stored.id = submitted.id OR stored.version_no < submitted.version_number)
+                ORDER BY (stored.id = submitted.id) DESC, stored.version_no DESC
+                LIMIT 1
+                """, applicationId);
+        if (files.isEmpty()) throw new ResourceNotFoundException("ApplicationOriginalCV", "applicationId", applicationId);
+
+        var file = files.getFirst();
+        try {
+            byte[] bytes = java.nio.file.Files.readAllBytes(documents.path((String) file.get("storage_key")));
+            if (!com.platform.recruitment.document.Documents.shaHex(bytes).equals(file.get("source_sha"))) {
+                throw new CustomException(ErrorCode.FILE_STORAGE_FAILED, "Stored CV checksum does not match.");
+            }
+            return new com.platform.recruitment.cv.DownloadResult(bytes,
+                    java.util.Objects.toString(file.get("filename"), "cv-original"),
+                    java.util.Objects.toString(file.get("media_type"), "application/octet-stream"));
+        } catch (java.nio.file.NoSuchFileException e) {
+            throw new ResourceNotFoundException("ApplicationOriginalCV", "applicationId", applicationId);
+        } catch (java.io.IOException e) {
+            throw new CustomException(ErrorCode.FILE_STORAGE_FAILED, "Unable to read the stored CV.");
+        }
     }
 
     private ApplicationResponse recruiterResponse(
@@ -587,8 +622,10 @@ public class ApplicationService {
         if (matchResultRepository != null && !"CONSENT_NOT_GIVEN".equals(matchStatus)) {
             var matchOpt = matchResultRepository.findByApplicationId(app.getId());
             if (matchOpt.isPresent()) {
-                matchScore = matchOpt.get().getOverallScore();
                 matchStatus = matchOpt.get().getStatus();
+                if (!"INSUFFICIENT_DATA".equals(matchStatus) && !"STALE_POLICY".equals(matchStatus)) {
+                    matchScore = matchOpt.get().getOverallScore();
+                }
             }
         }
 
@@ -612,6 +649,7 @@ public class ApplicationService {
                 .job(ApplicationJobSummary.from(app.getJob()))
                 .candidateId(app.getCandidate().getId())
                 .candidateName(app.getCandidate().getFullName())
+                .candidateAvatarId(app.getCandidate().getUser() != null ? app.getCandidate().getUser().getAvatarId() : null)
                 .candidateEmail(candidateEmail)
                 .candidatePhone(candidatePhone)
                 .candidateHeadline(candidateHeadline)
@@ -627,6 +665,7 @@ public class ApplicationService {
                 .status(app.getStatus())
                 .matchScore(matchScore)
                 .matchStatus(matchStatus)
+                .matchCalculationStatus(matchStatus)
                 .aiAnalysisConsent(app.getAiAnalysisConsent())
                 .appliedAt(app.getAppliedAt())
                 .snapshot(snapshotInfo)

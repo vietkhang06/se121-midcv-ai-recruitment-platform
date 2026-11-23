@@ -128,3 +128,21 @@ class TestPhase8SkillGapRoadmapAcceptance:
         assert "missing_mandatory_count" in data
         assert "tailored_roadmap" in data
         assert len(data["tailored_roadmap"]) >= 1
+
+    def test_roadmap_uses_real_gaps_and_works_outside_technology(self, gap_service):
+        result = gap_service.analyze_gap_and_generate_roadmap(SkillGapAnalysisRequest(
+            candidate_skills=["Copywriting"],
+            jd_required_skills=["Copywriting", "Campaign measurement"],
+            jd_preferred_skills=["Audience research", "Reporting", "Editorial planning"],
+            target_job_title="Marketing assistant",
+            locale="en",
+        ))
+        assert result.tailored_roadmap[0].title == "Learn the priority skills"
+        assert "Marketing assistant" in result.tailored_roadmap[1].practice_project
+        missing = {item.skill_name for item in result.gap_breakdown
+                   if item.category in ("MISSING_MANDATORY", "MISSING_PREFERRED")}
+        assert set(result.tailored_roadmap[1].target_skills) == missing
+        no_gaps = gap_service.analyze_gap_and_generate_roadmap(SkillGapAnalysisRequest(
+            candidate_skills=["Java"], jd_required_skills=["Java"], locale="en",
+        ))
+        assert not no_gaps.tailored_roadmap

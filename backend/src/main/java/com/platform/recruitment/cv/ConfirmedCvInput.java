@@ -24,9 +24,13 @@ public final class ConfirmedCvInput {
     }
 
     public static String text(CVVersion version) {
-        if (version == null || version.getStructuredJsonContent() == null) return "";
+        return version == null ? "" : textFromSnapshot(version.getStructuredJsonContent());
+    }
+
+    public static String textFromSnapshot(String structuredJson) {
+        if (structuredJson == null || structuredJson.isBlank()) return "";
         try {
-            JsonNode root = new ObjectMapper().readTree(version.getStructuredJsonContent());
+            JsonNode root = new ObjectMapper().readTree(structuredJson);
             if (!root.isObject()) return "";
             StringBuilder out = new StringBuilder();
             for (String section : new String[]{"summary", "skills", "work_experience", "experience", "experiences",
