@@ -1,5 +1,6 @@
 'use client';
 
+import { statusLabel } from '@/lib/statusLabels';
 import React from 'react';
 import { GitHubAssessmentData } from '@/types';
 import { GitBranch, Star, GitFork, ExternalLink, Activity } from 'lucide-react';
@@ -49,7 +50,7 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
             </span>
           </div>
           <span data-testid="github-status" className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border font-sans ${badgeColor}`}>
-            {assessment.status || 'NOT_CONNECTED'}
+            {statusLabel(assessment.status || 'NOT_CONNECTED', locale)}
           </span>
         </div>
         <div className="p-4 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] space-y-1.5 transition-colors">
@@ -107,8 +108,8 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
       </div>
 
       <div className="flex flex-wrap gap-3 text-[11px] text-slate-200">
-        <span>{locale === 'vi' ? 'Chủ sở hữu:' : 'Ownership:'} {assessment.ownershipStatus || 'UNKNOWN'}</span>
-        <span>{locale === 'vi' ? 'Đồng bộ:' : 'Sync:'} {assessment.status || 'UNKNOWN'}</span>
+        <span>{locale === 'vi' ? 'Chủ sở hữu:' : 'Ownership:'} {statusLabel(assessment.ownershipStatus, locale)}</span>
+        <span>{locale === 'vi' ? 'Đồng bộ:' : 'Sync:'} {statusLabel(assessment.status, locale)}</span>
         <span>{locale === 'vi' ? 'Đủ điều kiện chấm điểm:' : 'Scoring eligible:'} {assessment.scoringEligible ? (locale === 'vi' ? 'Có' : 'Yes') : (locale === 'vi' ? 'Không' : 'No')}</span>
       </div>
 
@@ -118,8 +119,8 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
           <span className="text-[10px] font-bold text-amber-400 tracking-wider uppercase block">
             {locale === 'vi' ? 'Trạng thái đồng bộ công khai' : 'Public sync status'}
           </span>
-          <p className="text-sm text-slate-100">{assessment.status || 'UNKNOWN'}</p>
-          <p className="text-[11px] text-slate-300">{assessment.ownershipStatus || (locale === 'vi' ? 'Chưa có trạng thái quyền sở hữu' : 'Ownership not reported')}</p>
+          <p className="text-sm text-slate-100">{statusLabel(assessment.status, locale)}</p>
+          <p className="text-[11px] text-slate-300">{statusLabel(assessment.ownershipStatus, locale)}</p>
         </div>
 
         {/* Right: Verified Language Index */}

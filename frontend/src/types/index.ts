@@ -81,6 +81,10 @@ export interface Job {
   salaryRange?: string;
   department?: string;
   publishedDate: string;
+  applicationDeadline?: string;
+  vacancyCount?: number;
+  descriptionHtml?: string;
+  responsibilitiesHtml?: string;
   description: string;
   responsibilities?: string[];
   requirements: JobRequirement[];
@@ -155,11 +159,13 @@ export type ApplicationStatus =
   | 'INTERVIEWING'
   | 'HIRED'
   | 'REJECTED'
-  | 'UNDER_REVIEW';
+  | 'UNKNOWN';
+
+export type ApplicationJob = Pick<Job, 'id' | 'title'> & Partial<Job>;
 
 export interface Application {
   id: string;
-  job: Job;
+  job: ApplicationJob;
   appliedCvId: string;
   appliedCvTitle: string;
   appliedCvVersion: number | null;

@@ -1,137 +1,98 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Bold, Italic, Underline, List, ListOrdered, Undo, Redo, RemoveFormatting } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
+import { sanitizeRichText } from '@/components/editor/RichText';
 
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
+  label?: string;
   placeholder?: string;
   className?: string;
   minHeight?: string;
 }
 
-export const RichTextEditor: React.FC<RichTextEditorProps> = ({
-  value,
-  onChange,
-  placeholder = 'Nhập nội dung mô tả...',
-  className = '',
-  minHeight = '100px'
-}) => {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const isUpdatingFromProp = useRef(false);
+const tools = [
+  ['bold', Bold, 'In đậm', 'Bold'],
+  ['italic', Italic, 'In nghiêng', 'Italic'],
+  ['underline', Underline, 'Gạch chân', 'Underline'],
+  ['insertUnorderedList', List, 'Danh sách dấu đầu dòng', 'Bullet list'],
+  ['insertOrderedList', ListOrdered, 'Danh sách đánh số', 'Numbered list'],
+  ['undo', Undo, 'Hoàn tác', 'Undo'],
+  ['redo', Redo, 'Làm lại', 'Redo'],
+  ['removeFormat', RemoveFormatting, 'Xóa định dạng', 'Clear formatting'],
+] as const;
 
-  // Sync prop value into contentEditable DOM without moving caret on every keypress
+export function RichTextEditor({
+  value, onChange, label, placeholder, className = '', minHeight = '100px',
+}: RichTextEditorProps) {
+  const { locale } = useLanguage();
+  const isVi = locale === 'vi';
+  const editorRef = useRef<HTMLDivElement>(null);
+  const lastValue = useRef<string | null>(null);
+  const selectionRange = useRef<Range | null>(null);
+  const fieldLabel = label ?? (isVi ? 'Nội dung văn bản' : 'Text content');
+
   useEffect(() => {
-    if (editorRef.current && !isUpdatingFromProp.current) {
-      if (editorRef.current.innerHTML !== (value || '')) {
-        editorRef.current.innerHTML = value || '';
-      }
+    if (editorRef.current && value !== lastValue.current) {
+      editorRef.current.innerHTML = sanitizeRichText(value || '');
+      lastValue.current = value;
+      selectionRange.current = null;
     }
-    isUpdatingFromProp.current = false;
   }, [value]);
 
-  const handleInput = () => {
-    if (editorRef.current) {
-      isUpdatingFromProp.current = true;
-      const html = editorRef.current.innerHTML;
-      onChange(html);
+  function rememberSelection() {
+    const range = window.getSelection();
+    if (range?.rangeCount && editorRef.current?.contains(range.getRangeAt(0).commonAncestorContainer)) {
+      selectionRange.current = range.getRangeAt(0).cloneRange();
     }
-  };
+  }
 
-  const exec = (command: string, arg?: string) => {
-    document.execCommand(command, false, arg);
-    if (editorRef.current) {
-      editorRef.current.focus();
-      handleInput();
+  function handleInput() {
+    const html = sanitizeRichText(editorRef.current?.innerHTML || '');
+    lastValue.current = html;
+    onChange(html);
+    rememberSelection();
+  }
+
+  function applyCommand(command: string) {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.focus();
+    const selection = window.getSelection();
+    if (selectionRange.current && editor.contains(selectionRange.current.commonAncestorContainer)) {
+      selection?.removeAllRanges();
+      selection?.addRange(selectionRange.current);
     }
-  };
+    document.execCommand(command, false);
+    handleInput();
+  }
 
-  return (
-    <div className={`border border-slate-200 dark:border-[var(--border)] rounded-xl overflow-hidden bg-white dark:bg-[var(--surface)] focus-within:border-blue-500 transition shadow-xs ${className}`}>
-      {/* Formatting Toolbar */}
-      <div className="flex flex-wrap items-center gap-1 p-1.5 border-b border-slate-100 dark:border-[var(--border)] bg-slate-50/80 dark:bg-[var(--surface)]/80 text-slate-600 dark:text-slate-300">
-        <button
-          type="button"
-          onClick={() => exec('bold')}
-          title="In đậm (Bold)"
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition text-xs flex items-center justify-center cursor-pointer"
-        >
-          <Bold className="w-3.5 h-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => exec('italic')}
-          title="In nghiêng (Italic)"
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition text-xs flex items-center justify-center cursor-pointer"
-        >
-          <Italic className="w-3.5 h-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => exec('underline')}
-          title="Gạch chân (Underline)"
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition text-xs flex items-center justify-center cursor-pointer"
-        >
-          <Underline className="w-3.5 h-3.5" />
-        </button>
-
-        <div className="w-px h-4 bg-slate-200 dark:bg-[var(--surface)] mx-1" />
-
-        <button
-          type="button"
-          onClick={() => exec('insertUnorderedList')}
-          title="Danh sách dấu đầu dòng (Bullet list)"
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition text-xs flex items-center justify-center cursor-pointer"
-        >
-          <List className="w-3.5 h-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => exec('insertOrderedList')}
-          title="Danh sách số (Numbered list)"
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition text-xs flex items-center justify-center cursor-pointer"
-        >
-          <ListOrdered className="w-3.5 h-3.5" />
-        </button>
-
-        <div className="w-px h-4 bg-slate-200 dark:bg-[var(--surface)] mx-1" />
-
-        <button
-          type="button"
-          onClick={() => exec('undo')}
-          title="Hoàn tác (Undo)"
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition text-xs flex items-center justify-center cursor-pointer"
-        >
-          <Undo className="w-3.5 h-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => exec('redo')}
-          title="Làm lại (Redo)"
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition text-xs flex items-center justify-center cursor-pointer"
-        >
-          <Redo className="w-3.5 h-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => exec('removeFormat')}
-          title="Xóa định dạng"
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-[var(--surface)] transition text-xs flex items-center justify-center cursor-pointer"
-        >
-          <RemoveFormatting className="w-3.5 h-3.5" />
-        </button>
+  return <div className={className}>
+    {label && <span className="mb-1 block text-sm font-semibold">{label}</span>}
+    <div className="overflow-hidden rounded-xl border border-[var(--border-soft)] bg-[var(--surface)] focus-within:border-[var(--primary)]">
+      <div role="toolbar" aria-label={isVi ? 'Định dạng văn bản' : 'Text formatting'} className="flex flex-wrap gap-1 border-b border-[var(--border-soft)] bg-[var(--surface-secondary)] p-2">
+        {tools.map(([command, Icon, vi, en]) => <button
+          key={command} type="button" title={isVi ? vi : en} aria-label={isVi ? vi : en}
+          onMouseDown={event => event.preventDefault()} onClick={() => applyCommand(command)}
+          className="rounded-md p-2 hover:bg-[var(--surface)] focus-visible:outline-2 focus-visible:outline-[var(--primary)]"
+        ><Icon className="size-4" /></button>)}
       </div>
-
-      {/* Editable Area */}
       <div
-        ref={editorRef}
-        contentEditable
-        onInput={handleInput}
-        data-placeholder={placeholder}
-        className="p-3 text-xs sm:text-sm text-slate-800 dark:text-slate-100 outline-none overflow-y-auto leading-relaxed empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 empty:before:pointer-events-none"
+        ref={editorRef} role="textbox" aria-label={fieldLabel} aria-multiline="true"
+        contentEditable suppressContentEditableWarning
+        onInput={handleInput} onMouseUp={rememberSelection} onKeyUp={rememberSelection} onBlur={rememberSelection}
+        onDrop={event => event.preventDefault()}
+        onPaste={event => {
+          event.preventDefault();
+          document.execCommand('insertText', false, event.clipboardData.getData('text/plain'));
+        }}
+        data-placeholder={placeholder || (isVi ? 'Nhập nội dung…' : 'Enter text…')}
+        className="midcv-richtext break-words p-3 text-sm leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--primary)] empty:before:pointer-events-none empty:before:text-[var(--text-secondary)] empty:before:content-[attr(data-placeholder)]"
         style={{ minHeight }}
       />
     </div>
-  );
-};
+  </div>;
+}

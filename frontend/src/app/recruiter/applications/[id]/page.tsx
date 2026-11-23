@@ -1,5 +1,7 @@
 'use client';
 
+import { APPLICATION_TRANSITIONS } from '@/lib/applicationWorkflow';
+
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import {
@@ -98,9 +100,9 @@ const STATUS_CONFIG: Record<
     text: 'text-rose-700 dark:text-rose-300',
     border: 'border-rose-200 dark:border-rose-800'
   },
-  UNDER_REVIEW: {
-    labelVi: 'Đang xem xét',
-    labelEn: 'Under Review',
+  UNKNOWN: {
+    labelVi: 'Trạng thái chưa xác định',
+    labelEn: 'Unknown status',
     bg: 'bg-amber-50 dark:bg-amber-950/40',
     text: 'text-amber-700 dark:text-amber-300',
     border: 'border-amber-200 dark:border-amber-800'
@@ -117,6 +119,9 @@ export default function CandidateMatchInspectionPage({
 
   const [data, setData] = useState<MatchInspectionData | null>(null);
   const [application, setApplication] = useState<Application | null>(null);
+  const [decisionError, setDecisionError] = useState<string | null>(null);
+  const [auditState, setAuditState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [auditRevision, setAuditRevision] = useState(0);
   const [auditLogs, setAuditLogs] = useState<ApplicationAuditLogItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -133,14 +138,12 @@ export default function CandidateMatchInspectionPage({
     let active = true;
     Promise.all([
       fetchMatchInspection(resolvedParams.id).catch(() => null),
-      fetchApplicationById(resolvedParams.id).catch(() => null),
-      fetchApplicationAuditLogs(resolvedParams.id).catch(() => [])
+      fetchApplicationById(resolvedParams.id).catch(() => null)
     ])
-      .then(([inspectionData, appData, logs]) => {
+      .then(([inspectionData, appData]) => {
         if (!active) return;
         setData(inspectionData);
         setApplication(appData);
-        setAuditLogs(logs);
       })
       .catch((err) => {
         if (!active) return;
@@ -167,9 +170,27 @@ export default function CandidateMatchInspectionPage({
     return () => { active = false; urls.forEach(URL.revokeObjectURL); };
   }, [resolvedParams.id]);
 
+  useEffect(() => {
+    let active = true;
+    fetchApplicationAuditLogs(resolvedParams.id).then(logs => {
+      if (!active) return;
+      setAuditLogs(logs);
+      setAuditState('ready');
+    }).catch(() => {
+      if (active) setAuditState('error');
+    });
+    return () => { active = false; };
+  }, [resolvedParams.id, auditRevision]);
+
+  function reloadAudit() {
+    setAuditState('loading');
+    setAuditRevision(revision => revision + 1);
+  }
+
   const handleApplyDecision = async (status: ApplicationStatus) => {
     if (!application) return;
 
+    setDecisionError(null);
     setIsSubmittingDecision(true);
 
     try {
@@ -185,13 +206,10 @@ export default function CandidateMatchInspectionPage({
       setDecisionNote('');
 
       // Reload audit logs
-      const updatedLogs = await fetchApplicationAuditLogs(application.id);
-      setAuditLogs(updatedLogs);
+      reloadAudit();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to update application status';
-      alert(
-        message
-      );
+      setDecisionError(message);
     } finally {
       setIsSubmittingDecision(false);
     }
@@ -299,10 +317,10 @@ export default function CandidateMatchInspectionPage({
     : { PHU_HOP: 'Suitable', CAN_NHAC: 'Consider', KHONG_PHU_HOP: 'Not suitable', CHUA_KHA_DUNG: 'Unavailable' };
 
   const currentStatus =
-    application?.status || (data ? 'MATCHED' : 'SUBMITTED');
+    application?.status ?? 'UNKNOWN';
 
   const statusCfg =
-    STATUS_CONFIG[currentStatus] || STATUS_CONFIG.SUBMITTED;
+    STATUS_CONFIG[currentStatus] || STATUS_CONFIG.UNKNOWN;
 
   // An application may exist before matching has produced an inspection result.
   // Normalize the score once so the UI safely displays N/A in that case.
@@ -477,11 +495,20 @@ export default function CandidateMatchInspectionPage({
             </div>
           </div>
 
+          {decisionError && (
+            <div role="alert">
+              {decisionError}{' '}
+              <button type="button" className="underline" onClick={() => window.location.reload()}>
+                {locale === 'vi' ? 'Tải lại hồ sơ' : 'Reload application'}
+              </button>
+            </div>
+          )}
           {/* Quick Decision Buttons */}
           <div className="flex flex-wrap items-center gap-2.5 pt-1">
             <button
               type="button"
               onClick={() => setSelectedDecision('SHORTLISTED')}
+              disabled={!APPLICATION_TRANSITIONS[currentStatus].includes('SHORTLISTED')}
               className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
                 currentStatus === 'SHORTLISTED'
                   ? 'bg-emerald-600 text-white font-bold ring-2 ring-emerald-400'
@@ -499,6 +526,7 @@ export default function CandidateMatchInspectionPage({
             <button
               type="button"
               onClick={() => setSelectedDecision('INTERVIEWING')}
+              disabled={!APPLICATION_TRANSITIONS[currentStatus].includes('INTERVIEWING')}
               className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
                 currentStatus === 'INTERVIEWING'
                   ? 'bg-purple-600 text-white font-bold ring-2 ring-purple-400'
@@ -514,6 +542,7 @@ export default function CandidateMatchInspectionPage({
             <button
               type="button"
               onClick={() => setSelectedDecision('HIRED')}
+              disabled={!APPLICATION_TRANSITIONS[currentStatus].includes('HIRED')}
               className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
                 currentStatus === 'HIRED'
                   ? 'bg-green-700 text-white font-bold ring-2 ring-green-500'
@@ -529,6 +558,7 @@ export default function CandidateMatchInspectionPage({
             <button
               type="button"
               onClick={() => setSelectedDecision('REJECTED')}
+              disabled={!APPLICATION_TRANSITIONS[currentStatus].includes('REJECTED')}
               className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
                 currentStatus === 'REJECTED'
                   ? 'bg-rose-600 text-white font-bold ring-2 ring-rose-400'
@@ -543,6 +573,11 @@ export default function CandidateMatchInspectionPage({
           </div>
 
           {/* Decision Note Drawer */}
+          {currentStatus === 'REJECTED' && (
+            <button type="button" className="underline" onClick={() => setSelectedDecision('REVIEWED')}>
+              {locale === 'vi' ? 'Mở lại đơn (cần lý do)' : 'Reopen application (reason required)'}
+            </button>
+          )}
           {selectedDecision && (
             <div className="bg-slate-50 dark:bg-[var(--surface)] border border-blue-200 dark:border-blue-900/60 rounded-xl p-4 mt-3 space-y-3">
               <div className="flex items-center justify-between text-xs font-semibold text-slate-800 dark:text-slate-200">
@@ -582,7 +617,7 @@ export default function CandidateMatchInspectionPage({
                 </button>
                 <button
                   type="button"
-                  disabled={isSubmittingDecision}
+                  disabled={isSubmittingDecision || (currentStatus === 'REJECTED' && !decisionNote.trim())}
                   onClick={() => handleApplyDecision(selectedDecision)}
                   className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition active:scale-95 disabled:opacity-50"
                 >
@@ -839,7 +874,14 @@ export default function CandidateMatchInspectionPage({
             </h3>
           </div>
 
-          {auditLogs.length === 0 ? (
+          {auditState === 'loading' ? (
+            <p>{locale === 'vi' ? 'Đang tải lịch sử…' : 'Loading history…'}</p>
+          ) : auditState === 'error' ? (
+            <div role="alert">
+              {locale === 'vi' ? 'Chưa tải được lịch sử.' : 'Could not load decision history.'}{' '}
+              <button type="button" className="underline" onClick={reloadAudit}>{locale === 'vi' ? 'Thử lại' : 'Retry'}</button>
+            </div>
+          ) : auditLogs.length === 0 ? (
             <p className="text-xs text-slate-400 italic py-2">
               {locale === 'vi'
                 ? 'Chưa có lượt chuyển trạng thái nào được ghi nhận.'
@@ -849,9 +891,9 @@ export default function CandidateMatchInspectionPage({
             <div className="space-y-3">
               {auditLogs.map((log) => {
                 const prevCfg =
-                  STATUS_CONFIG[log.previousStatus] || STATUS_CONFIG.SUBMITTED;
+                  STATUS_CONFIG[log.previousStatus] || STATUS_CONFIG.UNKNOWN;
                 const newCfg =
-                  STATUS_CONFIG[log.newStatus] || STATUS_CONFIG.SUBMITTED;
+                  STATUS_CONFIG[log.newStatus] || STATUS_CONFIG.UNKNOWN;
 
                 return (
                   <div

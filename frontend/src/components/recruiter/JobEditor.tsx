@@ -4,7 +4,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Industry, EmploymentType, Job, Company, RequirementType } from '@/types';
-import { fetchRecruiterCompany, fetchRecruiterJobById, saveJob } from '@/lib/api';
+import { fetchRecruiterCompany, fetchRecruiterJobById, publishJob, saveJob } from '@/lib/api';
+import { RichTextEditor } from '@/components/common/RichTextEditor';
+import { richTextPlain, RichTextDisplay } from '@/components/editor/RichText';
+import { ConfirmActionDialog } from '@/components/common/ConfirmActionDialog';
+import { recruitmentDate, isJobExpired, formatJobDeadline } from '@/lib/jobDeadline';
+import { formatSalary } from '@/lib/i18n';
 import { RecruiterPageHeader } from '@/components/recruiter/RecruiterPageHeader';
 import { SkillCatalogPicker } from '@/components/skills/SkillCatalogPicker';
 import { useLanguage } from '@/context/LanguageContext';
@@ -19,8 +24,7 @@ import {
   Edit3,
   Building2,
   MapPin,
-  DollarSign,
-  Award
+  DollarSign
 } from 'lucide-react';
 
 interface SkillRequirementItem {
@@ -30,13 +34,33 @@ interface SkillRequirementItem {
   minYearsExperience: number;
 }
 
+const controlClass = 'w-full rounded-xl border border-[var(--border-soft)] bg-[var(--surface)] px-3 py-2 text-sm';
+
+function plainAsRichText(text: string): string {
+  const element = document.createElement('div');
+  element.textContent = text;
+  return element.innerHTML.replace(/\r?\n/g, '<br>');
+}
+
+function readSalary(text: string, currency: string): number | null {
+  const whole = ['VND', 'JPY', 'KRW'].includes(currency);
+  const pattern = whole ? /^\d{1,10}$/ : /^\d{1,10}(?:[.,]\d{1,2})?$/;
+  return pattern.test(text) ? Number(text.replace(',', '.')) : null;
+}
+
 export function JobEditor({ jobId }: { jobId?: string }) {
   const router = useRouter();
   const { locale } = useLanguage();
-  const localeRef = useRef(locale);
-  useEffect(() => {
-    localeRef.current = locale;
-  }, [locale]);
+  const isVi = locale === 'vi';
+  const submissionInProgress = useRef(false);
+  const savedDraftId = useRef<string | undefined>(jobId);
+  const [confirmation, setConfirmation] = useState<'publish' | 'update' | 'discard' | null>(null);
+  const [originalDeadline, setOriginalDeadline] = useState('');
+  const [deadline, setDeadline] = useState('');
+  const [vacancies, setVacancies] = useState(jobId ? '' : '1');
+  const [descriptionHtml, setDescriptionHtml] = useState('');
+  const [responsibilitiesHtml, setResponsibilitiesHtml] = useState('');
+  const [salaryMode, setSalaryMode] = useState<'UNDISCLOSED' | 'NEGOTIABLE' | 'FIXED' | 'LEGACY'>('UNDISCLOSED');
   const [company, setCompany] = useState<Company | null>(null);
   const [loadedJobId, setLoadedJobId] = useState<string | null>(null);
   const loadingJob = Boolean(jobId && loadedJobId !== jobId);
@@ -55,16 +79,12 @@ export function JobEditor({ jobId }: { jobId?: string }) {
   const [salaryMin, setSalaryMin] = useState<string>('');
   const [salaryMax, setSalaryMax] = useState<string>('');
   const [salaryCurrency, setSalaryCurrency] = useState<NonNullable<Job['salaryCurrency']>>('VND');
-  const [isSalaryNegotiable, setIsSalaryNegotiable] = useState<boolean>(false);
+  const isSalaryNegotiable = salaryMode === 'NEGOTIABLE';
   const [description, setDescription] = useState<string>('');
   const [responsibilities, setResponsibilities] = useState<string>('');
 
   // Dynamic Rubric Requirements
-  const [requirements, setRequirements] = useState<SkillRequirementItem[]>([
-    { id: 'req-1', skillName: 'Java', requirementType: 'REQUIRED', minYearsExperience: 2 },
-    { id: 'req-2', skillName: 'Spring Boot', requirementType: 'REQUIRED', minYearsExperience: 2 },
-    { id: 'req-3', skillName: 'Docker', requirementType: 'PREFERRED', minYearsExperience: 1 }
-  ]);
+  const [requirements, setRequirements] = useState<SkillRequirementItem[]>([]);
 
   // UI State
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
@@ -83,13 +103,21 @@ export function JobEditor({ jobId }: { jobId?: string }) {
     let active = true;
     void fetchRecruiterJobById(jobId).then((job) => {
       if (!active) return;
-      const amount = (value: number | null | undefined) => value == null ? '' : new Intl.NumberFormat(localeRef.current === 'vi' ? 'vi-VN' : 'en-US', { maximumFractionDigits: 2 }).format(value);
+      const amount = (value: number | null | undefined) => value == null ? '' : String(value);
       setTitle(job.title); setIndustry(job.industryOther ? 'OTHER' : job.industry); setIndustryOther(job.industryOther || '');
       setSeniority(job.seniorityOther ? 'OTHER' : job.seniority); setSeniorityOther(job.seniorityOther || '');
       setEmploymentType(job.employmentTypeOther ? 'OTHER' : job.employmentType); setEmploymentTypeOther(job.employmentTypeOther || '');
       setLocation(job.location); setSalaryCurrency(job.salaryCurrency || 'VND');
       setSalaryMin(amount(job.salaryMin)); setSalaryMax(amount(job.salaryMax));
-      setIsSalaryNegotiable(job.salaryNegotiable === true); setDescription(job.description || '');
+      setSalaryMode(job.salaryNegotiable ? 'NEGOTIABLE'
+        : job.salaryMin == null && job.salaryMax == null ? 'UNDISCLOSED'
+        : job.salaryMin != null && job.salaryMin === job.salaryMax ? 'FIXED' : 'LEGACY');
+      setDescription(job.description || '');
+      setDescriptionHtml(job.descriptionHtml ?? plainAsRichText(job.description || ''));
+      setResponsibilitiesHtml(job.responsibilitiesHtml ?? plainAsRichText((job.responsibilities || []).join('\n')));
+      setVacancies(job.vacancyCount == null ? '' : String(job.vacancyCount));
+      setDeadline(job.applicationDeadline ?? '');
+      setOriginalDeadline(job.applicationDeadline ?? '');
       setResponsibilities((job.responsibilities || []).join('\n')); setOriginalStatus(job.status);
       setRequirements((job.requirements || []).map((req) => ({ id: req.id, skillName: req.skillName,
         requirementType: req.requirementType, minYearsExperience: req.minYearsExperience ?? req.minExperienceYears ?? 0 })));
@@ -103,6 +131,7 @@ export function JobEditor({ jobId }: { jobId?: string }) {
   };
 
   const handleSubmit = async (targetStatus: 'DRAFT' | 'PUBLISHED') => {
+    if (submissionInProgress.current) return;
     setErrorMessage(null);
     setSuccessMessage(null);
 
@@ -116,45 +145,44 @@ export function JobEditor({ jobId }: { jobId?: string }) {
       return;
     }
     const customValues = [[industry, industryOther], [seniority, seniorityOther], [employmentType, employmentTypeOther]] as const;
-    if (customValues.some(([choice, value]) => choice === 'OTHER' ? !value.trim() || value.trim().length > 80 : !!value.trim())) {
-      setErrorMessage(locale === 'vi' ? 'Với lựa chọn Khác, hãy nhập nội dung từ 1 đến 80 ký tự; trường tùy chỉnh khác phải để trống.' : 'For Other, enter 1–80 characters and leave inactive custom fields blank.');
+    if (customValues.some(([choice, value]) => choice === 'OTHER' && (!value.trim() || value.trim().length > 80))) {
+      setErrorMessage(locale === 'vi' ? 'Với lựa chọn Khác, hãy nhập nội dung từ 1 đến 80 ký tự.' : 'For Other, enter 1–80 characters.');
       return;
     }
 
-    const parseAmount = (raw: string) => {
-      const cleaned = raw.trim().replace(/\s/g, '');
-      if (!cleaned) return null;
-      const decimalDigits = ['JPY', 'KRW', 'VND'].includes(salaryCurrency) ? 0 : 2;
-      const normalized = locale === 'vi' ? cleaned.replace(/\./g, '').replace(',', '.') : cleaned.replace(/,/g, '');
-      const amountPattern = decimalDigits === 0 ? /^\d+$/ : new RegExp(`^\\d+(?:\\.\\d{1,${decimalDigits}})?$`);
-      if (!amountPattern.test(normalized)) return null;
-      const amount = Number(normalized);
-      return Number.isFinite(amount) && amount >= 0 ? amount : null;
-    };
-    const salaryMinValue = salaryMin.trim() ? parseAmount(salaryMin) : null;
-    const salaryMaxValue = salaryMax.trim() ? parseAmount(salaryMax) : null;
-    if (!isSalaryNegotiable && ((salaryMin.trim() && salaryMinValue === null) || (salaryMax.trim() && salaryMaxValue === null))) {
-      setErrorMessage(locale === 'vi' ? `Mức lương ${salaryCurrency} không hợp lệ. Kiểm tra dấu phân cách và số chữ số thập phân.` : `Invalid ${salaryCurrency} amount. Check separators and decimal places.`);
+    const salaryMinValue = salaryMode === 'FIXED' ? readSalary(salaryMin, salaryCurrency) : salaryMode === 'LEGACY' && salaryMin !== '' ? Number(salaryMin) : null;
+    const salaryMaxValue = salaryMode === 'FIXED' ? salaryMinValue : salaryMode === 'LEGACY' && salaryMax !== '' ? Number(salaryMax) : null;
+    if (salaryMode === 'FIXED' && salaryMinValue === null) {
+      setErrorMessage(isVi ? 'Nhập một mức lương hợp lệ.' : 'Enter a valid salary amount.');
       return;
     }
-    if (!isSalaryNegotiable && salaryMinValue !== null && salaryMaxValue !== null && salaryMinValue > salaryMaxValue) {
-      setErrorMessage(locale === 'vi' ? 'Lương tối thiểu không được cao hơn lương tối đa.' : 'Minimum salary cannot exceed maximum salary.');
+    const vacancyCount = vacancies === '' ? undefined : Number(vacancies);
+    if ((vacancyCount === undefined && (targetStatus === 'PUBLISHED' || !jobId))
+        || (vacancyCount !== undefined && (!Number.isInteger(vacancyCount) || vacancyCount < 1 || vacancyCount > 10000))) {
+      setErrorMessage(isVi ? 'Số lượng tuyển phải là số nguyên từ 1 đến 10.000.' : 'Openings must be a whole number from 1 to 10,000.');
+      return;
+    }
+    if ((targetStatus === 'PUBLISHED' && !deadline)
+        || (isJobExpired(deadline) && (targetStatus === 'PUBLISHED' || deadline !== originalDeadline))
+        || (originalStatus === 'PUBLISHED' && originalDeadline && !deadline)) {
+      setErrorMessage(isVi ? 'Chọn hạn nộp từ hôm nay trở đi. Tin đang đăng đã có hạn nộp cần giữ hoặc gia hạn.' : 'Choose today or a later deadline. Keep or extend an existing deadline on a published job.');
       return;
     }
 
     if (targetStatus === 'PUBLISHED' && company?.verificationStatus !== 'VERIFIED') {
       setErrorMessage(
         locale === 'vi'
-          ? 'Doanh nghiệp chưa được xác minh. Bạn chỉ có thể Lưu Bản Nháp (DRAFT). Vui lòng liên hệ Quản trị viên để xác minh công ty trước khi xuất bản.'
-          : 'Company is not verified. You can only save as DRAFT until verified by administrator.'
+          ? 'Doanh nghiệp cần được xác minh để đăng tin. Bạn vẫn có thể lưu bản nháp.'
+          : 'Company is not verified. You can save a draft while awaiting verification.'
       );
       return;
     }
 
+    submissionInProgress.current = true;
     setIsSubmitting(true);
     try {
       const payload: Job = {
-        id: jobId || `job-temp-${Date.now()}`,
+        id: savedDraftId.current || `job-temp-${Date.now()}`,
         title: title.trim(),
         companyName: company?.name || 'Doanh nghiệp',
         companyVerified: company?.verificationStatus === 'VERIFIED',
@@ -171,6 +199,10 @@ export function JobEditor({ jobId }: { jobId?: string }) {
         salaryCurrency,
         publishedDate: new Date().toISOString().split('T')[0],
         description: description.trim(),
+        descriptionHtml,
+        responsibilitiesHtml,
+        applicationDeadline: deadline || undefined,
+        vacancyCount,
         responsibilities: responsibilities
           ? responsibilities.split('\n').map((s) => s.trim()).filter(Boolean)
           : undefined,
@@ -181,22 +213,26 @@ export function JobEditor({ jobId }: { jobId?: string }) {
           minYearsExperience: r.minYearsExperience,
           minExperienceYears: r.minYearsExperience
         })),
-        status: targetStatus
+        status: 'DRAFT'
       };
 
-      await saveJob(payload);
+      const saved = await saveJob(payload);
+      savedDraftId.current = saved.id;
+      if (targetStatus === 'PUBLISHED' && saved.status !== 'PUBLISHED') {
+        await publishJob(saved.id);
+      }
+      setConfirmation(null);
       setSuccessMessage(
         targetStatus === 'PUBLISHED'
           ? (locale === 'vi' ? 'Đã xuất bản tin tuyển dụng thành công!' : 'Job published successfully!')
           : (locale === 'vi' ? (jobId ? 'Đã lưu thay đổi tin tuyển dụng.' : 'Đã lưu bản nháp tin tuyển dụng thành công!') : 'Job saved successfully!')
       );
 
-      setTimeout(() => {
-        router.push('/recruiter/jobs');
-      }, 1200);
+      router.push('/recruiter/jobs');
     } catch (error: unknown) {
       setErrorMessage(error instanceof Error ? error.message : 'Lỗi khi lưu tin tuyển dụng.');
     } finally {
+      submissionInProgress.current = false;
       setIsSubmitting(false);
     }
   };
@@ -208,9 +244,9 @@ export function JobEditor({ jobId }: { jobId?: string }) {
     <div className="w-full max-w-5xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Header */}
       <RecruiterPageHeader
-        categoryTag="RUBRIC COMPILER"
-        title={jobId ? (locale === 'vi' ? 'Chỉnh sửa tin tuyển dụng' : 'Edit job') : (locale === 'vi' ? 'Tạo Tin Tuyển Dụng & Thiết Lập Rubric' : 'Create Job & Establish Rubric')}
-        subtitle={locale === 'vi' ? 'Thiết lập tiêu chuẩn năng lực, kỹ năng bắt buộc và các trọng số đối sánh AI vector' : 'Define requirements rubric, mandatory skills and vector matching baseline'}
+
+        title={jobId ? (locale === 'vi' ? 'Chỉnh sửa tin tuyển dụng' : 'Edit job') : (locale === 'vi' ? 'Tạo tin tuyển dụng' : 'Create job')}
+        subtitle={locale === 'vi' ? 'Nhập thông tin, mô tả và kỹ năng cho vị trí cần tuyển.' : 'Add the job details, description and required skills.'}
         backLink={{ href: '/recruiter/jobs', label: locale === 'vi' ? 'Quay lại Quản lý bài đăng' : 'Back to Job Postings' }}
         actions={
           <div className="flex items-center gap-2">
@@ -263,7 +299,7 @@ export function JobEditor({ jobId }: { jobId?: string }) {
           <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
           <span>
             {locale === 'vi'
-              ? 'Lưu ý: Doanh nghiệp của bạn đang chờ xác minh. Bạn có thể lưu bản nháp (Draft), sau khi hoàn tất xác minh bạn sẽ xuất bản được tin tuyển dụng.'
+              ? 'Lưu ý: Doanh nghiệp của bạn đang chờ xác minh. Bạn có thể lưu bản nháp, sau khi hoàn tất xác minh bạn sẽ xuất bản được tin tuyển dụng.'
               : 'Note: Company is pending verification. You can save as Draft; publication will be enabled once verified.'}
           </span>
         </div>
@@ -274,18 +310,19 @@ export function JobEditor({ jobId }: { jobId?: string }) {
         <div className="space-y-6">
           {/* Section 1: Basic Job Info */}
           <div className="bg-white dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl p-6 shadow-xs space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--heading)] dark:text-white border-b border-[var(--border-soft)] dark:border-[var(--border)] pb-3">
-              1. Thông Tin Tuyển Dụng Cơ Bản
+            <h3 className="text-sm font-bold text-[var(--heading)] dark:text-white border-b border-[var(--border-soft)] dark:border-[var(--border)] pb-3">
+              Thông tin Tuyển Dụng Cơ Bản
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div className="sm:col-span-2">
                 <label className="block font-semibold text-[var(--heading)] dark:text-slate-300 mb-1">
-                  Tiêu đề vị trí tuyển dụng <span className="text-rose-500">*</span>
+                  {isVi ? 'Tiêu đề vị trí tuyển dụng' : 'Job title'} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   placeholder="Ví dụ: Senior Java Backend Engineer, Data Scientist..."
+                  aria-label={isVi ? 'Tiêu đề vị trí tuyển dụng' : 'Job title'}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white focus:outline-none focus:border-[var(--border)]"
@@ -364,229 +401,113 @@ export function JobEditor({ jobId }: { jobId?: string }) {
                 />
               </div>
 
-              {/* Salary Section */}
-              <div className="sm:col-span-2 space-y-2 pt-2 border-t border-[var(--border-soft)] dark:border-[var(--border)]">
-                <div className="flex items-center justify-between">
-                  <label className="font-semibold text-[var(--heading)] dark:text-slate-300">
-                    {locale === 'vi' ? 'Mức lương (VND / tháng)' : 'Salary (VND / month)'}
-                  </label>
-                  <label className="inline-flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={isSalaryNegotiable}
-                      onChange={(e) => setIsSalaryNegotiable(e.target.checked)}
-                      className="rounded text-[var(--primary)]"
-                    />
-                    <span className="text-[11px] text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">Mức lương Thỏa thuận</span>
-                  </label>
-                </div>
-
-                {!isSalaryNegotiable && <label className="block max-w-sm text-xs font-medium text-[var(--heading)] dark:text-slate-300">
-                  {locale === 'vi' ? 'Đơn vị tiền tệ (giữ nguyên khi đổi ngôn ngữ)' : 'Currency (unchanged when language changes)'}
-                  <select value={salaryCurrency} onChange={(e) => setSalaryCurrency(e.target.value as NonNullable<Job['salaryCurrency']>)} className="mt-1 w-full rounded-xl border border-[var(--border-soft)] bg-[var(--surface)] px-3 py-2 text-sm dark:border-[var(--border)] dark:bg-[var(--surface)] dark:text-white">
-                    {[
-                      ['VND', 'Đồng Việt Nam'], ['USD', 'US Dollar'], ['EUR', 'Euro'], ['GBP', 'British Pound'], ['JPY', 'Japanese Yen'], ['CNY', 'Chinese Yuan'], ['KRW', 'South Korean Won'], ['SGD', 'Singapore Dollar'], ['AUD', 'Australian Dollar'], ['CAD', 'Canadian Dollar'],
-                    ].map(([code, name]) => <option key={code} value={code}>{code} — {locale === 'vi' ? name : ({ VND: 'Vietnamese Dong', USD: 'US Dollar', EUR: 'Euro', GBP: 'British Pound', JPY: 'Japanese Yen', CNY: 'Chinese Yuan', KRW: 'South Korean Won', SGD: 'Singapore Dollar', AUD: 'Australian Dollar', CAD: 'Canadian Dollar' } as Record<string, string>)[code]}</option>)}
+              <label className="space-y-1">
+                <span className="block font-semibold">{isVi ? 'Số lượng tuyển' : 'Openings'}</span>
+                <input type="number" min={1} max={10000} step={1} value={vacancies} onChange={e => setVacancies(e.target.value)} className={controlClass} />
+              </label>
+              <label className="space-y-1">
+                <span className="block font-semibold">{isVi ? 'Hạn nộp hồ sơ' : 'Application deadline'}</span>
+                <input type="date" min={recruitmentDate()} value={deadline} onChange={e => setDeadline(e.target.value)} className={controlClass} />
+                <span className="block text-[var(--text-secondary)]">{isVi ? 'Nhận hồ sơ đến hết ngày đã chọn, giờ Việt Nam.' : 'Applications are accepted through this date, Vietnam time.'}</span>
+              </label>
+              <fieldset className="sm:col-span-2 grid gap-3 border-t border-[var(--border-soft)] pt-3 sm:grid-cols-3">
+                <legend className="font-semibold">{isVi ? 'Mức lương mỗi tháng' : 'Monthly salary'}</legend>
+                <label className="space-y-1">
+                  <span className="block">{isVi ? 'Cách công bố' : 'Display option'}</span>
+                  <select value={salaryMode} onChange={e => {
+                    const mode = e.target.value as typeof salaryMode;
+                    if (mode === 'FIXED' && salaryMode === 'LEGACY') setSalaryMin('');
+                    setSalaryMode(mode);
+                  }} className={controlClass}>
+                    <option value="UNDISCLOSED">{isVi ? 'Chưa công bố' : 'Undisclosed'}</option>
+                    <option value="NEGOTIABLE">{isVi ? 'Thỏa thuận' : 'Negotiable'}</option>
+                    <option value="FIXED">{isVi ? 'Mức cụ thể' : 'Fixed amount'}</option>
+                    {salaryMode === 'LEGACY' && <option value="LEGACY">{isVi ? 'Giữ mức lương đã lưu' : 'Keep saved salary'}</option>}
                   </select>
-                </label>}
-
-                {!isSalaryNegotiable && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <span className="text-[10px] text-[var(--text-secondary)] block mb-1">{locale === 'vi' ? `Lương tối thiểu (${salaryCurrency})` : `Minimum salary (${salaryCurrency})`}</span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        aria-label={locale === 'vi' ? `Lương tối thiểu, ${salaryCurrency} mỗi tháng` : `Minimum salary, ${salaryCurrency} per month`}
-                        value={salaryMin}
-                        onChange={(e) => setSalaryMin(e.target.value)}
-                        placeholder={locale === 'vi' ? 'Ví dụ: 15.000.000' : 'Example: 15,000,000'}
-                        className="w-full px-3.5 py-2 bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white font-sans"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-[var(--text-secondary)] block mb-1">{locale === 'vi' ? `Lương tối đa (${salaryCurrency})` : `Maximum salary (${salaryCurrency})`}</span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        aria-label={locale === 'vi' ? `Lương tối đa, ${salaryCurrency} mỗi tháng` : `Maximum salary, ${salaryCurrency} per month`}
-                        value={salaryMax}
-                        onChange={(e) => setSalaryMax(e.target.value)}
-                        placeholder={locale === 'vi' ? 'Ví dụ: 30.000.000' : 'Example: 30,000,000'}
-                        className="w-full px-3.5 py-2 bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white font-sans"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Section 2: Dynamic Rubric & Requirements Builder */}
-          <div className="bg-white dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl p-6 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border-soft)] dark:border-[var(--border)] pb-3">
-              <div>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--heading)] dark:text-white flex items-center gap-2">
-                  <Award className="w-4 h-4 text-[var(--primary)] dark:text-[var(--retro-sky)]" />
-                  <span>2. Rubric Kỹ Năng & Tiêu Chuẩn Năng Lực (Vector Baseline)</span>
-                </h3>
-                <p className="text-[11px] text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
-                  Kỹ năng Bắt buộc (REQUIRED) sẽ tham gia cơ chế Gating loại trừ; Kỹ năng Ưu tiên (PREFERRED) tính điểm thưởng.
-                </p>
-              </div>
-            </div>
-
-            {/* Existing Requirements Chips */}
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-[var(--heading)] dark:text-slate-300 block">
-                Danh sách tiêu chuẩn đã thiết lập ({requirements.length}):
-              </span>
-
-              {requirements.length === 0 ? (
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[var(--surface)] text-center text-xs text-[var(--text-secondary)]">
-                  Chưa có kỹ năng nào được thêm. Hãy nhập kỹ năng bên dưới để xây dựng rubric.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                  {requirements.map((req) => (
-                    <div
-                      key={req.id}
-                      className="p-2.5 rounded-xl bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] flex items-center justify-between gap-2 shadow-2xs"
-                    >
-                      <div className="space-y-0.5 min-w-0">
-                        <div className="font-bold text-xs text-[var(--heading)] dark:text-white truncate">
-                          {req.skillName}
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[10px]">
-                          <span
-                            className={`px-1.5 py-0.2 rounded font-sans font-bold uppercase ${
-                              req.requirementType === 'REQUIRED'
-                                ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/40'
-                                : 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-300/40'
-                            }`}
-                          >
-                            {req.requirementType}
-                          </span>
-                          <span className="text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
-                            ≥ {req.minYearsExperience} năm
-                          </span>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSkill(req.id)}
-                        className="p-1 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition shrink-0"
-                        title="Xóa kỹ năng"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Add New Skill Form using Canonical Catalog Autocomplete & Favorites */}
-            <div className="p-4 rounded-xl bg-[var(--surface-secondary)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-[var(--primary)] dark:text-[var(--retro-sky)] flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>+ Thêm tiêu chuẩn kỹ năng vào Rubric (Taxonomy Autocomplete & Quick-Pick Yêu thích):</span>
-                </span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-sans">
-                  Phân tách REQUIRED vs PREFERRED
-                </span>
-              </div>
-
-              <SkillCatalogPicker
-                allowRequirementType={true}
-                allowExperienceYears={true}
-                selectedSkills={requirements.map((r) => r.skillName)}
-                onSelectCriteria={(criteria) => {
-                  const exists = requirements.some(
-                    (r) => r.skillName.toLowerCase() === criteria.skillName.trim().toLowerCase()
-                  );
-                  if (exists) {
-                    alert(locale === 'vi' ? 'Kỹ năng này đã có trong danh sách rubric.' : 'Skill already in rubric.');
-                    return;
-                  }
-                  setRequirements([
-                    ...requirements,
-                    {
-                      id: criteria.id || `req-${Date.now()}`,
-                      skillName: criteria.skillName,
-                      requirementType: criteria.requirementType || 'REQUIRED',
-                      minYearsExperience: criteria.minYearsExperience ?? 1
-                    }
-                  ]);
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Section 3: Job Description & Responsibilities */}
-          <div className="bg-white dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl p-6 shadow-xs space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--heading)] dark:text-white border-b border-[var(--border-soft)] dark:border-[var(--border)] pb-3">
-              3. Mô Tả Công Việc (JD Description)
-            </h3>
-
-            <div className="space-y-4 text-xs">
-              <div>
-                <label className="block font-semibold text-[var(--heading)] dark:text-slate-300 mb-1">
-                  Mô tả tổng quát công việc <span className="text-rose-500">*</span>
                 </label>
-                <textarea
-                  rows={4}
-                  placeholder="Mô tả bối cảnh dự án, sứ mệnh của vai trò, văn hóa đội ngũ..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full p-3.5 bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white focus:outline-none focus:border-[var(--border)] leading-relaxed"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-[var(--heading)] dark:text-slate-300 mb-1">
-                  Trách nhiệm chính (Mỗi dòng một gạch đầu dòng)
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="- Thiết kế và phát triển RESTful APIs&#10;- Tối ưu hóa hiệu năng cơ sở dữ liệu&#10;- Review code và hướng dẫn các thành viên junior"
-                  value={responsibilities}
-                  onChange={(e) => setResponsibilities(e.target.value)}
-                  className="w-full p-3.5 bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl text-[var(--heading)] dark:text-white focus:outline-none focus:border-[var(--border)] leading-relaxed"
-                />
-              </div>
+                {salaryMode === 'FIXED' && <>
+                  <label className="space-y-1">
+                    <span className="block">{isVi ? 'Số tiền' : 'Amount'}</span>
+                    <input type="number" min={0} max={9999999999.99} step={['VND', 'JPY', 'KRW'].includes(salaryCurrency) ? 1 : 0.01} inputMode="decimal" value={salaryMin} onChange={e => setSalaryMin(e.target.value)} placeholder="4000000" className={controlClass} />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="block">{isVi ? 'Tiền tệ' : 'Currency'}</span>
+                    <select value={salaryCurrency} onChange={e => setSalaryCurrency(e.target.value as typeof salaryCurrency)} className={controlClass}>
+                      {['VND', 'USD', 'EUR', 'GBP', 'JPY', 'CNY', 'KRW', 'SGD', 'AUD', 'CAD'].map(code => <option key={code}>{code}</option>)}
+                    </select>
+                  </label>
+                </>}
+                {salaryMode === 'LEGACY' && <p className="self-end sm:col-span-2">{formatSalary(readSalary(salaryMin, salaryCurrency), readSalary(salaryMax, salaryCurrency), undefined, locale, false, salaryCurrency)}</p>}
+              </fieldset>
             </div>
           </div>
+
+          <section className="space-y-3 rounded-xl border border-[var(--border-soft)] bg-[var(--surface)] p-4 sm:p-6">
+            <h3 className="font-semibold">{isVi ? 'Kỹ năng cần có' : 'Skills'}</h3>
+            <SkillCatalogPicker
+              compact
+              placeholder={isVi ? 'Tìm hoặc nhập tên kỹ năng' : 'Find or add a skill'}
+              selectedSkills={requirements.map(req => req.skillName)}
+              onAddSkill={skillName => setRequirements(current => current.some(req => req.skillName.toLowerCase() === skillName.trim().toLowerCase())
+                ? current : [...current, { id: crypto.randomUUID(), skillName: skillName.trim(), requirementType: 'REQUIRED', minYearsExperience: 0 }])}
+            />
+            <ul className="divide-y divide-[var(--border-soft)]">
+              {requirements.map(req => (
+                <li key={req.id} className="flex flex-wrap items-center gap-2 py-2">
+                  <span className="min-w-24 flex-1 break-words text-sm font-medium">{req.skillName}</span>
+                  <select aria-label={`${isVi ? 'Loại yêu cầu' : 'Requirement type'} · ${req.skillName}`} value={req.requirementType} onChange={e => {
+                    const requirementType = e.target.value as RequirementType;
+                    setRequirements(current => current.map(item => item.id === req.id ? { ...item, requirementType } : item));
+                  }} className={`${controlClass} !w-auto`}>
+                    <option value="REQUIRED">{isVi ? 'Bắt buộc' : 'Required'}</option>
+                    <option value="PREFERRED">{isVi ? 'Ưu tiên' : 'Preferred'}</option>
+                  </select>
+                  <label className="flex items-center gap-1 text-xs">
+                    <input type="number" min={0} max={50} aria-label={`${isVi ? 'Số năm tối thiểu' : 'Minimum years'} · ${req.skillName}`} value={req.minYearsExperience} onChange={e => {
+                      const minYearsExperience = Math.max(0, Math.min(50, Math.trunc(Number(e.target.value) || 0)));
+                      setRequirements(current => current.map(item => item.id === req.id ? { ...item, minYearsExperience } : item));
+                    }} className={`${controlClass} !w-16`} />
+                    {isVi ? 'năm' : 'years'}
+                  </label>
+                  <button type="button" aria-label={`${isVi ? 'Xóa' : 'Remove'} ${req.skillName}`} onClick={() => handleRemoveSkill(req.id)} className="rounded-lg p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950">
+                    <Trash2 className="size-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section className="space-y-4 rounded-xl border border-[var(--border-soft)] bg-[var(--surface)] p-4 sm:p-6">
+            <RichTextEditor label={isVi ? 'Mô tả công việc' : 'Job description'} value={descriptionHtml} onChange={html => { setDescriptionHtml(html); setDescription(richTextPlain(html)); }} />
+            <RichTextEditor label={isVi ? 'Trách nhiệm chính' : 'Key responsibilities'} value={responsibilitiesHtml} onChange={html => { setResponsibilitiesHtml(html); setResponsibilities(richTextPlain(html)); }} />
+          </section>
 
           {/* Form Actions */}
           <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-3">
-            <Link
-              href="/recruiter/jobs"
+            <button
+              type="button"
+              onClick={() => setConfirmation('discard')}
               className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] dark:text-[var(--text-secondary)] hover:text-[var(--heading)] dark:hover:text-white border border-[var(--border-soft)] dark:border-[var(--border)] bg-white dark:bg-[var(--surface)] text-center transition"
             >
-              Hủy bỏ
-            </Link>
+              {isVi ? 'Hủy' : 'Cancel'}
+            </button>
 
             <button
               type="button"
               disabled={isSubmitting}
-              onClick={() => handleSubmit('DRAFT')}
+              onClick={() => { setErrorMessage(null); if (originalStatus === 'PUBLISHED') setConfirmation('update'); else void handleSubmit('DRAFT'); }}
               className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-semibold bg-[var(--surface)] dark:bg-[var(--surface)] text-[var(--heading)] dark:text-slate-200 border border-[var(--border-soft)] dark:border-[var(--border)] hover:bg-[var(--surface-secondary)] transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
-              <span>{isSubmitting ? 'Đang lưu...' : jobId ? 'Lưu thay đổi' : 'Lưu Bản Nháp (Draft)'}</span>
+              <span>{isSubmitting ? (isVi ? 'Đang lưu…' : 'Saving…') : jobId ? (isVi ? 'Lưu thay đổi' : 'Save changes') : (isVi ? 'Lưu bản nháp' : 'Save draft')}</span>
             </button>
 
             <button
               type="button"
               disabled={isSubmitting || company?.verificationStatus !== 'VERIFIED' || (Boolean(jobId) && originalStatus !== 'DRAFT' && originalStatus !== 'CLOSED')}
-              onClick={() => handleSubmit('PUBLISHED')}
+              onClick={() => { setErrorMessage(null); setConfirmation('publish'); }}
               title={
                 company?.verificationStatus !== 'VERIFIED'
-                  ? 'Chỉ doanh nghiệp Đã Xác Minh (VERIFIED) mới được quyền xuất bản tin'
+                  ? 'Chỉ doanh nghiệp đã xác minh mới được đăng tin'
                   : undefined
               }
               className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary)] shadow-sm transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -594,15 +515,30 @@ export function JobEditor({ jobId }: { jobId?: string }) {
               <Send className="w-4 h-4" />
               <span>
                 {isSubmitting
-                  ? 'Đang xuất bản...'
+                  ? (isVi ? 'Đang đăng…' : 'Publishing…')
                   : company?.verificationStatus !== 'VERIFIED'
-                  ? 'Xuất Bản (Chờ xác minh)'
-                  : 'Xuất Bản Tin (Publish)'}
+                  ? (isVi ? 'Chờ xác minh' : 'Verification required')
+                  : (isVi ? 'Đăng tin' : 'Publish job')}
               </span>
             </button>
           </div>
         </div>
       )}
+
+      <ConfirmActionDialog
+        isOpen={confirmation !== null}
+        title={confirmation === 'discard' ? (isVi ? 'Rời trình chỉnh sửa?' : 'Leave the editor?')
+          : confirmation === 'update' ? (isVi ? 'Cập nhật tin đang đăng?' : 'Update the published job?')
+          : (isVi ? 'Đăng tin tuyển dụng?' : 'Publish this job?')}
+        description={confirmation === 'discard' ? (isVi ? 'Các thay đổi chưa lưu sẽ bị bỏ.' : 'Unsaved changes will be lost.')
+          : (isVi ? 'Nội dung cập nhật sẽ hiển thị cho ứng viên.' : 'The updated content will be visible to applicants.')}
+        confirmLabel={isVi ? 'Xác nhận' : 'Confirm'}
+        cancelLabel={isVi ? 'Quay lại' : 'Go back'}
+        errorMessage={confirmation === 'discard' ? null : errorMessage}
+        isLoading={isSubmitting}
+        onCancel={() => setConfirmation(null)}
+        onConfirm={() => confirmation === 'discard' ? router.push('/recruiter/jobs') : handleSubmit(confirmation === 'publish' ? 'PUBLISHED' : 'DRAFT')}
+      />
 
       {/* PREVIEW TAB */}
       {activeTab === 'preview' && (
@@ -621,7 +557,7 @@ export function JobEditor({ jobId }: { jobId?: string }) {
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-editorial font-bold text-[var(--heading)] dark:text-white">
-              {title || 'Tiêu đề vị trí tuyển dụng'}
+              {title || (isVi ? 'Tiêu đề vị trí tuyển dụng' : 'Job title')}
             </h1>
 
             <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)] flex-wrap">
@@ -629,58 +565,55 @@ export function JobEditor({ jobId }: { jobId?: string }) {
                 <Building2 className="w-3.5 h-3.5" />
                 <span>{company?.name || 'Doanh nghiệp'}</span>
               </span>
-              <span>•</span>
+
               <span className="flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5" />
-                <span>{location || 'Toàn quốc'}</span>
+                <span>{location || (isVi ? 'Toàn quốc' : 'Nationwide')}</span>
               </span>
-              <span>•</span>
+
               <span className="flex items-center gap-1 font-sans text-[var(--success)] font-semibold">
                 <DollarSign className="w-3.5 h-3.5" />
                 <span>
-                  {isSalaryNegotiable
-                    ? 'Thỏa thuận'
-                    : (salaryMin || salaryMax ? `${salaryMin || (locale === 'vi' ? 'Không công bố' : 'Undisclosed')} – ${salaryMax || (locale === 'vi' ? 'Không công bố' : 'Undisclosed')} ${salaryCurrency}/${locale === 'vi' ? 'tháng' : 'month'}` : (locale === 'vi' ? 'Chưa công bố' : 'Undisclosed'))}
+                  {formatSalary(
+                    salaryMode === 'FIXED' || salaryMode === 'LEGACY' ? readSalary(salaryMin, salaryCurrency) : null,
+                    salaryMode === 'FIXED' ? readSalary(salaryMin, salaryCurrency) : salaryMode === 'LEGACY' ? readSalary(salaryMax, salaryCurrency) : null,
+                    undefined, locale, isSalaryNegotiable, salaryCurrency,
+                  )}
                 </span>
               </span>
+              {vacancies && <span>{isVi ? 'Số lượng tuyển' : 'Openings'} · {vacancies}</span>}
+              {deadline && <span>{isVi ? 'Hạn nộp' : 'Deadline'} · {formatJobDeadline(deadline, locale)}</span>}
             </div>
           </div>
 
           {/* Description */}
           <div className="space-y-2 text-xs leading-relaxed text-[var(--heading)] dark:text-slate-300">
             <h4 className="font-bold text-sm text-[var(--heading)] dark:text-white">
-              Mô tả công việc:
+              {isVi ? 'Mô tả công việc' : 'Job description'}
             </h4>
-            <p className="whitespace-pre-wrap">{description || 'Chưa nhập mô tả công việc.'}</p>
+            <RichTextDisplay html={descriptionHtml} fallback={description} />
           </div>
 
           {/* Responsibilities */}
           {responsibilities && (
             <div className="space-y-2 text-xs leading-relaxed text-[var(--heading)] dark:text-slate-300 pt-3 border-t border-[var(--border-soft)] dark:border-[var(--border)]">
               <h4 className="font-bold text-sm text-[var(--heading)] dark:text-white">
-                Trách nhiệm chính:
+                {isVi ? 'Trách nhiệm chính' : 'Key responsibilities'}
               </h4>
-              <ul className="list-disc pl-5 space-y-1">
-                {responsibilities
-                  .split('\n')
-                  .filter(Boolean)
-                  .map((item, idx) => (
-                    <li key={idx}>{item.replace(/^[-*•]\s*/, '')}</li>
-                  ))}
-              </ul>
+              <RichTextDisplay html={responsibilitiesHtml} fallback={responsibilities} />
             </div>
           )}
 
           {/* Rubric Breakdown */}
           <div className="space-y-3 pt-3 border-t border-[var(--border-soft)] dark:border-[var(--border)]">
             <h4 className="font-bold text-sm text-[var(--heading)] dark:text-white">
-              Rubric kỹ năng đối sánh AI ({requirements.length}):
+              {isVi ? 'Kỹ năng cần có' : 'Skills'} ({requirements.length})
             </h4>
 
             <div className="space-y-2">
               <div>
-                <span className="text-[11px] font-sans font-bold text-amber-700 dark:text-amber-300 block mb-1.5 uppercase">
-                  Required Skills (Gating bắt buộc):
+                <span className="text-[11px] font-sans font-bold text-amber-700 dark:text-amber-300 block mb-1.5">
+                  {isVi ? 'Bắt buộc' : 'Required'}
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {requirements
@@ -690,15 +623,15 @@ export function JobEditor({ jobId }: { jobId?: string }) {
                         key={r.id}
                         className="px-2.5 py-1 rounded-xl text-xs font-sans font-medium bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300"
                       >
-                        {r.skillName} (≥ {r.minYearsExperience} năm)
+                        {r.skillName} (≥ {r.minYearsExperience} {isVi ? 'năm' : 'years'})
                       </span>
                     ))}
                 </div>
               </div>
 
               <div>
-                <span className="text-[11px] font-sans font-bold text-blue-700 dark:text-blue-300 block mb-1.5 uppercase pt-2">
-                  Preferred Skills (Kỹ năng ưu tiên):
+                <span className="text-[11px] font-sans font-bold text-blue-700 dark:text-blue-300 block mb-1.5 pt-2">
+                  {isVi ? 'Ưu tiên' : 'Preferred'}
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {requirements
@@ -708,7 +641,7 @@ export function JobEditor({ jobId }: { jobId?: string }) {
                         key={r.id}
                         className="px-2.5 py-1 rounded-xl text-xs font-sans font-medium bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 text-blue-800 dark:text-blue-300"
                       >
-                        {r.skillName} (≥ {r.minYearsExperience} năm)
+                        {r.skillName} (≥ {r.minYearsExperience} {isVi ? 'năm' : 'years'})
                       </span>
                     ))}
                 </div>

@@ -1,5 +1,7 @@
 'use client';
 
+import { useLanguage } from '@/context/LanguageContext';
+import { statusLabel } from '@/lib/statusLabels';
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
@@ -55,6 +57,7 @@ function errorMessage(error: unknown, fallback: string): string {
 }
 
 export default function AdminModerationPage() {
+  const { locale } = useLanguage();
   const [activeTab, setActiveTab] = useState<'JOBS' | 'REPORTS' | 'APPEALS'>('JOBS');
 
   // Jobs State
@@ -404,7 +407,7 @@ export default function AdminModerationPage() {
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                       }`}
                   >
-                    {s.label}
+                    {s.id === 'ALL' ? (locale === 'vi' ? 'Tất cả' : 'All') : statusLabel(s.id, locale)}
                   </button>
                 ))}
               </div>
@@ -475,22 +478,22 @@ export default function AdminModerationPage() {
                         <td className="py-4 px-4">
                           {j.status === 'PUBLISHED' && (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                              <CheckCircle2 className="w-3 h-3" /> Đang hiển thị
+                              <CheckCircle2 className="w-3 h-3" /> {statusLabel(j.status, locale)}
                             </span>
                           )}
                           {j.status === 'SUSPENDED' && (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                              <Ban className="w-3 h-3" /> Đã đình chỉ
+                              <Ban className="w-3 h-3" /> {statusLabel(j.status, locale)}
                             </span>
                           )}
                           {j.status === 'DRAFT' && (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                              <FileText className="w-3 h-3" /> Bản nháp
+                              <FileText className="w-3 h-3" /> {statusLabel(j.status, locale)}
                             </span>
                           )}
                           {j.status === 'CLOSED' && (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                              <Clock className="w-3 h-3" /> Đã đóng
+                              <Clock className="w-3 h-3" /> {statusLabel(j.status, locale)}
                             </span>
                           )}
                         </td>
@@ -667,17 +670,17 @@ export default function AdminModerationPage() {
                         <td className="py-4 px-4">
                           {r.status === 'PENDING' && (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                              <Clock className="w-3 h-3" /> Đang chờ
+                              <Clock className="w-3 h-3" /> {statusLabel(r.status, locale)}
                             </span>
                           )}
                           {r.status === 'RESOLVED' && (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                              <CheckCircle2 className="w-3 h-3" /> Đã xử lý
+                              <CheckCircle2 className="w-3 h-3" /> {statusLabel(r.status, locale)}
                             </span>
                           )}
                           {r.status === 'DISMISSED' && (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                              <XCircle className="w-3 h-3" /> Đã bác bỏ
+                              <XCircle className="w-3 h-3" /> {statusLabel(r.status, locale)}
                             </span>
                           )}
                         </td>
@@ -762,7 +765,7 @@ export default function AdminModerationPage() {
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900'
                       }`}
                   >
-                    {s.label}
+                    {s.id === 'ALL' ? (locale === 'vi' ? 'Tất cả' : 'All') : statusLabel(s.id, locale)}
                   </button>
                 ))}
               </div>
@@ -853,7 +856,7 @@ export default function AdminModerationPage() {
                                 a.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300' :
                                   'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
                             }`}>
-                            {a.status}
+                            {statusLabel(a.status, locale)}
                           </span>
                         </td>
                         <td className="py-4 px-4 text-slate-500">

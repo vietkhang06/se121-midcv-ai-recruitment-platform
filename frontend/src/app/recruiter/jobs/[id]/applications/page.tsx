@@ -1,5 +1,7 @@
 'use client';
 
+import { APPLICATION_STATUS_LABELS, APPLICATION_TRANSITIONS } from '@/lib/applicationWorkflow';
+
 import React, { useState, useEffect, use, useRef } from 'react';
 import Link from 'next/link';
 import { Job, Application, ApplicationStatus } from '@/types';
@@ -105,7 +107,9 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
     statusRequestIdsRef.current.set(appId, statusRequestId);
     setUpdatingAppId(appId);
     try {
-      const updated = await updateApplicationStatus(appId, newStatus, 'Cập nhật nhanh từ Pipeline');
+      const current = applications.find(app => app.id === appId);
+      if (!current) return;
+      const updated = await updateApplicationStatus(appId, newStatus, 'Cập nhật nhanh từ Pipeline', current.status);
       if (statusRequestIdsRef.current.get(appId) !== statusRequestId || loadedJobId !== jobId || resolvedParams.id !== jobId) return;
       setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: updated.status } : a));
     } catch (err: unknown) {
@@ -310,7 +314,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                             ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200'
                             : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200'
                         }`}>
-                          {app.status}
+                          {APPLICATION_STATUS_LABELS[app.status][locale === 'vi' ? 0 : 1]}
                         </span>
                         {score !== null && (
                           <span className={`px-2 py-0.5 rounded text-[11px] font-sans font-bold ${
@@ -342,7 +346,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                   {/* Actions & Decision */}
                   <div className="flex items-center gap-2 flex-shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800">
                     {/* Quick Move to Shortlist */}
-                    {app.status !== 'SHORTLISTED' && (
+                    {APPLICATION_TRANSITIONS[app.status].includes('SHORTLISTED') && (
                       <button
                         type="button"
                         disabled={updatingAppId === app.id}
@@ -354,7 +358,7 @@ export default function JobApplicationsPage({ params }: { params: Promise<{ id: 
                     )}
 
                     {/* Quick Move to Interview */}
-                    {app.status !== 'INTERVIEWING' && (
+                    {APPLICATION_TRANSITIONS[app.status].includes('INTERVIEWING') && (
                       <button
                         type="button"
                         disabled={updatingAppId === app.id}

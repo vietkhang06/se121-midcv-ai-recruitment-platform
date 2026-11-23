@@ -1,12 +1,15 @@
 'use client';
 
+import { statusLabel } from '@/lib/statusLabels';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useLanguage } from '@/context/LanguageContext';
 import { getMyActiveSuspension, submitSuspensionAppeal, cancelSuspensionAppeal } from '@/lib/api';
 import { SuspensionNotice } from '@/types';
 import { ConfirmActionDialog } from './ConfirmActionDialog';
 
 export const SuspensionBanner: React.FC = () => {
+  const { locale } = useLanguage();
   const [notice, setNotice] = useState<SuspensionNotice | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showAppealModal, setShowAppealModal] = useState<boolean>(false);
@@ -123,13 +126,13 @@ export const SuspensionBanner: React.FC = () => {
   const getAppealStatusBadge = () => {
     switch (notice.appealStatus) {
       case 'SUBMITTED':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">Đã gửi khiếu nại</span>;
+        return <span className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">{statusLabel(notice.appealStatus, locale)}</span>;
       case 'UNDER_REVIEW':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Đang được xét duyệt</span>;
+        return <span className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">{statusLabel(notice.appealStatus, locale)}</span>;
       case 'REJECTED':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300">Khiếu nại bị từ chối</span>;
+        return <span className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300">{statusLabel(notice.appealStatus, locale)}</span>;
       case 'CANCELLED':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">Đã hủy khiếu nại</span>;
+        return <span className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">{statusLabel(notice.appealStatus, locale)}</span>;
       default:
         return null;
     }

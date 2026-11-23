@@ -1,5 +1,6 @@
 'use client';
 
+import { statusLabel } from '@/lib/statusLabels';
 import React, { useState, useEffect, useRef } from 'react';
 import { CV, CVQuota } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
@@ -35,7 +36,7 @@ const asRecord = (value: unknown): Record<string, unknown> | null =>
     : null;
 
 export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, onUploadSuccess, onSuccess, quota }) => {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [file, setFile] = useState<File | null>(null);
   const [imageMode, setImageMode] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -350,9 +351,9 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
             {!imageSet && <><input type="file" accept="image/*" multiple onChange={e => selectImages(e.target.files)} className="block w-full text-sm" />
               <div className="space-y-2">{imageFiles.map((f,i) => <div key={`${f.name}-${i}`} className="flex items-center gap-3 border rounded p-2"><img src={localImagePreviews[i] || ''} alt={`Page ${i+1} preview`} className="h-16 w-12 object-cover"/><span>Trang {i+1}: {f.name}</span></div>)}</div>
               <button onClick={startImageFlow} disabled={!imageFiles.length || Boolean(quota && !quota.canUpload)} className="w-full rounded bg-[var(--primary)] p-3 text-white disabled:opacity-50">Tải ảnh lên và nhận dạng</button></>}
-            {imageSet && <><ol className="space-y-3">{imageSet.pages.filter(p=>p.status !== 'REMOVED').map((page,index) => <li key={page.id} className="border rounded p-3"><div className="flex items-center gap-3"><img src={imagePreviews[page.id] || ''} alt={`Trang ${index+1}`} className="h-20 w-16 object-contain"/><div className="flex-1"><b>Trang {index+1}: {page.filename}</b><div className="text-xs">OCR: {page.status === 'READY' ? 'Sẵn sàng' : 'Thất bại'}</div></div>
-              <button aria-label="Di chuyển lên" disabled={!index} onClick={() => { const ids=imageSet.pages.filter(p=>p.status!=='REMOVED').map(p=>p.id); [ids[index-1],ids[index]]=[ids[index],ids[index-1]]; void mutateImageSet(()=>reorderCVImagePages(imageSet.id,ids)); }}><ChevronUp/></button><button aria-label="Di chuyển xuống" disabled={index===imageSet.pages.filter(p=>p.status!=='REMOVED').length-1} onClick={() => { const ids=imageSet.pages.filter(p=>p.status!=='REMOVED').map(p=>p.id); [ids[index],ids[index+1]]=[ids[index+1],ids[index]]; void mutateImageSet(()=>reorderCVImagePages(imageSet.id,ids)); }}><ChevronDown/></button><button aria-label="Hapus halaman" onClick={()=>void mutateImageSet(()=>removeCVImagePage(imageSet.id,page.id))}><Trash2/></button>
-              <label className="cursor-pointer text-xs">Ganti<input type="file" accept="image/*" className="hidden" onChange={e=>{const f=e.target.files?.[0]; if(f) void mutateImageSet(()=>replaceCVImagePage(imageSet.id,page.id,f));}}/></label>{page.status==='FAILED'&&<button onClick={()=>void mutateImageSet(()=>retryCVImagePage(imageSet.id,page.id))}>Coba lagi</button>}</div>
+            {imageSet && <><ol className="space-y-3">{imageSet.pages.filter(p=>p.status !== 'REMOVED').map((page,index) => <li key={page.id} className="border rounded p-3"><div className="flex items-center gap-3"><img src={imagePreviews[page.id] || ''} alt={`Trang ${index+1}`} className="h-20 w-16 object-contain"/><div className="flex-1"><b>Trang {index+1}: {page.filename}</b><div className="text-xs">OCR: {statusLabel(page.status, locale)}</div></div>
+              <button aria-label="Di chuyển lên" disabled={!index} onClick={() => { const ids=imageSet.pages.filter(p=>p.status!=='REMOVED').map(p=>p.id); [ids[index-1],ids[index]]=[ids[index],ids[index-1]]; void mutateImageSet(()=>reorderCVImagePages(imageSet.id,ids)); }}><ChevronUp/></button><button aria-label="Di chuyển xuống" disabled={index===imageSet.pages.filter(p=>p.status!=='REMOVED').length-1} onClick={() => { const ids=imageSet.pages.filter(p=>p.status!=='REMOVED').map(p=>p.id); [ids[index],ids[index+1]]=[ids[index+1],ids[index]]; void mutateImageSet(()=>reorderCVImagePages(imageSet.id,ids)); }}><ChevronDown/></button><button aria-label={locale === 'vi' ? 'Xóa trang' : 'Remove page'} onClick={()=>void mutateImageSet(()=>removeCVImagePage(imageSet.id,page.id))}><Trash2/></button>
+              <label className="cursor-pointer text-xs">{locale === 'vi' ? 'Thay tệp' : 'Replace file'}<input type="file" accept="image/*" className="hidden" onChange={e=>{const f=e.target.files?.[0]; if(f) void mutateImageSet(()=>replaceCVImagePage(imageSet.id,page.id,f));}}/></label>{page.status==='FAILED'&&<button onClick={()=>void mutateImageSet(()=>retryCVImagePage(imageSet.id,page.id))}>{locale === 'vi' ? 'Thử lại' : 'Retry'}</button>}</div>
               {page.extracted_text && <pre className="mt-2 max-h-20 overflow-auto whitespace-pre-wrap text-xs">{page.extracted_text}</pre>}</li>)}</ol>
               <div className="rounded bg-slate-50 p-3 text-xs whitespace-pre-wrap">{imageSet.pages.filter(p=>p.status!=='REMOVED').map(p=>p.extracted_text||'').join('\n\n')}</div>
               <button onClick={finishImageFlow} disabled={!imageSet.pages.some(p=>p.status!=='REMOVED')||imageSet.pages.filter(p=>p.status!=='REMOVED').some(p=>p.status!=='READY')} className="w-full rounded bg-[var(--primary)] p-3 text-white disabled:opacity-50">Xác nhận nội dung và tạo CV</button></>}
@@ -436,7 +437,7 @@ export const CVUploadModal: React.FC<CVUploadModalProps> = ({ isOpen, onClose, o
                   TIẾN ĐỘ: {processingProgress}%
                 </span>
                 <span className="text-[11px] font-sans text-slate-500 dark:text-slate-400">
-                  {status === 'COMPLETED' ? 'HOÀN TẤT' : 'ĐANG XỬ LÝ'}
+                  {statusLabel(status, locale)}
                 </span>
               </div>
 

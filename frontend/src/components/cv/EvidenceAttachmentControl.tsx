@@ -1,5 +1,6 @@
 'use client';
 
+import { statusLabel } from '@/lib/statusLabels';
 import React, { useState, useRef, useEffect } from 'react';
 import { Upload, Eye, Trash2, FileText, Loader2, AlertCircle, X, ExternalLink } from 'lucide-react';
 import { uploadCVEvidence, deleteCVEvidence, downloadCVEvidence, fetchCVEvidenceBlob } from '@/lib/api';
@@ -138,7 +139,7 @@ export const EvidenceAttachmentControl: React.FC<EvidenceAttachmentControlProps>
               <div className="flex items-center gap-2 text-[10px] text-slate-400">
                 <span>{(attachment.fileSize / 1024).toFixed(1)} KB</span>
                 <span className="px-1.5 py-0.2 rounded-xl font-sans font-medium text-[9px] bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                  {attachment.status || 'UNVERIFIED'}
+                  {statusLabel(attachment.status || 'UNVERIFIED', locale)}
                 </span>
               </div>
             </div>

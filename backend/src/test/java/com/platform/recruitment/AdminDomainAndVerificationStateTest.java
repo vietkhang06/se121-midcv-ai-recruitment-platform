@@ -85,6 +85,8 @@ public class AdminDomainAndVerificationStateTest {
                 .industry("Information Technology")
                 .seniority("Staff")
                 .status(JobStatus.DRAFT)
+                .applicationDeadline(com.platform.recruitment.job.JobDeadline.today().plusDays(7))
+                .vacancyCount(2)
                 .description("Cloud Architecture and Kubernetes Operations")
                 .build();
         testJob.setId(UUID.randomUUID());

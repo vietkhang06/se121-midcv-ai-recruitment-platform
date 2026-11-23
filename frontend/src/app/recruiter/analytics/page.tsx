@@ -1,5 +1,9 @@
 'use client';
 
+import { displayJobStatus } from '@/lib/jobDeadline';
+import { statusLabel } from '@/lib/statusLabels';
+import { APPLICATION_STATUS_LABELS, APPLICATION_STATUSES, HIGH_MATCH_THRESHOLD, loadApplicationsForJobs, summarizeMatchScores } from '@/lib/applicationWorkflow';
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Job, Application } from '@/types';
@@ -30,9 +34,9 @@ export default function RecruiterAnalyticsPage() {
     setError(null);
     try {
       const jobList = await fetchRecruiterJobs();
-      const results = await Promise.all(jobList.map((job) => fetchJobApplications(job.id).catch(() => [])));
+      const applications = await loadApplicationsForJobs(jobList, fetchJobApplications);
       setJobs(jobList);
-      setAllApplications(results.flat());
+      setAllApplications(applications);
     } catch (error: unknown) {
       console.error('Failed to load analytics:', error);
       setError(error instanceof Error ? error.message : (locale === 'vi' ? 'Không thể tải dữ liệu phân tích tuyển dụng' : 'Failed to load recruitment analytics'));
@@ -46,10 +50,10 @@ export default function RecruiterAnalyticsPage() {
     const loadInitialData = async () => {
       try {
         const jobList = await fetchRecruiterJobs();
-        const results = await Promise.all(jobList.map((job) => fetchJobApplications(job.id).catch(() => [])));
+        const applications = await loadApplicationsForJobs(jobList, fetchJobApplications);
         if (!active) return;
         setJobs(jobList);
-        setAllApplications(results.flat());
+        setAllApplications(applications);
       } catch (error: unknown) {
         if (!active) return;
         console.error('Failed to load analytics:', error);
@@ -68,7 +72,7 @@ export default function RecruiterAnalyticsPage() {
         <EmptyState
           type="LOADING"
           title={locale === 'vi' ? 'Đang phân tích dữ liệu tuyển dụng...' : 'Calculating recruitment analytics...'}
-          description={locale === 'vi' ? 'Hệ thống đang tổng hợp dữ liệu phễu chuyển đổi và điểm số đối sánh...' : 'Aggregating conversion funnel and match scores...'}
+          description={locale === 'vi' ? 'Hệ thống đang tổng hợp dữ liệu phân bố hồ sơ hiện tại và điểm số đối sánh...' : 'Aggregating current distribution and match scores...'}
         />
       </div>
     );
@@ -96,18 +100,14 @@ export default function RecruiterAnalyticsPage() {
   const shortlistedCount = allApplications.filter(a => a.status === 'SHORTLISTED').length;
   const interviewingCount = allApplications.filter(a => a.status === 'INTERVIEWING').length;
   const hiredCount = allApplications.filter(a => a.status === 'HIRED').length;
-  const rejectedCount = allApplications.filter(a => a.status === 'REJECTED').length;
 
   const shortlistRate = totalApps > 0 ? ((shortlistedCount / totalApps) * 100).toFixed(1) : '0';
   const interviewRate = totalApps > 0 ? ((interviewingCount / totalApps) * 100).toFixed(1) : '0';
   const hireRate = totalApps > 0 ? ((hiredCount / totalApps) * 100).toFixed(1) : '0';
 
   // AI Matching Analytics
-  const scoredApps = allApplications.filter(a => a.matchScore != null && (a.matchScore as number) > 0);
-  const avgScore = scoredApps.length > 0
-    ? (scoredApps.reduce((acc, curr) => acc + (curr.matchScore || 0), 0) / scoredApps.length).toFixed(1)
-    : 'N/A';
-  const highMatchCount = scoredApps.filter(a => (a.matchScore || 0) >= 80).length;
+  const { average, highCount: highMatchCount } = summarizeMatchScores(allApplications);
+  const avgScore = average === null ? '–' : `${average.toFixed(1)}%`;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[var(--surface)] text-slate-800 dark:text-slate-100 flex flex-col transition-colors pb-20 w-full min-w-0">
@@ -115,7 +115,7 @@ export default function RecruiterAnalyticsPage() {
         {/* Recruiter Header */}
         <RecruiterPageHeader
           title={locale === 'vi' ? 'Phân Tích & Hiệu Suất Tuyển Dụng' : 'Recruitment Analytics & Insights'}
-          subtitle={locale === 'vi' ? 'Theo dõi phễu chuyển đổi hồ sơ, hiệu quả đối sánh AI và năng lực đáp ứng của ứng viên' : 'Track applicant conversion funnel, AI match performance, and hiring velocity'}
+          subtitle={locale === 'vi' ? 'Theo dõi phân bố hồ sơ hiện tại hồ sơ, hiệu quả đối sánh AI và năng lực đáp ứng của ứng viên' : 'View current application distribution and match scores'}
           categoryTag="Talent Intelligence"
         />
 
@@ -129,7 +129,7 @@ export default function RecruiterAnalyticsPage() {
             variant="primary"
           />
           <MetricCard
-            label={locale === 'vi' ? 'Tỷ lệ Phù hợp hồ sơ' : 'Shortlist Rate'}
+            label={locale === 'vi' ? 'Tỷ trọng đang ở danh sách chọn' : 'Current shortlist share'}
             value={`${shortlistRate}%`}
             subtext={locale === 'vi' ? `${shortlistedCount} ứng viên đạt chuẩn` : `${shortlistedCount} candidates`}
             icon={TrendingUp}
@@ -138,7 +138,7 @@ export default function RecruiterAnalyticsPage() {
           <MetricCard
             label={locale === 'vi' ? 'Ứng viên Phỏng vấn' : 'In Interview'}
             value={interviewingCount}
-            subtext={locale === 'vi' ? `${interviewRate}% trên tổng nộp` : `${interviewRate}% conversion`}
+            subtext={locale === 'vi' ? `${interviewRate}% trên tổng nộp` : `${interviewRate}% of applications`}
             icon={Calendar}
             variant="warning"
           />
@@ -151,106 +151,23 @@ export default function RecruiterAnalyticsPage() {
           />
         </div>
 
-        {/* Recruitment Conversion Funnel */}
-        <div className="bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-7 shadow-xs space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                {locale === 'vi' ? 'Phễu Tuyển Dụng Tổng Hợp (Hiring Conversion Funnel)' : 'Hiring Conversion Funnel'}
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {locale === 'vi' ? 'Tỷ lệ tiến triển qua các chặng đánh giá nhân sự của MidCV' : 'Candidate progression through evaluation stages'}
-              </p>
-            </div>
-            <span className="text-xs font-sans text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-3 py-1 rounded-xl font-semibold">
-              Live Pipeline Data
-            </span>
-          </div>
-
-          {/* Visual SVG Funnel Graph (Adapted from SE347 RecruitmentFunnelChart) */}
-          <div className="bg-slate-50/70 dark:bg-[var(--surface)]/60 border border-slate-200/80 dark:border-slate-800 p-5 rounded-xl space-y-4">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
-              <span>{locale === 'vi' ? 'Biểu Đồ Tỷ Lệ Chuyển Đổi Phễu (Funnel Velocity)' : 'Conversion Velocity Chart'}</span>
-              <span className="font-sans text-slate-500">{totalApps} {locale === 'vi' ? 'ứng viên đầu vào' : 'inbound applicants'}</span>
-            </div>
-
-            <div className="space-y-3">
-              {[
-                { name: locale === 'vi' ? '1. Nộp hồ sơ' : '1. Applied', count: totalApps, pct: 100, color: 'bg-blue-600 dark:bg-blue-500' },
-                { name: locale === 'vi' ? '2. Duyệt hồ sơ' : '2. Shortlisted', count: shortlistedCount, pct: totalApps > 0 ? (shortlistedCount / totalApps) * 100 : 0, color: 'bg-emerald-600 dark:bg-emerald-500' },
-                { name: locale === 'vi' ? '3. Phỏng vấn' : '3. Interviewing', count: interviewingCount, pct: totalApps > 0 ? (interviewingCount / totalApps) * 100 : 0, color: 'bg-purple-600 dark:bg-purple-500' },
-                { name: locale === 'vi' ? '4. Tuyển dụng' : '4. Hired', count: hiredCount, pct: totalApps > 0 ? (hiredCount / totalApps) * 100 : 0, color: 'bg-green-700 dark:bg-green-400' },
-              ].map((stage) => (
-                <div key={stage.name} className="space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">{stage.name}</span>
-                    <span className="font-sans font-bold text-slate-900 dark:text-white">
-                      {stage.count} <span className="text-slate-400 font-normal">({stage.pct.toFixed(1)}%)</span>
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-200/70 dark:bg-slate-700/50 h-3 rounded-xl overflow-hidden">
-                    <div
-                      className={`h-full rounded-xl transition-all duration-500 ${stage.color}`}
-                      style={{ width: `${Math.max(stage.pct, stage.count > 0 ? 3 : 0)}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-            {/* Step 1: Submitted */}
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-2">
-              <span className="text-[11px] font-sans text-slate-400 uppercase font-semibold">1. Nộp hồ sơ</span>
-              <div className="text-2xl font-bold text-slate-900 dark:text-white font-sans">{totalApps}</div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-xl overflow-hidden">
-                <div className="bg-blue-600 h-full w-full rounded-xl" />
-              </div>
-              <span className="text-[10px] text-slate-500 font-medium">{totalApps} {locale === 'vi' ? 'hồ sơ đã nộp' : 'applications submitted'}</span>
-            </div>
-
-            {/* Step 2: Shortlisted */}
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-2">
-              <span className="text-[11px] font-sans text-slate-400 uppercase font-semibold">2. Duyệt hồ sơ</span>
-              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-sans">{shortlistedCount}</div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-xl overflow-hidden">
-                <div className="bg-emerald-500 h-full rounded-xl" style={{ width: `${shortlistRate}%` }} />
-              </div>
-              <span className="text-[10px] text-slate-500 font-medium">{shortlistRate}% chuyển đổi</span>
-            </div>
-
-            {/* Step 3: Interviewing */}
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-2">
-              <span className="text-[11px] font-sans text-slate-400 uppercase font-semibold">3. Phỏng vấn</span>
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 font-sans">{interviewingCount}</div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-xl overflow-hidden">
-                <div className="bg-purple-500 h-full rounded-xl" style={{ width: `${interviewRate}%` }} />
-              </div>
-              <span className="text-[10px] text-slate-500 font-medium">{interviewRate}% chuyển đổi</span>
-            </div>
-
-            {/* Step 4: Hired */}
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-2">
-              <span className="text-[11px] font-sans text-slate-400 uppercase font-semibold">4. Tuyển dụng</span>
-              <div className="text-2xl font-bold text-green-700 dark:text-green-400 font-sans">{hiredCount}</div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-xl overflow-hidden">
-                <div className="bg-green-600 h-full rounded-xl" style={{ width: `${hireRate}%` }} />
-              </div>
-              <span className="text-[10px] text-slate-500 font-medium">{hireRate}% tuyển dụng</span>
-            </div>
-
-            {/* Step 5: Rejected */}
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-2">
-              <span className="text-[11px] font-sans text-slate-400 uppercase font-semibold">Chưa phù hợp</span>
-              <div className="text-2xl font-bold text-rose-600 dark:text-rose-400 font-sans">{rejectedCount}</div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-xl overflow-hidden">
-                <div className="bg-rose-500 h-full rounded-xl" style={{ width: totalApps > 0 ? `${(rejectedCount / totalApps) * 100}%` : '0%' }} />
-              </div>
-              <span className="text-[10px] text-slate-500 font-medium">Đã lưu trữ hồ sơ</span>
-            </div>
-          </div>
-        </div>
+        <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
+          <h3 className="text-base font-bold">
+            {locale === 'vi' ? 'Phân bố hồ sơ hiện tại' : 'Current application distribution'}
+          </h3>
+          <ul className="mt-4 space-y-3">
+            {[...APPLICATION_STATUSES, 'UNKNOWN' as const].map(status => {
+              const count = allApplications.filter(app => app.status === status).length;
+              const share = totalApps ? (count / totalApps) * 100 : 0;
+              return (
+                <li key={status} className="flex justify-between border-b border-[var(--border-soft)] pb-2 text-sm">
+                  <span>{APPLICATION_STATUS_LABELS[status][locale === 'vi' ? 0 : 1]}</span>
+                  <span>{count} ({share.toFixed(1)}%)</span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
 
         {/* AI Match Quality Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -262,13 +179,13 @@ export default function RecruiterAnalyticsPage() {
               </h4>
             </div>
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-extrabold text-blue-600 dark:text-blue-400 font-sans">{avgScore}%</span>
+              <span className="text-3xl font-extrabold text-blue-600 dark:text-blue-400 font-sans">{avgScore}</span>
               <span className="text-xs text-slate-500">Điểm tương thích trung bình toàn bộ hồ sơ</span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               {locale === 'vi'
-                ? `Có ${highMatchCount} ứng viên đạt ngưỡng Match Cao (≥ 80.0%), đảm bảo chất lượng ứng viên đầu vào phù hợp với tiêu chí JD.`
-                : `${highMatchCount} candidates achieved High Match threshold (≥ 80.0%), validating job criteria precision.`}
+                ? `Có ${highMatchCount} ứng viên đạt ngưỡng Match Cao (≥${HIGH_MATCH_THRESHOLD}%).`
+                : `${highMatchCount} candidates achieved High Match threshold (≥${HIGH_MATCH_THRESHOLD}%).`}
             </p>
           </div>
 
@@ -285,8 +202,8 @@ export default function RecruiterAnalyticsPage() {
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               {locale === 'vi'
-                ? `Đang có ${jobs.filter(j => j.status === 'PUBLISHED').length} tin xuất bản công khai và ${jobs.filter(j => j.status === 'DRAFT').length} tin đang ở trạng thái bản nháp.`
-                : `${jobs.filter(j => j.status === 'PUBLISHED').length} published active jobs and ${jobs.filter(j => j.status === 'DRAFT').length} drafts.`}
+                ? `Đang có ${jobs.filter(j => displayJobStatus(j) === 'PUBLISHED').length} tin xuất bản công khai và ${jobs.filter(j => j.status === 'DRAFT').length} tin đang ở trạng thái bản nháp.`
+                : `${jobs.filter(j => displayJobStatus(j) === 'PUBLISHED').length} published active jobs and ${jobs.filter(j => j.status === 'DRAFT').length} drafts.`}
             </p>
           </div>
         </div>
@@ -323,12 +240,12 @@ export default function RecruiterAnalyticsPage() {
                         <span className="text-[11px] text-slate-400">{job.industry} • {job.location || 'Remote'}</span>
                       </td>
                       <td className="py-4 px-5 text-center">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-sans uppercase ${
-                          job.status === 'PUBLISHED'
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-sans ${
+                          displayJobStatus(job) === 'PUBLISHED'
                             ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200'
                             : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200'
                         }`}>
-                          {job.status}
+                          {statusLabel(displayJobStatus(job), locale)}
                         </span>
                       </td>
                       <td className="py-4 px-5 text-center font-sans font-bold">{jobApps.length}</td>

@@ -157,7 +157,8 @@ public class PipelineWorker {
       if (!"JOB_LEASE_LOST".equals(code)) {
         final String fCode = code;
         final String fMsg = msg;
-        boolean retryable = isRetryable(e, code);
+        boolean retryable = isRetryable(e, code)
+            || (("MATCH".equals(kind) || "EMBED".equals(kind)) && "SERVICE_UNAVAILABLE".equals(code));
         if (retryable && attempts < 3) {
           int backoff = 5 * (1 << (attempts - 1));
           try {

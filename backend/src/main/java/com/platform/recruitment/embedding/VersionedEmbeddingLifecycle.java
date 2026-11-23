@@ -133,7 +133,7 @@ public class VersionedEmbeddingLifecycle {
                     + "VALUES (?,?,?,'job-description.txt',?,?,?::jsonb,'hr_verified',?,?,'QUEUED',?)",
                     versionId, job.getId(), versionNo, hash, text, jdSnapshot(job), text, hash, PIPELINE);
         }
-        if (!versionHasCurrentVector(versionId, hash)) enqueueAfterCommit(owner, "EMBED", versionId);
+        if (!versionHasCurrentVector(versionId, hash)) enqueueInTransaction(owner, "EMBED", versionId);
         return versionId;
     }
 
@@ -164,7 +164,7 @@ public class VersionedEmbeddingLifecycle {
                 version.getId(), cvId, version.getVersionNumber(), rawSourceHash,
                 rawSource,
                 version.getStructuredJsonContent(), text, hash, PIPELINE);
-        if (!versionHasCurrentVector(version.getId(), hash)) enqueueAfterCommit(owner, "EMBED", version.getId());
+        if (!versionHasCurrentVector(version.getId(), hash)) enqueueInTransaction(owner, "EMBED", version.getId());
         return version.getId();
     }
 
@@ -218,11 +218,11 @@ public class VersionedEmbeddingLifecycle {
     /** Enqueue in the SAME database transaction as the source row. A rollback discards the
      * queued task as well; a committed source can never be left unqueued by an afterCommit
      * callback failure. JobQueue uses TransactionTemplate(REQUIRED), joining the caller. */
-    public void enqueueMatchAfterCommit(UUID owner, UUID applicationId) {
-        enqueueAfterCommit(owner, "MATCH", applicationId);
+    public void enqueueApplicationMatch(UUID owner, UUID applicationId) {
+        enqueueInTransaction(owner, "MATCH", applicationId);
     }
 
-    private void enqueueAfterCommit(UUID owner, String kind, UUID entity) {
+    private void enqueueInTransaction(UUID owner, String kind, UUID entity) {
         queue.enqueue(owner, kind, entity);
     }
 }

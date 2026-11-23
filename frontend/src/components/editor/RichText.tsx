@@ -95,6 +95,9 @@ export function sanitizeRichText(html: string): string {
     );
     const face =
       node.getAttribute("face") || node.style.fontFamily.replace(/["']/g, "");
+    if (node.style.fontWeight === "bold" || node.style.fontWeight === "700") element.style.fontWeight = "bold";
+    if (node.style.fontStyle === "italic") element.style.fontStyle = "italic";
+    if (node.style.textDecorationLine === "underline") element.style.textDecorationLine = "underline";
     if (fonts.includes(face)) element.style.fontFamily = face;
     const size = node.getAttribute("size");
     const px = size

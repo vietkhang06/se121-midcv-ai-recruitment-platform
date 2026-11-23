@@ -24,16 +24,18 @@ public interface JobRepository extends JpaRepository<Job, UUID>, org.springframe
     Page<Job> findByTitleContainingIgnoreCase(String title, Pageable pageable);
     Page<Job> findByTitleContainingIgnoreCaseAndStatus(String title, JobStatus status, Pageable pageable);
 
-    @org.springframework.data.jpa.repository.Query("SELECT j FROM Job j WHERE j.status = :status AND j.company.operationalStatus = :opStatus")
+    @org.springframework.data.jpa.repository.Query("SELECT j FROM Job j WHERE j.status = :status AND j.company.operationalStatus = :opStatus AND (j.applicationDeadline IS NULL OR j.applicationDeadline >= :today)")
     Page<Job> findByStatusAndCompanyOperationalStatus(
             @org.springframework.data.repository.query.Param("status") JobStatus status,
             @org.springframework.data.repository.query.Param("opStatus") com.platform.recruitment.company.CompanyOperationalStatus opStatus,
+            @org.springframework.data.repository.query.Param("today") java.time.LocalDate today,
             Pageable pageable);
 
-    @org.springframework.data.jpa.repository.Query("SELECT j FROM Job j WHERE j.status = :status AND j.industry = :industry AND j.company.operationalStatus = :opStatus")
+    @org.springframework.data.jpa.repository.Query("SELECT j FROM Job j WHERE j.status = :status AND j.industry = :industry AND j.company.operationalStatus = :opStatus AND (j.applicationDeadline IS NULL OR j.applicationDeadline >= :today)")
     Page<Job> findByStatusAndIndustryAndCompanyOperationalStatus(
             @org.springframework.data.repository.query.Param("status") JobStatus status,
             @org.springframework.data.repository.query.Param("industry") String industry,
             @org.springframework.data.repository.query.Param("opStatus") com.platform.recruitment.company.CompanyOperationalStatus opStatus,
+            @org.springframework.data.repository.query.Param("today") java.time.LocalDate today,
             Pageable pageable);
 }

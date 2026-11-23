@@ -1,5 +1,7 @@
 'use client';
 
+import { displayJobStatus, isJobExpired } from '@/lib/jobDeadline';
+import { statusLabel } from '@/lib/statusLabels';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Job } from '@/types';
@@ -60,6 +62,7 @@ export default function RecruiterJobsListPage() {
   };
 
   const [confirmCloseJobId, setConfirmCloseJobId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [confirmPublishJobId, setConfirmPublishJobId] = useState<string | null>(null);
 
   const loadJobs = useCallback(async () => {
@@ -131,7 +134,7 @@ export default function RecruiterJobsListPage() {
     }
 
     if (selectedStatus !== 'ALL') {
-      result = result.filter((job) => job.status === selectedStatus);
+      result = result.filter((job) => displayJobStatus(job) === selectedStatus);
     }
 
     return result;
@@ -141,6 +144,7 @@ export default function RecruiterJobsListPage() {
     if (!confirmPublishJobId) return;
 
     const jobId = confirmPublishJobId;
+    setActionError(null);
     setActionInProgressId(jobId);
     try {
       const updatedJob = await publishJob(jobId);
@@ -151,7 +155,7 @@ export default function RecruiterJobsListPage() {
       }
       setConfirmPublishJobId(null);
     } catch (error: unknown) {
-      alert(error instanceof Error ? error.message : 'Xuất bản tin thất bại.');
+      setActionError(error instanceof Error ? error.message : (locale === 'vi' ? 'Đăng tin thất bại.' : 'Unable to publish job.'));
     } finally {
       setActionInProgressId(null);
     }
@@ -161,6 +165,7 @@ export default function RecruiterJobsListPage() {
     if (!confirmCloseJobId) return;
 
     const jobId = confirmCloseJobId;
+    setActionError(null);
     setActionInProgressId(jobId);
     try {
       const updatedJob = await closeJob(jobId);
@@ -171,13 +176,13 @@ export default function RecruiterJobsListPage() {
       }
       setConfirmCloseJobId(null);
     } catch (error: unknown) {
-      alert(error instanceof Error ? error.message : 'Đóng tin tuyển dụng thất bại.');
+      setActionError(error instanceof Error ? error.message : (locale === 'vi' ? 'Đóng tin thất bại.' : 'Unable to close job.'));
     } finally {
       setActionInProgressId(null);
     }
   };
 
-  const publishedCount = jobs.filter((job) => job.status === 'PUBLISHED').length;
+  const publishedCount = jobs.filter((job) => displayJobStatus(job) === 'PUBLISHED').length;
   const draftCount = jobs.filter((job) => job.status === 'DRAFT').length;
   const closedCount = jobs.filter((job) => job.status === 'CLOSED').length;
 
@@ -188,7 +193,7 @@ export default function RecruiterJobsListPage() {
         <Reveal direction="up" delay={0}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider font-sans">
+              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 font-sans">
                 <Briefcase className="w-4 h-4" />
                 <span>Job Management Center</span>
               </div>
@@ -265,6 +270,7 @@ export default function RecruiterJobsListPage() {
                 className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] rounded-xl text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[var(--border)]"
               >
                 <option value="ALL">{locale === 'vi' ? 'Tất cả trạng thái' : 'All Statuses'}</option>
+                <option value="EXPIRED">{statusLabel('EXPIRED', locale)}</option>
                 <option value="PUBLISHED">PUBLISHED {locale === 'vi' ? '(Đã xuất bản)' : '(Published)'}</option>
                 <option value="DRAFT">DRAFT {locale === 'vi' ? '(Bài nháp)' : '(Draft)'}</option>
                 <option value="CLOSED">CLOSED {locale === 'vi' ? '(Đã đóng)' : '(Closed)'}</option>
@@ -316,14 +322,14 @@ export default function RecruiterJobsListPage() {
                           </span>
                           <span
                             className={`px-2.5 py-1 rounded-xl text-xs font-semibold border ${
-                              job.status === 'PUBLISHED'
+                              displayJobStatus(job) === 'PUBLISHED'
                                 ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900'
                                 : job.status === 'DRAFT'
                                   ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900'
                                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                             }`}
                           >
-                            {job.status}
+                            {statusLabel(displayJobStatus(job), locale)}
                           </span>
                         </div>
 
@@ -375,7 +381,7 @@ export default function RecruiterJobsListPage() {
                           title={locale === 'vi' ? 'Xem bảng xếp hạng AI' : 'View AI ranking'}
                         >
                           <Award className="w-3.5 h-3.5" />
-                          Ranking
+                          {locale === 'vi' ? 'Xếp hạng AI' : 'AI ranking'}
                         </Link>
                         <button
                           type="button"
@@ -390,16 +396,18 @@ export default function RecruiterJobsListPage() {
                           className="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold">
                           {locale === 'vi' ? 'Chỉnh sửa' : 'Edit'}
                         </Link>
-                        {job.status === 'DRAFT' && (
+                        {job.status === 'DRAFT' && job.vacancyCount && job.applicationDeadline && !isJobExpired(job.applicationDeadline) ? (
                           <button
                             type="button"
-                            onClick={() => setConfirmPublishJobId(job.id)}
+                            onClick={() => { setActionError(null); setConfirmPublishJobId(job.id); }}
                             disabled={actionInProgressId !== null}
                             className="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold bg-[var(--surface-secondary)] dark:bg-emerald-950/40 text-[var(--heading)] dark:text-emerald-400 hover:bg-[var(--surface-secondary)] border border-[var(--border)]/30 transition disabled:opacity-50"
                           >
                             {isBusy ? '...' : locale === 'vi' ? 'Xuất bản' : 'Publish'}
                           </button>
-                        )}
+                        ) : job.status === 'DRAFT' ? (
+                          <span className="text-xs text-[var(--text-secondary)]">{locale === 'vi' ? 'Cần số lượng tuyển và hạn nộp để đăng tin' : 'Set openings and a deadline to publish'}</span>
+                        ) : null}
                         {job.status === 'DRAFT' && (
                           <button type="button" disabled={actionInProgressId !== null}
                             onClick={() => { setDeleteError(null); setConfirmDeleteJobId(job.id); }}
@@ -410,7 +418,7 @@ export default function RecruiterJobsListPage() {
                         {job.status === 'PUBLISHED' && (
                           <button
                             type="button"
-                            onClick={() => setConfirmCloseJobId(job.id)}
+                            onClick={() => { setActionError(null); setConfirmCloseJobId(job.id); }}
                             disabled={actionInProgressId !== null}
                             className="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-rose-50 hover:text-rose-600 border border-slate-200 dark:border-slate-700 transition disabled:opacity-50"
                           >
@@ -477,6 +485,7 @@ export default function RecruiterJobsListPage() {
         cancelLabel={locale === 'vi' ? 'Hủy' : 'Cancel'}
         variant="info"
         isLoading={actionInProgressId !== null}
+        errorMessage={actionError}
         onConfirm={handleExecutePublish}
         onCancel={() => setConfirmPublishJobId(null)}
       />
@@ -484,11 +493,12 @@ export default function RecruiterJobsListPage() {
       <ConfirmActionDialog
         isOpen={confirmCloseJobId !== null}
         title={locale === 'vi' ? 'Xác nhận đóng tin tuyển dụng' : 'Confirm job closure'}
-        description={locale === 'vi' ? 'Sau khi đóng tin, ứng viên sẽ không thể xem hoặc nộp đơn vào vị trí này nữa. Các hồ sơ đã nộp vẫn được lưu trữ an toàn.' : 'Candidates will no longer be able to view or apply to this job. Existing applications will remain stored.'}
+        description={locale === 'vi' ? 'Sau khi đóng tin, ứng viên sẽ không thể nộp đơn vào vị trí này nữa. Các hồ sơ đã nộp vẫn được lưu trữ an toàn.' : 'Candidates will no longer be able to apply to this job. Existing applications will remain stored.'}
         confirmLabel={locale === 'vi' ? 'Đóng tin tuyển dụng' : 'Close job'}
         cancelLabel={locale === 'vi' ? 'Quay lại' : 'Go back'}
         variant="warning"
         isLoading={actionInProgressId !== null}
+        errorMessage={actionError}
         onConfirm={handleExecuteClose}
         onCancel={() => setConfirmCloseJobId(null)}
       />

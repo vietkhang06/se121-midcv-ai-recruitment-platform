@@ -257,6 +257,8 @@ class TaskHttpAcceptanceTest {
         Hiring h=hiring("CONFIRMED");String hr=login(h.hr()).path("accessToken").asText();String title="TaskSearch"+UUID.randomUUID();
         Map<String,Object> body=new LinkedHashMap<>(Map.of("title",title,"industry","OTHER","industryOther","Công nghệ mới","seniority","OTHER","seniorityOther","Chuyên gia","description","Java backend","employmentType","OTHER","employmentTypeOther","Dự án","salaryCurrency","USD"));
         body.put("minSalary",1000);body.put("maxSalary",2000);
+        body.put("vacancyCount",2);
+        body.put("applicationDeadline",com.platform.recruitment.job.JobDeadline.today().plusDays(7).toString());
         var created=call(HttpMethod.POST,"/api/v1/jobs/draft",body,hr);assertEquals(201,created.getStatusCode().value());String id=data(created).path("id").asText();
         assertEquals(200,call(HttpMethod.PUT,"/api/v1/jobs/"+id,body,hr).getStatusCode().value());
         assertEquals(200,call(HttpMethod.POST,"/api/v1/jobs/"+id+"/publish",null,hr).getStatusCode().value());

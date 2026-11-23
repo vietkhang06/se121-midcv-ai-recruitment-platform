@@ -1,3 +1,4 @@
+import { toApplicationStatus } from '@/lib/applicationWorkflow';
 import { subscribeProgress } from './sse';
 import {
   Job,
@@ -60,6 +61,23 @@ interface BackendApplicationDto {
   id: string | number;
   jobId: string | number;
   jobTitle?: string | null;
+  job?: {
+    id: string | number;
+    title: string;
+    companyName?: string | null;
+    companyVerified?: boolean | null;
+    industry?: Job['industry'] | null;
+    employmentType?: Job['employmentType'] | null;
+    status?: Job['status'] | null;
+    location?: string | null;
+    salaryMin?: number | null;
+    salaryMax?: number | null;
+    salaryNegotiable?: boolean | null;
+    salaryCurrency?: Job['salaryCurrency'] | null;
+    publishedAt?: string | null;
+    applicationDeadline?: string | null;
+    vacancyCount?: number | null;
+  } | null;
   companyName?: string | null;
   industry?: string | null;
   appliedCvId?: string | null;
@@ -136,9 +154,25 @@ function isBackendApplication(value: unknown): value is BackendApplicationDto {
     && (typeof value.jobId === 'string' || typeof value.jobId === 'number');
 }
 
-function toApplicationStatus(value: unknown, fallback: ApplicationStatus = 'SUBMITTED'): ApplicationStatus {
-  const statuses: ApplicationStatus[] = ['SUBMITTED', 'REVIEWED', 'MATCHED', 'SHORTLISTED', 'INTERVIEWING', 'HIRED', 'REJECTED', 'UNDER_REVIEW'];
-  return typeof value === 'string' && statuses.includes(value as ApplicationStatus) ? value as ApplicationStatus : fallback;
+function mapApplicationJob(app: BackendApplicationDto): Application['job'] {
+  const job = app.job;
+  return {
+    id: String(app.jobId),
+    title: job?.title ?? app.jobTitle ?? '',
+    companyName: job?.companyName ?? app.companyName ?? undefined,
+    companyVerified: job?.companyVerified ?? undefined,
+    industry: job?.industry ?? (app.industry as Job['industry'] | null) ?? undefined,
+    employmentType: job?.employmentType ?? undefined,
+    status: job?.status ?? undefined,
+    location: job?.location ?? undefined,
+    salaryMin: job?.salaryMin ?? null,
+    salaryMax: job?.salaryMax ?? null,
+    salaryNegotiable: job?.salaryNegotiable ?? undefined,
+    salaryCurrency: job?.salaryCurrency ?? undefined,
+    applicationDeadline: job?.applicationDeadline ?? undefined,
+    vacancyCount: job?.vacancyCount ?? undefined,
+    publishedDate: job?.publishedAt?.split('T')[0],
+  };
 }
 
 function getObjectRows(value: unknown): JsonRecord[] {
@@ -521,7 +555,11 @@ export function mapBackendJobToFrontend(value: unknown): Job {
     salaryNegotiable: raw.salaryNegotiable === true,
     salaryCurrency: readString(raw.salaryCurrency, 'VND') as NonNullable<Job['salaryCurrency']>,
     salaryPeriod: 'MONTH',
-    publishedDate: readString(raw.createdAt).split('T')[0],
+    publishedDate: readString(raw.publishedAt).split('T')[0],
+    applicationDeadline: readString(raw.applicationDeadline) || undefined,
+    vacancyCount: readNumber(raw.vacancyCount) ?? undefined,
+    descriptionHtml: readString(raw.descriptionHtml) || undefined,
+    responsibilitiesHtml: readString(raw.responsibilitiesHtml) || undefined,
     description: readString(raw.description),
     responsibilities: Array.isArray(raw.responsibilities) ? raw.responsibilities.filter((value): value is string => typeof value === 'string') : [],
     requirements: rawRequirements.filter(isRecord).map((req) => ({
@@ -1214,22 +1252,7 @@ export class RealApiClient implements ApiClient {
     const rawList = (await fetchAllApiRows('/api/v1/candidate/applications')).filter(isBackendApplication);
     return rawList.map((app) => ({
       id: String(app.id),
-      job: {
-        id: String(app.jobId),
-        title: app.jobTitle || '',
-        companyName: app.companyName || '',
-        companyVerified: true,
-        industry: (app.industry || 'Technology') as Industry,
-        employmentType: 'FULL_TIME',
-        seniority: '',
-        location: '',
-        salaryMin: 0,
-        salaryMax: 0,
-        publishedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
-        description: '',
-        requirements: [],
-        status: 'PUBLISHED'
-      },
+      job: mapApplicationJob(app),
       appliedCvId: String(app.appliedCvId || ''),
       appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
       appliedCvVersion: app.appliedCvVersionNumber ?? null,
@@ -1264,6 +1287,7 @@ export class RealApiClient implements ApiClient {
     const data = json.data;
     return {
       ...app,
+      job: mapApplicationJob(data),
       id: String(data.id),
       appliedCvVersion: data.appliedCvVersionNumber ?? null,
       appliedCvVersionId: data.appliedCvVersionId ?? undefined,
@@ -1281,22 +1305,7 @@ export class RealApiClient implements ApiClient {
     const rawList = (await fetchAllApiRows(`/api/v1/recruiter/jobs/${jobId}/applications`)).filter(isBackendApplication);
     return rawList.map((app) => ({
       id: String(app.id),
-      job: {
-        id: String(app.jobId),
-        title: app.jobTitle || '',
-        companyName: '',
-        companyVerified: true,
-        industry: 'Technology',
-        employmentType: 'FULL_TIME',
-        seniority: '',
-        location: '',
-        salaryMin: 0,
-        salaryMax: 0,
-        publishedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
-        description: '',
-        requirements: [],
-        status: 'PUBLISHED'
-      },
+      job: mapApplicationJob(app),
       appliedCvId: String(app.appliedCvId || ''),
       appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
       appliedCvVersion: app.appliedCvVersionNumber ?? null,
@@ -1337,22 +1346,7 @@ export class RealApiClient implements ApiClient {
 
     return {
       id: String(app.id),
-      job: {
-        id: String(app.jobId),
-        title: app.jobTitle || '',
-        companyName: '',
-        companyVerified: true,
-        industry: 'Technology',
-        employmentType: 'FULL_TIME',
-        seniority: '',
-        location: '',
-        salaryMin: 0,
-        salaryMax: 0,
-        publishedDate: '',
-        description: '',
-        requirements: [],
-        status: 'PUBLISHED'
-      },
+      job: mapApplicationJob(app),
       appliedCvId: String(app.appliedCvId || ''),
       appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
       appliedCvVersion: app.appliedCvVersionNumber ?? null,
@@ -1406,22 +1400,7 @@ export class RealApiClient implements ApiClient {
     const app = json.data;
     return {
       id: String(app.id),
-      job: {
-        id: String(app.jobId),
-        title: app.jobTitle || '',
-        companyName: '',
-        companyVerified: true,
-        industry: 'Technology',
-        employmentType: 'FULL_TIME',
-        seniority: '',
-        location: '',
-        salaryMin: 0,
-        salaryMax: 0,
-        publishedDate: '',
-        description: '',
-        requirements: [],
-        status: 'PUBLISHED'
-      },
+      job: mapApplicationJob(app),
       appliedCvId: String(app.appliedCvId || ''),
       appliedCvTitle: app.snapshot?.cvTitle || 'CV Ứng tuyển',
       appliedCvVersion: app.appliedCvVersionNumber ?? null,
@@ -1431,7 +1410,7 @@ export class RealApiClient implements ApiClient {
       candidatePhone: app.candidatePhone ?? undefined,
       candidateHeadline: app.candidateHeadline ?? undefined,
       githubUrl: app.candidateGithubUrl ?? undefined,
-      status: toApplicationStatus(app.status, status),
+      status: toApplicationStatus(app.status),
       matchScore: app.matchScore != null ? Number(app.matchScore) : undefined,
       matchStatus: app.matchStatus ?? undefined,
       appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
@@ -1594,6 +1573,10 @@ export class RealApiClient implements ApiClient {
       employmentType: job.employmentTypeOther ? 'OTHER' : job.employmentType,
       employmentTypeOther: job.employmentTypeOther,
       description: job.description || (job.responsibilities ? job.responsibilities.join('\n') : job.title),
+      descriptionHtml: job.descriptionHtml ?? '',
+      responsibilitiesHtml: job.responsibilitiesHtml ?? '',
+      applicationDeadline: job.applicationDeadline || null,
+      vacancyCount: job.vacancyCount,
       responsibilities: job.responsibilities || [],
       requirements: (job.requirements || []).map(r => ({
         skillName: r.skillName,

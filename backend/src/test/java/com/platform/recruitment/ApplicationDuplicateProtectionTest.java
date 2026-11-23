@@ -145,7 +145,10 @@ public class ApplicationDuplicateProtectionTest {
     }
 
     @Test
-    void consentedQuickApplyScoresTheSelectedCvAndStoresConsent() {
+    void consentedQuickApplyQueuesMatchAndPersistsEvenIfMatchingIsUnavailable() {
+        var lifecycle = mock(com.platform.recruitment.embedding.VersionedEmbeddingLifecycle.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(applicationService, "vectorLifecycle", lifecycle);
+        when(lifecycle.prepareJob(job1)).thenReturn(UUID.randomUUID());
         request1.setAiAnalysisConsent(true);
         when(candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())).thenReturn(Optional.of(candidate));
         when(jobRepository.findByIdForApply(job1.getId())).thenReturn(Optional.of(job1));
@@ -163,7 +166,9 @@ public class ApplicationDuplicateProtectionTest {
         verify(applicationRepository).save(captured.capture());
         assertNotNull(captured.getValue().getAiConsentAt());
         assertEquals("quick-apply-v1", captured.getValue().getAiConsentVersion());
-        verify(matchingEngineService).calculateAndPersistMatchResult(job1.getId(), candidate.getId());
+        verify(snapshotRepository).save(any(ApplicationCVSnapshot.class));
+        verify(lifecycle).enqueueApplicationMatch(candidateUser.getId(), response.getId());
+        verifyNoInteractions(matchingEngineService);
     }
 
     @Test

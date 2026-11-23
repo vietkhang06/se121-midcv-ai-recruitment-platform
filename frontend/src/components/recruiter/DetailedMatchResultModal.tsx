@@ -1,5 +1,7 @@
 'use client';
 
+import { useLanguage } from '@/context/LanguageContext';
+import { statusLabel } from '@/lib/statusLabels';
 import React from 'react';
 import {
   X,
@@ -119,6 +121,7 @@ export function DetailedMatchResultModal({
   candidateTitle = 'Hồ sơ ứng viên',
   jobTitle = 'Tin tuyển dụng',
 }: DetailedMatchResultModalProps) {
+  const { locale } = useLanguage();
   if (!isOpen || !result) return null;
 
   const details = asDetails(result.details);
@@ -263,7 +266,7 @@ export function DetailedMatchResultModal({
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                         }`}
                       >
-                        {c.status}
+                        {statusLabel(c.status, locale)}
                       </span>
                       {c.score != null && (
                         <span className="text-xs font-extrabold font-sans text-slate-900 dark:text-white">
@@ -291,7 +294,7 @@ export function DetailedMatchResultModal({
                                     : 'text-slate-400 dark:text-slate-500'
                                 }`}
                               >
-                                {ev.status}
+                                {statusLabel(ev.status, locale)}
                               </span>
                             </div>
                           )}

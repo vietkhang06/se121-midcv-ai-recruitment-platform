@@ -193,10 +193,13 @@ export default function ApplicationHistoryPage() {
 
                   {/* 4-Step Interactive Progress Timeline (Adapted from SE347 MatchaJob) */}
                   {(() => {
-                    const statusStr = app.status || 'SUBMITTED';
+                    const statusStr = app.status;
+                    if (statusStr === 'UNKNOWN') {
+                      return <p className="pt-3 text-sm">{locale === 'vi' ? 'Trạng thái chưa xác định' : 'Unknown status'}</p>;
+                    }
                     const isRejected = statusStr === 'REJECTED';
                     const isHired = statusStr === 'HIRED';
-                    const currentStep = (isHired || isRejected) ? 4 : (statusStr === 'INTERVIEWING' ? 3 : (statusStr === 'SHORTLISTED' ? 2 : 1));
+                    const currentStep = (isHired || isRejected) ? 4 : (statusStr === 'INTERVIEWING' ? 3 : (['REVIEWED', 'MATCHED', 'SHORTLISTED'].includes(statusStr) ? 2 : 1));
                     const progressPercent = ((currentStep - 1) / 3) * 100;
 
                     const timelineSteps = [

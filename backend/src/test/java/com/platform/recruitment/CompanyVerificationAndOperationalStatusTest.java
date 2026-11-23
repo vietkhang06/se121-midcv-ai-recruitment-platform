@@ -116,6 +116,8 @@ class CompanyVerificationAndOperationalStatusTest {
                 .company(testCompany)
                 .title("Software Engineer")
                 .status(JobStatus.DRAFT)
+                .applicationDeadline(com.platform.recruitment.job.JobDeadline.today().plusDays(7))
+                .vacancyCount(2)
                 .build();
         testJob.setId(UUID.randomUUID());
     }

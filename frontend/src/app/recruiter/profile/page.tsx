@@ -1,5 +1,6 @@
 'use client';
 
+import { statusLabel } from '@/lib/statusLabels';
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -159,7 +160,7 @@ export default function RecruiterProfilePage() {
                   : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
               }`}>
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>{profile?.company?.verificationStatus || 'PENDING'}</span>
+                <span>{statusLabel(profile?.company?.verificationStatus, locale)}</span>
               </span>
             </div>
 

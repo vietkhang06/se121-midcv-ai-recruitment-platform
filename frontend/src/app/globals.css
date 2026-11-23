@@ -697,3 +697,13 @@ h1, h2, h3, .font-editorial {
     color: #111827 !important;
   }
 }
+
+
+.midcv-richtext ul,
+.midcv-richtext ol {
+  padding-inline-start: 1.5rem;
+}
+
+.midcv-richtext ul { list-style: disc; }
+.midcv-richtext ol { list-style: decimal; }
+.midcv-richtext p + p { margin-top: 0.5em; }

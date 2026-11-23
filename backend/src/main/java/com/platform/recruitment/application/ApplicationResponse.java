@@ -17,6 +17,7 @@ public class ApplicationResponse {
     private UUID id;
     private UUID jobId;
     private String jobTitle;
+    private ApplicationJobSummary job;
     private UUID candidateId;
     private String candidateName;
     private UUID appliedCvId;
