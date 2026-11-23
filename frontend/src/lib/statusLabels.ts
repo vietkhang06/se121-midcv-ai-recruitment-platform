@@ -86,7 +86,12 @@ const labels: Record<string, readonly [string, string]> = {
   NOT_STARTED: ['Chưa bắt đầu', 'Not started'],
 };
 
-export function statusLabel(code: string | null | undefined, locale: Locale): string {
+export function statusLabel(
+  code: string | null | undefined,
+  locale: Locale
+): string {
   const label = code && Object.hasOwn(labels, code) ? labels[code] : null;
-  return label?.[locale === 'vi' ? 0 : 1] ?? (locale === 'vi' ? 'Chưa xác định' : 'Unknown');
+
+  return label?.[locale === 'vi' ? 0 : 1] ??
+    (locale === 'vi' ? 'Chưa xác định' : 'Unknown');
 }

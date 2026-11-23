@@ -55,6 +55,7 @@ function errorMessage(error: unknown, fallback: string): string {
 export default function AdminCompaniesPage() {
   const { locale } = useLanguage();
   const vi = locale === 'vi';
+
   const [companies, setCompanies] = useState<CompanyAdminDto[]>([]);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
@@ -74,6 +75,7 @@ export default function AdminCompaniesPage() {
   const fetchCompanies = useCallback(async () => {
     setLoading(true);
     setError(null);
+
     try {
       const res = await adminApi.getCompanies({
         status: filterStatus === 'ALL' ? undefined : filterStatus,
@@ -81,6 +83,7 @@ export default function AdminCompaniesPage() {
         page: currentPage,
         size: 10
       });
+
       setCompanies(res.content || []);
       setTotalPages(res.totalPages || 0);
       setTotalElements(res.totalElements || 0);
@@ -93,16 +96,22 @@ export default function AdminCompaniesPage() {
 
   useEffect(() => {
     let active = true;
+
     const loadCompanies = () => {
       if (active) void fetchCompanies();
     };
+
     void Promise.resolve().then(loadCompanies);
+
     return () => {
       active = false;
     };
   }, [fetchCompanies]);
 
-  const handleOpenActionModal = (company: CompanyAdminDto, action: CompanyReviewAction) => {
+  const handleOpenActionModal = (
+    company: CompanyAdminDto,
+    action: CompanyReviewAction
+  ) => {
     setSelectedCompany(company);
     setActionType(action);
     setActionNotes('');
@@ -113,25 +122,33 @@ export default function AdminCompaniesPage() {
     if (!selectedCompany || !actionType) return;
 
     // Check mandatory notes for rejection, change request, suspension
-    if (['REQUEST_CHANGES', 'REJECT', 'SUSPEND'].includes(actionType) && !actionNotes.trim()) {
+    if (
+      ['REQUEST_CHANGES', 'REJECT', 'SUSPEND'].includes(actionType) &&
+      !actionNotes.trim()
+    ) {
       setFeedback({
         type: 'error',
-        text: vi ? 'Vui lòng nhập lý do cụ thể cho thao tác này.' : 'Enter a reason for this decision.'
+        text: vi
+          ? 'Vui lòng nhập lý do cụ thể cho thao tác này.'
+          : 'Enter a reason for this decision.'
       });
       return;
     }
 
     setSubmittingAction(true);
     setFeedback(null);
+
     try {
       await adminApi.transitionCompanyVerification(selectedCompany.id, {
         action: actionType,
         notes: actionNotes.trim() || undefined
       });
+
       setFeedback({
         type: 'success',
         text: `${actionLabels[actionType][vi ? 0 : 1]} · ${selectedCompany.name}`
       });
+
       setSelectedCompany(null);
       setActionType(null);
       fetchCompanies();
@@ -154,6 +171,7 @@ export default function AdminCompaniesPage() {
             {statusLabel(status, locale)}
           </span>
         );
+
       case 'UNDER_REVIEW':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
@@ -161,6 +179,7 @@ export default function AdminCompaniesPage() {
             {statusLabel(status, locale)}
           </span>
         );
+
       case 'CHANGES_REQUESTED':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
@@ -168,6 +187,7 @@ export default function AdminCompaniesPage() {
             {statusLabel(status, locale)}
           </span>
         );
+
       case 'PENDING':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
@@ -175,6 +195,7 @@ export default function AdminCompaniesPage() {
             {statusLabel(status, locale)}
           </span>
         );
+
       case 'REJECTED':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
@@ -182,6 +203,7 @@ export default function AdminCompaniesPage() {
             {statusLabel(status, locale)}
           </span>
         );
+
       case 'SUSPENDED':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
@@ -189,6 +211,7 @@ export default function AdminCompaniesPage() {
             {statusLabel(status, locale)}
           </span>
         );
+
       default:
         return <span>{statusLabel(status, locale)}</span>;
     }
@@ -289,7 +312,9 @@ export default function AdminCompaniesPage() {
         {loading && (
           <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-[var(--surface)] rounded-xl border border-slate-200 dark:border-slate-800">
             <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-3" />
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Đang tải danh sách thẩm định doanh nghiệp...</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Đang tải danh sách thẩm định doanh nghiệp...
+            </p>
           </div>
         )}
 
@@ -297,8 +322,12 @@ export default function AdminCompaniesPage() {
         {!loading && error && (
           <div className="p-8 rounded-xl bg-white dark:bg-[var(--surface)] border border-rose-200 dark:border-rose-900/50 text-center space-y-4">
             <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Lỗi tải dữ liệu</h3>
-            <p className="text-xs text-rose-600 dark:text-rose-400 max-w-md mx-auto">{error}</p>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+              Lỗi tải dữ liệu
+            </h3>
+            <p className="text-xs text-rose-600 dark:text-rose-400 max-w-md mx-auto">
+              {error}
+            </p>
             <button
               onClick={fetchCompanies}
               className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold inline-flex items-center gap-1.5 transition"
@@ -313,7 +342,9 @@ export default function AdminCompaniesPage() {
         {!loading && !error && companies.length === 0 && (
           <div className="p-12 rounded-xl bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-slate-800 text-center space-y-3">
             <Building2 className="w-10 h-10 text-slate-400 mx-auto" />
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Không có doanh nghiệp nào</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+              Không có doanh nghiệp nào
+            </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
               Không tìm thấy hồ sơ doanh nghiệp nào phù hợp với bộ lọc hoặc từ khóa hiện tại.
             </p>
@@ -326,38 +357,70 @@ export default function AdminCompaniesPage() {
             <table className="block w-full text-left text-xs md:table">
               <thead className="hidden border-b border-[var(--border)] bg-[var(--surface-secondary)] text-[var(--heading)] md:table-header-group">
                 <tr>
-                  <th className="py-3.5 px-4">{vi ? 'Doanh nghiệp' : 'Company'}</th>
-                  <th className="py-3.5 px-4">{vi ? 'Mã số thuế' : 'Tax ID'}</th>
-                  <th className="py-3.5 px-4">{vi ? 'Lĩnh vực' : 'Industry'}</th>
-                  <th className="py-3.5 px-4">{vi ? 'Trạng thái' : 'Status'}</th>
-                  <th className="py-3.5 px-4">{vi ? 'Ghi chú xét duyệt' : 'Review note'}</th>
-                  <th className="py-3.5 px-4 text-right">{vi ? 'Thao tác' : 'Actions'}</th>
+                  <th className="py-3.5 px-4">
+                    {vi ? 'Doanh nghiệp' : 'Company'}
+                  </th>
+                  <th className="py-3.5 px-4">
+                    {vi ? 'Mã số thuế' : 'Tax ID'}
+                  </th>
+                  <th className="py-3.5 px-4">
+                    {vi ? 'Lĩnh vực' : 'Industry'}
+                  </th>
+                  <th className="py-3.5 px-4">
+                    {vi ? 'Trạng thái' : 'Status'}
+                  </th>
+                  <th className="py-3.5 px-4">
+                    {vi ? 'Ghi chú xét duyệt' : 'Review note'}
+                  </th>
+                  <th className="py-3.5 px-4 text-right">
+                    {vi ? 'Thao tác' : 'Actions'}
+                  </th>
                 </tr>
               </thead>
+
               <tbody className="block divide-y divide-[var(--border)] md:table-row-group">
                 {companies.map((c) => (
-                  <tr key={c.id} className="block px-2 py-3 transition hover:bg-[var(--surface-secondary)] md:table-row md:p-0">
+                  <tr
+                    key={c.id}
+                    className="block px-2 py-3 transition hover:bg-[var(--surface-secondary)] md:table-row md:p-0"
+                  >
                     <td className="block px-3 py-2 font-bold text-[var(--heading)] md:table-cell md:px-4 md:py-4">
                       <div className="flex items-center gap-2">
                         <Building2 className="w-4 h-4 text-indigo-500 shrink-0" />
                         <span>{c.name}</span>
                       </div>
                       <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400 block ml-6">
-                        {c.website && <span className="break-all">{c.website}</span>}
+                        {c.website && (
+                          <span className="break-all">{c.website}</span>
+                        )}
                       </span>
                     </td>
+
                     <td className={`px-3 py-1.5 text-[var(--text-secondary)] md:table-cell md:px-4 md:py-4 ${c.taxCode ? 'block' : 'hidden'}`}>
-                      <span className="font-semibold md:hidden">{vi ? 'Mã số thuế' : 'Tax ID'} · </span>{c.taxCode || '—'}
+                      <span className="font-semibold md:hidden">
+                        {vi ? 'Mã số thuế' : 'Tax ID'} ·
+                      </span>
+                      {c.taxCode || '—'}
                     </td>
+
                     <td className={`px-3 py-1.5 text-[var(--text-secondary)] md:table-cell md:px-4 md:py-4 ${c.industry ? 'block' : 'hidden'}`}>
-                      <span className="font-semibold md:hidden">{vi ? 'Lĩnh vực' : 'Industry'} · </span>{c.industry || '—'}
+                      <span className="font-semibold md:hidden">
+                        {vi ? 'Lĩnh vực' : 'Industry'} ·
+                      </span>
+                      {c.industry || '—'}
                     </td>
+
                     <td className="block px-3 py-2 md:table-cell md:px-4 md:py-4">
                       {renderStatusBadge(c.verificationStatus)}
                     </td>
+
                     <td className={`break-words px-3 py-1.5 text-xs text-[var(--text-secondary)] md:table-cell md:max-w-xs md:px-4 md:py-4 ${c.reviewNotes ? 'block' : 'hidden'}`}>
-                      <span className="font-semibold md:hidden">{vi ? 'Ghi chú' : 'Review note'} · </span>{c.reviewNotes || '—'}
+                      <span className="font-semibold md:hidden">
+                        {vi ? 'Ghi chú' : 'Review note'} ·
+                      </span>
+                      {c.reviewNotes || '—'}
                     </td>
+
                     <td className="block px-3 py-2 md:table-cell md:px-4 md:py-4">
                       <div className="flex flex-wrap items-center gap-1.5 md:justify-end">
                         {c.verificationStatus === 'PENDING' && (
@@ -430,6 +493,7 @@ export default function AdminCompaniesPage() {
                 <span className="text-xs text-slate-500">
                   Trang {currentPage + 1} / {totalPages} (Tổng {totalElements} doanh nghiệp)
                 </span>
+
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
@@ -438,6 +502,7 @@ export default function AdminCompaniesPage() {
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
+
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
                     disabled={currentPage >= totalPages - 1}
@@ -452,31 +517,54 @@ export default function AdminCompaniesPage() {
         )}
 
         {/* Action Confirmation Modal */}
-        <AnimatedModalShell isOpen={Boolean(selectedCompany && actionType)}
+        <AnimatedModalShell
+          isOpen={Boolean(selectedCompany && actionType)}
           titleId="company-action-title"
           onRequestClose={() => {
-            if (!submittingAction) { setSelectedCompany(null); setActionType(null); }
+            if (!submittingAction) {
+              setSelectedCompany(null);
+              setActionType(null);
+            }
           }}
-          panelClassName="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-6 shadow-xl space-y-4">
-          {selectedCompany && actionType && <>
+          panelClassName="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-6 shadow-xl space-y-4"
+        >
+          {selectedCompany && actionType && (
+            <>
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
+
                 <div>
-                  <h3 id="company-action-title" className="text-base font-bold text-[var(--heading)]">
+                  <h3
+                    id="company-action-title"
+                    className="text-base font-bold text-[var(--heading)]"
+                  >
                     {actionLabels[actionType][vi ? 0 : 1]}
                   </h3>
+
                   <p className="text-xs text-slate-500">
-                    {vi ? 'Doanh nghiệp' : 'Company'} · <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedCompany.name}</span>
+                    {vi ? 'Doanh nghiệp' : 'Company'} ·{' '}
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      {selectedCompany.name}
+                    </span>
                   </p>
                 </div>
               </div>
 
               <div>
-                <label htmlFor="company-action-reason" className="mb-1 block text-sm font-semibold text-[var(--heading)]">
-                  {vi ? 'Lý do hoặc ghi chú thẩm định' : 'Reason or review note'} {['REQUEST_CHANGES', 'REJECT', 'SUSPEND'].includes(actionType) && <span className="text-rose-500">*</span>}
+                <label
+                  htmlFor="company-action-reason"
+                  className="mb-1 block text-sm font-semibold text-[var(--heading)]"
+                >
+                  {vi
+                    ? 'Lý do hoặc ghi chú thẩm định'
+                    : 'Reason or review note'}{' '}
+                  {['REQUEST_CHANGES', 'REJECT', 'SUSPEND'].includes(actionType) && (
+                    <span className="text-rose-500">*</span>
+                  )}
                 </label>
+
                 <textarea
                   id="company-action-reason"
                   data-autofocus="true"
@@ -494,7 +582,12 @@ export default function AdminCompaniesPage() {
                 />
               </div>
 
-              {feedback?.type === 'error' && <p role="alert" className="text-sm text-[var(--danger)]">{feedback.text}</p>}
+              {feedback?.type === 'error' && (
+                <p role="alert" className="text-sm text-[var(--danger)]">
+                  {feedback.text}
+                </p>
+              )}
+
               <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
                 <button
                   onClick={() => {
@@ -506,16 +599,20 @@ export default function AdminCompaniesPage() {
                 >
                   {vi ? 'Hủy' : 'Cancel'}
                 </button>
+
                 <button
                   onClick={handleExecuteAction}
                   disabled={submittingAction}
                   className="px-4 py-2 rounded-xl bg-[var(--primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)] text-white text-xs font-bold transition flex items-center gap-1.5"
                 >
-                  {submittingAction && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {submittingAction && (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  )}
                   {vi ? 'Xác nhận' : 'Confirm'}
                 </button>
               </div>
-          </>}
+            </>
+          )}
         </AnimatedModalShell>
 
       </main>
