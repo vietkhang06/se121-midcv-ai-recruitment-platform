@@ -1,5 +1,6 @@
 'use client';
 
+import { statusLabel } from '@/lib/statusLabels';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -258,7 +259,7 @@ export default function CandidateProfilePage() {
               <div className="flex items-center gap-3 flex-wrap">
                 <h3 className="text-2xl font-editorial font-bold text-slate-900 dark:text-white">{profile.fullName || user?.fullName || 'Ứng viên'}</h3>
                 <span className="px-2.5 py-0.5 rounded-xl text-[10px] font-bold font-sans bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-[var(--retro-sky)] border border-emerald-300 dark:border-emerald-800/40">
-                  {locale === 'vi' ? 'NGUỒN ĐÃ XÁC THỰC' : 'VERIFIED SOURCE'}
+                  {locale === 'vi' ? 'Nguồn đã xác thực' : 'Verified source'}
                 </span>
               </div>
 
@@ -581,7 +582,7 @@ export default function CandidateProfilePage() {
                       : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
                   }`}>
                     <span className={`w-2 h-2 rounded-xl ${cvStatus === 'CONFIRMED' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
-                    <span>{cvStatus === 'CONFIRMED' ? (locale === 'vi' ? 'TRẠNG THÁI: ĐÃ XÁC NHẬN (CONFIRMED)' : 'STATUS: CONFIRMED') : (locale === 'vi' ? 'TRẠNG THÁI: BẢN THẢO (DRAFT)' : 'STATUS: DRAFT')}</span>
+                    <span>{statusLabel(cvStatus, locale)}</span>
                   </span>
                   {confirmedSuccess && (
                     <AnimatedStatus stateKey="profile-confirmed" className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">

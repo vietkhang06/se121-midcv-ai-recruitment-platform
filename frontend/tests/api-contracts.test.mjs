@@ -8,7 +8,11 @@ const source = readFileSync(new URL('../src/lib/api.ts', import.meta.url), 'utf8
 const sseSource = readFileSync(new URL('../src/lib/sse.ts', import.meta.url), 'utf8');
 const sseJavascript = ts.transpileModule(sseSource, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText;
 const sseUrl = `data:text/javascript;base64,${Buffer.from(sseJavascript).toString('base64')}`;
-const javascript = ts.transpileModule(source.replace("'./sse'", JSON.stringify(sseUrl)), {
+const workflow = ts.transpileModule(readFileSync(new URL('../src/lib/applicationWorkflow.ts', import.meta.url), 'utf8'), {
+  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
+}).outputText;
+const workflowUrl = `data:text/javascript;base64,${Buffer.from(workflow).toString('base64')}`;
+const javascript = ts.transpileModule(source.replace("'./sse'", JSON.stringify(sseUrl)).replace("'@/lib/applicationWorkflow'", JSON.stringify(workflowUrl)), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
 }).outputText;
 const api = await import(`data:text/javascript;base64,${Buffer.from(javascript).toString('base64')}`);
@@ -107,4 +111,18 @@ test('admin users use one server page and preserve deactivated status', async ()
   assert.equal(url.searchParams.get('accountStatus'), 'DEACTIVATED');
   assert.equal(result.content[0].accountStatus, 'DEACTIVATED');
   assert.equal(result.content[0].role, 'RECRUITER');
+});
+
+test('application uses closed Marketing JD data and rejects legacy company status', async () => {
+  globalThis.fetch = async () => response({content: [{
+    id: 'app-1', jobId: 'job-1', appliedAt: '2026-11-22T12:00:00Z', status: 'UNDER_REVIEW',
+    job: {title: 'Marketing', industry: 'Marketing', employmentType: 'PART_TIME', status: 'CLOSED',
+      publishedAt: '2026-11-17T12:00:00Z', companyVerified: false, salaryMin: null, salaryMax: 5000000},
+  }]});
+  const [application] = await api.fetchCandidateApplications();
+  assert.equal(application.status, 'UNKNOWN');
+  assert.deepEqual(Object.fromEntries(Object.entries(application.job).filter(([, val]) => val !== undefined)), {
+    id: 'job-1', title: 'Marketing', status: 'CLOSED', industry: 'Marketing', employmentType: 'PART_TIME',
+    publishedDate: '2026-11-17', companyVerified: false, salaryMin: null, salaryMax: 5000000,
+  });
 });

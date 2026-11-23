@@ -35,6 +35,13 @@ public class JobResponse {
     private String employmentType;
     private String employmentTypeOther;
     private String description;
+    private String descriptionHtml;
+
+    private String responsibilitiesHtml;
+
+    private Integer vacancyCount;
+    private ZonedDateTime publishedAt;
+
     private LocalDate applicationDeadline;
     private List<String> occupationCodes;
     private List<String> responsibilities;

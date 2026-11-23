@@ -1,5 +1,7 @@
 'use client';
 
+import { statusLabel } from '@/lib/statusLabels';
+import { isJobExpired } from '@/lib/jobDeadline';
 import React, { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -88,21 +90,6 @@ function formatDate(value: string | undefined, locale: 'vi' | 'en') {
     month: 'short',
     year: 'numeric',
   }).format(date);
-}
-
-function applicationStatusLabel(status: string, locale: 'vi' | 'en') {
-  const labels: Record<string, { vi: string; en: string }> = {
-    SUBMITTED: { vi: 'Đã nộp', en: 'Submitted' },
-    APPLIED: { vi: 'Đã ứng tuyển', en: 'Applied' },
-    REVIEWED: { vi: 'Đã xem xét', en: 'Reviewed' },
-    UNDER_REVIEW: { vi: 'Đang xem xét', en: 'Under review' },
-    MATCHED: { vi: 'Đã đối sánh', en: 'Matched' },
-    SHORTLISTED: { vi: 'Vào danh sách ngắn', en: 'Shortlisted' },
-    INTERVIEWING: { vi: 'Phỏng vấn', en: 'Interviewing' },
-    HIRED: { vi: 'Đã tuyển', en: 'Hired' },
-    REJECTED: { vi: 'Chưa phù hợp', en: 'Not selected' },
-  };
-  return labels[status]?.[locale] ?? status;
 }
 
 function statusTone(status: string) {
@@ -233,7 +220,7 @@ export default function CandidateDashboardPage() {
     setDashboardError(null);
 
     if (jobsResult.status === 'fulfilled') {
-      setJobs(jobsResult.value.filter((job) => job.status === 'PUBLISHED'));
+      setJobs(jobsResult.value.filter((job) => job.status === 'PUBLISHED' && !isJobExpired(job.applicationDeadline)));
       setJobsError(null);
     } else {
       setJobsError(isVi ? 'Không thể tải việc làm lúc này. Bạn có thể thử lại hoặc mở trang tìm việc.' : 'Jobs could not be loaded. Retry or open the full job search page.');
@@ -618,7 +605,7 @@ export default function CandidateDashboardPage() {
                             <Link href={job?.id ? `/jobs/${job.id}` : '/candidate/applications'} className="line-clamp-2 text-sm font-bold text-[var(--heading)] hover:text-[var(--primary)] dark:text-slate-100 dark:hover:text-[var(--retro-sky)]">{job?.title || (isVi ? 'Vị trí ứng tuyển' : 'Applied position')}</Link>
                             <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">{job?.companyName || (isVi ? 'Doanh nghiệp' : 'Company')} · {formatDate(application.appliedDate, locale)}</p>
                           </div>
-                          <span className={`shrink-0 rounded-xl border px-2.5 py-1 text-[10px] font-bold ${statusTone(application.status)}`}>{applicationStatusLabel(application.status, locale)}</span>
+                          <span className={`shrink-0 rounded-xl border px-2.5 py-1 text-[10px] font-bold ${statusTone(application.status)}`}>{statusLabel(application.status, locale)}</span>
                         </div>
                         {typeof application.matchScore === 'number' ? <div className="mt-3 flex items-center justify-between text-[11px]"><span className="text-slate-500 dark:text-slate-400">{isVi ? 'Điểm đối sánh hiện có' : 'Recorded match score'}</span><span className="font-extrabold text-[var(--primary)] dark:text-[var(--retro-sky)]">{application.matchScore}%</span></div> : null}
                       </div>

@@ -63,6 +63,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
   allowRequirementType = false,
   placeholder = 'Tìm kỹ năng (VD: Java, React, Docker, Python, Figma...)',
   className = '',
+  compact = false,
 }) => {
   const { isAuthenticated } = useAuth();
   const { locale } = useLanguage();
@@ -229,7 +230,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
     <div ref={containerRef} className={`space-y-3 ${className}`}>
 
       {/* 1. Quick-Pick Favorites Bar (Max 10) */}
-      {favoriteSkillsList.length > 0 && (
+      {!compact && favoriteSkillsList.length > 0 && (
         <div className="p-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/40 space-y-1.5 transition-all">
           <div className="flex items-center justify-between text-[11px] font-bold text-amber-900 dark:text-amber-200">
             <span className="flex items-center gap-1.5">
@@ -288,7 +289,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
       )}
 
       {/* 2. Taxonomy Filters Row */}
-      <div className="flex flex-wrap items-center gap-2 text-xs">
+      {!compact && <div className="flex flex-wrap items-center gap-2 text-xs">
         {/* Industry Filter Dropdown */}
         <div className="flex items-center gap-1 bg-white dark:bg-[var(--surface)] border border-[var(--border-soft)] dark:border-[var(--border)] rounded-xl px-2.5 py-1.5 shadow-2xs">
           <Briefcase className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -321,7 +322,7 @@ export const SkillCatalogPicker: React.FC<SkillCatalogPickerProps> = ({
           <Star className={`w-3.5 h-3.5 ${showOnlyFavorites ? 'fill-amber-500 text-amber-500' : 'text-slate-400'}`} />
           <span>{isVi ? 'Đã lưu' : 'Favorites'}</span>
         </button>
-      </div>
+      </div>}
 
       {/* 3. Main Input Row: Autocomplete + Rubric Criteria Controls */}
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">

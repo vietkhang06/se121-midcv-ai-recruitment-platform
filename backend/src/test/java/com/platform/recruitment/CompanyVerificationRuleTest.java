@@ -75,6 +75,8 @@ class CompanyVerificationRuleTest {
                 .industry("Technology")
                 .seniority("Senior")
                 .status(JobStatus.DRAFT)
+                .applicationDeadline(com.platform.recruitment.job.JobDeadline.today().plusDays(7))
+                .vacancyCount(2)
                 .description("Job description text")
                 .build();
         draftJob.setId(UUID.randomUUID());
@@ -109,4 +111,24 @@ class CompanyVerificationRuleTest {
         assertEquals(JobStatus.PUBLISHED, response.getStatus());
         verify(jobRepository, times(1)).save(any());
     }
+
+    @Test
+    void verifiedRecruiterCannotPublishWithoutOpeningsOrWithAnExpiredDeadline() {
+        recruiterProfile.setCompany(verifiedCompany);
+        draftJob.setCompany(verifiedCompany);
+        when(recruiterProfileRepository.findByUserId(recruiterUser.getId())).thenReturn(Optional.of(recruiterProfile));
+        when(jobRepository.findById(draftJob.getId())).thenReturn(Optional.of(draftJob));
+
+        draftJob.setVacancyCount(null);
+        assertThrows(com.platform.recruitment.common.CustomException.class,
+                () -> jobService.publishJob(recruiterUser, draftJob.getId()));
+        draftJob.setVacancyCount(2);
+        draftJob.setApplicationDeadline(com.platform.recruitment.job.JobDeadline.today().minusDays(1));
+        assertThrows(com.platform.recruitment.common.CustomException.class,
+                () -> jobService.publishJob(recruiterUser, draftJob.getId()));
+
+        assertEquals(JobStatus.DRAFT, draftJob.getStatus());
+        verify(jobRepository, never()).save(any());
+    }
+
 }

@@ -1,5 +1,7 @@
 'use client';
 
+import { APPLICATION_STATUS_LABELS, loadApplicationsForJobs } from '@/lib/applicationWorkflow';
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { Job, Application, ApplicationStatus } from '@/types';
@@ -12,11 +14,14 @@ import {
 import { EmptyState } from '@/components/common/EmptyState';
 
 const PIPELINE_COLUMNS: { status: ApplicationStatus; titleVi: string; titleEn: string; color: string; badge: string }[] = [
-  { status: 'SUBMITTED', titleVi: 'Mới Nộp', titleEn: 'Submitted', color: 'border-blue-400', badge: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300' },
-  { status: 'SHORTLISTED', titleVi: 'Duyệt Hồ Sơ', titleEn: 'Shortlisted', color: 'border-emerald-400', badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' },
-  { status: 'INTERVIEWING', titleVi: 'Phỏng Vấn', titleEn: 'Interviewing', color: 'border-purple-400', badge: 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300' },
-  { status: 'HIRED', titleVi: 'Trúng Tuyển', titleEn: 'Hired', color: 'border-green-500', badge: 'bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300' },
-  { status: 'REJECTED', titleVi: 'Từ Chối', titleEn: 'Rejected', color: 'border-rose-400', badge: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300' }
+  { status: 'SUBMITTED', titleVi: 'Mới nộp', titleEn: 'Submitted', color: 'border-blue-400', badge: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300' },
+  { status: 'REVIEWED', titleVi: 'Đã xem', titleEn: 'Reviewed', color: 'border-indigo-400', badge: 'bg-[var(--surface-secondary)]' },
+  { status: 'MATCHED', titleVi: 'Đã đối sánh (lịch sử)', titleEn: 'Matched (legacy)', color: 'border-cyan-400', badge: 'bg-[var(--surface-secondary)]' },
+  { status: 'SHORTLISTED', titleVi: 'Đã vào danh sách chọn', titleEn: 'Shortlisted', color: 'border-emerald-400', badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' },
+  { status: 'INTERVIEWING', titleVi: 'Đang phỏng vấn', titleEn: 'Interviewing', color: 'border-purple-400', badge: 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300' },
+  { status: 'HIRED', titleVi: 'Đã tuyển', titleEn: 'Hired', color: 'border-green-500', badge: 'bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300' },
+  { status: 'REJECTED', titleVi: 'Đã từ chối', titleEn: 'Rejected', color: 'border-rose-400', badge: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300' },
+  { status: 'UNKNOWN', titleVi: APPLICATION_STATUS_LABELS.UNKNOWN[0], titleEn: APPLICATION_STATUS_LABELS.UNKNOWN[1], color: 'border-amber-400', badge: 'bg-[var(--surface-secondary)]' },
 ];
 
 export default function RecruiterPipelinePage() {
@@ -26,6 +31,7 @@ export default function RecruiterPipelinePage() {
   const [selectedJobId, setSelectedJobId] = useState<string>('ALL');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [decisionError, setDecisionError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const localeRef = useRef(locale);
 
@@ -39,9 +45,7 @@ export default function RecruiterPipelinePage() {
     fetchRecruiterJobs()
       .then(async (jobList) => {
         setJobs(jobList);
-        const appsPromises = jobList.map(j => fetchJobApplications(j.id).catch(() => []));
-        const results = await Promise.all(appsPromises);
-        setAllApplications(results.flat());
+        setAllApplications(await loadApplicationsForJobs(jobList, fetchJobApplications));
       })
       .catch((error: unknown) => {
         console.error('Failed to load pipeline:', error);
@@ -57,14 +61,16 @@ export default function RecruiterPipelinePage() {
     return () => clearTimeout(timer);
   }, [loadData]);
 
-  const handleAdvanceStatus = async (appId: string, nextStatus: ApplicationStatus) => {
+  const handleAdvanceStatus = async (application: Application, nextStatus: ApplicationStatus) => {
+    const appId = application.id;
+    setDecisionError(null);
     setUpdatingId(appId);
     try {
-      const updated = await updateApplicationStatus(appId, nextStatus, 'Chuyển vòng từ Kanban Pipeline');
+      const updated = await updateApplicationStatus(appId, nextStatus, 'Chuyển vòng từ Kanban Pipeline', application.status);
       setAllApplications(prev => prev.map(a => a.id === appId ? { ...a, status: updated.status } : a));
     } catch (err: unknown) {
       const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
-      alert(errorObj?.response?.data?.message || errorObj?.message || 'Failed to update status');
+      setDecisionError(errorObj?.response?.data?.message || errorObj?.message || 'Failed to update status');
     } finally {
       setUpdatingId(null);
     }
@@ -137,6 +143,14 @@ export default function RecruiterPipelinePage() {
         </div>
 
         {/* Kanban Board */}
+        {decisionError && (
+          <div role="alert" className="rounded-xl border border-[var(--border)] p-4">
+            {decisionError}{' '}
+            <button type="button" onClick={() => { setDecisionError(null); loadData(); }} className="underline">
+              {locale === 'vi' ? 'Tải lại hồ sơ' : 'Reload applications'}
+            </button>
+          </div>
+        )}
         {filteredApps.length === 0 ? (
           <EmptyState
             type="EMPTY"
@@ -228,11 +242,11 @@ export default function RecruiterPipelinePage() {
                               </Link>
 
                               {/* Stage Advancement Quick Action */}
-                              {col.status === 'SUBMITTED' && (
+                              {(['SUBMITTED', 'REVIEWED', 'MATCHED'].includes(col.status)) && (
                                 <button
                                   type="button"
                                   disabled={updatingId === app.id}
-                                  onClick={() => handleAdvanceStatus(app.id, 'SHORTLISTED')}
+                                  onClick={() => handleAdvanceStatus(app, 'SHORTLISTED')}
                                   className="text-[10px] px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 font-semibold cursor-pointer transition"
                                 >
                                   Duyệt →
@@ -242,7 +256,7 @@ export default function RecruiterPipelinePage() {
                                 <button
                                   type="button"
                                   disabled={updatingId === app.id}
-                                  onClick={() => handleAdvanceStatus(app.id, 'INTERVIEWING')}
+                                  onClick={() => handleAdvanceStatus(app, 'INTERVIEWING')}
                                   className="text-[10px] px-2.5 py-1 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 font-semibold cursor-pointer transition"
                                 >
                                   Phỏng vấn →
@@ -252,7 +266,7 @@ export default function RecruiterPipelinePage() {
                                 <button
                                   type="button"
                                   disabled={updatingId === app.id}
-                                  onClick={() => handleAdvanceStatus(app.id, 'HIRED')}
+                                  onClick={() => handleAdvanceStatus(app, 'HIRED')}
                                   className="text-[10px] px-2.5 py-1 rounded-xl bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300 border border-green-300 dark:border-green-800 hover:bg-green-200 font-semibold cursor-pointer transition"
                                 >
                                   Tuyển →

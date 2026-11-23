@@ -122,9 +122,9 @@ class AuditRemediationRegressionTest {
         assertEquals(version.getRawTextContent(),captured.getValue().getRawTextSnapshot());
         assertEquals(version.getId(),response.getAppliedCvVersionId());
         assertEquals(2,response.getAppliedCvVersionNumber());
-        verify(scorer).calculateAndPersistMatchResult(job.getId(),candidate.getId());
+        verifyNoInteractions(scorer);
     }
-    @Test void submitDoesNotHideMatchingFailure() {
+    @Test void submitReturnsApplicationWithoutCallingMatching() {
         var actor=com.platform.recruitment.user.User.builder().role(com.platform.recruitment.user.Role.CANDIDATE).build();actor.setId(UUID.randomUUID());
         when(candidates.findByUserIdForUpdate(actor.getId())).thenReturn(Optional.of(candidate));
         when(jobs.findByIdForApply(job.getId())).thenReturn(Optional.of(job));
@@ -132,12 +132,11 @@ class AuditRemediationRegressionTest {
         when(versions.findByCvIdOrderByVersionNumberDesc(cv.getId())).thenReturn(List.of(version));
         when(applications.save(any())).thenReturn(application);
         var scorer=mock(MatchingEngineService.class);
-        when(scorer.calculateAndPersistMatchResult(any(),any())).thenThrow(new CustomException(ErrorCode.SERVICE_UNAVAILABLE,"Synthetic failure"));
         var svc=new ApplicationService(applications,mock(ApplicationCVSnapshotRepository.class),jobs,candidates,
                 mock(com.platform.recruitment.company.RecruiterProfileRepository.class),cvs,versions,scorer);
         var request=new SubmitApplicationRequest();request.setJobId(job.getId());request.setCvId(cv.getId());request.setAiAnalysisConsent(true);
-        assertThrows(CustomException.class,()->svc.submitApplication(actor,request));
-        // This unit test proves propagation, not database rollback. Transaction acceptance is separate.
+        assertEquals(application.getId(), svc.submitApplication(actor, request).getId());
+        verifyNoInteractions(scorer);
     }
 
     @Test void githubPolicyCapAndDisabledSumAreValidated() {

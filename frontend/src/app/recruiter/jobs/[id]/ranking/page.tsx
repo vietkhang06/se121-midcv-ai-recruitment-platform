@@ -1,5 +1,6 @@
 'use client';
 
+import { statusLabel } from '@/lib/statusLabels';
 import React, { useState, useEffect, use, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { Job, CandidateRankingItem, MatchInspectionData } from '@/types';
@@ -285,7 +286,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                           <div className="space-y-2 text-slate-600 dark:text-slate-300">
                             <p>{locale === 'vi' ? 'Số năm kinh nghiệm liên quan:' : 'Relevant experience years:'} <strong className="text-slate-900 dark:text-white">{topCandidate.relevantExperienceYears} {locale === 'vi' ? 'năm' : 'years'}</strong></p>
                             <p>{locale === 'vi' ? 'Điểm tương quan hồ sơ gốc (Core Match):' : 'Core JD-CV Match score:'} <strong className="text-slate-900 dark:text-white">{topCandidate.coreJdCvScore.toFixed(1)}%</strong></p>
-                            <p>{locale === 'vi' ? 'Trạng thái nộp đơn:' : 'Application status:'} <span className="font-semibold text-emerald-600 dark:text-emerald-400">{topCandidate.status}</span></p>
+                            <p>{locale === 'vi' ? 'Trạng thái nộp đơn:' : 'Application status:'} <span className="font-semibold text-emerald-600 dark:text-emerald-400">{statusLabel(topCandidate.status, locale)}</span></p>
                             <p className="text-slate-400">{locale === 'vi' ? 'Thời gian ứng tuyển:' : 'Applied on:'} {new Date(topCandidate.appliedDate).toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-US')}</p>
                           </div>
                         )}

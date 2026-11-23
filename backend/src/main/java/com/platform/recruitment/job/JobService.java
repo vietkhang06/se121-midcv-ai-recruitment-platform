@@ -1,6 +1,8 @@
 package com.platform.recruitment.job;
 
 import com.platform.recruitment.common.CompanyNotVerifiedException;
+import com.platform.recruitment.common.CustomException;
+import com.platform.recruitment.common.ErrorCode;
 import com.platform.recruitment.common.ResourceNotFoundException;
 import com.platform.recruitment.common.UnauthorizedAccessException;
 import com.platform.recruitment.company.Company;
@@ -65,6 +67,7 @@ public class JobService {
             throw new ResourceNotFoundException("Company not linked to recruiter profile");
         }
 
+        JobDeadline.requireOpen(request.getApplicationDeadline());
         Job job = Job.builder()
                 .company(company)
                 .title(request.getTitle())
@@ -87,6 +90,9 @@ public class JobService {
                 .employmentType(request.getEmploymentType())
                 .employmentTypeOther(trimToNull(request.getEmploymentTypeOther()))
                 .description(request.getDescription())
+                .descriptionHtml(trimToNull(request.getDescriptionHtml()))
+                .responsibilitiesHtml(trimToNull(request.getResponsibilitiesHtml()))
+                .vacancyCount(request.vacancyCountAsInteger())
                 .applicationDeadline(request.getApplicationDeadline())
                 .responsibilities(request.getResponsibilities() == null
                         ? List.of() : List.copyOf(request.getResponsibilities()))
@@ -163,12 +169,18 @@ public class JobService {
                     "Tin đang bị đình chỉ; chỉ quản trị viên có thể khôi phục sau kiểm duyệt.");
         }
 
-        boolean newlyPublished = job.getStatus() != JobStatus.PUBLISHED;
+        if (job.getStatus() == JobStatus.PUBLISHED) return mapToResponse(job);
+        if (job.getApplicationDeadline() == null || job.getVacancyCount() == null) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                    "Set the number of openings and application deadline before publishing.");
+        }
+        JobDeadline.requireOpen(job.getApplicationDeadline());
         job.setStatus(JobStatus.PUBLISHED);
         Job publishedJob = jobRepository.save(job);
+        jobRepository.flush();
         if (vectorLifecycle != null) vectorLifecycle.prepareJob(publishedJob);
 
-        if (inbox != null && newlyPublished) {
+        if (inbox != null) {
             inbox.publishedJob(publishedJob);
         }
 
@@ -251,8 +263,24 @@ public class JobService {
         job.setLocation(request.getLocation());
         job.setEmploymentType(request.getEmploymentType());
         job.setEmploymentTypeOther(trimToNull(request.getEmploymentTypeOther()));
+        if (request.getApplicationDeadline() != null
+                && !request.getApplicationDeadline().equals(job.getApplicationDeadline())) {
+            JobDeadline.requireOpen(request.getApplicationDeadline());
+        }
+        if (request.getDescriptionHtml() != null || !java.util.Objects.equals(request.getDescription(), job.getDescription())) {
+            job.setDescriptionHtml(trimToNull(request.getDescriptionHtml()));
+        }
+        if (request.getResponsibilitiesHtml() != null
+                || !java.util.Objects.equals(request.getResponsibilities() == null ? List.of() : request.getResponsibilities(), job.getResponsibilities())) {
+            job.setResponsibilitiesHtml(trimToNull(request.getResponsibilitiesHtml()));
+        }
+        if (request.getVacancyCount() != null) {
+            job.setVacancyCount(request.vacancyCountAsInteger());
+        }
         job.setDescription(request.getDescription());
-        job.setApplicationDeadline(request.getApplicationDeadline());
+        if (request.getApplicationDeadline() != null || job.getStatus() != JobStatus.PUBLISHED) {
+            job.setApplicationDeadline(request.getApplicationDeadline());
+        }
         if (request.getOccupationCodes() != null) {
             job.setOccupationCodes(List.copyOf(request.getOccupationCodes()));
         }
@@ -340,12 +368,12 @@ public class JobService {
                     JobStatus.PUBLISHED,
                     industry,
                     com.platform.recruitment.company.CompanyOperationalStatus.ACTIVE,
-                    pageable);
+                    JobDeadline.today(), pageable);
         } else {
             jobs = jobRepository.findByStatusAndCompanyOperationalStatus(
                     JobStatus.PUBLISHED,
                     com.platform.recruitment.company.CompanyOperationalStatus.ACTIVE,
-                    pageable);
+                    JobDeadline.today(), pageable);
         }
 
         List<JobResponse> content = jobs.getContent().stream().map(this::mapToResponse).toList();
@@ -439,6 +467,8 @@ public class JobService {
             var clauses = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
 
             clauses.add(cb.equal(job.get("status"), JobStatus.PUBLISHED));
+            var deadline = job.<java.time.LocalDate>get("applicationDeadline");
+            clauses.add(cb.or(cb.isNull(deadline), cb.greaterThanOrEqualTo(deadline, JobDeadline.today())));
             clauses.add(cb.equal(
                     job.get("company").get("operationalStatus"),
                     com.platform.recruitment.company.CompanyOperationalStatus.ACTIVE));
@@ -512,6 +542,10 @@ public class JobService {
                 .employmentType(job.getEmploymentType())
                 .employmentTypeOther(job.getEmploymentTypeOther())
                 .description(job.getDescription())
+                .descriptionHtml(job.getDescriptionHtml())
+                .responsibilitiesHtml(job.getResponsibilitiesHtml())
+                .vacancyCount(job.getVacancyCount())
+                .publishedAt(job.getPublishedAt())
                 .applicationDeadline(job.getApplicationDeadline())
                 .responsibilities(job.getResponsibilities())
                 .requirements(reqResponses)

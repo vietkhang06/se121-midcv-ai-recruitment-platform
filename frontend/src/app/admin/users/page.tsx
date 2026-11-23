@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { useLanguage } from '@/context/LanguageContext';
+import { statusLabel } from '@/lib/statusLabels';
 import {
   Users,
   ArrowLeft,
@@ -28,6 +30,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 export default function AdminUsersPage() {
+  const { locale } = useLanguage();
   const [users, setUsers] = useState<UserAdminDto[]>([]);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
@@ -282,13 +285,7 @@ export default function AdminUsersPage() {
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  {s === 'ALL'
-                    ? 'Mọi trạng thái'
-                    : s === 'ACTIVE'
-                      ? 'Hoạt động'
-                      : s === 'SUSPENDED'
-                        ? 'Đã đình chỉ'
-                        : 'Đã vô hiệu hóa'}
+                  {s === 'ALL' ? (locale === 'vi' ? 'Mọi trạng thái' : 'All statuses') : statusLabel(s, locale)}
                 </button>
               ))}
             </div>
@@ -398,25 +395,23 @@ export default function AdminUsersPage() {
                     <td className="py-4 px-4">
                       {u.emailVerified ? (
                         <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                          <CheckCircle2 className="w-3 h-3" /> Đã xác thực
+                          <CheckCircle2 className="w-3 h-3" /> {statusLabel('VERIFIED', locale)}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-                          <XCircle className="w-3 h-3" /> Chưa xác thực
+                          <XCircle className="w-3 h-3" /> {statusLabel('UNVERIFIED', locale)}
                         </span>
                       )}
                     </td>
                     <td className="py-4 px-4">
                       {u.accountStatus === 'ACTIVE' ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                          <UserCheck className="w-3 h-3" /> Hoạt động
+                          <UserCheck className="w-3 h-3" /> {statusLabel(u.accountStatus, locale)}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
                           <Ban className="w-3 h-3" />{' '}
-                          {u.accountStatus === 'SUSPENDED'
-                            ? 'Đình chỉ'
-                            : 'Đã vô hiệu hóa'}
+                          {statusLabel(u.accountStatus, locale)}
                         </span>
                       )}
                     </td>

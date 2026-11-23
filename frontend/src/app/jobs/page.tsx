@@ -1,5 +1,6 @@
 'use client';
 
+import { isJobExpired } from '@/lib/jobDeadline';
 import React, { Suspense, useCallback, useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Job } from '@/types';
@@ -69,7 +70,7 @@ function JobsPageContent() {
     const [jobsResult, profileResult] = requests;
 
     if (jobsResult.status === 'fulfilled') {
-      setJobs(jobsResult.value.filter((job) => job.status === 'PUBLISHED'));
+      setJobs(jobsResult.value.filter((job) => job.status === 'PUBLISHED' && !isJobExpired(job.applicationDeadline)));
       setFetchError(null);
     } else {
       setFetchError('Unable to load the jobs catalog. Please try again.');

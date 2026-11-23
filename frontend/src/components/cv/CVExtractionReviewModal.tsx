@@ -1,5 +1,7 @@
 'use client';
 
+import { RichTextDisplay } from '@/components/editor/RichText';
+import { statusLabel } from '@/lib/statusLabels';
 import React, { useState, useEffect, useRef } from 'react';
 import { CVReviewData, CVDraftData, CVEvidenceAttachmentItem, CVStructuredData, CVStructuredItem, CVPersonalInfo, CVTechnology } from '@/types';
 import {
@@ -865,7 +867,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                           : 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-800'
                       }`}
                   >
-                    {currentProfile.status === 'CONFIRMED' ? 'ĐÃ XÁC NHẬN' : currentProfile.status}
+                    {statusLabel(currentProfile.status, locale)}
                   </span>
                 )}
               </div>
@@ -1218,10 +1220,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
 
                     {!isEditing ? (
                       summaryContent ? (
-                        <div
-                          className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed prose dark:prose-invert max-w-none"
-                          dangerouslySetInnerHTML={{ __html: summaryContent }}
-                        />
+                        <RichTextDisplay html={summaryContent} />
                       ) : (
                         <p className="text-xs text-slate-400">Không có tóm tắt năng lực.</p>
                       )
@@ -1346,10 +1345,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                   </div>
                                 </div>
                                 {exp.description && (
-                                  <div
-                                    className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed prose dark:prose-invert max-w-none"
-                                    dangerouslySetInnerHTML={{ __html: exp.description }}
-                                  />
+                                  <RichTextDisplay html={exp.description} />
                                 )}
                                 {Array.isArray(exp.technologies) && exp.technologies.length > 0 && (
                                   <div className="flex flex-wrap gap-1.5 pt-1">
@@ -1596,10 +1592,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                                     )}
                                   </div>
                                   {project.description && (
-                                    <div
-                                      className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed prose dark:prose-invert max-w-none"
-                                      dangerouslySetInnerHTML={{ __html: project.description }}
-                                    />
+                                    <RichTextDisplay html={project.description} />
                                   )}
                                   {techStack.length > 0 && (
                                     <div className="flex flex-wrap gap-1.5 pt-1">
@@ -2595,7 +2588,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
                   {/* OCR correction suggestions are proposals, never silently applied to personal data. */}
                   {typeof data?.ocrCorrectionStatus === 'string' && (
                     <div className="bg-white dark:bg-[var(--surface)] border border-blue-200 dark:border-blue-900/50 rounded-xl p-4 text-xs text-slate-700 dark:text-slate-300">
-                      <span className="font-semibold">Trạng thái hiệu chỉnh OCR:</span> {data.ocrCorrectionStatus}
+                      <span className="font-semibold">Trạng thái hiệu chỉnh OCR:</span> {statusLabel(data.ocrCorrectionStatus, locale)}
                       {typeof data.ocrAppliedCount === 'number' && <span> · Đã tự áp dụng an toàn: {data.ocrAppliedCount}</span>}
                     </div>
                   )}

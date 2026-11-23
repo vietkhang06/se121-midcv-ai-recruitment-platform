@@ -1,5 +1,9 @@
 'use client';
 
+import { displayJobStatus } from '@/lib/jobDeadline';
+import { statusLabel } from '@/lib/statusLabels';
+import { HIGH_MATCH_THRESHOLD, loadApplicationsForJobs, summarizeMatchScores } from '@/lib/applicationWorkflow';
+
 import React, { useState, useEffect, useCallback } from 'react';
 
 import Link from 'next/link';
@@ -61,22 +65,7 @@ export default function HRDashboardPage() {
 
         if (comp) setCompany(comp);
 
-        if (recJobs.length > 0) {
-
-          const appLists = await Promise.all(
-
-            recJobs.map((j) => fetchJobApplications(j.id).catch(() => []))
-
-          );
-
-          setApplications(appLists.flat());
-
-        } else {
-
-          setApplications([]);
-
-        }
-
+        setApplications(await loadApplicationsForJobs(recJobs, fetchJobApplications));
       })
 
       .catch((err) => {
@@ -98,16 +87,13 @@ export default function HRDashboardPage() {
 
   }, [loadDashboardData]);
 
-  const publishedJobs = jobs.filter((j) => j.status === 'PUBLISHED');
+  const publishedJobs = jobs.filter((j) => displayJobStatus(j) === 'PUBLISHED');
   const draftJobs = jobs.filter((j) => j.status === 'DRAFT');
   const recentApplications = [...applications].slice(0, 6);
 
   // Real AI matching evaluations based on applicant pool
-  const scoredApps = applications.filter((a) => a.matchScore != null && Number(a.matchScore) > 0);
-  const avgMatchScore = scoredApps.length > 0
-    ? Math.round(scoredApps.reduce((acc, curr) => acc + (Number(curr.matchScore) || 0), 0) / scoredApps.length)
-    : null;
-  const highMatchCount = applications.filter((a) => (Number(a.matchScore) || 0) >= 75).length;
+  const { average, highCount: highMatchCount } = summarizeMatchScores(applications);
+  const avgMatchScore = average === null ? null : Math.round(average);
 
   if (fetchError && !isLoading && jobs.length === 0) {
 
@@ -297,9 +283,9 @@ export default function HRDashboardPage() {
                 <div className="text-3xl font-editorial font-bold text-[var(--success)] dark:text-[var(--retro-sky)]">
                   {avgMatchScore !== null ? `${avgMatchScore}%` : (isVi ? 'Sẵn sàng' : 'Ready')}
                 </div>
-                <div className="text-[11px] text-[var(--success)] dark:text-[var(--retro-sky)] font-medium pt-1 truncate" title={avgMatchScore !== null ? (isVi ? `${highMatchCount} ứng viên phù hợp cao (>=75%)` : `${highMatchCount} high-fit candidates (>=75%)`) : (isVi ? 'Chờ hồ sơ ứng tuyển để đối sánh' : 'Awaiting candidate applications')}>
+                <div className="text-[11px] text-[var(--success)] dark:text-[var(--retro-sky)] font-medium pt-1 truncate" title={avgMatchScore !== null ? (isVi ? `${highMatchCount} ứng viên phù hợp cao (≥${HIGH_MATCH_THRESHOLD}%)` : `${highMatchCount} high-fit candidates (≥${HIGH_MATCH_THRESHOLD}%)`) : (isVi ? 'Chờ hồ sơ ứng tuyển để đối sánh' : 'Awaiting candidate applications')}>
                   {avgMatchScore !== null
-                    ? (isVi ? `${highMatchCount} ứng viên phù hợp cao (>=75%)` : `${highMatchCount} high-fit candidates (>=75%)`)
+                    ? (isVi ? `${highMatchCount} ứng viên phù hợp cao (≥${HIGH_MATCH_THRESHOLD}%)` : `${highMatchCount} high-fit candidates (≥${HIGH_MATCH_THRESHOLD}%)`)
                     : (isVi ? 'Chờ hồ sơ ứng tuyển để đối sánh' : 'Awaiting candidate applications')}
                 </div>
               </div>
@@ -325,9 +311,9 @@ export default function HRDashboardPage() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center pt-1">
                 {[
                   { count: applications.length, label: isVi ? 'Mới nộp (Submitted)' : 'Submitted' },
-                  { count: applications.filter(a => a.status === 'UNDER_REVIEW').length, label: isVi ? 'Sàng lọc (Screening)' : 'Screening' },
-                  { count: applications.filter(a => a.status === 'SHORTLISTED').length, label: isVi ? 'Duyệt hồ sơ (Shortlisted)' : 'Shortlisted' },
-                  { count: applications.filter(a => a.status === 'REJECTED').length, label: isVi ? 'Từ chối (Rejected)' : 'Rejected' },
+                  { count: applications.filter(a => a.status === 'REVIEWED' || a.status === 'MATCHED').length, label: isVi ? 'Sàng lọc' : 'Screening' },
+                  { count: applications.filter(a => a.status === 'SHORTLISTED').length, label: isVi ? 'Đã vào danh sách chọn' : 'Shortlisted' },
+                  { count: applications.filter(a => a.status === 'REJECTED').length, label: isVi ? 'Đã từ chối' : 'Rejected' },
                 ].map((st, idx) => (
                   <div key={idx} className="bg-slate-50 dark:bg-[var(--surface)] border border-slate-200/80 dark:border-[var(--border)] rounded-xl p-3">
                     <div className="text-xl font-bold font-editorial text-slate-900 dark:text-white">{st.count}</div>
@@ -399,7 +385,7 @@ export default function HRDashboardPage() {
 
                                 <span
 
-                                  className={`px-2 py-0.5 rounded-xl text-[10px] font-semibold ${j.status === 'PUBLISHED'
+                                  className={`px-2 py-0.5 rounded-xl text-[10px] font-semibold ${displayJobStatus(j) === 'PUBLISHED'
 
                                       ? 'bg-emerald-50 dark:bg-emerald-950/60 text-[var(--success)] border border-emerald-200 dark:border-emerald-800'
 
@@ -409,7 +395,7 @@ export default function HRDashboardPage() {
 
                                 >
 
-                                  {j.status}
+                                  {statusLabel(displayJobStatus(j), locale)}
 
                                 </span>
 
@@ -466,7 +452,7 @@ export default function HRDashboardPage() {
                             {app.candidateName || (isVi ? 'Ứng viên' : 'Candidate')}
                           </span>
                           <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-sans font-bold uppercase shrink-0 ${app.status === 'SHORTLISTED'
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-sans font-bold shrink-0 ${app.status === 'SHORTLISTED'
                                 ? 'bg-[var(--surface-secondary)] dark:bg-[var(--success)]/15 text-[var(--success)]'
                                 : app.status === 'SUBMITTED'
                                   ? 'bg-[var(--surface-secondary)] dark:bg-[var(--surface)] text-[var(--primary)]'
@@ -475,7 +461,7 @@ export default function HRDashboardPage() {
                                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                               }`}
                           >
-                            {app.status}
+                            {statusLabel(app.status, locale)}
 
                           </span>
 

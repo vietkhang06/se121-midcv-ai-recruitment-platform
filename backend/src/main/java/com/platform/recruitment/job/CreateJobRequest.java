@@ -70,6 +70,21 @@ public class CreateJobRequest {
     @NotBlank(message = "Job description is required")
     private String description;
 
+    @jakarta.validation.constraints.Size(max = 50000)
+    private String descriptionHtml;
+
+    @jakarta.validation.constraints.Size(max = 50000)
+    private String responsibilitiesHtml;
+
+    @jakarta.validation.constraints.Min(1)
+    @jakarta.validation.constraints.Max(10000)
+    @Digits(integer = 5, fraction = 0, message = "Vacancy count must be a whole number")
+    private BigDecimal vacancyCount;
+
+    public Integer vacancyCountAsInteger() {
+        return vacancyCount == null ? null : vacancyCount.intValueExact();
+    }
+
     private LocalDate applicationDeadline;
 
     @jakarta.validation.constraints.Size(max = 30)

@@ -18,7 +18,7 @@ public class UpdateApplicationStatusRequest {
     @jakarta.validation.constraints.Size(max = 4000)
     private String decisionNote;
 
-    // Optional compare-and-set guard used by the UI; old clients remain supported.
+    // Compare-and-set guard for human decisions.
     private ApplicationStatus expectedStatus;
 
     public UpdateApplicationStatusRequest(ApplicationStatus status, String decisionNote) {

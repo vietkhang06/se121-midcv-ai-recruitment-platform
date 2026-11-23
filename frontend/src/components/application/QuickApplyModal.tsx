@@ -1,5 +1,7 @@
 'use client';
 
+import { isJobExpired } from '@/lib/jobDeadline';
+import { statusLabel } from '@/lib/statusLabels';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Job, CV, Application } from '@/types';
@@ -145,6 +147,10 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
   };
 
   const handleConfirmApplication = async () => {
+    if (isJobExpired(job.applicationDeadline)) {
+      setSubmitError(isVi ? 'Tin tuyển dụng đã hết hạn nộp hồ sơ.' : 'The application deadline has passed.');
+      return;
+    }
     if (!selectedCv) {
       setSubmitError('Bạn chưa có CV nào trong tài khoản. Vui lòng tải lên hoặc tạo CV trước.');
       return;
@@ -282,7 +288,7 @@ export const QuickApplyModal: React.FC<QuickApplyModalProps> = ({
                 {preview && <div role="status" className="space-y-1 text-slate-700 dark:text-slate-200">
                   <p>{isVi ? 'Điểm tạm tính: ' : 'Provisional score: '}
                     <strong>{preview.overallScore != null ? `${Number(preview.overallScore).toFixed(1)}%` : 'N/A'}</strong></p>
-                  <p>{isVi ? 'Trạng thái: ' : 'Status: '}{preview.status}</p>
+                  <p>{isVi ? 'Trạng thái: ' : 'Status: '}{statusLabel(preview.status, locale)}</p>
                   <p>{isVi ? 'Phương pháp: ' : 'Method: '}{preview.semanticMethod || 'N/A'}</p>
                   <p>{isVi ? 'Bản xem trước không tạo đơn; điểm cuối có thể đổi khi vector CV/JD sẵn sàng.' : 'Preview does not submit an application; the final score may change when CV/JD vectors are ready.'}</p>
                 </div>}

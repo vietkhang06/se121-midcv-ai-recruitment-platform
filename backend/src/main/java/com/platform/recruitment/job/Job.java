@@ -13,6 +13,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "jobs")
+@org.hibernate.annotations.DynamicUpdate
 @Getter
 @Setter
 @Builder
@@ -26,6 +27,10 @@ public class Job extends BaseEntity {
 
     @Column(name = "title", nullable = false)
     private String title;
+    @org.hibernate.annotations.Generated(event = {org.hibernate.generator.EventType.INSERT, org.hibernate.generator.EventType.UPDATE})
+    @Column(name = "published_at", insertable = false, updatable = false)
+    private ZonedDateTime publishedAt;
+
     @Column(name = "promoted_until")
     private ZonedDateTime promotedUntil;
     @Column(name = "ai_screening_policy_version")
@@ -81,6 +86,12 @@ public class Job extends BaseEntity {
     private String description;
     @Column(name = "description_html", columnDefinition = "TEXT")
     private String descriptionHtml;
+
+    @Column(name = "responsibilities_html", columnDefinition = "TEXT")
+    private String responsibilitiesHtml;
+
+    @Column(name = "vacancy_count")
+    private Integer vacancyCount;
     @Column(name = "candidate_requirements", columnDefinition = "TEXT")
     private String candidateRequirements;
     @Column(name = "benefits_content", columnDefinition = "TEXT")

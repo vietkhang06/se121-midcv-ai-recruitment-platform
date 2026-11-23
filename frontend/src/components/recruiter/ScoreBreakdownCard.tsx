@@ -1,5 +1,6 @@
 'use client';
 
+import { statusLabel } from '@/lib/statusLabels';
 import React from 'react';
 import { MatchInspectionData } from '@/types';
 import { CheckCircle2, GitBranch, ShieldCheck, Calculator, FileCheck, Layers } from 'lucide-react';
@@ -27,7 +28,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
           </span>
           {data.calculationStatus && (
             <span className={`font-sans px-2 py-0.5 rounded font-semibold text-[10px] ${data.calculationStatus === 'PGVECTOR_READY' ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300'}`}>
-              {data.calculationStatus === 'PGVECTOR_READY' ? (locale === 'vi' ? 'Pgvector đã xác thực' : 'Pgvector verified') : data.calculationStatus === 'PENDING_VECTOR' ? (locale === 'vi' ? 'Đang chờ vector · điểm tạm tính' : 'Waiting for vectors · provisional score') : data.calculationStatus === 'FALLBACK_USED' ? (locale === 'vi' ? 'Phương pháp dự phòng · điểm tạm tính' : 'Fallback · provisional score') : data.calculationStatus}
+              {data.calculationStatus === 'PGVECTOR_READY' ? (locale === 'vi' ? 'Pgvector đã xác thực' : 'Pgvector verified') : data.calculationStatus === 'PENDING_VECTOR' ? (locale === 'vi' ? 'Đang chờ vector · điểm tạm tính' : 'Waiting for vectors · provisional score') : data.calculationStatus === 'FALLBACK_USED' ? (locale === 'vi' ? 'Phương pháp dự phòng · điểm tạm tính' : 'Fallback · provisional score') : statusLabel(data.calculationStatus, locale)}
             </span>
           )}
         </div>
@@ -150,7 +151,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-sans ${
                     item.status === 'MATCH' ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200' : 'bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200'
                   }`}>
-                    {item.status === 'MATCH' ? 'MATCH ✓' : 'MISSING ✗'}
+                    {statusLabel(item.status, locale)}
                   </span>
                 </div>
                 {item.evidenceText ? (
@@ -185,7 +186,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-slate-900 dark:text-white font-sans">{item.skillName}</span>
                     <span className="text-[10px] px-2 py-0.5 rounded bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] text-slate-600 dark:text-slate-400 font-medium font-sans">
-                      {item.status === 'MATCH' ? '+ Point Bonus' : (locale === 'vi' ? 'Không tìm thấy' : 'Not Provided')}
+                      {item.status === 'MATCH' ? (locale === 'vi' ? 'Điểm cộng' : 'Bonus points') : (locale === 'vi' ? 'Không tìm thấy' : 'Not Provided')}
                     </span>
                   </div>
                 </div>
@@ -210,15 +211,6 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
         <div className="space-y-3">
           {data.matchFactors.map((factor, idx) => {
             const isNotAvailable = factor.score === null || factor.status === 'PENDING' || factor.status === 'NOT_APPLICABLE' || factor.status === 'INSUFFICIENT_EVIDENCE' || factor.status === 'LEGACY_MISSING_DATA' || factor.status === 'ACCESS_RESTRICTED';
-            const statusLabel: Record<string, string> = {
-              PENDING: locale === 'vi' ? 'Đang chờ' : 'Pending',
-              NOT_APPLICABLE: locale === 'vi' ? 'Không áp dụng' : 'Not applicable',
-              INSUFFICIENT_EVIDENCE: locale === 'vi' ? 'Chưa đủ bằng chứng' : 'Insufficient evidence',
-              MISSING_EVIDENCE: locale === 'vi' ? 'Thiếu bằng chứng (điểm 0)' : 'No evidence (score 0)',
-              LEGACY_MISSING_DATA: locale === 'vi' ? 'Thiếu dữ liệu bản cũ' : 'Legacy missing data',
-              ACCESS_RESTRICTED: locale === 'vi' ? 'Bị giới hạn quyền truy cập' : 'Access restricted',
-              AVAILABLE: locale === 'vi' ? 'Có dữ liệu' : 'Available',
-            };
             return (
               <div key={idx} className="p-4 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] space-y-2 text-xs transition-colors">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -229,7 +221,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                         ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
                         : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
                     }`}>
-                      {statusLabel[factor.status] || factor.status || (isNotAvailable ? 'NOT_AVAILABLE' : 'AVAILABLE')}
+                      {statusLabel(factor.status || (isNotAvailable ? 'NOT_AVAILABLE' : 'AVAILABLE'), locale)}
                     </span>
                     {factor.calculationMethod && (
                       <span className="hidden sm:inline-block text-[10px] text-slate-500 dark:text-slate-400 font-sans bg-white dark:bg-[var(--surface)] px-1.5 py-0.5 rounded border border-slate-200 dark:border-[var(--border)]">
@@ -328,7 +320,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
                     )}
                   </div>
                   <span className="text-[10px] font-sans font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
-                    {ev.validationStatus || 'VERIFIED'}
+                    {statusLabel(ev.validationStatus || 'VERIFIED', locale)}
                   </span>
                 </div>
 
@@ -343,7 +335,7 @@ export const ScoreBreakdownCard: React.FC<ScoreBreakdownCardProps> = ({ data }) 
 
                 {ev.normalizedValue !== undefined && (
                   <div className="flex items-center justify-between text-[11px] font-sans text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200/60 dark:border-[var(--border)]">
-                    <span>Trạng thái: <strong className="text-emerald-600 dark:text-emerald-400">{ev.matchStatus || 'MATCH'}</strong></span>
+                    <span>Trạng thái: <strong className="text-emerald-600 dark:text-emerald-400">{statusLabel(ev.matchStatus || 'MATCH', locale)}</strong></span>
                     <span>Độ tin cậy: <strong>{ev.normalizedValue}%</strong></span>
                   </div>
                 )}

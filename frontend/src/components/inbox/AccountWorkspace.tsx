@@ -1,4 +1,5 @@
 "use client";
+import { statusLabel } from '@/lib/statusLabels';
 import { SessionList } from '@/components/auth/SessionList';
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -320,7 +321,7 @@ function AccountSection({
                 <span>
                   {j.company_name} · {j.location || "—"}
                 </span>
-                <small>{j.status}</small>
+                <small>{statusLabel(j.status, locale)}</small>
               </div>
               <button
                 disabled={busy}

@@ -145,11 +145,7 @@ public class ApplicationService {
                             "Cannot submit application for job '%s' with status '%s'. Only PUBLISHED jobs accept applications.",
                             job.getTitle(), job.getStatus()));
         }
-        if (job.getApplicationDeadline() != null
-                && job.getApplicationDeadline().isBefore(java.time.LocalDate.now())) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR,
-                    "Đã hết hạn nhận hồ sơ cho tin tuyển dụng này.");
-        }
+        com.platform.recruitment.job.JobDeadline.requireOpen(job.getApplicationDeadline());
 
         CV cv = cvRepository.findByIdForUpdate(request.getCvId())
                 .orElseThrow(() -> new ResourceNotFoundException("CV", "id", request.getCvId()));
@@ -209,11 +205,10 @@ public class ApplicationService {
                 JOIN document_versions v ON v.id=p.document_version_id WHERE s.cv_version_id=? ORDER BY s.page_order
                 """, savedApplication.getId(), appliedVersion.getId());
 
-        // Immediate matching persistence (match_results, match_factors, evidences)
-        // Matching failure propagates: the transaction rolls back application and snapshot together.
-        if (scoringEligible) matchingEngineService.calculateAndPersistMatchResult(job.getId(), candidate.getId());
-        // Once the true CV/JD vectors exist, recalculate using actual Pgvector; no mock.
-        if (scoringEligible && vectorLifecycle != null) vectorLifecycle.enqueueMatchAfterCommit(candidateUser.getId(), savedApplication.getId());
+        // Store the task with the application and snapshot. The worker scores committed applications.
+        if (scoringEligible && vectorLifecycle != null) {
+            vectorLifecycle.enqueueApplicationMatch(candidateUser.getId(), savedApplication.getId());
+        }
 
         if(inbox!=null) inbox.applicationEvent(savedApplication,false);
         return mapToResponse(savedApplication, snapshot);
@@ -367,7 +362,7 @@ public class ApplicationService {
         }
 
         ApplicationStatus previousStatus = application.getStatus();
-        if (request.getExpectedStatus() != null && request.getExpectedStatus() != previousStatus) {
+        if (request.getExpectedStatus() != previousStatus) {
             throw new CustomException(ErrorCode.CONCURRENT_MODIFICATION,
                     "Trạng thái đơn đã thay đổi; hãy tải lại trước khi ra quyết định.");
         }
@@ -375,6 +370,7 @@ public class ApplicationService {
             return recruiterResponse(recruiterUser, application,
                     snapshotRepository.findByApplicationId(applicationId).orElse(null));
         }
+        previousStatus.validateTransition(request.getStatus(), request.getDecisionNote());
         application.setStatus(request.getStatus());
         Application savedApplication = applicationRepository.save(application);
 
@@ -613,6 +609,7 @@ public class ApplicationService {
                 .id(app.getId())
                 .jobId(app.getJob().getId())
                 .jobTitle(app.getJob().getTitle())
+                .job(ApplicationJobSummary.from(app.getJob()))
                 .candidateId(app.getCandidate().getId())
                 .candidateName(app.getCandidate().getFullName())
                 .candidateEmail(candidateEmail)
