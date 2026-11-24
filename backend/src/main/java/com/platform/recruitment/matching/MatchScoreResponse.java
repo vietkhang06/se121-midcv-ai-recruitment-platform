@@ -33,7 +33,7 @@ public class MatchScoreResponse {
     private String matchClassification;
 
     public void redactForStandardPlan(com.platform.recruitment.product.AiScreeningAccessService policy) {
-        if (overallScore != null) matchClassification = policy.classify(overallScore);
+        if (overallScore != null && "PGVECTOR_READY".equals(status)) matchClassification = policy.classify(overallScore);
         detailAccess = false;
         overallScore = null;
         coreScore = null;
@@ -47,7 +47,7 @@ public class MatchScoreResponse {
     }
 
     public void redactForStandardPlan() {
-        if (overallScore != null) matchClassification =
+        if (overallScore != null && "PGVECTOR_READY".equals(status)) matchClassification =
                 com.platform.recruitment.product.AiScreeningAccessService.classifyScore(overallScore);
         detailAccess = false;
         overallScore = null;

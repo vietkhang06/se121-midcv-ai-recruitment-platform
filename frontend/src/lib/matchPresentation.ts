@@ -29,7 +29,7 @@ export function formatMatchScore(score: number | null, locale: 'vi' | 'en'): str
 export function compareMatchScores(a: ScoreInput, b: ScoreInput): number {
   const left = matchPresentation(a);
   const right = matchPresentation(b);
-  const group = (entry: typeof left) => entry.score === null ? 2 : entry.phase === 'FINAL' ? 0 : 1;
+  const group = (entry: typeof left) => entry.phase === 'FINAL' && entry.score !== null ? 0 : entry.phase === 'PROVISIONAL' && entry.score !== null ? 1 : entry.phase === 'PENDING' ? 2 : entry.phase === 'DECLINED' ? 4 : 3;
   const groupOrder = group(left) - group(right);
   if (groupOrder !== 0) return groupOrder;
   return left.score !== null && right.score !== null ? right.score - left.score : 0;

@@ -34,6 +34,8 @@ public class CandidateRankingService {
         // Pending recomputations must not appear as fresh policy-compliant ranks.
         results = results.stream()
                 .filter(r -> !"STALE_POLICY".equals(r.getStatus()) && !"INSUFFICIENT_DATA".equals(r.getStatus()))
+                .filter(r -> r.getApplication() == null || (!Boolean.FALSE.equals(r.getApplication().getAiScoringEligibleSnapshot())
+                        && (!"quick-apply-v1".equals(r.getApplication().getAiConsentVersion()) || Boolean.TRUE.equals(r.getApplication().getAiAnalysisConsent()))))
                 .collect(Collectors.toList());
 
         // Filter by minimum score if provided

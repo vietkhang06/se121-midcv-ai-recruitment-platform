@@ -63,7 +63,7 @@ public class ApplicationResponse {
             matchScore = null;
             return;
         }
-        matchClassification = matchScore == null ? "CHUA_KHA_DUNG"
+        matchClassification = matchScore == null || !"PGVECTOR_READY".equals(matchCalculationStatus) ? "CHUA_KHA_DUNG"
                 : com.platform.recruitment.product.AiScreeningAccessService.classifyScore(matchScore);
         matchScore = null;
         matchStatus = matchClassification;

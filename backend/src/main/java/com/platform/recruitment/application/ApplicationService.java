@@ -80,6 +80,7 @@ public class ApplicationService {
     @Autowired private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
     @Autowired private com.platform.recruitment.cv.CVImageSetService cvImageSetService;
     @Autowired private com.platform.recruitment.document.Documents documents;
+    @Autowired(required = false) private com.platform.recruitment.auth.OAuthService githubOAuth;
 
     @Autowired
     public ApplicationService(
@@ -172,7 +173,22 @@ public class ApplicationService {
         if (scoringEligible && vectorLifecycle != null) vectorLifecycle.prepareConfirmedCv(appliedVersion, candidateUser.getId());
 
         // Pin the exact JD version used at application time. Legacy jobs are lazily prepared.
-        UUID appliedJdVersionId = scoringEligible && vectorLifecycle != null ? vectorLifecycle.prepareJob(job) : null;
+        UUID appliedJdVersionId = vectorLifecycle == null ? null : scoringEligible
+                ? vectorLifecycle.prepareJob(job) : vectorLifecycle.prepareJob(job, false);
+
+        // Use the submitted CV's explicit handle first. An omitted handle may use the
+        // saved profile or linked OAuth account; never substitute for an invalid explicit URL.
+        String githubHandle = null;
+        if (scoringEligible) {
+            String supplied = AppliedCvIdentity.fromSnapshot(ApplicationCVSnapshot.builder()
+                    .structuredJsonSnapshot(appliedVersion.getStructuredJsonContent()).build()).githubUrl;
+            if (supplied == null || supplied.isBlank()) supplied = candidate.getGithubUrl();
+            if ((supplied == null || supplied.isBlank()) && githubOAuth != null) {
+                Object login = githubOAuth.githubConnection(candidateUser.getId()).get("login");
+                if (login instanceof String value) supplied = value;
+            }
+            githubHandle = com.platform.recruitment.github.GithubClient.sanitizeUsername(supplied);
+        }
 
         // Atomic Transaction: Create Application + Immutable ApplicationCVSnapshot
         Application application = Application.builder()
@@ -184,6 +200,9 @@ public class ApplicationService {
                 .aiAnalysisConsent(aiConsent)
                 .aiConsentAt(aiConsent ? java.time.ZonedDateTime.now() : null)
                 .aiConsentVersion("quick-apply-v1")
+                .aiScoringEligibleSnapshot(scoringEligible)
+                .githubSnapshotContract("public-evidence-v1")
+                .githubUsernameSnapshot(githubHandle)
                 .status(ApplicationStatus.SUBMITTED)
                 .build();
         Application savedApplication = applicationRepository.save(application);
@@ -594,11 +613,12 @@ public class ApplicationService {
                 ? (scoringAvailable ? "AVAILABLE" : "CONSENT_NOT_GIVEN") : access.code());
         response.setAiScoringReason(access == null ? null : access.message());
         response.setMatchClassification(com.platform.recruitment.product.AiScreeningAccessService
-                .classifyScore(scoringAvailable ? response.getMatchScore() : null));
+                .classifyScore(scoringAvailable && "PGVECTOR_READY".equals(response.getMatchCalculationStatus()) ? response.getMatchScore() : null));
         response.setProDetailAvailable(proAccess && scoringAvailable
                 && response.getMatchScore() != null);
         response.setRecruiterPlan(company != null && company.hasActiveRecruiterPro() ? "PRO" : "STANDARD");
         response.setDevelopmentProAccess(featureAccess != null && featureAccess.isDevelopmentOverride(company));
+        if (!scoringAvailable) response.setMatchScore(null);
         if (!scoringAvailable || (recruiterUser != null
                 && recruiterUser.getRole() == com.platform.recruitment.user.Role.HR && !proAccess)) {
             response.redactMatchForStandardPlan();

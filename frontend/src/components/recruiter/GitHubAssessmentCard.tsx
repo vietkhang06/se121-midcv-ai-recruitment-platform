@@ -13,11 +13,15 @@ interface GitHubAssessmentCardProps {
 export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ assessment }) => {
   const { locale } = useLanguage();
 
-  if (!assessment.connected || assessment.status === 'NOT_CONNECTED' || assessment.status === 'NOT_APPLICABLE' || assessment.status === 'API_UNAVAILABLE' || assessment.status === 'PRIVATE_ONLY') {
+  if (!assessment.connected || assessment.status === 'NOT_CONNECTED' || assessment.status === 'NOT_APPLICABLE' || assessment.status === 'API_UNAVAILABLE' || assessment.status === 'PRIVATE_ONLY' || assessment.status === 'RATE_LIMITED' || assessment.status === 'NOT_FOUND' || assessment.status === 'PENDING' || assessment.status === 'LEGACY_MISSING_DATA') {
     let branchTitle = locale === 'vi' ? "Tín hiệu GitHub: Chưa liên kết (Not Connected)" : "GitHub Signal: Not Connected";
     let branchDesc = locale === 'vi' ? "Ứng viên chưa liên kết tài khoản GitHub cá nhân." : "Candidate has not connected a personal GitHub account.";
     let badgeColor = "bg-slate-100 text-slate-700 border-slate-200";
 
+    if (assessment.status === 'RATE_LIMITED' || assessment.status === 'NOT_FOUND' || assessment.status === 'PENDING' || assessment.status === 'LEGACY_MISSING_DATA') {
+      branchTitle = statusLabel(assessment.status, locale);
+      branchDesc = locale === 'vi' ? 'Chưa có minh chứng GitHub đủ điều kiện cho kết quả này.' : 'No eligible GitHub evidence for this result.';
+    }
     if (assessment.status === 'PUBLIC_ONLY') {
       branchTitle = locale === 'vi' ? 'Hồ sơ GitHub công khai · chưa xác minh chủ sở hữu' : 'Public GitHub profile · ownership unverified';
       branchDesc = locale === 'vi' ? 'Thông tin công khai không được dùng làm năng lực đã xác minh.' : 'Public signals are not treated as verified competency.';
@@ -63,7 +67,7 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
               </>
             ) : (
               <>
-                Platform activates <strong>Graceful Fallback: Overall Score = Core JD-CV Score</strong> with <strong>zero penalty</strong> and unbiased candidate ranking.
+                Platform activates <strong>Graceful Fallback: Overall Score = Core JD-CV Score</strong> with <strong>zero penalty</strong> for missing GitHub evidence.
               </>
             )}
           </p>
@@ -113,6 +117,9 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
         <span>{locale === 'vi' ? 'Đủ điều kiện chấm điểm:' : 'Scoring eligible:'} {assessment.scoringEligible ? (locale === 'vi' ? 'Có' : 'Yes') : (locale === 'vi' ? 'Không' : 'No')}</span>
       </div>
 
+      {assessment.fetchedAt && <p className="text-xs text-slate-300">{locale === 'vi' ? 'Thời điểm thu thập:' : 'Collected at:'} {assessment.fetchedAt}</p>}
+      {assessment.scanScope && <p className="text-xs text-slate-300">{assessment.scanScope}</p>}
+      {assessment.overallAssessment && <p className="text-xs text-slate-300">{assessment.overallAssessment}</p>}
       {/* Public signals are reported only when supplied by the sync service. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
         <div className="space-y-3 bg-[var(--retro-deep)] border border-[var(--border)] p-4 rounded-xl">
@@ -192,7 +199,9 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
             {assessment.repos.map((repo, idx) => (
               <div key={idx} className="p-4 rounded-xl bg-[var(--retro-deep)] border border-[var(--border)] space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-sm text-[var(--primary)] font-sans">{repo.name}</span>
+                  {repo.url && /^https:\/\/github\.com\/[A-Za-z0-9-]+\/[A-Za-z0-9_.-]+$/.test(repo.url)
+                    ? <a href={repo.url} target="_blank" rel="noopener noreferrer" className="font-bold text-sm text-[var(--primary)] underline">{repo.name}</a>
+                    : <span className="font-bold text-sm text-[var(--primary)] font-sans">{repo.name}</span>}
                   <div className="flex items-center gap-3 text-slate-300 font-sans text-[11px]">
                     <span className="flex items-center gap-1">
                       <Star className="w-3.5 h-3.5 text-amber-400" />

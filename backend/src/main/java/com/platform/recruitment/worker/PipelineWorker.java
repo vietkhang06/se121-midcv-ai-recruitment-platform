@@ -55,6 +55,9 @@ public class PipelineWorker {
   private com.platform.recruitment.matching.MatchingEngineService applicationMatching;
 
   @org.springframework.beans.factory.annotation.Autowired(required = false)
+  private com.platform.recruitment.github.ApplicationGithubEvidenceService applicationGithub;
+
+  @org.springframework.beans.factory.annotation.Autowired(required = false)
   private com.platform.recruitment.ai.ProcessingLifecycleService processingLifecycleService;
 
   @org.springframework.beans.factory.annotation.Autowired
@@ -597,13 +600,24 @@ public class PipelineWorker {
   }
 
   private void processApplicationMatch(UUID processingJob, UUID applicationId) {
-    var rows = jdbc.queryForList("SELECT job_id,candidate_id,status FROM applications WHERE id=?", applicationId);
+    var rows = jdbc.queryForList("SELECT job_id,candidate_id,status,ai_analysis_consent,ai_scoring_eligible_snapshot FROM applications WHERE id=?", applicationId);
     if (rows.isEmpty()) throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Application not found");
     var app = rows.get(0);
-    if (!"WITHDRAWN".equals(app.get("status"))) {
-      applicationMatching.calculateAndPersistMatchResult((UUID) app.get("job_id"), (UUID) app.get("candidate_id"));
+    if (Boolean.FALSE.equals(app.get("ai_analysis_consent")) || Boolean.FALSE.equals(app.get("ai_scoring_eligible_snapshot"))) {
+      queue.complete(processingJob, worker);
+      return;
     }
-    queue.complete(processingJob, worker);
+    if (!"WITHDRAWN".equals(app.get("status")) && applicationGithub != null) {
+      applicationGithub.capture(applicationId);
+      if (Thread.currentThread().isInterrupted()) throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "GitHub scan interrupted");
+    }
+    tx.executeWithoutResult(ignored -> {
+      queue.assertLease(processingJob, worker);
+      if (!"WITHDRAWN".equals(app.get("status"))) {
+        applicationMatching.calculateAndPersistMatchResult((UUID) app.get("job_id"), (UUID) app.get("candidate_id"));
+      }
+      queue.complete(processingJob, worker);
+    });
   }
 
   private boolean match(UUID job, UUID owner, UUID appId, boolean screening) {
@@ -753,6 +767,17 @@ public class PipelineWorker {
     queue.progress(job, worker, owner, "GITHUB_ANALYSIS", 20, "Bắt đầu thu thập và đối soát tín hiệu GitHub công khai.");
     if (processingLifecycleService != null) {
       processingLifecycleService.processCandidateGithub(candidateProfileId);
+      if (applicationGithub != null) {
+        var pending = jdbc.queryForList("""
+                SELECT a.id FROM applications a WHERE a.candidate_id=? AND a.ai_analysis_consent=true
+                  AND a.ai_scoring_eligible_snapshot=true AND a.status<>'WITHDRAWN'
+                  AND a.github_username_snapshot IS NOT NULL
+                  AND (a.github_scan_snapshot IS NULL OR (a.github_scan_snapshot::jsonb->>'status') IS DISTINCT FROM 'AVAILABLE'
+                       OR a.github_scan_snapshot::jsonb->>'ownership_status' IS DISTINCT FROM 'OWNED'
+                       OR a.github_scan_snapshot::jsonb->>'language_partial'='true')
+                """, candidateProfileId);
+        for (var app : pending) queue.enqueue(owner,"MATCH",(UUID)app.get("id"));
+      }
     }
     queue.complete(job, worker);
   }

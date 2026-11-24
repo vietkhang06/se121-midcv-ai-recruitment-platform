@@ -39,7 +39,7 @@ public class CandidateRankingResponse {
     private ZonedDateTime appliedAt;
 
     public void redactForStandardPlan(com.platform.recruitment.product.AiScreeningAccessService policy) {
-        if (overallScore != null) status = policy.classify(overallScore);
+        if (overallScore != null && "PGVECTOR_READY".equals(calculationStatus)) status = policy.classify(overallScore);
         overallScore = null;
         coreScore = null;
         githubScore = null;
@@ -55,7 +55,7 @@ public class CandidateRankingResponse {
     }
 
     public void redactForStandardPlan() {
-        if (overallScore != null) status =
+        if (overallScore != null && "PGVECTOR_READY".equals(calculationStatus)) status =
                 com.platform.recruitment.product.AiScreeningAccessService.classifyScore(overallScore);
         overallScore = null;
         coreScore = null;

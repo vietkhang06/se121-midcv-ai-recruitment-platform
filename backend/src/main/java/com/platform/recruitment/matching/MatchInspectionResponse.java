@@ -40,8 +40,8 @@ public class MatchInspectionResponse {
 
     public void redactForStandardPlan() {
         detailAccess = false;
-        if (overallScore != null) matchClassification =
-                com.platform.recruitment.product.AiScreeningAccessService.classifyScore(overallScore);
+        matchClassification = overallScore != null && "PGVECTOR_READY".equals(calculationStatus)
+                ? com.platform.recruitment.product.AiScreeningAccessService.classifyScore(overallScore) : "CHUA_KHA_DUNG";
         overallScore = null;
         coreScore = null;
         githubScore = null;
@@ -155,6 +155,8 @@ public class MatchInspectionResponse {
         private Integer latestActivityDaysAgo;
         private List<RepoItem> repos;
         private String overallAssessment;
+        private String fetchedAt;
+        private String scanScope;
     }
 
     @Data
@@ -169,5 +171,6 @@ public class MatchInspectionResponse {
         private Integer forks;
         private Integer updatedDaysAgo;
         private String relevanceExplanation;
+        private String url;
     }
 }
