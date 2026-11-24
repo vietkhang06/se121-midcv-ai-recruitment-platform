@@ -33,8 +33,8 @@ public class GithubClient {
     String trimmed = input.trim();
     if (trimmed.startsWith("@")) {
       trimmed = trimmed.substring(1).trim();
-    } else if (trimmed.matches("(?i)^https?://(?:www\\.)?github\\.com/[A-Za-z0-9_-]+/?$")) {
-      trimmed = trimmed.replaceFirst("(?i)^https?://(?:www\\.)?github\\.com/", "").replaceAll("/+$", "").trim();
+    } else if (trimmed.matches("(?i)^(?:https?://)?(?:www\\.)?github\\.com/[A-Za-z0-9-]+/?$")) {
+      trimmed = trimmed.replaceFirst("(?i)^(?:https?://)?(?:www\\.)?github\\.com/", "").replaceAll("/+$", "").trim();
     }
     if (trimmed.matches("[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?")) {
       return trimmed;
@@ -54,11 +54,15 @@ public class GithubClient {
             cacheKey);
     if (!cached.isEmpty()) {
       try {
-        return mapper.readTree(cached.get(0));
+        JsonNode entry = mapper.readTree(cached.get(0));
+        if (entry.path("scan_version").asInt() == 2 && !entry.path("language_partial").asBoolean()) return entry;
       } catch (Exception ignored) {
       }
     }
     JsonNode user = get("/users/" + encode(username));
+    if (!user.path("login").asText().equalsIgnoreCase(username) || !user.path("id").isIntegralNumber()
+        || !"User".equals(user.path("type").asText()))
+      throw new CustomException(ErrorCode.VALIDATION_ERROR, "GitHub identity response is invalid.");
     JsonNode repos =
         get("/users/" + encode(username) + "/repos?per_page=100&sort=updated&type=owner");
     JsonNode activity;
@@ -75,19 +79,24 @@ public class GithubClient {
     int languageRequests = 0;
     boolean languagePartial = false;
     for (JsonNode r : repos) {
-      if (r.path("private").asBoolean(true)) continue;
+      if (r.path("private").asBoolean(true) || !r.path("owner").path("login").asText().equalsIgnoreCase(username)) continue;
       Object languages = Map.of();
       String languageError = null;
-      if (!r.path("fork").asBoolean() && languageRequests < 10) {
+      if (!r.path("fork").asBoolean() && !r.path("archived").asBoolean() && languageRequests < 10) {
         languageRequests++;
         try {
-          languages =
+          JsonNode observed =
               get(
                   "/repos/"
                       + encode(username)
                       + "/"
                       + encode(r.path("name").asText())
                       + "/languages");
+          if (!observed.isObject()) throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Invalid GitHub language response");
+          for (JsonNode bytes : observed) {
+            if (!bytes.isIntegralNumber() || bytes.asLong() < 0) throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Invalid GitHub language bytes");
+          }
+          languages = observed;
         } catch (CustomException e) {
           languageError = e.getErrorCode().name();
           languagePartial = true;
@@ -137,6 +146,8 @@ public class GithubClient {
             map(
                 "status",
                 "AVAILABLE",
+                "scan_version", 2,
+                "github_user_id", user.path("id").asText(),
                 "username",
                 user.path("login").asText(),
                 "url",
@@ -193,7 +204,9 @@ public class GithubClient {
         }
         if (r.statusCode() == 404)
           throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy tài khoản hoặc repo công khai.");
-        if ((r.statusCode() == 403 || r.statusCode() == 429) && attempt < 2) {
+        if ((r.statusCode() == 403 || r.statusCode() == 429) && attempt < 2
+            && !"0".equals(r.headers().firstValue("X-RateLimit-Remaining").orElse(""))
+            && r.headers().firstValue("Retry-After").isEmpty()) {
           long wait = retryDelayMillis(r);
           if (wait > 0) Thread.sleep(wait);
           continue;

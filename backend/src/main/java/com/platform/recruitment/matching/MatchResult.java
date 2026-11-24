@@ -96,6 +96,9 @@ public class MatchResult extends BaseEntity {
     @Column(name = "policy_version")
     private Integer policyVersion = 1;
 
+    @Column(name = "github_assessment_snapshot", columnDefinition = "TEXT")
+    private String githubAssessmentSnapshot;
+
     @Column(name = "policy_snapshot", columnDefinition = "TEXT")
     private String policySnapshot;
 }

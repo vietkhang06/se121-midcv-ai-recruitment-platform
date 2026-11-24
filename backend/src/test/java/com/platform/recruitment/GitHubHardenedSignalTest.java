@@ -312,7 +312,7 @@ public class GitHubHardenedSignalTest {
                 eq("SELECT payload::text FROM github_cache WHERE username=? AND expires_at>now()"),
                 any(RowMapper.class),
                 eq("octocat")
-        )).thenReturn(List.of("{\"status\":\"AVAILABLE\",\"username\":\"octocat\",\"repos\":[]}"));
+        )).thenReturn(List.of("{\"scan_version\":2,\"status\":\"AVAILABLE\",\"username\":\"octocat\",\"github_user_id\":\"1\",\"repos\":[]}"));
 
         JsonNode payload = client.fetch("OctoCat");
 

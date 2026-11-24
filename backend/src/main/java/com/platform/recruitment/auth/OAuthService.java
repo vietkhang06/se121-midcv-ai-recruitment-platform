@@ -275,6 +275,12 @@ public class OAuthService {
     private static OAuthFlowException failure(String code, String message) { return new OAuthFlowException(code, message); }
     public String errorRedirect(String reason) { Set<String> allowed = Set.of("cancelled", "invalid_callback", "invalid_state", "provider_not_configured", "provider_error", "provider_unavailable", "invalid_identity", "email_unverified", "email_required", "account_conflict", "account_disabled", "unsupported_provider", "invalid_ticket", "completion_invalid", "completion_expired"); return frontendUrl.replaceAll("/+$", "") + "/login?oauth_error=" + (allowed.contains(reason) ? reason : "provider_error"); }
     public boolean isGithubOwned(UUID userId, String username) { if (blank(username)) return false; return accounts.findByProviderAndUserId("github", userId).map(a -> a.getProviderLogin() != null && a.getProviderLogin().equalsIgnoreCase(username)).orElse(false); }
+    public boolean matchesGithubIdentity(UUID userId, String username, String subject) {
+        if (blank(username) || blank(subject)) return false;
+        return accounts.findByProviderAndUserId("github", userId)
+                .map(a -> subject.equals(a.getProviderSubject()) && username.equalsIgnoreCase(a.getProviderLogin()))
+                .orElse(false);
+    }
     public Map<String, Object> githubConnection(UUID userId) {
         Optional<OAuthAccount> linked = accounts.findByProviderAndUserId("github", userId);
         Map<String, Object> result = new LinkedHashMap<>();

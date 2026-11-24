@@ -2,6 +2,8 @@ import type { Locale } from '@/context/LanguageContext';
 
 const labels: Record<string, readonly [string, string]> = {
   NOT_CONNECTED: ['Chưa kết nối', 'Not connected'],
+  NOT_FOUND: ['Không tìm thấy', 'Not found'],
+  UNVERIFIED_PUBLIC: ['Nguồn công khai chưa xác minh chủ sở hữu', 'Unverified public source'],
   SYNCED: ['Đã đồng bộ', 'Synced'],
   API_UNAVAILABLE: ['API không khả dụng', 'API unavailable'],
   PUBLIC_ONLY: ['Chỉ dữ liệu công khai', 'Public data only'],

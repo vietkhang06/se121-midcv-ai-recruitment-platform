@@ -296,7 +296,7 @@ export default function HRDashboardPage() {
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center pt-1">
                 {[
-                  { count: applications.length, label: isVi ? 'Mới nộp (Submitted)' : 'Submitted' },
+                  { count: applications.filter(a => a.status === 'SUBMITTED').length, label: isVi ? 'Mới nộp (Submitted)' : 'Submitted' },
                   { count: applications.filter(a => a.status === 'REVIEWED' || a.status === 'MATCHED').length, label: isVi ? 'Sàng lọc' : 'Screening' },
                   { count: applications.filter(a => a.status === 'SHORTLISTED').length, label: isVi ? 'Đã vào danh sách chọn' : 'Shortlisted' },
                   { count: applications.filter(a => a.status === 'REJECTED').length, label: isVi ? 'Đã từ chối' : 'Rejected' },

@@ -49,6 +49,15 @@ public class Application extends BaseEntity {
     @Column(name = "applied_jd_version_id")
     private java.util.UUID appliedJdVersionId;
 
+    @Column(name = "ai_scoring_eligible_snapshot", updatable = false)
+    private Boolean aiScoringEligibleSnapshot;
+    @Column(name = "github_username_snapshot", length = 39, updatable = false)
+    private String githubUsernameSnapshot;
+    @Column(name = "github_snapshot_contract", length = 32, updatable = false)
+    private String githubSnapshotContract;
+    @Column(name = "github_scan_snapshot", columnDefinition = "TEXT", insertable = false, updatable = false)
+    private String githubScanSnapshot;
+
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "status")

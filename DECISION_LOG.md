@@ -44,3 +44,7 @@ Theo yêu cầu trực tiếp của chủ dự án, cho phép HR của công ty 
 
 ## 2026-11-15 — Approved remaining-task remediation
 Owner authorizes LinkedIn OIDC alongside existing Google/GitHub, production configuration hardening, and reproducible evaluation. External provider acceptance, labeled dataset metrics and database restore acceptance remain unverified until real inputs exist. OAuth new registrations retain the existing Candidate role; existing HR accounts link providers from their authenticated profile.
+
+### GitHub application evidence handoff (source changes, not live acceptance)
+- Reuse the existing public GitHub REST client, no candidate PAT/private repo access. Pin handle and scan to application; stable OAuth subject is checked against GitHub ID. Store snapshot with Flyway V45 and persist assessment with result. No invented backfill. Existing Core/GitHub weight cap remains unchanged.
+- Public language bytes and exact JD criteria are required for numeric supporting score; topic metadata and repository push dates are weaker observations, not verified skills or individual contributions. Missing, unowned, non-IT and incomplete scans use neutral Core fallback. See `docs/GITHUB_ACCEPTANCE_HANDOFF.md` for limits and pending live acceptance.

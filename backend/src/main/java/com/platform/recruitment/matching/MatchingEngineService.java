@@ -61,6 +61,8 @@ public class MatchingEngineService {
     private final EducationMatcher educationMatcher;
     private final ProjectRelevanceMatcher projectRelevanceMatcher;
     private final GitHubScoringService gitHubScoringService;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.platform.recruitment.github.ApplicationGithubEvidenceService applicationGithub;
 
     public void setCvVersionRepository(CVVersionRepository cvVersionRepository) {
         this.cvVersionRepository = cvVersionRepository;
@@ -86,6 +88,10 @@ public class MatchingEngineService {
             throw new com.platform.recruitment.common.CustomException(
                     com.platform.recruitment.common.ErrorCode.ACCESS_DENIED,
                     "Ứng viên chưa đồng ý phân tích CV bằng AI cho đơn này.");
+        }
+        if (Boolean.FALSE.equals(application.getAiScoringEligibleSnapshot())) {
+            throw new com.platform.recruitment.common.CustomException(com.platform.recruitment.common.ErrorCode.ACCESS_DENIED,
+                    "Đơn ứng tuyển không đủ điều kiện phân tích AI tại thời điểm nộp.");
         }
         return calculate(application, application.getAppliedCvVersion(), true);
     }
@@ -357,7 +363,12 @@ public class MatchingEngineService {
         scoreCore = scoreCore.max(BigDecimal.ZERO).min(new BigDecimal("100.00"));
 
         // 4. GitHub Supporting Factor Evaluation
-        Optional<BigDecimal> githubScoreOpt = gitHubScoringService.calculateGitHubSupportingScore(candidateId, jdContext.industry(), jdText);
+        boolean snapshotContract = applicationGithub != null && persist;
+        var githubEvaluation = snapshotContract ? applicationGithub.evaluate(application, jdContext.industry(), jdText,
+                allReqs.stream().map(JobRequirement::getSkillName).toList(), policyGithubActive && cfgGithub != null && cfgGithub.signum()>0) : null;
+        Optional<BigDecimal> githubScoreOpt = githubEvaluation != null ? Optional.ofNullable(githubEvaluation.score())
+                : applicationGithub != null && !persist ? Optional.empty()
+                : gitHubScoringService.calculateGitHubSupportingScore(candidateId, jdContext.industry(), jdText);
 
         String statusGithub;
         BigDecimal scoreGithub = null;
@@ -395,6 +406,7 @@ public class MatchingEngineService {
 
         result.setCoreScore(scoreCore);
         result.setGithubScore(scoreGithub);
+        if (githubEvaluation != null) result.setGithubAssessmentSnapshot(applicationGithub.serialize(githubEvaluation.assessment()));
         result.setCoreWeight(effCoreWeight);
         result.setGithubWeight(effGithubWeight);
         result.setOverallScore(scoreOverall);
@@ -414,7 +426,7 @@ public class MatchingEngineService {
         result.setSemanticMethod(semanticMethod);
         result.setEmbeddingModel("PGVECTOR_COSINE_SIMILARITY".equals(semanticMethod)
                 ? matchedEmbeddingModel(cvDocVersionId) : null);
-        result.setMatchingAlgorithmVersion("v2.0");
+        result.setMatchingAlgorithmVersion(githubEvaluation != null ? "v2.1-public-evidence" : "v2.0");
         result.setPolicyVersion(policy.getPolicyVersion());
         result.setPolicySnapshot(policySnapshot);
 
@@ -458,7 +470,8 @@ public class MatchingEngineService {
         if (scoreGithub != null && effGithubWeight.compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal contribGithub = scoreGithub.multiply(effGithubWeight).setScale(2, RoundingMode.HALF_UP);
             saveMatchFactor(savedResult, "GITHUB_SUPPORTING", "Đánh giá GitHub bổ trợ", "GITHUB", scoreGithub, scoreGithub, scoreGithub,
-                    cfgGithub, effGithubWeight, contribGithub, statusGithub, "GITHUB_PUBLIC_SIGNAL_ANALYSIS", candidateId != null ? candidateId.toString() : null);
+                    cfgGithub, effGithubWeight, contribGithub, statusGithub, githubEvaluation != null ? "GITHUB_PUBLIC_EVIDENCE_V1" : "GITHUB_PUBLIC_SIGNAL_ANALYSIS",
+                    githubEvaluation != null ? githubEvaluation.assessment().getOverallAssessment() : candidateId != null ? candidateId.toString() : null);
         }
 
         // 7. Save Grounded Evidences into PostgreSQL evidences table
@@ -515,6 +528,15 @@ public class MatchingEngineService {
                 evidenceRepository.save(expEvidence);
             }
             if (scoreGithub != null && effGithubWeight != null && effGithubWeight.compareTo(BigDecimal.ZERO) > 0) {
+                if (githubEvaluation != null) {
+                    for (var repo : githubEvaluation.assessment().getRepos()) {
+                        evidenceRepository.save(Evidence.builder().matchResult(savedResult).sourceType("GITHUB")
+                                .sourceId(repo.getUrl()).section("REPOSITORIES").requirementText("Public repository signal")
+                                .candidateValue(repo.getName()).matchStatus("MATCH").snippet(repo.getRelevanceExplanation())
+                                .normalizedValue(scoreGithub).validationStatus("SOURCE_EXCERPT_NOT_REQUIREMENT_VERIFIED")
+                                .policyVersion(policy.getPolicyVersion()).build());
+                    }
+                } else {
                 List<String> relevantRepos = gitHubScoringService.findRelevantRepositories(candidateId, jdText);
                 for (String rName : relevantRepos) {
                     Evidence ghEvidence = Evidence.builder()
@@ -530,6 +552,7 @@ public class MatchingEngineService {
                             .validationStatus("VERIFIED")
                             .build();
                     evidenceRepository.save(ghEvidence);
+                }
                 }
             }
         }
@@ -714,7 +737,9 @@ public class MatchingEngineService {
         Optional<com.platform.recruitment.github.GitHubProfile> ghProfileOpt = gitHubProfileRepository != null
                 ? gitHubProfileRepository.findByCandidateId(candidateId)
                 : Optional.empty();
-        if (ghProfileOpt.isPresent()) {
+        if (applicationGithub != null) {
+            ghInfo = applicationGithub.readAssessment(result.getGithubAssessmentSnapshot());
+        } else if (ghProfileOpt.isPresent()) {
             com.platform.recruitment.github.GitHubProfile gh = ghProfileOpt.get();
             boolean scoringEligible = Boolean.TRUE.equals(result.getIsGithubActive()) && result.getGithubScore() != null;
             ghInfo = MatchInspectionResponse.GitHubAssessmentInfo.builder()
@@ -785,7 +810,7 @@ public class MatchingEngineService {
                 .status(status)
                 .calculationMethod(calculationMethod)
                 .evidenceReference(evidenceRef)
-                .algorithmVersion("v2.0")
+                .algorithmVersion(result.getMatchingAlgorithmVersion() == null ? "v2.0" : result.getMatchingAlgorithmVersion())
                 .build();
         matchFactorRepository.save(factor);
     }

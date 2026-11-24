@@ -189,8 +189,8 @@ function toRequirementMatchStatus(value: unknown): 'MATCH' | 'PARTIAL' | 'MISSIN
   return value === 'MATCH' || value === 'PARTIAL' ? value : 'MISSING';
 }
 
-function toGitHubStatus(value: unknown): 'SYNCED' | 'NOT_CONNECTED' | 'PUBLIC_ONLY' | 'PRIVATE_ONLY' | 'API_UNAVAILABLE' | 'NOT_APPLICABLE' {
-  const statuses = ['SYNCED', 'NOT_CONNECTED', 'PUBLIC_ONLY', 'PRIVATE_ONLY', 'API_UNAVAILABLE', 'NOT_APPLICABLE'] as const;
+function toGitHubStatus(value: unknown): NonNullable<import('@/types').GitHubAssessmentData['status']> {
+  const statuses = ['SYNCED', 'NOT_CONNECTED', 'PUBLIC_ONLY', 'PRIVATE_ONLY', 'API_UNAVAILABLE', 'NOT_APPLICABLE', 'RATE_LIMITED', 'NOT_FOUND', 'PENDING', 'LEGACY_MISSING_DATA'] as const;
   return typeof value === 'string' && statuses.includes(value as typeof statuses[number]) ? value as typeof statuses[number] : 'NOT_CONNECTED';
 }
 
@@ -1840,6 +1840,10 @@ export class RealApiClient implements ApiClient {
       })),
       githubAssessment: github ? {
         connected: github.connected === true,
+        scoringEligible: github.scoringEligible === true,
+        ownershipStatus: github.ownershipStatus === 'OWNED' || github.ownershipStatus === 'UNVERIFIED_PUBLIC' ? github.ownershipStatus : undefined,
+        fetchedAt: readString(github.fetchedAt) || undefined,
+        scanScope: readString(github.scanScope) || undefined,
         status: toGitHubStatus(github.status || (github.connected ? 'SYNCED' : 'NOT_CONNECTED')),
         username: readString(github.username) || undefined,
         publicRepoCount: readNumber(github.publicRepoCount) ?? undefined,
@@ -1851,6 +1855,7 @@ export class RealApiClient implements ApiClient {
         latestActivityDaysAgo: readNumber(github.latestActivityDaysAgo) ?? undefined,
         repos: getObjectRows(github.repos).map((repo) => ({
           name: readString(repo.name),
+          url: readString(repo.url) || undefined,
           description: readString(repo.description),
           primaryLanguage: readString(repo.primaryLanguage),
           stars: readNumber(repo.stars),

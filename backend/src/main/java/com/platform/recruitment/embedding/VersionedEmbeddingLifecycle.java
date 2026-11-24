@@ -99,7 +99,10 @@ public class VersionedEmbeddingLifecycle {
      * document_version, never mutate an existing application-bound version.
      */
     @Transactional
-    public UUID prepareJob(Job job) {
+    public UUID prepareJob(Job job) { return prepareJob(job, true); }
+
+    @Transactional
+    public UUID prepareJob(Job job, boolean enqueueVector) {
         if (job == null || job.getId() == null || job.getCompany() == null)
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "Job must be persisted before embedding");
         String text = canonicalJobText(job);
@@ -133,7 +136,7 @@ public class VersionedEmbeddingLifecycle {
                     + "VALUES (?,?,?,'job-description.txt',?,?,?::jsonb,'hr_verified',?,?,'QUEUED',?)",
                     versionId, job.getId(), versionNo, hash, text, jdSnapshot(job), text, hash, PIPELINE);
         }
-        if (!versionHasCurrentVector(versionId, hash)) enqueueInTransaction(owner, "EMBED", versionId);
+        if (enqueueVector && !versionHasCurrentVector(versionId, hash)) enqueueInTransaction(owner, "EMBED", versionId);
         return versionId;
     }
 
@@ -208,7 +211,8 @@ public class VersionedEmbeddingLifecycle {
         List<Map<String, Object>> apps = jdbc.queryForList(
                 "SELECT DISTINCT a.id AS id,cp.user_id AS owner FROM applications a "
                 + "JOIN candidate_profiles cp ON cp.id=a.candidate_id "
-                + "WHERE (a.applied_cv_version_id=? OR a.applied_jd_version_id=?) AND a.status<>'WITHDRAWN'",
+                + "WHERE (a.applied_cv_version_id=? OR a.applied_jd_version_id=?) AND a.status<>'WITHDRAWN' "
+                + "AND a.ai_analysis_consent=true AND a.ai_scoring_eligible_snapshot IS DISTINCT FROM false",
                 versionId, versionId);
         for (Map<String, Object> app : apps) {
             queue.enqueue((UUID) app.get("owner"), "MATCH", (UUID) app.get("id"));

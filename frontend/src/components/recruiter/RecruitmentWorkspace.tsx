@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { fetchJobApplications, fetchRecruiterJobs, updateApplicationStatus } from "@/lib/api";
 import { productRequest } from "@/lib/productApi";
 import { APPLICATION_TRANSITIONS } from "@/lib/applicationWorkflow";
+import { compareMatchScores } from "@/lib/matchPresentation";
 import { Application, ApplicationStatus, Job } from "@/types";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -179,7 +180,7 @@ export function RecruitmentWorkspace({ mode = "overview" }: { mode?: "overview" 
           : application.aiAnalysisConsent === false || application.matchStatus === "CONSENT_NOT_GIVEN"));
     })
     .sort((a, b) => sort === "score"
-      ? (b.matchScore ?? -1) - (a.matchScore ?? -1)
+      ? compareMatchScores(a, b)
       : b.appliedDate.localeCompare(a.appliedDate)),
   [apps, campaigns, campaignFilter, query, jobFilter, statusFilter, availabilityFilter, sort]);
 

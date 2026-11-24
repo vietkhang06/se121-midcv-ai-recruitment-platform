@@ -237,6 +237,7 @@ export interface MatchFactorItem {
 
 export interface GitHubRepoItem {
   name: string;
+  url?: string;
   description: string;
   primaryLanguage: string;
   stars: number | null;
@@ -248,7 +249,9 @@ export interface GitHubRepoItem {
 export interface GitHubAssessmentData {
   connected: boolean;
   scoringEligible?: boolean;
-  status?: 'SYNCED' | 'NOT_CONNECTED' | 'PUBLIC_ONLY' | 'PRIVATE_ONLY' | 'API_UNAVAILABLE' | 'NOT_APPLICABLE';
+  status?: 'SYNCED' | 'NOT_CONNECTED' | 'PUBLIC_ONLY' | 'PRIVATE_ONLY' | 'API_UNAVAILABLE' | 'NOT_APPLICABLE' | 'RATE_LIMITED' | 'NOT_FOUND' | 'PENDING' | 'LEGACY_MISSING_DATA';
+  fetchedAt?: string;
+  scanScope?: string;
   username?: string;
   publicRepoCount?: number;
   topLanguages?: string[];

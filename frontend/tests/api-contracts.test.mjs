@@ -355,3 +355,17 @@ test('application uses closed Marketing JD data and rejects legacy company statu
     }
   );
 });
+test('inspection preserves application-bound GitHub evidence and ownership without fabricating a score', async () => {
+  globalThis.fetch = async () => response({ applicationId: 'app-github', calculationStatus: 'PGVECTOR_READY',
+    coreScore: 80, overallScore: 80, githubScore: null, githubScoreActive: false,
+    githubAssessment: { connected: true, status: 'PUBLIC_ONLY', ownershipStatus: 'UNVERIFIED_PUBLIC',
+      scoringEligible: false, username: 'fixture', fetchedAt: '2026-11-22T00:00:00Z', scanScope: 'public only',
+      repos: [{ name: 'java', url: 'https://github.com/fixture/java' }] } });
+  const data = await api.realApiClient.fetchMatchInspection('app-github');
+  assert.equal(data.githubScore, null);
+  assert.equal(data.githubAssessment.ownershipStatus, 'UNVERIFIED_PUBLIC');
+  assert.equal(data.githubAssessment.scoringEligible, false);
+  assert.equal(data.githubAssessment.status, 'PUBLIC_ONLY');
+  assert.equal(data.githubAssessment.repos[0].url, 'https://github.com/fixture/java');
+  assert.equal(data.githubAssessment.fetchedAt, '2026-11-22T00:00:00Z');
+});
