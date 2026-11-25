@@ -23,7 +23,7 @@ export function Reveal({
   className = '',
   direction = 'up',
   delay = 0,
-  duration = 360,
+  duration = 680,
   once = true,
   threshold = 0.08,
 }: RevealProps) {
@@ -59,8 +59,8 @@ export function Reveal({
     };
   }, [hasIntersectionObserver, once, threshold]);
 
-  const boundedDelay = Math.min(Math.max(delay, 0), 240);
-  const boundedDuration = Math.min(Math.max(duration, 150), 600);
+  const boundedDelay = Math.min(Math.max(delay, 0), 600);
+  const boundedDuration = Math.min(Math.max(duration, 240), 900);
 
   const style = {
     '--motion-delay': `${boundedDelay}ms`,

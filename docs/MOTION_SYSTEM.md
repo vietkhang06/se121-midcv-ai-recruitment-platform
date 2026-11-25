@@ -1,5 +1,17 @@
 # MidCV Motion System
 
+## Directional navigation upgrade — 25/11/2026
+
+| Route relationship | Motion | Fallback |
+| --- | --- | --- |
+| Route sâu hơn, ví dụ `/jobs` → `/jobs/[id]` | Trang mới vào từ phải, 72 px / 720 ms, delay 60 ms | Reduced Motion: không transform, không animation. |
+| Browser Back hoặc route nông hơn | Trang mới vào từ trái, 72 px / 720 ms, delay 60 ms | Deep link không có lịch sử dùng crossfade. |
+| Route cùng cấp hoặc không có quan hệ rõ | Crossfade 720 ms, delay 60 ms | Thay đổi query không remount `template.tsx`, nên không chạy page transition. |
+
+Page transition dùng CSS + React/Next.js, không thêm Motion hoặc GSAP. App Router chỉ dùng directional enter; không freeze router hay trì hoãn navigation để giả exit animation. Content reveal giữ `IntersectionObserver`, dùng quãng dịch chuyển 24 px / 680 ms; stagger mặc định 110 ms và cap 550 ms. Wheel smooth scroll dùng Lenis 1.3 với inertia 1.15 giây; nested scroll được giữ và thư viện tự tôn trọng `prefers-reduced-motion`.
+
+Kiểm chứng: TypeScript, ESLint phạm vi motion, production build 51 route, và Playwright cho forward/back/forward, Reduced Motion, hydration và CLS đều đạt. Các fixture auth/upload/profile cũ còn phụ thuộc trạng thái API hiện hành và được báo riêng, không che thành PASS.
+
 Ngày kiểm kê: 04/10/2026
 
 Tài liệu này ghi lại lớp chuyển động giao diện. Motion chỉ trình bày trạng thái đã tồn tại trong UI; nó không tạo dữ liệu, thay đổi API, chấm điểm, provenance, confirmation gate hay quyết định tuyển dụng.

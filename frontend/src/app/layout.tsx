@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "lenis/dist/lenis.css";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -9,6 +10,7 @@ import { FirstVisitModal } from "@/components/onboarding/FirstVisitModal";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { SuspensionBanner } from "@/components/common/SuspensionBanner";
 import { FeedbackWidget } from "@/components/common/FeedbackWidget";
+import { SmoothScrollProvider } from "@/components/motion/SmoothScrollProvider";
 
 export const metadata: Metadata = {
   title: "midCV® — CV chuẩn việc làm thật",
@@ -31,21 +33,23 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-[var(--background)] text-[var(--foreground)] min-h-screen flex flex-col antialiased selection:bg-[var(--primary)] selection:text-white transition-colors duration-200">
-        <ThemeProvider>
-          <LanguageProvider>
-            <AuthProvider>
-              <Navbar />
-              <SuspensionBanner />
-              <main className="flex-1">
-                {children}
-              </main>
-              <Footer />
-              <FirstVisitModal />
-              <AuthModal />
-              <FeedbackWidget />
-            </AuthProvider>
-          </LanguageProvider>
-        </ThemeProvider>
+        <SmoothScrollProvider>
+          <ThemeProvider>
+            <LanguageProvider>
+              <AuthProvider>
+                <Navbar />
+                <SuspensionBanner />
+                <main className="flex-1">
+                  {children}
+                </main>
+                <Footer />
+                <FirstVisitModal />
+                <AuthModal />
+                <FeedbackWidget />
+              </AuthProvider>
+            </LanguageProvider>
+          </ThemeProvider>
+        </SmoothScrollProvider>
       </body>
     </html>
   );
