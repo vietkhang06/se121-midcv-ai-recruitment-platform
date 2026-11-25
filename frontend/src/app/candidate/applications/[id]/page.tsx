@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { use, useEffect, useState, type ReactNode } from 'react';
+import { use, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 import { formatMatchScore, matchPhaseLabels, matchPresentation } from '@/lib/matchPresentation';
 import { statusLabel } from '@/lib/statusLabels';
 import { ApiError } from '@/lib/api';
@@ -29,7 +30,8 @@ const gapLabels: Record<string, readonly [string, string]> = {
 
 export default function CandidateApplicationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  return <ApplicationDetail key={id} id={id} />;
+  const { user } = useAuth();
+  return <ApplicationDetail key={JSON.stringify([id, user?.id])} id={id} />;
 }
 
 function ApplicationDetail({ id }: { id: string }) {
@@ -45,6 +47,9 @@ function ApplicationDetail({ id }: { id: string }) {
   const [historyPage, setHistoryPage] = useState(0);
   const [historyAttempt, setHistoryAttempt] = useState(0);
   const [gapByLocale, setGapByLocale] = useState<Partial<Record<typeof locale, CandidateSkillGap | 'loading' | 'error'>>>({});
+  const gapRequests = useRef<Partial<Record<'vi' | 'en', number>>>({});
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const gap = gapByLocale[locale];
   const gapState = gap === undefined ? 'idle' : typeof gap === 'string' ? gap : 'ready';
 
@@ -66,12 +71,14 @@ function ApplicationDetail({ id }: { id: string }) {
   }, [detail, id, historyPage, historyAttempt]);
 
   const loadGap = async () => {
+    const generation = (gapRequests.current[locale] ?? 0) + 1;
+    gapRequests.current[locale] = generation;
     setGapByLocale(previous => ({ ...previous, [locale]: 'loading' }));
     try {
       const result = await fetchCandidateSkillGap(id, locale);
-      setGapByLocale(previous => ({ ...previous, [locale]: result }));
+      if (mounted.current && gapRequests.current[locale] === generation) setGapByLocale(previous => ({ ...previous, [locale]: result }));
     } catch {
-      setGapByLocale(previous => ({ ...previous, [locale]: 'error' }));
+      if (mounted.current && gapRequests.current[locale] === generation) setGapByLocale(previous => ({ ...previous, [locale]: 'error' }));
     }
   };
 

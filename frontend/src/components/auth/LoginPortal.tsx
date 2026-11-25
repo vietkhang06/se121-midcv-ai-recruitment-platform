@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { portalHome, hasProfileLink } from '@/lib/navigationIntent';
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { AuthHeroBanner, AuthRole } from "@/components/auth/AuthHeroBanner";
@@ -79,14 +80,13 @@ function LoginFormContent({ audience }: { audience?: AuthRole }) {
   }, [locale, searchParams]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      if (user?.role === "RECRUITER") {
-        router.push("/recruiter");
-      } else {
-        router.push("/candidate");
-      }
+    if (!isAuthenticated || !user) return;
+    if (user.role === 'CANDIDATE' && searchParams.get('oauth_error') && hasProfileLink(user.id)) {
+      router.replace('/candidate/profile?linkError=1');
+      return;
     }
-  }, [isAuthenticated, user, router]);
+    router.replace(portalHome(user.role));
+  }, [isAuthenticated, user, router, searchParams]);
 
   const handleRoleChange = (newRole: AuthRole) => {
     if (audience) {

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { destinationForRole, normalizeRole, portalHome, clearProfileLink } from '@/lib/navigationIntent';
 import { User, Industry, AuthState } from '@/types';
-import { loginAccount, registerCandidateAccount, registerRecruiterAccount, isJwtExpired, ensureAuthToken, saveAuthTokens, clearAuthSession, apiRequest, fetchAccountIdentity } from '@/lib/api';
+import { loginAccount, ensureAuthToken, saveAuthTokens, clearAuthSession, apiRequest, fetchAccountIdentity } from '@/lib/api';
 
 interface QuickOnboardingData {
   age?: number;
@@ -46,31 +47,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalMode, setAuthModalMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [intendedAction, setIntendedAction] = useState<IntendedAction | null>(null);
+  const sessionGeneration = useRef(0);
 
   useEffect(() => {
     // 1. Mark first visit as seen so user always sees the public home page on initial visit
     localStorage.setItem('hasSeenFirstVisitOnboarding', 'true');
 
     let active = true;
+    const generation = sessionGeneration.current;
     void ensureAuthToken().then(token => {
-      if (!active) return;
+      if (!active || generation !== sessionGeneration.current) return;
       const storedUser = localStorage.getItem('auth_user');
       if (storedUser && token) {
-        try { setUser(JSON.parse(storedUser)); setAuthState('AUTHENTICATED'); return; }
+        try { const parsed = JSON.parse(storedUser); const role = normalizeRole(parsed?.role); if (!role || !parsed.id) throw new Error('Invalid stored identity'); setUser({ ...parsed, role }); setAuthState('AUTHENTICATED'); return; }
         catch { clearAuthSession(); }
       }
       setUser(null); setAuthState('ANONYMOUS');
-    }).catch(() => { if (active) { setUser(null); setAuthState('ANONYMOUS'); } });
+    }).catch(() => { if (active && generation === sessionGeneration.current) { setUser(null); setAuthState('ANONYMOUS'); } });
 
     // 3. Listen for session expired events
     const handleSessionExpired = () => {
+      sessionGeneration.current += 1;
       localStorage.removeItem('auth_user');
       localStorage.removeItem('auth_token');
       setUser(null);
       setAuthState('ANONYMOUS');
     };
+    const handleSessionStorage = (event: StorageEvent) => {
+      if (event.key === 'auth_user' || event.key === null) window.location.reload();
+    };
+    window.addEventListener('storage', handleSessionStorage);
     window.addEventListener('midcv:session_expired', handleSessionExpired);
-    return () => { active = false; window.removeEventListener('midcv:session_expired', handleSessionExpired); };
+    return () => { active = false; window.removeEventListener('storage', handleSessionStorage); window.removeEventListener('midcv:session_expired', handleSessionExpired); };
   }, []);
 
   const userId = user?.id;
@@ -121,14 +129,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const openAuthModal = (mode: 'LOGIN' | 'REGISTER' = 'LOGIN', intended?: IntendedAction) => {
     setAuthModalMode(mode);
-    if (intended) {
-      setIntendedAction(intended);
-    }
+    setIntendedAction(intended ?? null);
     setIsAuthModalOpen(true);
   };
 
   const closeAuthModal = () => {
     setIsAuthModalOpen(false);
+    setIntendedAction(null);
   };
 
   const clearIntendedAction = () => {
@@ -137,54 +144,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     const result = await loginAccount(email, password);
+    sessionGeneration.current += 1;
     setUser(result.user);
     setAuthState('AUTHENTICATED');
-    localStorage.setItem('auth_user', JSON.stringify(result.user));
     saveAuthTokens(result);
+    localStorage.setItem('auth_user', JSON.stringify(result.user));
     closeAuthModal();
 
-    if (typeof window !== 'undefined') {
-      const currentPath = window.location.pathname;
-
-      // 1. If an intended navigation target was specified, check role compatibility
-      if (intendedAction?.type === 'NAVIGATE' && intendedAction.target) {
-        const target = intendedAction.target;
-        setIntendedAction(null);
-
-        if (result.user.role === 'ADMIN') {
-          window.location.href = target.startsWith('/admin') ? target : '/admin';
-          return;
-        }
-        if (result.user.role === 'RECRUITER') {
-          window.location.href = (target.startsWith('/candidate') || target.startsWith('/admin')) ? '/recruiter' : target;
-          return;
-        }
-        if (result.user.role === 'CANDIDATE') {
-          window.location.href = (target.startsWith('/recruiter') || target.startsWith('/admin')) ? '/candidate' : target;
-          return;
-        }
-        window.location.href = target;
-        return;
-      }
-
-      // 2. Default landing page redirection by role
-      if (result.user.role === 'ADMIN') {
-        window.location.href = '/admin';
-      } else if (result.user.role === 'RECRUITER') {
-        window.location.href = '/recruiter';
-      } else {
-        // If candidate logged in from an HR route, Admin route or auth route, redirect to candidate portal
-        if (currentPath.startsWith('/recruiter') || currentPath.startsWith('/admin') || currentPath === '/login' || currentPath === '/register') {
-          window.location.href = '/candidate';
-        }
-      }
-    }
+    const current = `${window.location.pathname}${window.location.search}`;
+    const role = result.user.role;
+    const requested = intendedAction?.target ?? current;
+    const destination = intendedAction?.target || role === 'CANDIDATE'
+      ? destinationForRole(role, requested) : portalHome(role);
+    if (destination !== current) window.location.replace(destination);
   };
 
   const logout = async () => {
+    sessionGeneration.current += 1;
     try { if (getAuthTokenForLogout()) await apiRequest('/api/v1/auth/logout', { method: 'POST' }); }
     finally {
-      clearAuthSession(); setUser(null); setAuthState('ANONYMOUS');
+      clearProfileLink(); clearAuthSession(); setUser(null); setAuthState('ANONYMOUS');
       window.location.href = '/';
     }
   };

@@ -55,6 +55,7 @@ interface CVExtractionReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCvUpdated?: () => void;
+  onConfirmed?: () => void;
 }
 
 type TabType = 'overview' | 'raw_text' | 'evidence' | 'json' | 'warnings';
@@ -460,7 +461,8 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
   cvId,
   isOpen,
   onClose,
-  onCvUpdated
+  onCvUpdated,
+  onConfirmed
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [data, setData] = useState<CVReviewData | null>(null);
@@ -803,6 +805,7 @@ const CVExtractionReviewModalContent: React.FC<CVExtractionReviewModalProps> = (
       setSaveStatus('saved');
       await loadReviewAndDraft();
       if (onCvUpdated) onCvUpdated();
+      onConfirmed?.();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Lỗi khi xác nhận hồ sơ CV.';
       setConfirmError(message);

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { AccountProfileCard, profileButton, profilePanel } from '@/components/account/AccountProfileCard';
 import { DeactivateAccountSection } from '@/components/common/DeactivateAccountSection';
+import { rememberProfileLink, hasProfileLink, clearProfileLink } from '@/lib/navigationIntent';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import {
@@ -13,6 +14,7 @@ import {
   fetchCandidateCVs,
   fetchCandidateProfile,
   fetchGithubConnection,
+  getAuthUser,
   saveCandidateProfile,
   triggerGithubAnalysis,
 } from '@/lib/api';
@@ -33,6 +35,11 @@ const industries: Record<Industry, string> = {
 };
 
 export default function CandidateProfilePage() {
+  const { user } = useAuth();
+  return <CandidateProfileContent key={user?.id ?? 'anonymous'} />;
+}
+
+function CandidateProfileContent() {
   const { user, updateAccountIdentity } = useAuth();
   const { locale } = useLanguage();
   const vi = locale === 'vi';
@@ -49,6 +56,9 @@ export default function CandidateProfilePage() {
   const [github, setGithub] =
     useState<Awaited<ReturnType<typeof fetchGithubConnection>>>();
 
+  const [githubLoadFailed, setGithubLoadFailed] = useState(false);
+  const [githubRevision, setGithubRevision] = useState(0);
+  const [linkOutcome, setLinkOutcome] = useState<'linked' | 'error' | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -88,16 +98,47 @@ export default function CandidateProfilePage() {
       })
       .catch(() => {});
 
-    void fetchGithubConnection()
-      .then(result => {
-        if (active) setGithub(result);
-      })
-      .catch(() => {});
-
     return () => {
       active = false;
     };
   }, [attempt]);
+
+  useEffect(() => {
+    let active = true;
+    void fetchGithubConnection().then(result => {
+      if (active) { setGithub(result); setGithubLoadFailed(false); }
+    }).catch(() => { if (active) { setGithub(undefined); setGithubLoadFailed(true); } });
+    return () => { active = false; };
+  }, [githubRevision, attempt]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const userId = user.id;
+    const timer = window.setTimeout(() => {
+      const url = new URL(window.location.href);
+      const pending = hasProfileLink(userId);
+      if (pending && (url.searchParams.get('linked') === '1' || url.searchParams.get('linkError') === '1')) {
+        setLinkOutcome(url.searchParams.get('linkError') === '1' ? 'error' : 'linked');
+        clearProfileLink();
+      }
+      if (url.searchParams.has('linked') || url.searchParams.has('linkError')) {
+        url.searchParams.delete('linked'); url.searchParams.delete('provider'); url.searchParams.delete('linkError');
+        window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [user?.id]);
+
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      clearProfileLink();
+      setConnecting(false);
+      setGithubRevision(value => value + 1);
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
 
   if (!profile || !draft) {
     return (
@@ -208,7 +249,7 @@ export default function CandidateProfilePage() {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!draft || saving) return;
+    if (!draft || saving || connecting) return;
 
     const fullName = draft.fullName.trim();
     const githubUrl = (draft.githubUrl || '').trim();
@@ -276,14 +317,22 @@ export default function CandidateProfilePage() {
   async function connect(
     provider: 'github' | 'google' | 'linkedin'
   ) {
+    if (!user?.id || connecting || saving) return;
+    if (JSON.stringify(profile) !== JSON.stringify(draft) || newSkill.trim()) {
+      setConnectionMessage({ error: true, text: vi ? 'Hãy lưu thay đổi hồ sơ trước khi liên kết tài khoản.' : 'Save your profile changes before linking an account.' });
+      return;
+    }
     setConnecting(true);
     setConnectionMessage(undefined);
+    setLinkOutcome(null);
 
     try {
-      window.location.assign(
-        await beginOAuthLink(provider)
-      );
+      rememberProfileLink(user.id, provider);
+      const authorizationUrl = await beginOAuthLink(provider);
+      if (getAuthUser()?.id !== user.id) { clearProfileLink(); setConnecting(false); return; }
+      window.location.assign(authorizationUrl);
     } catch {
+      clearProfileLink();
       setConnecting(false);
 
       setConnectionMessage({
@@ -386,6 +435,7 @@ export default function CandidateProfilePage() {
           className={`${profilePanel} space-y-5`}
           onSubmit={save}
         >
+
           <h2 className="text-lg font-bold text-[var(--heading)]">
             {vi
               ? 'Chỉnh sửa hồ sơ'
@@ -393,7 +443,7 @@ export default function CandidateProfilePage() {
           </h2>
 
           <fieldset
-            disabled={saving}
+            disabled={saving || connecting}
             className="min-w-0 space-y-5"
           >
 
@@ -606,7 +656,7 @@ export default function CandidateProfilePage() {
           <div className="flex flex-wrap items-center gap-3 border-t border-[var(--border-soft)] pt-4">
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || connecting}
               className="min-h-11 rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
             >
               {saving
@@ -631,6 +681,7 @@ export default function CandidateProfilePage() {
               </p>
             )}
           </div>
+
         </form>
 
         {/* Account Information */}
@@ -725,6 +776,10 @@ export default function CandidateProfilePage() {
                 )}
             </div>
 
+            {linkOutcome && <p role={linkOutcome === 'error' ? 'alert' : 'status'} className="text-sm">
+              {linkOutcome === 'error' ? (vi ? 'Liên kết đã bị hủy hoặc không hoàn tất. Phiên đăng nhập vẫn được giữ; hãy thử lại.' : 'Linking was cancelled or failed. Your session is still active; try again.') : (vi ? 'Đã quay lại từ nhà cung cấp. Kiểm tra trạng thái liên kết bên trên.' : 'Returned from the provider. Check the connection status above.')}
+            </p>}
+            {githubLoadFailed && <p role="alert" className="text-sm">{vi ? 'Không tải được trạng thái GitHub.' : 'Could not load GitHub connection.'} <button type="button" className="underline" onClick={() => setGithubRevision(value => value + 1)}>{vi ? 'Thử lại' : 'Retry'}</button></p>}
             {connectionMessage && (
               <p
                 className={`text-sm ${

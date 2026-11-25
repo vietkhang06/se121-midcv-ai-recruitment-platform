@@ -4,8 +4,10 @@ import { AccountAvatar } from '@/components/account/AccountAvatar';
 import { formatMatchScore } from '@/lib/matchPresentation';
 import { MatchScoreBadge } from '@/components/recruiter/MatchScoreBadge';
 import { statusLabel } from '@/lib/statusLabels';
-import React, { useState, useEffect, use, useMemo, useRef } from 'react';
+import React, { Suspense, useState, useEffect, use, useMemo, useRef } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { rankingReturnPath } from '@/lib/navigationIntent';
 import { Job, Application, CandidateRankingItem, MatchInspectionData } from '@/types';
 import { fetchRecruiterJobById, fetchCandidateRankings, fetchMatchInspection, fetchJobApplications } from '@/lib/api';
 import { CandidateRankingTable } from '@/components/recruiter/CandidateRankingTable';
@@ -16,7 +18,12 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { Reveal } from '@/components/motion/Reveal';
 
 export default function CandidateRankingPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
+  const { id } = use(params);
+  return <Suspense fallback={<p role="status">Loading ranking…</p>}><RankingContent key={id} id={id} /></Suspense>;
+}
+
+function RankingContent({ id }: { id: string }) {
+  const searchParams = useSearchParams();
   const { t, locale } = useLanguage();
   const [job, setJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -24,10 +31,20 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
   const [topInspectionResult, setTopInspectionResult] = useState<{
     applicationId: string;
     data: MatchInspectionData | null;
+    failed?: boolean;
   } | null>(null);
   
-  const [minScoreFilter, setMinScoreFilter] = useState<number>(0);
-  const [onlyFullRequired, setOnlyFullRequired] = useState<boolean>(false);
+  const requestedScore = Number(searchParams.get('minScore') ?? 0);
+  const minScoreFilter = [0, 70, 80, 85, 90].includes(requestedScore) ? requestedScore : 0;
+  const onlyFullRequired = searchParams.get('fullRequired') === '1';
+  const updateFilters = (score: number, full: boolean) => {
+    const url = new URL(window.location.href);
+    if (score) url.searchParams.set('minScore', String(score)); else url.searchParams.delete('minScore');
+    if (full) url.searchParams.set('fullRequired', '1'); else url.searchParams.delete('fullRequired');
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+  };
+  const rankingBack = rankingReturnPath(`/recruiter/jobs/${encodeURIComponent(id)}/ranking?${searchParams}`, id) ?? `/recruiter/jobs/${encodeURIComponent(id)}/ranking`;
+  const inspectionHref = (applicationId: string) => `/recruiter/applications/${encodeURIComponent(applicationId)}?returnTo=${encodeURIComponent(rankingBack)}`;
   const [selectedCompareCandidates, setSelectedCompareCandidates] = useState<CandidateRankingItem[]>([]);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -41,9 +58,9 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
     setIsLoading(true);
     setFetchError(null);
     Promise.all([
-      fetchRecruiterJobById(resolvedParams.id),
-      fetchCandidateRankings(resolvedParams.id),
-      fetchJobApplications(resolvedParams.id),
+      fetchRecruiterJobById(id),
+      fetchCandidateRankings(id),
+      fetchJobApplications(id),
     ])
       .then(([j, data, apps]) => {
         if (requestId !== rankingRequestIdRef.current) return;
@@ -51,12 +68,12 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
         setRankings(data);
         setApplications(apps);
         setFetchError(null);
-        setLoadedJobId(resolvedParams.id);
+        setLoadedJobId(id);
       })
       .catch((error: unknown) => {
         if (requestId !== rankingRequestIdRef.current) return;
         setFetchError(error instanceof Error ? error.message : 'Không thể tải Bảng Xếp Hạng AI.');
-        setLoadedJobId(resolvedParams.id);
+        setLoadedJobId(id);
       })
       .finally(() => {
         if (requestId === rankingRequestIdRef.current) setIsLoading(false);
@@ -66,9 +83,9 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
   useEffect(() => {
     const requestId = ++rankingRequestIdRef.current;
     Promise.all([
-      fetchRecruiterJobById(resolvedParams.id),
-      fetchCandidateRankings(resolvedParams.id),
-      fetchJobApplications(resolvedParams.id),
+      fetchRecruiterJobById(id),
+      fetchCandidateRankings(id),
+      fetchJobApplications(id),
     ])
       .then(([nextJob, nextRankings, apps]) => {
         if (requestId !== rankingRequestIdRef.current) return;
@@ -76,12 +93,12 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
         setRankings(nextRankings);
         setApplications(apps);
         setFetchError(null);
-        setLoadedJobId(resolvedParams.id);
+        setLoadedJobId(id);
       })
       .catch((error: unknown) => {
         if (requestId !== rankingRequestIdRef.current) return;
         setFetchError(error instanceof Error ? error.message : 'Không thể tải Bảng Xếp Hạng AI.');
-        setLoadedJobId(resolvedParams.id);
+        setLoadedJobId(id);
       })
       .finally(() => {
         if (requestId === rankingRequestIdRef.current) setIsLoading(false);
@@ -90,7 +107,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
     return () => {
       rankingRequestIdRef.current += 1;
     };
-  }, [resolvedParams.id]);
+  }, [id]);
 
   const verifiedRankings = useMemo(() => rankings.filter(row =>
     row.calculationStatus === 'PGVECTOR_READY' && row.overallMatchScore !== null), [rankings]);
@@ -106,6 +123,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
     });
   }, [applications, rankings, verifiedRankings]);
   const topApplicationId = topCandidate?.applicationId;
+  const [inspectionRevision, setInspectionRevision] = useState(0);
 
   useEffect(() => {
     if (!topApplicationId) return;
@@ -119,14 +137,14 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
       })
       .catch(() => {
         if (requestId === inspectionRequestIdRef.current) {
-          setTopInspectionResult({ applicationId: topApplicationId, data: null });
+          setTopInspectionResult({ applicationId: topApplicationId, data: null, failed: true });
         }
       });
 
     return () => {
       inspectionRequestIdRef.current += 1;
     };
-  }, [topApplicationId]);
+  }, [topApplicationId, inspectionRevision]);
 
   const filteredRankings = useMemo(() => {
     let result = verifiedRankings;
@@ -142,7 +160,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
   const topInspection = topInspectionResult && topInspectionResult.applicationId === topApplicationId
     ? topInspectionResult.data
     : null;
-  const pageIsLoading = isLoading || loadedJobId !== resolvedParams.id;
+  const pageIsLoading = isLoading || loadedJobId !== id;
 
   if (pageIsLoading) {
     return (
@@ -256,7 +274,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                       {formatMatchScore(topCandidate.overallMatchScore, locale)}
                     </span>
                     <Link
-                      href={`/recruiter/applications/${topCandidate.applicationId}`}
+                      href={inspectionHref(topCandidate.applicationId)}
                       className="px-4 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-bold text-xs shadow-md shadow-blue-500/20 transition active:scale-95"
                     >
                       {locale === 'vi' ? 'Xem Hồ Sơ & Đánh Giá Chi Tiết' : 'View Profile & Full Evaluation'}
@@ -264,6 +282,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                   </div>
                 </div>
 
+                {topInspectionResult?.applicationId === topApplicationId && topInspectionResult?.failed && <p role="alert" className="mb-3 text-sm text-amber-200">{locale === 'vi' ? 'Không tải được minh chứng đối sánh.' : 'Could not load matching evidence.'} <button type="button" className="underline" onClick={() => setInspectionRevision(value => value + 1)}>{locale === 'vi' ? 'Thử lại' : 'Retry'}</button></p>}
                 {/* Two-Column Figma Screen 13 Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Left Column: Match Factors & GitHub Activity */}
@@ -480,7 +499,8 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                     </span>
                     <select
                       value={minScoreFilter}
-                      onChange={(e) => setMinScoreFilter(parseFloat(e.target.value) || 0)}
+                      aria-label={locale === 'vi' ? 'Điểm Overall tối thiểu' : 'Minimum Overall Score'}
+                      onChange={(e) => updateFilters(Number(e.target.value), onlyFullRequired)}
                       className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border)] text-slate-900 dark:text-white text-xs focus:outline-none focus:border-[var(--border)] font-semibold"
                     >
                       <option value={0}>{locale === 'vi' ? 'Tất cả điểm số' : 'All scores'}</option>
@@ -495,7 +515,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                     <input
                       type="checkbox"
                       checked={onlyFullRequired}
-                      onChange={(e) => setOnlyFullRequired(e.target.checked)}
+                      onChange={(e) => updateFilters(minScoreFilter, e.target.checked)}
                       className="rounded text-[var(--primary)] focus:ring-[var(--border)] border-slate-300 dark:border-[var(--border)]"
                     />
                     <span>{locale === 'vi' ? 'Chỉ hiển thị ứng viên đáp ứng 100% Kỹ năng Bắt buộc (0 missing)' : 'Only show candidates meeting 100% Required Skills (0 missing)'}</span>
@@ -511,6 +531,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
               {filteredRankings.length > 0 ? (
                 <CandidateRankingTable
                   rankings={filteredRankings}
+                  applicationHref={inspectionHref}
                   onSelectCandidateForCompare={handleSelectCompare}
                 />
               ) : (
@@ -520,8 +541,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
                   description={t('emptyStates.candidates.noMatchDesc', "Hãy hạ mức điểm Overall tối thiểu hoặc bỏ chọn bộ lọc kỹ năng bắt buộc để xem danh sách đầy đủ.")}
                   primaryCtaText={t('emptyStates.candidates.resetFilters', "Hiển thị toàn bộ bảng xếp hạng")}
                   onPrimaryCtaClick={() => {
-                    setMinScoreFilter(0);
-                    setOnlyFullRequired(false);
+                    updateFilters(0, false);
                   }}
                 />
               )}
@@ -534,7 +554,7 @@ export default function CandidateRankingPage({ params }: { params: Promise<{ id:
           <h2 className="text-lg font-semibold">{locale === 'vi' ? 'Hồ sơ ngoài bảng xếp hạng' : 'Applications outside the ranking'}</h2>
           <ul className="divide-y divide-[var(--border-soft)]">
             {unranked.map(({ app, result }) => <li key={app.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
-              <Link className="flex min-w-0 items-center gap-2 break-words font-semibold text-[var(--primary)] underline" href={`/recruiter/applications/${app.id}`}>
+              <Link className="flex min-w-0 items-center gap-2 break-words font-semibold text-[var(--primary)] underline" href={inspectionHref(app.id)}>
                 <AccountAvatar name={app.candidateName} avatarId={app.candidateAvatarId} className="size-8 text-xs" />
                 {app.candidateName || (locale === 'vi' ? 'Ứng viên' : 'Candidate')}
               </Link>

@@ -10,6 +10,7 @@ import { AnimatedModalShell } from '@/components/motion/AnimatedModalShell';
 import { BrandLogo } from '@/components/common/BrandLogo';
 import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter';
 import { GitHubIcon, GoogleIcon, LinkedInIcon } from '@/components/auth/SocialIcons';
+import { internalPath } from '@/lib/navigationIntent';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import {
@@ -252,7 +253,7 @@ export const AuthModal: React.FC = () => {
     setLoginError(null);
     setRegisterError(null);
     const currentPath = `${window.location.pathname}${window.location.search}`;
-    const safeNext = currentPath.startsWith('/') && !currentPath.startsWith('//') && !currentPath.includes('\\') ? currentPath : '/candidate';
+    const safeNext = internalPath(intendedAction?.target ?? currentPath) ?? '/candidate';
     window.location.replace(`${BASE_URL}/api/v1/auth/oauth/${provider}/start?next=${encodeURIComponent(safeNext)}`);
   };
 

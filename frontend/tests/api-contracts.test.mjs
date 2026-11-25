@@ -369,3 +369,21 @@ test('inspection preserves application-bound GitHub evidence and ownership witho
   assert.equal(data.githubAssessment.repos[0].url, 'https://github.com/fixture/java');
   assert.equal(data.githubAssessment.fetchedAt, '2026-11-22T00:00:00Z');
 });
+
+test('application submission accepts the real ID and consent returned by the server', async () => {
+  let body;
+  globalThis.fetch = async (_url, options) => {
+    body = JSON.parse(options.body);
+    return response({ id: 'server-app', jobId: 'job-a', appliedCvId: 'cv-a', status: 'SUBMITTED', aiAnalysisConsent: false });
+  };
+  const result = await api.realApiClient.submitApplication({ id: '', job: { id: 'job-a' }, appliedCvId: 'cv-a', aiAnalysisConsent: false });
+  assert.equal(result.id, 'server-app');
+  assert.equal(result.aiAnalysisConsent, false);
+  assert.deepEqual(body, { jobId: 'job-a', cvId: 'cv-a', aiAnalysisConsent: false });
+});
+test('invalid submission identity cannot become a success with a fabricated ID', async () => {
+  for (const data of [{ jobId: 'job-a' }, { id: '', jobId: 'job-a' }, { id: 'server-app', jobId: 'other-job' }]) {
+    globalThis.fetch = async () => response(data);
+    await assert.rejects(() => api.realApiClient.submitApplication({ id: '', job: { id: 'job-a' }, appliedCvId: 'cv-a' }), /Invalid application response/);
+  }
+});

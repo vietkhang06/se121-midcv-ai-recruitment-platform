@@ -1340,8 +1340,10 @@ export class RealApiClient implements ApiClient {
     });
 
     const data = json.data;
+    if (!isBackendApplication(data) || !String(data.id).trim() || String(data.jobId) !== app.job.id) throw new Error('Invalid application response');
     return {
       ...app,
+      aiAnalysisConsent: data.aiAnalysisConsent ?? undefined,
       job: mapApplicationJob(data),
       id: String(data.id),
       appliedCvVersion: data.appliedCvVersionNumber ?? null,
@@ -1951,11 +1953,12 @@ export class RealApiClient implements ApiClient {
     if (!jwtData || !jwtData.userId || !jwtData.email || !jwtData.accessToken) {
       throw new Error('Phản hồi đăng nhập không hợp lệ.');
     }
+    if (!['HR', 'RECRUITER', 'ADMIN', 'CANDIDATE'].includes(jwtData.role)) throw new Error('Phản hồi vai trò đăng nhập không hợp lệ.');
     const user: User = {
       id: jwtData.userId,
       email: jwtData.email,
       fullName: jwtData.email.split('@')[0],
-      role: jwtData.role === 'HR' ? 'RECRUITER' : (jwtData.role === 'ADMIN' ? 'ADMIN' : 'CANDIDATE'),
+      role: jwtData.role === 'HR' || jwtData.role === 'RECRUITER' ? 'RECRUITER' : (jwtData.role === 'ADMIN' ? 'ADMIN' : 'CANDIDATE'),
       emailVerified: true
     };
     return { user, accessToken: jwtData.accessToken, refreshToken: jwtData.refreshToken };

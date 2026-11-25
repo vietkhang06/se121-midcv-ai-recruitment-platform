@@ -12,11 +12,13 @@ import { staggerDelay } from '@/components/motion';
 
 interface CandidateRankingTableProps {
   rankings: CandidateRankingItem[];
+  applicationHref?: (id: string) => string;
   onSelectCandidateForCompare?: (item: CandidateRankingItem) => void;
 }
 
 export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
   rankings,
+  applicationHref,
   onSelectCandidateForCompare
 }) => {
   const { locale } = useLanguage();
@@ -72,7 +74,7 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                       <div className="flex items-center gap-1.5">
                         <AccountAvatar name={item.candidateName} avatarId={item.candidateAvatarId} className="size-8 text-xs" />
                         <Link
-                          href={`/recruiter/applications/${item.applicationId}`}
+                          href={applicationHref?.(item.applicationId) ?? `/recruiter/applications/${encodeURIComponent(item.applicationId)}`}
                           className="font-bold text-sm text-slate-900 dark:text-white hover:text-[var(--primary)] dark:hover:text-[var(--retro-sky)] transition"
                         >
                           {item.candidateName}
@@ -154,7 +156,7 @@ export const CandidateRankingTable: React.FC<CandidateRankingTableProps> = ({
                         </button>
                       )}
                       <Link
-                        href={`/recruiter/applications/${item.applicationId}`}
+                        href={applicationHref?.(item.applicationId) ?? `/recruiter/applications/${encodeURIComponent(item.applicationId)}`}
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary)] text-white font-semibold text-[11px] shadow-xs transition"
                       >
                         <Eye className="w-3 h-3" />

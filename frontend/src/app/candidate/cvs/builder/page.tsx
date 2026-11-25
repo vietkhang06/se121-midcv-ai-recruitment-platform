@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Plus, Save, Trash2, Download } from 'lucide-react';
+import { jobReturnPath, resumeAfterCv, cvLibraryPath, rememberCvChoice } from '@/lib/navigationIntent';
 import { CV, CVQuota, CreateCVRequest } from '@/types';
-import { confirmCandidateCV, fetchCVDraft, fetchCandidateCVs, fetchCandidateProfile, fetchCVQuota, saveCandidateCV, updateCVDraft } from '@/lib/api';
+import { confirmCandidateCV, getAuthUser, fetchCVDraft, fetchCandidateCVs, fetchCandidateProfile, fetchCVQuota, saveCandidateCV, updateCVDraft } from '@/lib/api';
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 
 type Item = Record<string, string>;
 type Draft = { fullName: string; headline: string; email: string; phone: string; location: string; summary: string; github: string; linkedin: string; portfolio: string; skills: string[]; experience: Item[]; projects: Item[]; education: Item[]; certifications: Item[]; languages: Item[] };
@@ -72,12 +74,21 @@ function mapDraft(rawValue: unknown): Draft {
 }
 
 export default function CVBuilderPage() {
+  return <Suspense fallback={<p role="status">Loading CV editor…</p>}><CVBuilderRoute /></Suspense>;
+}
+
+function CVBuilderRoute() {
+  const searchParams = useSearchParams();
+  const { user } = useAuth();
+  const editId = searchParams.get('edit');
+  return <CVBuilderContent key={JSON.stringify([user?.id, editId])} editId={editId} requestedReturnTo={searchParams.get('returnTo')} />;
+}
+
+function CVBuilderContent({ editId, requestedReturnTo }: { editId: string | null; requestedReturnTo: string | null }) {
   const { locale } = useLanguage();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const editId = searchParams.get('edit');
-  const requestedReturnTo = searchParams.get('returnTo');
-  const returnTo = requestedReturnTo && /^\/jobs\/[^/?#]+$/.test(requestedReturnTo) ? requestedReturnTo : '/candidate/cvs';
+  const jobReturn = jobReturnPath(requestedReturnTo);
+  const returnTo = resumeAfterCv(jobReturn) ?? '/candidate/cvs';
   const vi = locale === 'vi';
   const [title, setTitle] = useState(vi ? 'Hồ sơ chuyên môn' : 'Professional CV');
   const [draft, setDraft] = useState<Draft>(emptyDraft);
@@ -85,7 +96,7 @@ export default function CVBuilderPage() {
   const [quota, setQuota] = useState<CVQuota | null>(null);
   const [quotaLoaded, setQuotaLoaded] = useState(false);
   const [template, setTemplate] = useState<'simple' | 'editorial'>('simple');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -113,7 +124,7 @@ export default function CVBuilderPage() {
           setQuota(currentQuota);
           setQuotaLoaded(true);
           if (!currentQuota.canUpload) {
-            setError(vi ? 'Bạn đã đạt hạn mức tạo CV. Hãy xóa một CV cũ hoặc nâng cấp gói để tiếp tục.' : 'You have reached your CV creation limit. Delete an existing CV or upgrade your plan to continue.');
+            setError('Bạn đã đạt hạn mức tạo CV. / CV creation limit reached.');
             return;
           }
         } else {
@@ -135,7 +146,7 @@ export default function CVBuilderPage() {
       finally { if (active) setLoading(false); }
     };
     void load(); return () => { active = false; };
-  }, [editId, vi]);
+  }, [editId]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -174,9 +185,16 @@ export default function CVBuilderPage() {
   };
 
   const confirmDraft = async () => {
+    if (confirming || saving || loading) return;
     if (!cv || dirty || !draft.fullName.trim()) { setError(vi ? 'Hãy lưu bản nháp và nhập họ tên trước khi xác nhận.' : 'Save the draft and enter a name before confirming.'); return; }
     setConfirming(true); setError('');
-    try { await confirmCandidateCV(cv.id); router.push(returnTo); }
+    try {
+      const userId = getAuthUser()?.id;
+      await confirmCandidateCV(cv.id);
+      if (!userId || getAuthUser()?.id !== userId) return;
+      rememberCvChoice(userId, jobReturn, cv.id);
+      router.push(returnTo);
+    }
     catch (error: unknown) { setError(error instanceof Error ? error.message : (vi ? 'Không thể xác nhận hồ sơ.' : 'Could not confirm the CV.')); setConfirming(false); }
   };
 
@@ -195,10 +213,10 @@ export default function CVBuilderPage() {
   };
   const field = (key: keyof Draft, label: string, multiline = false, type = 'text') => <label className="block" key={key}><span className={labelClass}>{label}</span>{multiline ? <textarea className={inputClass} rows={4} value={draft[key] as string} onChange={(e) => patchDraft(key, e.target.value as never)} /> : <input className={inputClass} type={type} value={draft[key] as string} onChange={(e) => patchDraft(key, e.target.value as never)} />}</label>;
 
-  if (!editId && quotaLoaded && quota?.canUpload !== true) return <main className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center gap-4 px-6 text-center"><div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-950 shadow-sm dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100"><h1 className="text-lg font-semibold">{quota ? (vi ? 'Đã đạt hạn mức tạo CV' : 'CV creation limit reached') : (vi ? 'Không kiểm tra được hạn mức CV' : 'Could not check CV quota')}</h1><p className="mt-2 text-sm">{quota ? (vi ? 'Bạn có thể tiếp tục khi còn hạn mức, hoặc xóa một CV hiện có để giải phóng lượt tạo.' : 'You can create a CV when you have an available slot, or delete an existing CV to free one.') : (vi ? 'Vui lòng quay lại thư viện CV và thử lại sau.' : 'Return to your CV library and try again later.')}</p></div><Link href="/candidate/cvs" className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">{vi ? 'Về thư viện CV' : 'Back to CV library'}</Link></main>;
+  if (!editId && quotaLoaded && quota?.canUpload !== true) return <main className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center gap-4 px-6 text-center"><div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-950 shadow-sm dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100"><h1 className="text-lg font-semibold">{quota ? (vi ? 'Đã đạt hạn mức tạo CV' : 'CV creation limit reached') : (vi ? 'Không kiểm tra được hạn mức CV' : 'Could not check CV quota')}</h1><p className="mt-2 text-sm">{quota ? (vi ? 'Bạn có thể tiếp tục khi còn hạn mức, hoặc xóa một CV hiện có để giải phóng lượt tạo.' : 'You can create a CV when you have an available slot, or delete an existing CV to free one.') : (vi ? 'Vui lòng quay lại thư viện CV và thử lại sau.' : 'Return to your CV library and try again later.')}</p></div><Link href={cvLibraryPath(jobReturn)} className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">{vi ? 'Về thư viện CV' : 'Back to CV library'}</Link></main>;
 
   return <main className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-    <header data-retro-editor-toolbar="true" className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><Link aria-label={vi ? 'Quay lại danh sách hồ sơ' : 'Back to CV list'} onClick={(event) => { if (dirty && !window.confirm(vi ? 'Bạn có thay đổi chưa lưu. Rời trang?' : 'You have unsaved edits. Leave this page?')) event.preventDefault(); }} href="/candidate/cvs" className="rounded-xl p-2 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-blue-600"><ArrowLeft size={18}/></Link><label className="flex items-center gap-2 text-sm"><span className="hidden sm:inline">{vi ? 'Tiêu đề hồ sơ' : 'CV title'}</span><input aria-label={vi ? 'Tiêu đề hồ sơ' : 'CV title'} className={`${inputClass} w-44 sm:w-64`} value={title} onChange={(e) => { editRevision.current += 1; setTitle(e.target.value); setDirty(true); }} /></label></div><div className="flex min-w-0 flex-wrap items-center gap-2"><label className="sr-only" htmlFor="cv-template">{vi ? 'Mẫu CV' : 'CV template'}</label><select id="cv-template" value={template} onChange={(e) => setTemplate(e.target.value as 'simple' | 'editorial')} className={`${inputClass} w-auto`}><option value="simple">{vi ? 'Một cột rõ ràng' : 'Simple single column'}</option><option value="editorial">{vi ? 'Tiêu đề nhấn mạnh' : 'Editorial heading'}</option></select><button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600"><Download size={16}/><span className="hidden sm:inline">PDF</span></button>{cv && <button type="button" onClick={confirmDraft} disabled={confirming || dirty || !draft.fullName.trim()} className="rounded-xl border border-emerald-700 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-50 dark:text-emerald-300">{confirming ? (vi ? 'Đang xác nhận…' : 'Confirming…') : (vi ? 'Xác nhận hồ sơ' : 'Confirm CV')}</button>}<button type="button" onClick={saveDraft} disabled={saving || loading || !title.trim() || (!editId && quotaLoaded && quota?.canUpload === false)} className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50"><Save size={15}/>{saving ? (vi ? 'Đang lưu…' : 'Saving…') : (vi ? 'Lưu' : 'Save')}</button></div></div></header>
+    <header data-retro-editor-toolbar="true" className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><Link aria-label={vi ? 'Quay lại danh sách hồ sơ' : 'Back to CV list'} onClick={(event) => { if (dirty && !window.confirm(vi ? 'Bạn có thay đổi chưa lưu. Rời trang?' : 'You have unsaved edits. Leave this page?')) event.preventDefault(); }} href={cvLibraryPath(jobReturn)} className="rounded-xl p-2 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-blue-600"><ArrowLeft size={18}/></Link><label className="flex items-center gap-2 text-sm"><span className="hidden sm:inline">{vi ? 'Tiêu đề hồ sơ' : 'CV title'}</span><input aria-label={vi ? 'Tiêu đề hồ sơ' : 'CV title'} className={`${inputClass} w-44 sm:w-64`} value={title} onChange={(e) => { editRevision.current += 1; setTitle(e.target.value); setDirty(true); }} /></label></div><div className="flex min-w-0 flex-wrap items-center gap-2"><label className="sr-only" htmlFor="cv-template">{vi ? 'Mẫu CV' : 'CV template'}</label><select id="cv-template" value={template} onChange={(e) => setTemplate(e.target.value as 'simple' | 'editorial')} className={`${inputClass} w-auto`}><option value="simple">{vi ? 'Một cột rõ ràng' : 'Simple single column'}</option><option value="editorial">{vi ? 'Tiêu đề nhấn mạnh' : 'Editorial heading'}</option></select><button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600"><Download size={16}/><span className="hidden sm:inline">PDF</span></button>{cv && <button type="button" onClick={confirmDraft} disabled={confirming || saving || loading || dirty || !draft.fullName.trim()} className="rounded-xl border border-emerald-700 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-50 dark:text-emerald-300">{confirming ? (vi ? 'Đang xác nhận…' : 'Confirming…') : (vi ? 'Xác nhận hồ sơ' : 'Confirm CV')}</button>}<button type="button" onClick={saveDraft} disabled={saving || loading || !title.trim() || (!editId && quotaLoaded && quota?.canUpload === false)} className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50"><Save size={15}/>{saving ? (vi ? 'Đang lưu…' : 'Saving…') : (vi ? 'Lưu' : 'Save')}</button></div></div></header>
     <div className="mx-auto max-w-[1600px] px-4 py-4">
       <label className="mb-3 hidden items-center gap-3 text-xs text-slate-600 dark:text-slate-300 lg:flex">{vi ? 'Độ rộng khung chỉnh sửa' : 'Editor width'}<input aria-label={vi ? 'Độ rộng khung chỉnh sửa' : 'Editor width'} type="range" min="35" max="65" value={editorWidth} onChange={(e) => setEditorWidth(Number(e.target.value))} className="w-48"/><span>{editorWidth}%</span></label>
       <div ref={editorLayoutRef} id="cv-editor-layout" className="grid min-w-0 grid-cols-1 gap-6 lg:gap-3" style={{ gridTemplateColumns: `minmax(0, ${editorWidth}fr) 10px minmax(0, ${100 - editorWidth}fr)` }}>
