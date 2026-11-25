@@ -19,6 +19,43 @@ const candidateInitScript = () => {
 };
 
 test.describe('MidCV motion system', () => {
+  test('page navigation uses forward, backward, and reduced-motion fallbacks', async ({ page }) => {
+    await page.addInitScript(candidateInitScript);
+    await page.goto('/');
+
+    await page.locator('a[href="/jobs"]').first().click();
+    await expect(page).toHaveURL(/\/jobs$/);
+    await expect(page.locator('.motion-page')).toHaveAttribute('data-navigation-direction', 'forward');
+    await expect(page.locator('.motion-page')).toHaveCSS('animation-duration', '0.72s');
+    await expect(page.locator('.motion-page')).toHaveCSS('animation-delay', '0.06s');
+
+    await page.goBack();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator('.motion-page')).toHaveAttribute('data-navigation-direction', 'backward');
+
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goForward();
+    const pageTransition = page.locator('.motion-page');
+    await expect(pageTransition).toHaveAttribute('data-navigation-direction', 'forward');
+    expect(await pageTransition.evaluate((node) => getComputedStyle(node).transform)).toBe('none');
+  });
+
+  test('wheel input keeps moving through the smooth-scroll inertia window', async ({ page }) => {
+    await page.addInitScript(candidateInitScript);
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveClass(/lenis/);
+
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.mouse.move(600, 400);
+    await page.mouse.wheel(0, 900);
+    const immediate = await page.evaluate(() => window.scrollY);
+    await page.waitForTimeout(120);
+    const afterInertia = await page.evaluate(() => window.scrollY);
+
+    expect(immediate).toBeGreaterThan(0);
+    expect(afterInertia).toBeGreaterThan(immediate);
+  });
+
   test('modal enters, traps focus, exits, and returns focus', async ({ page }) => {
     await page.addInitScript(candidateInitScript);
     await page.goto('/');
