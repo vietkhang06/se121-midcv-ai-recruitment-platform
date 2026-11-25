@@ -231,16 +231,19 @@ jobs:
           typecheck_code=${PIPESTATUS[0]}
           npm run build 2>&1 | tee -a ../frontend-test.log
           build_code=${PIPESTATUS[0]}
+          npx playwright test e2e/motion-system.spec.ts --project=chromium-desktop --grep "page navigation|wheel input|landing motion" 2>&1 | tee -a ../frontend-test.log
+          motion_e2e_code=${PIPESTATUS[0]}
           {
             echo "lint_code=$lint_code"
             echo "contract_code=$contract_code"
             echo "typecheck_code=$typecheck_code"
             echo "build_code=$build_code"
+            echo "motion_e2e_code=$motion_e2e_code"
           } >> "$GITHUB_OUTPUT"
           cd ..
           python scripts/ci/verify_debt_baseline.py frontend frontend-test.log
           baseline_code=$?
-          exit $((baseline_code || contract_code || typecheck_code || build_code))
+          exit $((baseline_code || contract_code || typecheck_code || build_code || motion_e2e_code))
       - name: Build frontend evidence
         if: always()
         shell: bash
@@ -255,7 +258,7 @@ jobs:
           - Contract exit code: ${{ steps.tests.outputs.contract_code || 'NOT_RUN' }}
           - TypeScript exit code: ${{ steps.tests.outputs.typecheck_code || 'NOT_RUN' }}
           - Build exit code: ${{ steps.tests.outputs.build_code || 'NOT_RUN' }}
-          - Browser/API runtime: not part of this offline job
+          - Targeted motion E2E exit code: ${{ steps.tests.outputs.motion_e2e_code || 'NOT_RUN' }}
           EOF
           cat evidence/frontend-summary.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload frontend evidence
