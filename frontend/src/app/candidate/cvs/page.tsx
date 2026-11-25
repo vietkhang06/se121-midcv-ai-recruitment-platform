@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { jobReturnPath, resumeAfterCv, rememberCvChoice } from '@/lib/navigationIntent';
 import { CV, CVQuota } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
-import { fetchCandidateCVs, deleteCandidateCV, fetchCVQuota } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import { fetchCandidateCVs, deleteCandidateCV, fetchCVQuota, getAuthUser } from '@/lib/api';
 import { CVUploadModal } from '@/components/cv/CVUploadModal';
 import { CVExtractionReviewModal } from '@/components/cv/CVExtractionReviewModal';
 import { CVCardMetadataModal } from '@/components/cv/CVCardMetadataModal';
@@ -24,6 +26,16 @@ import {
 } from 'lucide-react';
 
 export default function CVLibraryPage() {
+  return <Suspense fallback={<p role="status">Loading CVs…</p>}><CVLibraryContent /></Suspense>;
+}
+
+function CVLibraryContent() {
+  const params = useSearchParams();
+  const { user } = useAuth();
+  const userId = user?.id;
+  const returnTo = jobReturnPath(params.get('returnTo'));
+  const resume = resumeAfterCv(returnTo);
+  const builderPath = `/candidate/cvs/builder${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`;
   const router = useRouter();
   const { t, locale } = useLanguage();
   const isVi = locale === 'vi';
@@ -73,7 +85,7 @@ export default function CVLibraryPage() {
   };
 
   const handleExport = (targetCv: CV) => {
-    router.push(`/candidate/cvs/builder?edit=${targetCv.id}`);
+    router.push(`/candidate/cvs/builder?edit=${encodeURIComponent(targetCv.id)}${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''}`);
   };
 
   return (
@@ -119,7 +131,7 @@ export default function CVLibraryPage() {
                 {t('candidatePages.uploadCv', 'Tải CV Lên / Ingest Repo')}
               </button>
               <Link
-                href={quota?.canUpload === true ? '/candidate/cvs/builder' : '#'}
+                href={quota?.canUpload === true ? builderPath : '#'}
                 onClick={(e) => {
                   if (quota?.canUpload !== true) {
                     e.preventDefault();
@@ -140,6 +152,10 @@ export default function CVLibraryPage() {
           </div>
         </Reveal>
 
+        {resume && <div className="rounded-xl border border-blue-200 p-4 text-sm">
+          <p>{isVi ? 'Xác nhận CV để tiếp tục ứng tuyển vào tin đã chọn.' : 'Confirm a CV to continue applying to your selected job.'}</p>
+          {cvList.some(cv => cv.status?.toUpperCase() === 'CONFIRMED') && <Link className="mt-2 inline-block font-semibold underline" href={resume}>{isVi ? 'Quay lại ứng tuyển' : 'Resume application'}</Link>}
+        </div>}
         {/* 06 — CV Cards Grid, Loading, Error or Genuine Empty State */}
         {isLoading ? (
           <EmptyState
@@ -289,7 +305,7 @@ export default function CVLibraryPage() {
             title={t('emptyStates.cvs.emptyTitle', 'Bạn chưa có CV nào')}
             description={t('emptyStates.cvs.emptyDesc', 'Tạo hồ sơ CV có cấu trúc hoặc tải lên bản CV để hệ thống trích xuất năng lực và kích hoạt đối sánh AI.')}
             primaryCtaText={t('emptyStates.cvs.createCvCta', 'Tạo CV Mới')}
-            primaryCtaHref="/candidate/cvs/builder"
+            primaryCtaHref={builderPath}
             secondaryCtaText={t('emptyStates.cvs.uploadCvCta', 'Tải CV Lên')}
             onSecondaryCtaClick={() => { if (quota?.canUpload === true) setIsUploadModalOpen(true); }}
           />
@@ -322,6 +338,11 @@ export default function CVLibraryPage() {
           cvId={selectedCvForReview.id}
           onClose={() => setSelectedCvForReview(null)}
           onCvUpdated={loadCVs}
+          onConfirmed={resume ? () => {
+            if (!userId || getAuthUser()?.id !== userId) return;
+            rememberCvChoice(userId, returnTo, selectedCvForReview.id);
+            router.push(resume);
+          } : undefined}
         />
       )}
 
@@ -400,7 +421,7 @@ export default function CVLibraryPage() {
                         {ver.sections?.length || 0} mục nội dung
                       </span>
                       <Link
-                        href={`/candidate/cvs/builder?edit=${selectedCvForHistory.id}&v=${ver.versionNumber}`}
+                        href={`/candidate/cvs/builder?edit=${encodeURIComponent(selectedCvForHistory.id)}&v=${ver.versionNumber}${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''}`}
                         className="text-xs font-semibold text-[var(--primary)] dark:text-[var(--retro-sky)] hover:underline flex items-center gap-1"
                       >
                         <span>Mở bản này trong Studio</span>

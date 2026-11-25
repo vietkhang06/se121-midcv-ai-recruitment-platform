@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { portalHome } from '@/lib/navigationIntent';
 import { UserRole } from '@/types';
 import { ShieldAlert, Lock, Loader2, ArrowRight } from 'lucide-react';
 
@@ -24,11 +25,7 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({ allowedRoles, children }) 
     // If authenticated but role is forbidden, automatically redirect to user's home portal
     if (authState === 'AUTHENTICATED' && user && !isRoleAllowed) {
       const redirectTimer = setTimeout(() => {
-        if (user.role === 'RECRUITER') {
-          router.replace('/recruiter');
-        } else {
-          router.replace('/');
-        }
+        router.replace(portalHome(user.role));
       }, 1200);
       return () => clearTimeout(redirectTimer);
     }
@@ -70,7 +67,7 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({ allowedRoles, children }) 
           </p>
         </div>
         <button
-          onClick={() => openAuthModal('LOGIN', { type: 'NAVIGATE', target: pathname })}
+          onClick={() => openAuthModal('LOGIN', { type: 'NAVIGATE', target: `${pathname}${window.location.search}` })}
           className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[var(--primary)] hover:bg-[var(--primary)] transition shadow-xs cursor-pointer flex items-center justify-center gap-2"
         >
           <span>{locale === 'vi' ? 'Đăng nhập ngay' : 'Sign In Now'}</span>
@@ -82,10 +79,12 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({ allowedRoles, children }) 
 
   // 3. Unauthorized role state: Strictly block children and show explicit Access Denied
   if (!isRoleAllowed) {
-    const targetDashboard = user.role === 'RECRUITER' ? '/recruiter' : '/';
+    const targetDashboard = portalHome(user.role);
     const targetLabel = user.role === 'RECRUITER'
       ? (locale === 'vi' ? 'Về Cổng Nhà tuyển dụng (HR)' : 'Go to Recruiter Portal')
-      : (locale === 'vi' ? 'Về Trang chủ Ứng viên' : 'Go to Candidate Portal');
+      : user.role === 'ADMIN'
+        ? (locale === 'vi' ? 'Về cổng quản trị' : 'Go to Admin Portal')
+        : (locale === 'vi' ? 'Về Trang chủ Ứng viên' : 'Go to Candidate Portal');
 
     return (
       <div 

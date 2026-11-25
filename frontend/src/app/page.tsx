@@ -358,7 +358,6 @@ export default function HomePage() {
           job={applyJob}
           isOpen={true}
           onClose={() => setApplyJob(null)}
-          onSuccess={() => setApplyJob(null)}
         />
       )}
 

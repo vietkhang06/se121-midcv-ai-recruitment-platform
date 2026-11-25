@@ -3,8 +3,10 @@
 import { AccountAvatar } from '@/components/account/AccountAvatar';
 import { APPLICATION_STATUS_LABELS, APPLICATION_TRANSITIONS } from '@/lib/applicationWorkflow';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { Suspense, useState, useEffect, use } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { rankingReturnPath } from '@/lib/navigationIntent';
 import {
   MatchInspectionData,
   Application,
@@ -122,11 +124,12 @@ export default function CandidateMatchInspectionPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  return <CandidateMatchInspection key={id} id={id} />;
+  return <Suspense fallback={<p role="status">Loading application…</p>}><CandidateMatchInspection key={id} id={id} /></Suspense>;
 }
 
 function CandidateMatchInspection({ id }: { id: string }) {
   const { t, locale } = useLanguage();
+  const searchParams = useSearchParams();
   const vi = locale === 'vi';
   const language = vi ? 0 : 1;
   const statusLabel = (status: ApplicationStatus) => APPLICATION_STATUS_LABELS[status][language];
@@ -140,6 +143,9 @@ function CandidateMatchInspection({ id }: { id: string }) {
   const [auditLogs, setAuditLogs] = useState<ApplicationAuditLogItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [inspectionFailed, setInspectionFailed] = useState(false);
+  const [inspectionRevision, setInspectionRevision] = useState(0);
+  const [inspectionRetrying, setInspectionRetrying] = useState(false);
 
   // Decision Modal State
   const [selectedDecision, setSelectedDecision] =
@@ -151,26 +157,31 @@ function CandidateMatchInspection({ id }: { id: string }) {
   useEffect(() => {
     let active = true;
     Promise.all([
-      fetchMatchInspection(id).catch(() => null),
+      fetchMatchInspection(id).then(value => ({ value, failed: false })).catch(() => ({ value: null, failed: true })),
       fetchApplicationById(id)
     ])
       .then(([inspectionData, appData]) => {
         if (!active) return;
-        setData(inspectionData);
+        setData(inspectionData.value);
+        setInspectionFailed(inspectionData.failed);
         setApplication(appData);
       })
       .catch((err) => {
         if (!active) return;
         setFetchError(
-          err.message ||
-            (locale === 'vi'
-              ? 'Lỗi khi tải dữ liệu đối sánh ứng viên.'
-              : 'Error loading candidate match inspection data.')
+          err instanceof Error ? err.message : 'Không tải được hồ sơ. / Could not load application.'
         );
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [id]);
+
+  useEffect(() => {
+    if (!inspectionRevision) return;
+    let active = true;
+    fetchMatchInspection(id).then(value => { if (active) { setData(value); setInspectionFailed(false); } }).catch(() => { if (active) setInspectionFailed(true); }).finally(() => { if (active) setInspectionRetrying(false); });
+    return () => { active = false; };
+  }, [id, inspectionRevision]);
 
   useEffect(() => {
     let active = true;
@@ -343,7 +354,7 @@ function CandidateMatchInspection({ id }: { id: string }) {
     matchStatus: data?.calculationStatus ?? application?.matchStatus,
     aiAnalysisConsent: application?.aiAnalysisConsent,
   });
-  const matchTitle = score !== null ? formatMatchScore(score, locale)
+  const matchTitle = inspectionFailed ? (vi ? 'Chưa tải được báo cáo AI' : 'AI report could not be loaded') : score !== null ? formatMatchScore(score, locale)
     : classificationOnly && classification ? (classificationLabels[classification] ?? classification)
     : matchPhaseLabels[phase][language];
   const matchNote = score !== null ? matchPhaseLabels[phase][language]
@@ -360,11 +371,11 @@ function CandidateMatchInspection({ id }: { id: string }) {
         <div className="space-y-5 border-b border-[var(--border-soft)] pb-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Link
-              href={application?.job?.id ? `/recruiter/jobs/${application.job.id}/applications` : '/recruiter/jobs'}
+              href={application?.job?.id ? rankingReturnPath(searchParams.get('returnTo'), application.job.id) ?? `/recruiter/jobs/${application.job.id}/applications` : '/recruiter/jobs'}
               className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] hover:underline"
             >
               <ArrowLeft className="size-4 shrink-0" />
-              {vi ? 'Danh sách hồ sơ ứng tuyển' : 'Job applications'}
+              {application?.job?.id && rankingReturnPath(searchParams.get('returnTo'), application.job.id) ? (vi ? 'Quay lại bảng xếp hạng' : 'Back to ranking') : (vi ? 'Danh sách hồ sơ ứng tuyển' : 'Job applications')}
             </Link>
             <span className="text-xs text-[var(--text-secondary)]">{vi ? 'Hồ sơ' : 'Application'} #{id.slice(0, 8)}</span>
           </div>
@@ -409,7 +420,8 @@ function CandidateMatchInspection({ id }: { id: string }) {
           <section className="min-w-0 space-y-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
             <h2 className="text-sm font-semibold text-[var(--text-secondary)]">{vi ? 'Đối sánh với vị trí' : 'Job match'}</h2>
             <p className="break-words text-xl font-bold text-[var(--heading)] sm:text-2xl">{matchTitle}</p>
-            {matchNote && <p className="text-sm text-[var(--text-secondary)]">{matchNote}</p>}
+            {inspectionFailed && <p role="alert" className="text-sm text-amber-700 dark:text-amber-300">{vi ? 'Không tải được báo cáo AI. Dữ liệu đơn vẫn khả dụng.' : 'Could not load the AI report. Application data remains available.'} <button type="button" disabled={inspectionRetrying} className="underline disabled:opacity-50" onClick={() => { setInspectionRetrying(true); setInspectionRevision(value => value + 1); }}>{inspectionRetrying ? (vi ? 'Đang tải…' : 'Loading…') : (vi ? 'Thử lại' : 'Retry')}</button></p>}
+            {!inspectionFailed && matchNote && <p className="text-sm text-[var(--text-secondary)]">{matchNote}</p>}
             {hasDetailedScore && score !== null && (
               <meter className="block h-2 w-full accent-[var(--primary)]" min={0} max={100}
                 value={Math.min(100, Math.max(0, score))} aria-label={vi ? 'Điểm đối sánh' : 'Match score'} />

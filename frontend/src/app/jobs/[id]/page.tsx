@@ -4,7 +4,7 @@ import { RichTextDisplay } from '@/components/editor/RichText';
 import { isJobExpired, formatJobDeadline } from '@/lib/jobDeadline';
 import { statusLabel } from '@/lib/statusLabels';
 
-import React, { use, useEffect, useState } from 'react';
+import React, { use, useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { SaveJobButton } from '@/components/inbox/SaveJobButton';
 import { useRouter } from 'next/navigation';
@@ -35,17 +35,27 @@ function descriptionAsText(value: string) {
 
 export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const router = useRouter();
   const { user } = useAuth();
+  return <JobDetail key={JSON.stringify([id, user?.id, user?.role])} id={id} />;
+}
+
+function JobDetail({ id }: { id: string }) {
+  const router = useRouter();
+  const { user, authState } = useAuth();
   const { locale } = useLanguage();
   const isVi = locale === 'vi';
   const [job, setJob] = useState<Job | null>(null);
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [loadedJobId, setLoadedJobId] = useState('');
   const [loadError, setLoadError] = useState('');
-  const [applicationLookup, setApplicationLookup] = useState<{ jobId: string; application: Application | null; failed: boolean }>({ jobId: '', application: null, failed: false });
+  const [applicationLookup, setApplicationLookup] = useState<{ jobId: string; userId?: string; application: Application | null; failed: boolean }>({ jobId: '', application: null, failed: false });
   const [isApplyOpen, setIsApplyOpen] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
+  const [jobRevision, setJobRevision] = useState(0);
+  const [lookupRevision, setLookupRevision] = useState(0);
+  const lookupGeneration = useRef(0);
+  const userId = user?.id;
+  const role = user?.role;
 
   useEffect(() => {
     let active = true;
@@ -61,18 +71,31 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       setLoadState('error');
     });
     return () => { active = false; };
-  }, [id, isVi]);
+  }, [id, isVi, jobRevision]);
 
   useEffect(() => {
-    let active = true;
-    if (user?.role !== 'CANDIDATE') return () => { active = false; };
-    fetchCandidateApplications().then((applications) => {
-      if (active) setApplicationLookup({ jobId: id, application: applications.find((item) => item.job.id === id) ?? null, failed: false });
+    const generation = ++lookupGeneration.current;
+    if (role !== 'CANDIDATE' || !userId) return;
+    fetchCandidateApplications().then(applications => {
+      if (generation === lookupGeneration.current) setApplicationLookup({ jobId: id, userId, application: applications.find(item => item.job.id === id) ?? null, failed: false });
     }).catch(() => {
-      if (active) setApplicationLookup({ jobId: id, application: null, failed: true });
+      if (generation === lookupGeneration.current) setApplicationLookup({ jobId: id, userId, application: null, failed: true });
     });
-    return () => { active = false; };
-  }, [id, user?.role]);
+    return () => { lookupGeneration.current += 1; };
+  }, [id, role, userId, lookupRevision]);
+
+  const lookupReady = applicationLookup.jobId === id && applicationLookup.userId === userId;
+  useEffect(() => {
+    if (authState === 'INITIALIZING' || loadedJobId !== id || loadState === 'loading' || (role === 'CANDIDATE' && (!lookupReady || applicationLookup.failed))) return;
+    const timer = window.setTimeout(() => {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('apply') !== '1' || url.pathname !== `/jobs/${encodeURIComponent(id)}`) return;
+      url.searchParams.delete('apply');
+      window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+      if (role === 'CANDIDATE' && job?.status === 'PUBLISHED' && !isJobExpired(job.applicationDeadline) && !applicationLookup.application) setIsApplyOpen(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [authState, id, role, loadedJobId, loadState, job, lookupReady, applicationLookup]);
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -93,9 +116,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     else router.push('/jobs');
   };
 
-  const application = user?.role === 'CANDIDATE' && applicationLookup.jobId === id ? applicationLookup.application : null;
-  const applicationLookupFailed = user?.role === 'CANDIDATE' && applicationLookup.jobId === id && applicationLookup.failed;
-  const applicationLookupPending = user?.role === 'CANDIDATE' && applicationLookup.jobId !== id;
+  const application = user?.role === 'CANDIDATE' && lookupReady ? applicationLookup.application : null;
+  const applicationLookupFailed = user?.role === 'CANDIDATE' && lookupReady && applicationLookup.failed;
+  const applicationLookupPending = user?.role === 'CANDIDATE' && !lookupReady;
 
   if (loadedJobId !== id || loadState === 'loading') return <main className="mx-auto min-h-[55vh] max-w-6xl px-4 py-16" aria-busy="true"><div className="animate-pulse space-y-4"><div className="h-4 w-40 rounded bg-slate-200 dark:bg-slate-800"/><div className="h-28 rounded-xl bg-slate-200 dark:bg-slate-800"/><div className="h-64 rounded-xl bg-slate-100 dark:bg-slate-900"/></div></main>;
 
@@ -103,7 +126,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     <main className="mx-auto min-h-[55vh] max-w-3xl px-4 py-20 text-center">
       <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">{loadState === 'missing' ? (isVi ? 'Không tìm thấy tin tuyển dụng' : 'Job not found') : (isVi ? 'Chưa thể tải tin tuyển dụng' : 'Could not load this job')}</h1>
       <p role={loadState === 'error' ? 'alert' : undefined} className="mx-auto mt-3 max-w-xl text-sm text-slate-600 dark:text-slate-300">{loadState === 'error' ? loadError : (isVi ? 'Tin có thể đã bị gỡ hoặc không còn công khai.' : 'This job may have been removed or is no longer public.')}</p>
-      <div className="mt-6 flex justify-center gap-3"><button type="button" onClick={returnToJobs} className="rounded-xl border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900">{isVi ? 'Quay lại danh sách' : 'Back to jobs'}</button>{loadState === 'error' && <button type="button" onClick={() => { setLoadState('loading'); void fetchJobById(id).then((result) => { setJob(result); setLoadState(result ? 'ready' : 'missing'); }).catch((error: unknown) => { setLoadError(error instanceof Error ? error.message : (isVi ? 'Không tải được tin tuyển dụng.' : 'Could not load this job.')); setLoadState('error'); }); }} className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800">{isVi ? 'Thử tải lại' : 'Retry'}</button>}</div>
+      <div className="mt-6 flex justify-center gap-3"><button type="button" onClick={returnToJobs} className="rounded-xl border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900">{isVi ? 'Quay lại danh sách' : 'Back to jobs'}</button>{loadState === 'error' && <button type="button" onClick={() => { setLoadState('loading'); setJobRevision(value => value + 1); }} className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800">{isVi ? 'Thử tải lại' : 'Retry'}</button>}</div>
     </main>
   );
 
@@ -112,13 +135,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const required = requirements.filter((item) => item.requirementType === 'REQUIRED');
   const preferred = requirements.filter((item) => item.requirementType === 'PREFERRED');
   const deadlinePassed = isJobExpired(job.applicationDeadline);
-  const canApply = !deadlinePassed && job.status === 'PUBLISHED' && (user == null || user.role === 'CANDIDATE') && !application && !applicationLookupPending && !applicationLookupFailed;
+  const canApply = authState !== 'INITIALIZING' && !deadlinePassed && job.status === 'PUBLISHED' && (user == null || user.role === 'CANDIDATE') && !application && !applicationLookupPending && !applicationLookupFailed;
 
   const retryApplicationLookup = () => {
     setApplicationLookup({ jobId: '', application: null, failed: false });
-    void fetchCandidateApplications().then((applications) => {
-      setApplicationLookup({ jobId: id, application: applications.find((item) => item.job.id === id) ?? null, failed: false });
-    }).catch(() => setApplicationLookup({ jobId: id, application: null, failed: true }));
+    setLookupRevision(value => value + 1);
   };
 
   return (
@@ -141,7 +162,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               </div>
             </div>
             <div className="flex shrink-0 flex-col gap-2 sm:min-w-48">
-              {applicationLookupPending ? <p role="status" className="text-center text-sm text-slate-600 dark:text-slate-300">{isVi ? 'Đang kiểm tra đơn ứng tuyển…' : 'Checking application status…'}</p> : applicationLookupFailed ? <div className="space-y-2 text-center"><p role="alert" className="text-xs text-amber-700 dark:text-amber-300">{isVi ? 'Chưa kiểm tra được trạng thái đơn ứng tuyển.' : 'Could not check application status.'}</p><button type="button" onClick={retryApplicationLookup} className="text-sm font-semibold text-blue-800 underline dark:text-blue-300">{isVi ? 'Thử lại' : 'Retry'}</button></div> : user?.role === 'RECRUITER' ? <Link href={`/recruiter/jobs/${job.id}/applications`} className="rounded-xl bg-blue-700 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-blue-800">{isVi ? 'Xem hồ sơ ứng tuyển' : 'View applications'}</Link> : application ? <Link href="/candidate/applications" className="rounded-xl bg-emerald-50 px-5 py-3 text-center text-sm font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">{isVi ? 'Bạn đã ứng tuyển' : 'You applied'}{application.status ? ` · ${statusLabel(application.status, locale)}` : ''}</Link> : canApply ? <button type="button" onClick={() => setIsApplyOpen(true)} className="rounded-xl bg-emerald-700 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">{isVi ? 'Ứng tuyển' : 'Apply'}</button> : <div className="rounded-xl bg-slate-100 px-5 py-3 text-center text-sm font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{deadlinePassed && job.status === 'PUBLISHED' ? statusLabel('EXPIRED', locale) : job.status === 'CLOSED' ? (isVi ? 'Đã đóng tuyển dụng' : 'Applications closed') : (user?.role === 'ADMIN' ? (isVi ? 'Chức năng ứng tuyển chỉ dành cho ứng viên.' : 'Applications are available to candidates only.') : (isVi ? 'Không thể ứng tuyển' : 'Applications unavailable'))}</div>}
+              {applicationLookupPending ? <p role="status" className="text-center text-sm text-slate-600 dark:text-slate-300">{isVi ? 'Đang kiểm tra đơn ứng tuyển…' : 'Checking application status…'}</p> : applicationLookupFailed ? <div className="space-y-2 text-center"><p role="alert" className="text-xs text-amber-700 dark:text-amber-300">{isVi ? 'Chưa kiểm tra được trạng thái đơn ứng tuyển.' : 'Could not check application status.'}</p><button type="button" onClick={retryApplicationLookup} className="text-sm font-semibold text-blue-800 underline dark:text-blue-300">{isVi ? 'Thử lại' : 'Retry'}</button></div> : user?.role === 'RECRUITER' ? <Link href={`/recruiter/jobs/${job.id}/applications`} className="rounded-xl bg-blue-700 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-blue-800">{isVi ? 'Xem hồ sơ ứng tuyển' : 'View applications'}</Link> : application ? <Link href={`/candidate/applications/${encodeURIComponent(application.id)}`} className="rounded-xl bg-emerald-50 px-5 py-3 text-center text-sm font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">{isVi ? 'Bạn đã ứng tuyển' : 'You applied'}{application.status ? ` · ${statusLabel(application.status, locale)}` : ''}</Link> : canApply ? <button type="button" onClick={() => setIsApplyOpen(true)} className="rounded-xl bg-emerald-700 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">{isVi ? 'Ứng tuyển' : 'Apply'}</button> : <div className="rounded-xl bg-slate-100 px-5 py-3 text-center text-sm font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{deadlinePassed && job.status === 'PUBLISHED' ? statusLabel('EXPIRED', locale) : job.status === 'CLOSED' ? (isVi ? 'Đã đóng tuyển dụng' : 'Applications closed') : (user?.role === 'ADMIN' ? (isVi ? 'Chức năng ứng tuyển chỉ dành cho ứng viên.' : 'Applications are available to candidates only.') : (isVi ? 'Không thể ứng tuyển' : 'Applications unavailable'))}</div>}
               {job.status !== 'PUBLISHED' && job.status !== 'CLOSED' && <p className="text-xs text-slate-500">{isVi ? 'Tin này chưa mở nhận hồ sơ.' : 'This job is not accepting applications.'}</p>}
               <button type="button" onClick={handleShare} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"><Share2 size={16} aria-hidden="true"/>{isVi ? 'Chia sẻ tin' : 'Share job'}</button>
               <SaveJobButton jobId={job.id}/>
@@ -190,7 +211,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
         <button type="button" onClick={returnToJobs} className="mt-7 inline-flex items-center gap-2 text-sm font-medium text-blue-800 hover:underline dark:text-blue-300"><ArrowLeft size={16} aria-hidden="true"/>{isVi ? 'Quay lại kết quả việc làm' : 'Back to job results'}</button>
       </div>
-      <QuickApplyModal job={job} isOpen={isApplyOpen} onClose={() => setIsApplyOpen(false)} onApplySubmitted={(submitted) => setApplicationLookup({ jobId: id, application: submitted, failed: false })}/>
+      <QuickApplyModal job={job} isOpen={isApplyOpen && (canApply || !!application)} onClose={() => setIsApplyOpen(false)} onApplySubmitted={(submitted) => { lookupGeneration.current += 1; setApplicationLookup({ jobId: id, userId, application: submitted, failed: false }); }}/>
     </main>
   );
 }
