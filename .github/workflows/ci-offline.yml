@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [master, main, develop]
   push:
-    branches: [master, main, develop, "feature/**", "feat/**", "codex/**"]
+    branches: [master, main, develop]
   workflow_dispatch:
 
 permissions:
@@ -18,8 +18,48 @@ env:
   EVIDENCE_CLASSIFICATION: OFFLINE_DETERMINISTIC
 
 jobs:
+  changes:
+    name: Detect changed scopes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      worker: ${{ steps.filter.outputs.worker }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Classify changed files
+        id: filter
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          base="$BASE_SHA"
+          if [[ -z "$base" || "$base" =~ ^0+$ ]] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            base="${GITHUB_SHA}^"
+          fi
+
+          changed=$(git diff --name-only "$base...$GITHUB_SHA")
+          printf '%s\n' "$changed"
+
+          backend=false
+          worker=false
+          frontend=false
+          if grep -Eq '^(backend/|scripts/check_module_boundaries\.py|scripts/module-boundary-baseline\.json|scripts/ci/)' <<< "$changed"; then backend=true; fi
+          if grep -Eq '^(ai-worker/|scripts/tests/)' <<< "$changed"; then worker=true; fi
+          if grep -Eq '^frontend/' <<< "$changed"; then frontend=true; fi
+
+          {
+            echo "backend=$backend"
+            echo "worker=$worker"
+            echo "frontend=$frontend"
+          } >> "$GITHUB_OUTPUT"
+
   backend:
     name: Backend / PostgreSQL tests
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
@@ -99,6 +139,8 @@ jobs:
 
   worker:
     name: AI worker / deterministic tests
+    needs: changes
+    if: needs.changes.outputs.worker == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -161,6 +203,8 @@ jobs:
 
   frontend:
     name: Frontend / lint contracts build
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
