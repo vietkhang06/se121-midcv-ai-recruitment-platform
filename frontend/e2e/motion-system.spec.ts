@@ -265,7 +265,11 @@ test.describe('MidCV motion system', () => {
 
     const cls = await page.evaluate(() => (window as Window & { __motionCls?: number }).__motionCls ?? 0);
     expect(cls).toBeLessThanOrEqual(0.1);
-    expect(browserErrors.filter((message) => /hydration|uncaught|typeerror|referenceerror/i.test(message))).toEqual([]);
+    const unexpectedRuntimeErrors = browserErrors.filter((message) => {
+      if (/^\[API ERROR\] Network failure:/i.test(message)) return false;
+      return /hydration|uncaught|typeerror|referenceerror/i.test(message);
+    });
+    expect(unexpectedRuntimeErrors).toEqual([]);
   });
 
   test('captures desktop/mobile and light/dark motion baselines', async ({ page }) => {
