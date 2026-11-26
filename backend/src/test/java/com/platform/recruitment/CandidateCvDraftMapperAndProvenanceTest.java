@@ -442,4 +442,17 @@ public class CandidateCvDraftMapperAndProvenanceTest {
         assertThrows(UnauthorizedAccessException.class, () ->
                 cvService.getCVDraft(otherCandidateUser, cvId));
     }
+
+    @Test
+    @DisplayName("14.8 Builder presentation is returned from the persisted canonical draft")
+    void test8_builderPresentationRoundTrip() throws Exception {
+        Map<String, Object> canonical = cvService.buildCanonicalDraftFromRaw(
+                objectMapper.readValue(hoangLeQuanJson, Map.class), testCv, versionId);
+        canonical.put("presentation", Map.of("template", "editorial"));
+        initialVersion.setStructuredJsonContent(objectMapper.writeValueAsString(canonical));
+
+        CVDraftResponse draft = cvService.getCVDraft(candidateUser, cvId);
+
+        assertEquals("editorial", draft.getPresentation().get("template"));
+    }
 }

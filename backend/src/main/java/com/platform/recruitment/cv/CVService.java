@@ -1477,6 +1477,8 @@ public class CVService {
                 ? (List<Map<String, Object>>) l : Collections.emptyList();
         Map<String, Object> links = (structured.get("links") instanceof Map<?, ?> m)
                 ? (Map<String, Object>) m : extractLinksWithLineage(structured, personalInfo);
+        Map<String, Object> presentation = (structured.get("presentation") instanceof Map<?, ?> m)
+                ? (Map<String, Object>) m : Collections.emptyMap();
 
         // Refresh attachment info in certifications and languages
         if (!"CONFIRMED".equalsIgnoreCase(version.getStatus())) {
@@ -1501,6 +1503,7 @@ public class CVService {
                 .certifications(certifications)
                 .languages(languages)
                 .links(links)
+                .presentation(presentation)
                 .rawStructured(!rawStructured.isEmpty() ? rawStructured : structured)
                 .createdAt(version.getCreatedAt() != null ? version.getCreatedAt() : cv.getCreatedAt())
                 .updatedAt(version.getUpdatedAt() != null ? version.getUpdatedAt() : cv.getUpdatedAt())

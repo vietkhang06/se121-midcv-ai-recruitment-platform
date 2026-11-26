@@ -10,68 +10,10 @@ import { confirmCandidateCV, getAuthUser, fetchCVDraft, fetchCandidateCVs, fetch
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
+import { asText, buildCVBuilderPayload, CVBuilderDraft as Draft, emptyCVBuilderDraft, mapCVBuilderDraft, readCVBuilderTemplate } from '@/lib/cvBuilderDraft';
 
-type Item = Record<string, string>;
-type Draft = { fullName: string; headline: string; email: string; phone: string; location: string; summary: string; github: string; linkedin: string; portfolio: string; skills: string[]; experience: Item[]; projects: Item[]; education: Item[]; certifications: Item[]; languages: Item[] };
-const emptyDraft = (): Draft => ({ fullName: '', headline: '', email: '', phone: '', location: '', summary: '', github: '', linkedin: '', portfolio: '', skills: [], experience: [], projects: [], education: [], certifications: [], languages: [] });
 const inputClass = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white';
 const labelClass = 'mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200';
-
-type DataRecord = Record<string, unknown>;
-
-function asRecord(value: unknown): DataRecord {
-  return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as DataRecord : {};
-}
-
-function asText(value: unknown): string {
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number') return String(value);
-  const record = asRecord(value);
-  return typeof record.value === 'string' ? record.value : '';
-}
-
-function readText(record: DataRecord, ...keys: string[]): string {
-  for (const key of keys) {
-    const value = asText(record[key]);
-    if (value) return value;
-  }
-  return '';
-}
-
-function mapItems(value: unknown): Item[] {
-  if (!Array.isArray(value)) return [];
-  return value.map((entry) => {
-    if (typeof entry === 'string') return { name: entry };
-    return Object.fromEntries(Object.entries(asRecord(entry)).map(([key, itemValue]) => [key, asText(itemValue)]));
-  });
-}
-
-function mapDraft(rawValue: unknown): Draft {
-  const raw = asRecord(rawValue);
-  const personal = asRecord(raw.personal_info);
-  const links = asRecord(raw.links);
-  const summary = raw.summary;
-  const skills = Array.isArray(raw.skills)
-    ? raw.skills.map((item) => typeof item === 'string' ? item : readText(asRecord(item), 'name', 'skill', 'canonical_name')).filter(Boolean)
-    : [];
-  return {
-    fullName: readText(personal, 'full_name', 'fullName', 'name'),
-    headline: readText(personal, 'headline', 'title'),
-    email: readText(personal, 'email'),
-    phone: readText(personal, 'phone'),
-    location: readText(personal, 'location', 'address'),
-    summary: typeof summary === 'string' ? summary : readText(asRecord(summary), 'text', 'content', 'value'),
-    github: readText(links, 'github_url', 'githubUrl') || readText(personal, 'github_url', 'githubUrl'),
-    linkedin: readText(links, 'linkedin_url', 'linkedinUrl') || readText(personal, 'linkedin_url', 'linkedinUrl'),
-    portfolio: readText(links, 'portfolio_url', 'portfolioUrl') || readText(personal, 'portfolio_url', 'portfolioUrl'),
-    skills,
-    experience: mapItems(raw.work_experience),
-    projects: mapItems(raw.projects),
-    education: mapItems(raw.education),
-    certifications: mapItems(raw.certifications),
-    languages: mapItems(raw.languages)
-  };
-}
 
 export default function CVBuilderPage() {
   return <Suspense fallback={<p role="status">Loading CV editor…</p>}><CVBuilderRoute /></Suspense>;
@@ -91,7 +33,7 @@ function CVBuilderContent({ editId, requestedReturnTo }: { editId: string | null
   const returnTo = resumeAfterCv(jobReturn) ?? '/candidate/cvs';
   const vi = locale === 'vi';
   const [title, setTitle] = useState(vi ? 'Hồ sơ chuyên môn' : 'Professional CV');
-  const [draft, setDraft] = useState<Draft>(emptyDraft);
+  const [draft, setDraft] = useState<Draft>(emptyCVBuilderDraft);
   const [cv, setCv] = useState<CV | null>(null);
   const [quota, setQuota] = useState<CVQuota | null>(null);
   const [quotaLoaded, setQuotaLoaded] = useState(false);
@@ -136,7 +78,7 @@ function CVBuilderContent({ editId, requestedReturnTo }: { editId: string | null
           if (!selected) throw new Error('CV not found or access is denied. / Không tìm thấy hồ sơ hoặc bạn không có quyền truy cập.');
           const data = await fetchCVDraft(editId);
           if (!active) return;
-          setCv(selected); setTitle(data.title || selected.title); setDraft(mapDraft(data));
+          setCv(selected); setTitle(data.title || selected.title); setDraft(mapCVBuilderDraft(data)); setTemplate(readCVBuilderTemplate(data));
         } else {
           const profile = await fetchCandidateProfile().catch(() => null);
           if (!active) return;
@@ -172,7 +114,7 @@ function CVBuilderContent({ editId, requestedReturnTo }: { editId: string | null
         target = await saveCandidateCV(createRequest);
         setCv(target);
       }
-      const payload = { title, personal_info: { full_name: draft.fullName, headline: draft.headline, email: draft.email, phone: draft.phone, location: draft.location }, summary: { text: draft.summary }, skills: draft.skills.map((name) => ({ name })), work_experience: draft.experience, projects: draft.projects, education: draft.education, certifications: draft.certifications, languages: draft.languages, links: { github_url: draft.github, linkedin_url: draft.linkedin, portfolio_url: draft.portfolio } };
+      const payload = buildCVBuilderPayload(draft, title, template);
       await updateCVDraft(target.id, payload);
       if (editRevision.current === savedRevision) {
         setDirty(false);
@@ -225,9 +167,9 @@ function CVBuilderContent({ editId, requestedReturnTo }: { editId: string | null
         {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">{error}</p>}{notice && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">{notice}</p>}{dirty && !saving && <p role="status" className="text-xs font-medium text-amber-700 dark:text-amber-300">{vi ? 'Có thay đổi chưa lưu.' : 'Unsaved changes.'}</p>}
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"><h1 className="mb-4 text-lg font-semibold">{vi ? 'Thông tin cá nhân' : 'Personal information'}</h1><div className="grid gap-4 sm:grid-cols-2">{field('fullName', vi ? 'Họ và tên' : 'Full name')}{field('headline', vi ? 'Chức danh / tiêu đề' : 'Headline')}{field('email', 'Email', false, 'email')}{field('phone', vi ? 'Số điện thoại' : 'Phone', false, 'tel')}{field('location', vi ? 'Địa điểm' : 'Location')}{field('github', 'GitHub URL', false, 'url')}{field('linkedin', 'LinkedIn URL', false, 'url')}{field('portfolio', vi ? 'Trang cá nhân' : 'Portfolio URL', false, 'url')}</div><div className="mt-4">{field('summary', vi ? 'Tóm tắt nghề nghiệp' : 'Professional summary', true)}</div></section>
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"><h2 className="mb-3 text-lg font-semibold">{vi ? 'Kỹ năng' : 'Skills'}</h2><SkillAutocomplete skills={draft.skills} onSkillsChange={(value) => patchDraft('skills', value)} placeholder={vi ? 'Tìm và thêm kỹ năng…' : 'Find and add skills…'} /></section>
-        {(Object.keys(sectionLabels) as Array<keyof typeof sectionLabels>).map((section) => <section key={section} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"><div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-semibold">{sectionLabels[section]}</h2><button type="button" onClick={() => addItem(section)} className="inline-flex items-center gap-1 rounded-xl border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600"><Plus size={16}/>{vi ? 'Thêm mục' : 'Add item'}</button></div>{draft[section].length === 0 && <p className="text-sm text-slate-500">{vi ? 'Chưa có mục nào. Bạn có thể để trống hoặc thêm mục.' : 'No entries yet. You can leave this section empty or add an item.'}</p>}<div className="space-y-4">{draft[section].map((item, index) => <div key={index} className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"><div className="mb-3 flex justify-end"><button type="button" aria-label={`${vi ? 'Xóa' : 'Remove'} ${sectionLabels[section]} ${index + 1}`} onClick={() => removeItem(section, index)} className="rounded-xl p-2 text-rose-700 hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-rose-600"><Trash2 size={16}/></button></div><div className="grid gap-3 sm:grid-cols-2">{fields[section].map(([key, label]) => <label className={`block ${key === 'description' || key === 'technologies' ? 'sm:col-span-2' : ''}`} key={key}><span className={labelClass}>{label}</span>{key === 'description' ? <textarea className={inputClass} rows={3} value={item[key] || ''} onChange={(e) => changeItem(section, index, key, e.target.value)} /> : <input className={inputClass} value={item[key] || ''} onChange={(e) => changeItem(section, index, key, e.target.value)} />}</label>)}</div></div>)}</div></section>)}
+        {(Object.keys(sectionLabels) as Array<keyof typeof sectionLabels>).map((section) => <section key={section} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"><div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-semibold">{sectionLabels[section]}</h2><button type="button" onClick={() => addItem(section)} className="inline-flex items-center gap-1 rounded-xl border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600"><Plus size={16}/>{vi ? 'Thêm mục' : 'Add item'}</button></div>{draft[section].length === 0 && <p className="text-sm text-slate-500">{vi ? 'Chưa có mục nào. Bạn có thể để trống hoặc thêm mục.' : 'No entries yet. You can leave this section empty or add an item.'}</p>}<div className="space-y-4">{draft[section].map((item, index) => <div key={index} className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"><div className="mb-3 flex justify-end"><button type="button" aria-label={`${vi ? 'Xóa' : 'Remove'} ${sectionLabels[section]} ${index + 1}`} onClick={() => removeItem(section, index)} className="rounded-xl p-2 text-rose-700 hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-rose-600"><Trash2 size={16}/></button></div><div className="grid gap-3 sm:grid-cols-2">{fields[section].map(([key, label]) => <label className={`block ${key === 'description' || key === 'technologies' ? 'sm:col-span-2' : ''}`} key={key}><span className={labelClass}>{label}</span>{key === 'description' ? <textarea className={inputClass} rows={3} value={asText(item[key])} onChange={(e) => changeItem(section, index, key, e.target.value)} /> : <input className={inputClass} value={asText(item[key])} onChange={(e) => changeItem(section, index, key, e.target.value)} />}</label>)}</div></div>)}</div></section>)}
       </section>
-      <div role="separator" aria-orientation="vertical" aria-label={vi ? 'Kéo để đổi độ rộng khung chỉnh sửa và xem trước' : 'Drag to resize the editor and preview panes'} aria-valuemin={35} aria-valuemax={65} aria-valuenow={Math.round(editorWidth)} tabIndex={0} className="hidden touch-none cursor-col-resize select-none items-center justify-center rounded-xl outline-none hover:bg-blue-200 focus-visible:bg-blue-200 focus-visible:ring-2 focus-visible:ring-blue-600 lg:flex" onPointerDown={(event) => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); setEditorWidthFromPointer(event.clientX); }} onPointerMove={(event) => { if (event.buttons === 1) setEditorWidthFromPointer(event.clientX); }} onKeyDown={(event) => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); setEditorWidth((width) => Math.max(35, Math.min(65, width + (event.key === 'ArrowRight' ? 2 : -2)))); } if (event.key === 'Home') { event.preventDefault(); setEditorWidth(35); } if (event.key === 'End') { event.preventDefault(); setEditorWidth(65); } }}><span aria-hidden="true" className="h-10 w-1 rounded-xl bg-slate-300" /></div>      <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start"><p className="mb-2 text-sm text-slate-600 dark:text-slate-400">{vi ? 'Bản xem trước' : 'Preview'}</p><article id="printable-cv" className={`min-h-[700px] rounded-xl border border-slate-200 bg-white p-8 shadow-lg dark:border-slate-800 dark:bg-white dark:text-slate-900 ${template === 'editorial' ? 'font-sans' : ''}`}><header className={`border-b border-slate-200 pb-5 ${template === 'editorial' ? 'text-center' : ''}`}><h2 className="break-words text-3xl font-bold">{draft.fullName || (vi ? 'Họ và tên' : 'Full name')}</h2>{draft.headline && <p className="mt-1 text-lg text-slate-700">{draft.headline}</p>}<p className="mt-2 break-words text-sm text-slate-600">{[draft.email, draft.phone, draft.location].filter(Boolean).join(' · ')}</p><p className="mt-1 break-all text-xs text-blue-800">{[draft.github, draft.linkedin, draft.portfolio].filter(Boolean).join(' · ')}</p></header>{draft.summary && <section className="mt-5"><h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">{vi ? 'Tóm tắt' : 'Summary'}</h3><p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{draft.summary}</p></section>}{draft.skills.length > 0 && <section className="mt-5"><h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">{vi ? 'Kỹ năng' : 'Skills'}</h3><p className="break-words text-sm">{draft.skills.join(' · ')}</p></section>}{(Object.keys(sectionLabels) as Array<keyof typeof sectionLabels>).map((section) => draft[section].length > 0 && <section key={section} className="mt-5"><h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">{sectionLabels[section]}</h3><div className="space-y-3">{draft[section].map((item, i) => <div key={i} className="break-words"><p className="font-semibold">{item.company || item.name || item.school || item.language || item.title || item.degree || item.certification}</p><p className="text-sm text-slate-700">{[item.title, item.role, item.degree, item.field, item.issuer, item.proficiency, item.dates, item.date, item.technologies].filter(Boolean).join(' · ')}</p>{item.description && <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{item.description}</p>}</div>)}</div></section>)}</article></aside>
+      <div role="separator" aria-orientation="vertical" aria-label={vi ? 'Kéo để đổi độ rộng khung chỉnh sửa và xem trước' : 'Drag to resize the editor and preview panes'} aria-valuemin={35} aria-valuemax={65} aria-valuenow={Math.round(editorWidth)} tabIndex={0} className="hidden touch-none cursor-col-resize select-none items-center justify-center rounded-xl outline-none hover:bg-blue-200 focus-visible:bg-blue-200 focus-visible:ring-2 focus-visible:ring-blue-600 lg:flex" onPointerDown={(event) => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); setEditorWidthFromPointer(event.clientX); }} onPointerMove={(event) => { if (event.buttons === 1) setEditorWidthFromPointer(event.clientX); }} onKeyDown={(event) => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); setEditorWidth((width) => Math.max(35, Math.min(65, width + (event.key === 'ArrowRight' ? 2 : -2)))); } if (event.key === 'Home') { event.preventDefault(); setEditorWidth(35); } if (event.key === 'End') { event.preventDefault(); setEditorWidth(65); } }}><span aria-hidden="true" className="h-10 w-1 rounded-xl bg-slate-300" /></div>      <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start"><p className="mb-2 text-sm text-slate-600 dark:text-slate-400">{vi ? 'Bản xem trước' : 'Preview'}</p><article id="printable-cv" className={`min-h-[700px] rounded-xl border border-slate-200 bg-white p-8 shadow-lg dark:border-slate-800 dark:bg-white dark:text-slate-900 ${template === 'editorial' ? 'font-sans' : ''}`}><header className={`border-b border-slate-200 pb-5 ${template === 'editorial' ? 'text-center' : ''}`}><h2 className="break-words text-3xl font-bold">{draft.fullName || (vi ? 'Họ và tên' : 'Full name')}</h2>{draft.headline && <p className="mt-1 text-lg text-slate-700">{draft.headline}</p>}<p className="mt-2 break-words text-sm text-slate-600">{[draft.email, draft.phone, draft.location].filter(Boolean).join(' · ')}</p><p className="mt-1 break-all text-xs text-blue-800">{[draft.github, draft.linkedin, draft.portfolio].filter(Boolean).join(' · ')}</p></header>{draft.summary && <section className="mt-5"><h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">{vi ? 'Tóm tắt' : 'Summary'}</h3><p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{draft.summary}</p></section>}{draft.skills.length > 0 && <section className="mt-5"><h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">{vi ? 'Kỹ năng' : 'Skills'}</h3><p className="break-words text-sm">{draft.skills.join(' · ')}</p></section>}{(Object.keys(sectionLabels) as Array<keyof typeof sectionLabels>).map((section) => draft[section].length > 0 && <section key={section} className="mt-5"><h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">{sectionLabels[section]}</h3><div className="space-y-3">{draft[section].map((item, i) => <div key={i} className="break-words"><p className="font-semibold">{asText(item.company || item.name || item.school || item.language || item.title || item.degree || item.certification)}</p><p className="text-sm text-slate-700">{[item.title, item.role, item.degree, item.field, item.issuer, item.proficiency, item.dates, item.date, item.technologies].map(asText).filter(Boolean).join(' · ')}</p>{asText(item.description) && <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{asText(item.description)}</p>}</div>)}</div></section>)}</article></aside>
       </div>
     </div>
     <style jsx global>{`@media (max-width: 1023px) { #cv-editor-layout { grid-template-columns: minmax(0, 1fr) !important; } } @media print { body * { visibility: hidden; } #printable-cv, #printable-cv * { visibility: visible; } #printable-cv { position: absolute; inset: 0; width: 100%; border: 0; box-shadow: none; } @page { size: A4; margin: 16mm; } }`}</style>

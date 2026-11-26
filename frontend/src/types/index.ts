@@ -549,6 +549,7 @@ export interface CVDraftData {
   certifications?: Array<{ [key: string]: unknown; id?: string; name: string; issuer?: string; issueDate?: string; date?: string; credentialId?: string; credentialUrl?: string; attachment?: CVEvidenceAttachmentItem | null; origin?: string }>;
   languages?: Array<{ [key: string]: unknown; id?: string; language: string; name?: string; proficiency?: string; proficiencyLevel?: string; proficiency_level?: string; score?: string; attachment?: CVEvidenceAttachmentItem | null; origin?: string }>;
   links?: { [key: string]: unknown; github_url?: string; linkedin_url?: string; portfolio_url?: string };
+  presentation?: { [key: string]: unknown; template?: 'simple' | 'editorial' };
 }
 
 export interface CVProcessingStatus {

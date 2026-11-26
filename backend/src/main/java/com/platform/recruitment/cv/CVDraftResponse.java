@@ -54,6 +54,8 @@ public class CVDraftResponse {
 
     private Map<String, Object> links;
 
+    private Map<String, Object> presentation;
+
     @JsonProperty("raw_structured")
     private Map<String, Object> rawStructured;
 
