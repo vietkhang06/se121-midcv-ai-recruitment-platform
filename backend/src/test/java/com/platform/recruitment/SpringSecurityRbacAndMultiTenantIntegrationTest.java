@@ -16,6 +16,7 @@ import com.platform.recruitment.candidate.CandidateProfile;
 import com.platform.recruitment.candidate.CandidateProfileRepository;
 import com.platform.recruitment.common.GlobalExceptionHandler;
 import com.platform.recruitment.common.UnauthorizedAccessException;
+import com.platform.recruitment.cv.CvOfficePreview;
 import com.platform.recruitment.company.Company;
 import com.platform.recruitment.company.RecruiterProfile;
 import com.platform.recruitment.company.RecruiterProfileRepository;
@@ -114,6 +115,9 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     // ApplicationController dependencies
     @MockBean
     private ApplicationService applicationService;
+
+    @MockBean
+    private CvOfficePreview officePreview;
 
     @MockBean
     private com.platform.recruitment.suspension.SuspensionGuard suspensionGuard;
