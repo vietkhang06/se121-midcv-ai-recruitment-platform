@@ -10,7 +10,7 @@ import { confirmCandidateCV, getAuthUser, fetchCVDraft, fetchCandidateCVs, fetch
 import { SkillAutocomplete } from '@/components/common/SkillAutocomplete';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
-import { asText, buildCVBuilderPayload, CVBuilderDraft as Draft, CVBuilderItem as Item, emptyCVBuilderDraft, mapCVBuilderDraft, readCVBuilderTemplate } from '@/lib/cvBuilderDraft';
+import { asText, buildCVBuilderPayload, CVBuilderDraft as Draft, emptyCVBuilderDraft, mapCVBuilderDraft, readCVBuilderTemplate } from '@/lib/cvBuilderDraft';
 
 const inputClass = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white';
 const labelClass = 'mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200';

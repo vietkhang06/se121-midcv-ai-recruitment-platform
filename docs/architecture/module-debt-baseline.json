@@ -92,6 +92,14 @@
     ],
     [
       "application",
+      "ai"
+    ],
+    [
+      "application",
+      "auth"
+    ],
+    [
+      "application",
       "candidate"
     ],
     [
@@ -112,7 +120,15 @@
     ],
     [
       "application",
+      "document"
+    ],
+    [
+      "application",
       "embedding"
+    ],
+    [
+      "application",
+      "github"
     ],
     [
       "application",
@@ -308,11 +324,23 @@
     ],
     [
       "github",
+      "application"
+    ],
+    [
+      "github",
+      "auth"
+    ],
+    [
+      "github",
       "candidate"
     ],
     [
       "github",
       "common"
+    ],
+    [
+      "github",
+      "matching"
     ],
     [
       "job",
@@ -543,6 +571,7 @@
     "application/ApplicationService.java -> cv.CVVersionRepository",
     "application/ApplicationService.java -> job.JobRepository",
     "application/ApplicationService.java -> matching.MatchResultRepository",
+    "application/CandidateApplicationService.java -> matching.MatchResultRepository",
     "auth/AuthService.java -> candidate.CandidateProfileRepository",
     "auth/AuthService.java -> candidate.CandidateTargetIndustryRepository",
     "auth/AuthService.java -> company.CompanyRepository",
@@ -556,6 +585,7 @@
     "company/service/CompanyVerificationService.java -> job.JobRepository",
     "company/service/CompanyVerificationService.java -> suspension.SuspensionRecordRepository",
     "config/JwtAuthenticationFilter.java -> user.UserRepository",
+    "cv/CVImageSetService.java -> candidate.CandidateProfileRepository",
     "cv/CVService.java -> candidate.CandidateProfileRepository",
     "cv/CVService.java -> matching.MatchResultRepository",
     "job/JobService.java -> company.RecruiterProfileRepository",

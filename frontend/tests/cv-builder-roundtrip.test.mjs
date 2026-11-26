@@ -4,8 +4,8 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
 const source = readFileSync(new URL('../src/lib/cvBuilderDraft.ts', import.meta.url), 'utf8');
-const module = await import(`data:text/javascript;base64,${Buffer.from(ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText).toString('base64')}`);
-const { buildCVBuilderPayload, mapCVBuilderDraft, readCVBuilderTemplate } = module;
+const cvBuilderModule = await import(`data:text/javascript;base64,${Buffer.from(ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText).toString('base64')}`);
+const { buildCVBuilderPayload, mapCVBuilderDraft, readCVBuilderTemplate } = cvBuilderModule;
 
 test('builder round-trip preserves ids, attachments, provenance and nested metadata', () => {
   const attachment = { attachment_id: 'att-1', file_name: 'certificate.pdf', file_size: 1234 };
