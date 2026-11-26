@@ -4,6 +4,7 @@ import com.platform.recruitment.application.*;
 import com.platform.recruitment.candidate.CandidateProfile;
 import com.platform.recruitment.candidate.CandidateProfileRepository;
 import com.platform.recruitment.common.DuplicateApplicationException;
+import com.platform.recruitment.common.CustomException;
 import com.platform.recruitment.cv.CV;
 import com.platform.recruitment.cv.CVRepository;
 import com.platform.recruitment.job.Job;
@@ -20,6 +21,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.platform.recruitment.company.RecruiterProfileRepository;
+import com.platform.recruitment.company.Company;
+import com.platform.recruitment.company.RecruiterProfile;
 import com.platform.recruitment.matching.CandidateRankingService;
 import com.platform.recruitment.matching.MatchResultRepository;
 import com.platform.recruitment.matching.MatchResult;
@@ -201,6 +204,56 @@ public class ApplicationDuplicateProtectionTest {
         assertTrue(exception.getMessage().contains("already submitted an application"));
         verify(applicationRepository, never()).save(any(Application.class));
         verify(snapshotRepository, never()).save(any(ApplicationCVSnapshot.class));
+    }
+
+    @Test
+    @DisplayName("A published job stops accepting applications after all vacancies are hired")
+    void testVacancyFilled_RejectedBeforeCvMutation() {
+        job1.setVacancyCount(2);
+        when(candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())).thenReturn(Optional.of(candidate));
+        when(jobRepository.findByIdForApply(job1.getId())).thenReturn(Optional.of(job1));
+        when(applicationRepository.countByJobIdAndStatus(job1.getId(), ApplicationStatus.HIRED)).thenReturn(2L);
+
+        CustomException exception = assertThrows(CustomException.class,
+                () -> applicationService.submitApplication(candidateUser, request1));
+
+        assertTrue(exception.getMessage().contains("tuyển đủ"));
+        verifyNoInteractions(cvRepository);
+        verify(applicationRepository, never()).save(any());
+        verify(snapshotRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Concurrent hiring cannot exceed the job vacancy count")
+    void testHireWhenVacancyFilled_RejectedUnderJobLock() {
+        Company company = Company.builder().name("MidCV").build();
+        company.setId(UUID.randomUUID());
+        job1.setCompany(company);
+        job1.setVacancyCount(1);
+        User recruiterUser = User.builder().email("hr@midcv.test").role(Role.HR).build();
+        recruiterUser.setId(UUID.randomUUID());
+        RecruiterProfile recruiter = RecruiterProfile.builder().user(recruiterUser).company(company).build();
+        Application application = Application.builder().job(job1).candidate(candidate)
+                .appliedCv(cv).status(ApplicationStatus.INTERVIEWING).build();
+        application.setId(UUID.randomUUID());
+
+        when(recruiterProfileRepository.findByUserId(recruiterUser.getId())).thenReturn(Optional.of(recruiter));
+        when(applicationRepository.findByIdForUpdate(application.getId())).thenReturn(Optional.of(application));
+        when(jobRepository.findByIdForUpdate(job1.getId())).thenReturn(Optional.of(job1));
+        when(applicationRepository.countByJobIdAndStatus(job1.getId(), ApplicationStatus.HIRED)).thenReturn(1L);
+        UpdateApplicationStatusRequest request = UpdateApplicationStatusRequest.builder()
+                .expectedStatus(ApplicationStatus.INTERVIEWING)
+                .status(ApplicationStatus.HIRED)
+                .decisionNote("Đạt yêu cầu")
+                .build();
+
+        CustomException exception = assertThrows(CustomException.class,
+                () -> applicationService.updateApplicationStatus(recruiterUser, application.getId(), request));
+
+        assertTrue(exception.getMessage().contains("tuyển đủ"));
+        verify(jobRepository).findByIdForUpdate(job1.getId());
+        verify(applicationRepository, never()).save(any());
+        verify(auditLogRepository, never()).save(any());
     }
 
     @Test

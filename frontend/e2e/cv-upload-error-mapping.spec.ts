@@ -183,6 +183,9 @@ test.describe('CV Upload Error Mapping & Accurate Messaging', () => {
         })
       });
     });
+    await page.route('**/api/v1/candidate/cvs/cv-new-123/processing-status', route => route.fulfill({
+      json: { code: 'SUCCESS', message: 'OK', data: { status: 'COMPLETED', progress: 100 } }
+    }));
 
     await page.goto('/candidate/cvs');
     await page.locator('#upload-cv-btn').click();

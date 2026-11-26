@@ -8,7 +8,7 @@ test('uploaded CV review has one persistent save action and preserves edits made
       id: 'candidate-review-test', email: 'candidate@example.com', fullName: 'Candidate Review',
       role: 'CANDIDATE', emailVerified: true,
     }));
-    window.localStorage.setItem('auth_token', 'jwt-review-test');
+    window.localStorage.setItem('auth_token', 'eyJhbGciOiJub25lIn0.eyJleHAiOjQxMDI0NDQ4MDB9.');
   });
 
   let persistedName = 'Nguyễn Văn A';
@@ -34,6 +34,9 @@ test('uploaded CV review has one persistent save action and preserves edits made
   });
   await page.route('**/api/v1/candidate/cvs/quota', (route) => route.fulfill({
     json: envelope({ plan: 'STANDARD', currentCount: 1, maxLimit: 3, remainingSlots: 2, canUpload: true }),
+  }));
+  await page.route('**/api/v1/account/avatar', (route) => route.fulfill({
+    json: envelope({ fullName: 'Candidate Review', emailVerified: true }),
   }));
   await page.route('**/api/v1/candidate/cvs/cv-uploaded-review/review', (route) => route.fulfill({
     json: envelope({
@@ -113,7 +116,7 @@ test('uploaded CV review has one persistent save action and preserves edits made
   await expect(modal.getByText('Lưu thất bại')).toBeVisible();
   await expect(nameInput).toHaveValue('Nguyễn Văn C');
   await modal.getByRole('button', { name: 'Thử lại' }).click();
-  await expect(modal.getByText('Đã lưu')).toBeVisible();
+  await expect(modal.getByText('Đã lưu', { exact: true })).toBeVisible();
   await expect(nameInput).toHaveValue('Nguyễn Văn C');
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(modal.getByRole('button', { name: 'Lưu bản nháp' })).toHaveCount(1);

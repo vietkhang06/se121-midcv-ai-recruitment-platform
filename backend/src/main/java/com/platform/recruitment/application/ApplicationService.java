@@ -148,6 +148,12 @@ public class ApplicationService {
                             job.getTitle(), job.getStatus()));
         }
         com.platform.recruitment.job.JobDeadline.requireOpen(job.getApplicationDeadline());
+        if (job.getVacancyCount() != null && job.getVacancyCount() > 0
+                && applicationRepository.countByJobIdAndStatus(job.getId(), ApplicationStatus.HIRED)
+                >= job.getVacancyCount()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                    "Tin tuyển dụng đã tuyển đủ số lượng ứng viên.");
+        }
 
         CV cv = cvRepository.findByIdForUpdate(request.getCvId())
                 .orElseThrow(() -> new ResourceNotFoundException("CV", "id", request.getCvId()));
@@ -391,6 +397,17 @@ public class ApplicationService {
                     snapshotRepository.findByApplicationId(applicationId).orElse(null));
         }
         previousStatus.validateTransition(request.getStatus(), request.getDecisionNote());
+        if (request.getStatus() == ApplicationStatus.HIRED) {
+            Job lockedJob = jobRepository.findByIdForUpdate(application.getJob().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Job", "id", application.getJob().getId()));
+            Integer vacancyCount = lockedJob.getVacancyCount();
+            if (vacancyCount != null && vacancyCount > 0
+                    && applicationRepository.countByJobIdAndStatus(lockedJob.getId(), ApplicationStatus.HIRED)
+                            >= vacancyCount) {
+                throw new CustomException(ErrorCode.INVALID_STATE_TRANSITION,
+                        "Tin tuyển dụng đã tuyển đủ số lượng ứng viên.");
+            }
+        }
         application.setStatus(request.getStatus());
         Application savedApplication = applicationRepository.save(application);
 

@@ -613,6 +613,28 @@ export function mapBackendCVToFrontend(value: unknown): CV {
   if (!raw || raw.id == null) {
     throw new Error('Dữ liệu CV không hợp lệ: thiếu id');
   }
+  const suppliedVersions = Array.isArray(raw.versions) ? raw.versions.filter(isRecord).map((version) => ({
+    id: readString(version.id || version.version_id, `v-${raw.id}`),
+    versionNumber: readNumber(version.versionNumber ?? version.version_number) ?? 1,
+    summaryText: readString(version.summaryText || version.summary_text) || undefined,
+    title: readString(version.title) || undefined,
+    status: readString(version.status) || undefined,
+    confirmedAt: readString(version.confirmedAt || version.confirmed_at) || undefined,
+    createdAt: readString(version.createdAt || version.created_at).split('T')[0],
+    sections: Array.isArray(version.sections) ? version.sections.filter(isRecord).map((section) => ({
+      id: readString(section.id) || undefined,
+      sectionType: readString(section.sectionType || section.section_type, 'SUMMARY'),
+      title: readString(section.title, 'Nội dung CV'),
+      content: readString(section.content),
+    })) : [],
+  })) : [];
+  const versions = suppliedVersions.length > 0 ? suppliedVersions : [{
+    id: `v-${raw.id}`,
+    versionNumber: 1,
+    title: readString(raw.title),
+    createdAt: raw.createdAt ? String(raw.createdAt).split('T')[0] : '',
+    sections: [{ id: `sec-${raw.id}`, sectionType: 'SUMMARY', title: 'Nội dung CV', content: readString(raw.rawText) }]
+  }];
   return {
     id: String(raw.id),
     title: readString(raw.title),
@@ -620,25 +642,11 @@ export function mapBackendCVToFrontend(value: unknown): CV {
     creationPath: raw.creationPath === 'BUILDER' ? 'BUILDER' : 'UPLOAD',
     isDefault: !!raw.isDefault,
     status: readString(raw.status, 'DRAFT'),
-    currentVersionNumber: 1,
+    currentVersionNumber: readNumber(raw.currentVersionNumber ?? raw.current_version_number)
+      ?? Math.max(...versions.map(version => version.versionNumber)),
     rawText: readString(raw.rawText),
     updatedAt: readString(raw.createdAt).split('T')[0],
-    versions: [
-      {
-        id: `v-${raw.id}`,
-        versionNumber: 1,
-        title: readString(raw.title),
-        createdAt: raw.createdAt ? String(raw.createdAt).split('T')[0] : '',
-        sections: [
-          {
-            id: `sec-${raw.id}`,
-            sectionType: 'SUMMARY',
-            title: 'Nội dung CV',
-            content: readString(raw.rawText)
-          }
-        ]
-      }
-    ]
+    versions
   };
 }
 
@@ -954,7 +962,18 @@ export class RealApiClient implements ApiClient {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    return getApiRows(json).map(mapBackendCVToFrontend);
+    const rows = getApiRows(json);
+    return Promise.all(rows.map(async row => {
+      if (!isRecord(row) || row.id == null) return mapBackendCVToFrontend(row);
+      try {
+        const versionJson = await apiRequest<unknown>(`/api/v1/candidate/cvs/${row.id}/versions`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        return mapBackendCVToFrontend({ ...row, versions: getApiRows(versionJson) });
+      } catch {
+        return mapBackendCVToFrontend(row);
+      }
+    }));
   }
 
   async fetchCVQuota(): Promise<CVQuota> {
