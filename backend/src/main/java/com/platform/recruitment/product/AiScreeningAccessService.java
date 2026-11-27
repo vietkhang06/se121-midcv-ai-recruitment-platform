@@ -32,7 +32,17 @@ public class AiScreeningAccessService {
 
   public Access evaluate(Application application) {
     if (application == null) return unavailable("APPLICATION_MISSING", "Không tìm thấy hồ sơ ứng tuyển.", false, null);
-    return evaluate(application.getJob(), Boolean.TRUE.equals(application.getAiAnalysisConsent()));
+    if (!Boolean.TRUE.equals(application.getAiAnalysisConsent()))
+      return evaluate(application.getJob(), false);
+    var company = application.getJob() == null ? null : application.getJob().getCompany();
+    if (Boolean.FALSE.equals(application.getAiScoringEligibleSnapshot()))
+      return unavailable("PACKAGE_NOT_ELIGIBLE", "Đơn không đủ điều kiện AI tại thời điểm nộp.", hasActivePro(company), company);
+    // A closed/edited posting does not invalidate a previously entitled immutable application.
+    if (Boolean.TRUE.equals(application.getAiScoringEligibleSnapshot())) {
+      boolean pro = hasActivePro(company);
+      return new Access(true, "AVAILABLE", "Đủ điều kiện chấm điểm AI.", pro, pro ? "PRO" : "STANDARD", application.getJob()!=null && isIt(application.getJob()));
+    }
+    return evaluate(application.getJob(), true);
   }
 
   public Access evaluate(Job job, boolean candidateConsent) {

@@ -53,6 +53,8 @@ public class PipelineWorker {
 
   @org.springframework.beans.factory.annotation.Autowired
   private com.platform.recruitment.matching.MatchingEngineService applicationMatching;
+  @org.springframework.beans.factory.annotation.Autowired(required = false)
+  private com.platform.recruitment.application.ApplicationAiDispatch applicationAiDispatch;
 
   @org.springframework.beans.factory.annotation.Autowired(required = false)
   private com.platform.recruitment.github.ApplicationGithubEvidenceService applicationGithub;
@@ -108,6 +110,10 @@ public class PipelineWorker {
 
   @Scheduled(fixedDelay = 1500)
   public void tick() {
+    if (applicationAiDispatch != null) {
+      try { applicationAiDispatch.dispatchOne(); applicationAiDispatch.promoteOne(); }
+      catch (Exception e) { events.failure(e, "APPLICATION_AI_DISPATCH_UNAVAILABLE"); }
+    }
     Optional<Map<String, Object>> claimed;
     try {
       claimed = queue.claim(worker);
@@ -593,29 +599,32 @@ public class PipelineWorker {
     if (versionedEmbeddingLifecycle == null)
       throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE, "Version-bound embedding lifecycle unavailable");
     queue.progress(processingJob, worker, owner, "EMBEDDING", 30, "Generating verified source-bound dense vector.");
-    versionedEmbeddingLifecycle.generate(versionId);
+    versionedEmbeddingLifecycle.generate(versionId, processingJob, worker);
     queue.progress(processingJob, worker, owner, "PGVECTOR_READY", 95, "Canonical pgvector stored.");
     queue.complete(processingJob, worker);
-    versionedEmbeddingLifecycle.enqueueAffectedMatches(versionId);
+    try { versionedEmbeddingLifecycle.enqueueAffectedMatches(versionId); }
+    catch (Exception e) { events.failure(e, "MATCH_PROMOTION_FAILED"); }
+  }
+
+  private static boolean matchEligible(Map<String, Object> app) {
+    return Boolean.TRUE.equals(app.get("ai_analysis_consent"))
+        && !Boolean.FALSE.equals(app.get("ai_scoring_eligible_snapshot"))
+        && !"WITHDRAWN".equals(app.get("status"));
   }
 
   private void processApplicationMatch(UUID processingJob, UUID applicationId) {
     var rows = jdbc.queryForList("SELECT job_id,candidate_id,status,ai_analysis_consent,ai_scoring_eligible_snapshot FROM applications WHERE id=?", applicationId);
     if (rows.isEmpty()) throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Application not found");
-    var app = rows.get(0);
-    if (Boolean.FALSE.equals(app.get("ai_analysis_consent")) || Boolean.FALSE.equals(app.get("ai_scoring_eligible_snapshot"))) {
-      queue.complete(processingJob, worker);
-      return;
-    }
-    if (!"WITHDRAWN".equals(app.get("status")) && applicationGithub != null) {
-      applicationGithub.capture(applicationId);
+    if (matchEligible(rows.getFirst()) && applicationGithub != null) {
+      if (!queue.ownsLease(processingJob, worker)) throw new CustomException(ErrorCode.JOB_LEASE_LOST, "MATCH lease expired");
+      applicationGithub.capture(applicationId, processingJob, worker);
       if (Thread.currentThread().isInterrupted()) throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "GitHub scan interrupted");
     }
     tx.executeWithoutResult(ignored -> {
+      var current = jdbc.queryForList("SELECT job_id,candidate_id,status,ai_analysis_consent,ai_scoring_eligible_snapshot FROM applications WHERE id=? FOR UPDATE", applicationId);
+      if (current.isEmpty()) throw new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "Application not found");
       queue.assertLease(processingJob, worker);
-      if (!"WITHDRAWN".equals(app.get("status"))) {
-        applicationMatching.calculateAndPersistMatchResult((UUID) app.get("job_id"), (UUID) app.get("candidate_id"));
-      }
+      if (matchEligible(current.getFirst())) applicationMatching.calculateQueuedMatch(applicationId);
       queue.complete(processingJob, worker);
     });
   }
@@ -770,7 +779,7 @@ public class PipelineWorker {
       if (applicationGithub != null) {
         var pending = jdbc.queryForList("""
                 SELECT a.id FROM applications a WHERE a.candidate_id=? AND a.ai_analysis_consent=true
-                  AND a.ai_scoring_eligible_snapshot=true AND a.status<>'WITHDRAWN'
+                  AND a.ai_scoring_eligible_snapshot=true AND a.ai_dispatch_pending=false AND a.status<>'WITHDRAWN'
                   AND a.github_username_snapshot IS NOT NULL
                   AND (a.github_scan_snapshot IS NULL OR (a.github_scan_snapshot::jsonb->>'status') IS DISTINCT FROM 'AVAILABLE'
                        OR a.github_scan_snapshot::jsonb->>'ownership_status' IS DISTINCT FROM 'OWNED'

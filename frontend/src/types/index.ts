@@ -64,6 +64,7 @@ export interface JobRequirement {
 
 export interface Job {
   id: string;
+  applicationRevision?: string;
   title: string;
   companyName: string;
   companyVerified: boolean;
@@ -121,6 +122,8 @@ export interface CV {
   isDefault: boolean;
   status?: string;
   currentVersionNumber: number;
+  confirmedVersionId?: string;
+  confirmedVersionNumber?: number;
   rawText?: string;
   updatedAt: string;
   versions: CVVersion[];
@@ -172,6 +175,11 @@ export interface Application {
   appliedCvTitle: string;
   appliedCvVersion: number | null;
   appliedCvVersionId?: string;
+  expectedCvVersionId?: string;
+  expectedJobRevision?: string;
+  aiProcessingStatus?: string;
+  appliedJdVersionId?: string;
+  submittedJobTitle?: string;
   candidateName?: string;
   candidateEmail?: string;
   candidatePhone?: string;

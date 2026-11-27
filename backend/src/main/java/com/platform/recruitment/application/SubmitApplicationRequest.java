@@ -16,4 +16,7 @@ public class SubmitApplicationRequest {
 
     /** Missing means no consent. The frontend requires an explicit choice. */
     private Boolean aiAnalysisConsent;
+    // Optional for older API clients. The new UI echoes the server-issued selection revisions.
+    private UUID expectedCvVersionId;
+    private String expectedJobRevision;
 }

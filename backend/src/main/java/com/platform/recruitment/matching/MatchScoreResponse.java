@@ -23,6 +23,8 @@ public class MatchScoreResponse {
     private BigDecimal githubScore;
     private UUID cvVersionId;
     private UUID jdVersionId;
+    private String previewScope;
+    private String jobRevision;
     private String semanticMethod;
     private String embeddingModel;
     private Integer scoringPolicyVersion;

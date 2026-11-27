@@ -65,6 +65,9 @@ public class ApplicationService {
     @Autowired
     private com.platform.recruitment.embedding.VersionedEmbeddingLifecycle vectorLifecycle;
 
+    @Autowired(required = false)
+    private com.platform.recruitment.matching.JobMatchingPolicyRepository aiPolicies;
+
     private final ApplicationRepository applicationRepository;
     private final ApplicationCVSnapshotRepository snapshotRepository;
     private final JobRepository jobRepository;
@@ -171,16 +174,20 @@ public class ApplicationService {
         List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cv.getId());
         CVVersion appliedVersion = versions.isEmpty() ? null : versions.get(0);
         com.platform.recruitment.cv.ConfirmedCvInput.requireConfirmed(appliedVersion, candidate.getId());
-        // Lazy backfill for CVs confirmed before this migration: every normal Quick Apply
-        // must trigger a real vector job for its exact pinned CV version.
+        requireSelectionRevision(request, job, appliedVersion);
+        // Only deterministic, mandatory snapshot writes are allowed before commit.
         boolean aiConsent = Boolean.TRUE.equals(request.getAiAnalysisConsent());
         boolean scoringEligible = aiConsent
                 && (aiScreeningAccess == null || aiScreeningAccess.evaluate(job, true).available());
-        if (scoringEligible && vectorLifecycle != null) vectorLifecycle.prepareConfirmedCv(appliedVersion, candidateUser.getId());
+        if (scoringEligible && vectorLifecycle != null) vectorLifecycle.prepareConfirmedCv(appliedVersion, candidateUser.getId(), false);
 
-        // Pin the exact JD version used at application time. Legacy jobs are lazily prepared.
-        UUID appliedJdVersionId = vectorLifecycle == null ? null : scoringEligible
-                ? vectorLifecycle.prepareJob(job) : vectorLifecycle.prepareJob(job, false);
+        // Pin the exact JD even for opt-out, without a provider/model/queue call.
+        UUID appliedJdVersionId = vectorLifecycle == null ? null : vectorLifecycle.prepareJob(job, false);
+        if (vectorLifecycle != null && appliedJdVersionId == null)
+            throw new IllegalStateException("JD version was not pinned");
+        var policy = aiPolicies == null ? com.platform.recruitment.matching.JobMatchingPolicy.createDefaultPolicy(job)
+                : aiPolicies.findByJobId(job.getId()).orElseGet(() -> com.platform.recruitment.matching.JobMatchingPolicy.createDefaultPolicy(job));
+        String policySnapshot = com.platform.recruitment.matching.ApplicationAiPolicy.encode(policy);
 
         // Use the submitted CV's explicit handle first. An omitted handle may use the
         // saved profile or linked OAuth account; never substitute for an invalid explicit URL.
@@ -207,6 +214,8 @@ public class ApplicationService {
                 .aiConsentAt(aiConsent ? java.time.ZonedDateTime.now() : null)
                 .aiConsentVersion("quick-apply-v1")
                 .aiScoringEligibleSnapshot(scoringEligible)
+                .aiDispatchPending(scoringEligible && vectorLifecycle != null)
+                .aiPolicySnapshot(policySnapshot)
                 .githubSnapshotContract("public-evidence-v1")
                 .githubUsernameSnapshot(githubHandle)
                 .status(ApplicationStatus.SUBMITTED)
@@ -231,17 +240,15 @@ public class ApplicationService {
                 JOIN document_versions v ON v.id=p.document_version_id WHERE s.cv_version_id=? ORDER BY s.page_order
                 """, savedApplication.getId(), appliedVersion.getId());
 
-        // Store the task with the application and snapshot. The worker scores committed applications.
-        if (scoringEligible && vectorLifecycle != null) {
-            vectorLifecycle.enqueueApplicationMatch(candidateUser.getId(), savedApplication.getId());
-        }
+        // The durable dispatch intent is already stored on the application. A separate worker
+        // transaction enqueues AI jobs; queue/provider outages cannot roll back this submission.
 
         if(inbox!=null) inbox.applicationEvent(savedApplication,false);
         return mapToResponse(savedApplication, snapshot);
     }
 
     /** Read-only preview for the selected confirmed CV; does not create an application. */
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public MatchScoreResponse previewApplication(User candidateUser, SubmitApplicationRequest request) {
         if (!Boolean.TRUE.equals(request.getAiAnalysisConsent())) {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "Cần đồng ý phân tích CV trước khi xem đối sánh.");
@@ -254,10 +261,11 @@ public class ApplicationService {
         if (job.getStatus() != JobStatus.PUBLISHED) {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "Chỉ có thể xem đối sánh cho tin đang đăng.");
         }
-        if (job.getApplicationDeadline() != null
-                && job.getApplicationDeadline().isBefore(java.time.LocalDate.now())) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, "Đã hết hạn nhận hồ sơ cho tin tuyển dụng này.");
-        }
+        com.platform.recruitment.job.JobDeadline.requireOpen(job.getApplicationDeadline());
+        if (suspensionGuard != null && job.getCompany() != null)
+            suspensionGuard.checkCompanyOperationAllowed(job.getCompany());
+        if (aiScreeningAccess != null && !aiScreeningAccess.evaluate(job, true).available())
+            throw new CustomException(ErrorCode.ACCESS_DENIED, "Tin tuyển dụng không đủ điều kiện phân tích AI.");
         CV cv = cvRepository.findById(request.getCvId())
                 .orElseThrow(() -> new ResourceNotFoundException("CV", "id", request.getCvId()));
         if (!cv.getCandidate().getId().equals(candidate.getId())) {
@@ -266,8 +274,22 @@ public class ApplicationService {
         List<CVVersion> versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cv.getId());
         CVVersion version = versions.isEmpty() ? null : versions.get(0);
         com.platform.recruitment.cv.ConfirmedCvInput.requireConfirmed(version, candidate.getId());
-        return MatchScoreResponse.fromEntity(
+        requireSelectionRevision(request, job, version);
+        MatchScoreResponse preview = MatchScoreResponse.fromEntity(
                 matchingEngineService.previewMatch(job.getId(), candidate.getId(), version.getId()));
+        preview.setPreviewScope("CORE_ONLY");
+        preview.setCvVersionId(version.getId());
+        preview.setJobRevision(com.platform.recruitment.embedding.VersionedEmbeddingLifecycle.applicationRevision(job));
+        return preview;
+    }
+
+    private static void requireSelectionRevision(SubmitApplicationRequest request, Job job, CVVersion version) {
+        if ((request.getExpectedCvVersionId() != null && !request.getExpectedCvVersionId().equals(version.getId()))
+                || (request.getExpectedJobRevision() != null && !request.getExpectedJobRevision().equals(
+                    com.platform.recruitment.embedding.VersionedEmbeddingLifecycle.applicationRevision(job)))) {
+            throw new CustomException(ErrorCode.CONCURRENT_MODIFICATION,
+                    "CV hoặc JD đã thay đổi. Hãy tải lại tin tuyển dụng, chọn CV và xác nhận lại trước khi nộp.");
+        }
     }
 
     public static final java.util.Set<String> ALLOWED_APPLICATION_SORT_FIELDS = java.util.Set.of(
@@ -567,7 +589,13 @@ public class ApplicationService {
         ApplicationCVSnapshot snap = snapshotRepository.findByApplicationId(application.getId()).orElse(null);
         if (entitlements != null) entitlements.view(recruiterUser, applicationId);
         if(inbox!=null) inbox.view(application,recruiterUser);
-        return recruiterResponse(recruiterUser, application, snap);
+        ApplicationResponse response = recruiterResponse(recruiterUser, application, snap);
+        if (jdbcTemplate != null && application.getAppliedJdVersionId() != null) {
+            var titles = jdbcTemplate.query("SELECT normalized->>'title' FROM document_versions WHERE id=? AND document_id=?",
+                    (rs, n) -> rs.getString(1), application.getAppliedJdVersionId(), application.getJob().getId());
+            if (!titles.isEmpty()) response.setSubmittedJobTitle(titles.getFirst());
+        }
+        return response;
     }
 
     // Checking access also locks rows and records the CV view.
@@ -655,8 +683,9 @@ public class ApplicationService {
         }
 
         BigDecimal matchScore = null;
-        String matchStatus = Boolean.FALSE.equals(app.getAiAnalysisConsent()) ? "CONSENT_NOT_GIVEN" : null;
-        if (matchResultRepository != null && !"CONSENT_NOT_GIVEN".equals(matchStatus)) {
+        String matchStatus = Boolean.FALSE.equals(app.getAiAnalysisConsent()) ? "CONSENT_NOT_GIVEN"
+                : Boolean.FALSE.equals(app.getAiScoringEligibleSnapshot()) ? "PACKAGE_NOT_ELIGIBLE" : null;
+        if (matchResultRepository != null && matchStatus == null) {
             var matchOpt = matchResultRepository.findByApplicationId(app.getId());
             if (matchOpt.isPresent()) {
                 matchStatus = matchOpt.get().getStatus();
@@ -679,7 +708,11 @@ public class ApplicationService {
             }
         }
 
+        String processing = ApplicationAiState.resolve(app, matchStatus, jdbcTemplate);
+        if (matchStatus == null) matchStatus = processing;
         return ApplicationResponse.builder()
+                .aiProcessingStatus(processing)
+                .appliedJdVersionId(app.getAppliedJdVersionId())
                 .id(app.getId())
                 .jobId(app.getJob().getId())
                 .jobTitle(app.getJob().getTitle())

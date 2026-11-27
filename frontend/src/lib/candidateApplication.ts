@@ -27,6 +27,7 @@ export type CandidateApplicationDetail = {
   skillGapAvailable: boolean;
   matchScore: number | null;
   matchStatus: string | null;
+  aiProcessingStatus?: string | null;
 };
 
 export type CandidateApplicationHistory = {

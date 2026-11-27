@@ -28,5 +28,7 @@ public class CVResponse {
     private Boolean isDefault;
     private UUID jobId;
     private UUID documentVersionId;
+    private UUID confirmedVersionId;
+    private Integer confirmedVersionNumber;
     private ZonedDateTime createdAt;
 }

@@ -81,6 +81,29 @@ public class MatchingEngineService {
     public MatchResult calculateAndPersistMatchResult(UUID jobId, UUID candidateId) {
         Application application = applicationRepository.findByJobIdAndCandidateId(jobId, candidateId)
                 .orElseThrow(() -> new ResourceNotFoundException("Application", "job/candidate", jobId));
+        if (entityManager != null) entityManager.refresh(application, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        requireEligibleApplication(application);
+        return calculate(application, application.getAppliedCvVersion(), true, null);
+    }
+
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.platform.recruitment.application.ApplicationCVSnapshotRepository applicationSnapshots;
+
+    @Transactional
+    public MatchResult calculateQueuedMatch(UUID applicationId) {
+        Application application = applicationRepository.findByIdForUpdate(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Application", "id", applicationId));
+        requireEligibleApplication(application);
+        String snapshot = application.getAiRequestedPolicySnapshot() != null
+                ? application.getAiRequestedPolicySnapshot() : application.getAiPolicySnapshot();
+        return calculate(application, application.getAppliedCvVersion(), true, snapshot);
+    }
+
+    private void requireEligibleApplication(Application application) {
+        if ("WITHDRAWN".equals(String.valueOf(application.getStatus())))
+            throw new com.platform.recruitment.common.CustomException(com.platform.recruitment.common.ErrorCode.ACCESS_DENIED, "Application withdrawn");
         // Applications created with the explicit Quick Apply consent contract must never be
         // scored by a manual recalculation, worker retry or policy update after consent was declined.
         if ("quick-apply-v1".equals(application.getAiConsentVersion())
@@ -93,7 +116,6 @@ public class MatchingEngineService {
             throw new com.platform.recruitment.common.CustomException(com.platform.recruitment.common.ErrorCode.ACCESS_DENIED,
                     "Đơn ứng tuyển không đủ điều kiện phân tích AI tại thời điểm nộp.");
         }
-        return calculate(application, application.getAppliedCvVersion(), true);
     }
 
     @Transactional(readOnly = true)
@@ -110,15 +132,24 @@ public class MatchingEngineService {
                 .orElseThrow(() -> new ResourceNotFoundException("CVVersion", "id", cvVersionId));
         Application context = Application.builder().job(job).candidate(candidate)
                 .appliedCv(version.getCv()).appliedCvVersion(version).build();
-        return calculate(context, version, false);
+        return calculate(context, version, false, null);
     }
 
-    private MatchResult calculate(Application application, CVVersion inputVersion, boolean persist) {
+    private MatchResult calculate(Application application, CVVersion inputVersion, boolean persist, String pinnedPolicy) {
         Job job = application.getJob();
         CandidateProfile candidate = application.getCandidate();
         UUID jobId = job.getId(), candidateId = candidate.getId();
         com.platform.recruitment.cv.ConfirmedCvInput.requireConfirmed(inputVersion, candidateId);
         String cvRawText = com.platform.recruitment.cv.ConfirmedCvInput.text(inputVersion);
+        if (persist && application.getAiPolicySnapshot() != null && applicationSnapshots != null) {
+            var snapshot = applicationSnapshots.findByApplicationId(application.getId())
+                    .orElseThrow(() -> new com.platform.recruitment.common.CustomException(
+                            com.platform.recruitment.common.ErrorCode.VALIDATION_ERROR, "Missing immutable application CV snapshot"));
+            if (!java.util.Objects.equals(snapshot.getStructuredJsonSnapshot(), inputVersion.getStructuredJsonContent())
+                    || !java.util.Objects.equals(snapshot.getRawTextSnapshot(), java.util.Objects.toString(inputVersion.getRawTextContent(), "")))
+                throw new com.platform.recruitment.common.CustomException(
+                        com.platform.recruitment.common.ErrorCode.CONCURRENT_MODIFICATION, "Pinned CV no longer matches submitted snapshot");
+        }
 
         // Insufficient candidate data handling: DO NOT calculate misleading scores
         if (cvRawText == null || cvRawText.trim().isEmpty()) {
@@ -211,7 +242,7 @@ public class MatchingEngineService {
         }
 
         // 3. Load or Default Job Matching Policy
-        JobMatchingPolicy policy = (jobMatchingPolicyRepository != null)
+        JobMatchingPolicy policy = pinnedPolicy != null ? ApplicationAiPolicy.decode(pinnedPolicy, job) : (jobMatchingPolicyRepository != null)
                 ? jobMatchingPolicyRepository.findByJobId(jobId).orElse(null)
                 : null;
         if (policy == null) {
@@ -366,8 +397,8 @@ public class MatchingEngineService {
         boolean snapshotContract = applicationGithub != null && persist;
         var githubEvaluation = snapshotContract ? applicationGithub.evaluate(application, jdContext.industry(), jdText,
                 allReqs.stream().map(JobRequirement::getSkillName).toList(), policyGithubActive && cfgGithub != null && cfgGithub.signum()>0) : null;
-        Optional<BigDecimal> githubScoreOpt = githubEvaluation != null ? Optional.ofNullable(githubEvaluation.score())
-                : applicationGithub != null && !persist ? Optional.empty()
+        Optional<BigDecimal> githubScoreOpt = !persist ? Optional.empty()
+                : githubEvaluation != null ? Optional.ofNullable(githubEvaluation.score())
                 : gitHubScoringService.calculateGitHubSupportingScore(candidateId, jdContext.industry(), jdText);
 
         String statusGithub;
@@ -404,6 +435,18 @@ public class MatchingEngineService {
                         .application(application)
                         .build());
 
+        if (persist && result.getId() != null && jdbcTemplate != null && application.getAiPolicySnapshot() != null) {
+            // Capture prior result and its factors/evidence before any mutation/deletion.
+            jdbcTemplate.update("""
+                INSERT INTO application_match_history(application_id,match_result_id,result_snapshot,factor_snapshot,evidence_snapshot)
+                SELECT m.application_id,m.id,to_jsonb(m),
+                       COALESCE((SELECT jsonb_agg(to_jsonb(f)) FROM match_factors f WHERE f.match_result_id=m.id),'[]'::jsonb),
+                       COALESCE((SELECT jsonb_agg(to_jsonb(e)) FROM evidences e WHERE e.match_result_id=m.id),'[]'::jsonb)
+                  FROM match_results m WHERE m.id=?
+                """, result.getId());
+        }
+        if (persist && pinnedPolicy == null && application.getAiPolicySnapshot() != null)
+            application.setAiRequestedPolicySnapshot(ApplicationAiPolicy.encode(policy));
         result.setCoreScore(scoreCore);
         result.setGithubScore(scoreGithub);
         if (githubEvaluation != null) result.setGithubAssessmentSnapshot(applicationGithub.serialize(githubEvaluation.assessment()));
@@ -452,7 +495,7 @@ public class MatchingEngineService {
         saveMatchFactor(savedResult, "SKILL_PREFERRED", "Kỹ năng ưu tiên", "CV", scorePref, scorePref, scorePref,
                 cfgPref, effPref, contribPref, statusPref, "KEYWORD_FREQUENCY_MATCH", skillPrefEvidence);
 
-        String expEvidenceRef = String.format("Kinh nghiệm làm việc được ghi nhận trong CV với mức đánh giá %s%% phù hợp ngành %s.", expScore, job.getIndustry());
+        String expEvidenceRef = String.format("Kinh nghiệm làm việc được ghi nhận trong CV với mức đánh giá %s%% phù hợp ngành %s.", expScore, jdContext.industry());
         saveMatchFactor(savedResult, "EXPERIENCE", "Kinh nghiệm làm việc", "CV", scoreExp, scoreExp, scoreExp,
                 cfgExp, effExp, contribExp, statusExp, "RELEVANT_YEARS_EXTRACTION", expEvidenceRef);
 
@@ -513,7 +556,7 @@ public class MatchingEngineService {
                         .sourceType("CV")
                         .sourceId(cvDocVersionId != null ? cvDocVersionId.toString() : null)
                         .section("EXPERIENCE")
-                        .requirementText("Kinh nghiệm làm việc phù hợp ngành " + job.getIndustry())
+                        .requirementText("Kinh nghiệm làm việc phù hợp ngành " + jdContext.industry())
                         .snippet(cvRawText.substring(0, Math.min(cvRawText.length(), 180)))
                         .sourceVersionId(cvDocVersionId)
                         .contentSha256(com.platform.recruitment.document.Documents.shaHex(cvRawText))
@@ -575,8 +618,18 @@ public class MatchingEngineService {
         UUID jobId = application.getJob().getId();
         UUID candidateId = application.getCandidate().getId();
 
-        MatchResult result = matchResultRepository.findByApplicationId(applicationId)
-                .orElseGet(() -> calculateAndPersistMatchResult(jobId, candidateId));
+        if (Boolean.FALSE.equals(application.getAiScoringEligibleSnapshot()))
+            throw new com.platform.recruitment.common.CustomException(com.platform.recruitment.common.ErrorCode.ACCESS_DENIED, "Application is not eligible for AI");
+        var storedResult = matchResultRepository.findByApplicationId(applicationId);
+        if ("quick-apply-v1".equals(application.getAiConsentVersion())
+                && (storedResult.isEmpty() || "STALE_POLICY".equals(storedResult.get().getStatus()))) {
+            return MatchInspectionResponse.builder().applicationId(applicationId)
+                    .jobTitle(scoringJd(application).title()).candidateName(application.getCandidate().getFullName())
+                    .calculationStatus(com.platform.recruitment.application.ApplicationAiState.resolve(application,
+                            storedResult.map(MatchResult::getStatus).orElse(null), jdbcTemplate))
+                    .detailAccess(false).build();
+        }
+        MatchResult result = storedResult.orElseGet(() -> calculateAndPersistMatchResult(jobId, candidateId));
         if ("STALE_POLICY".equals(result.getStatus())) {
             // Never present stale factors as if they were current on the HR inspection path.
             result = calculateAndPersistMatchResult(jobId, candidateId);
@@ -585,7 +638,8 @@ public class MatchingEngineService {
         Job job = application.getJob();
         CandidateProfile candidate = application.getCandidate();
 
-        List<JobRequirement> allReqs = scoringJd(application).requirements();
+        JdContext pinnedJd = scoringJd(application);
+        List<JobRequirement> allReqs = pinnedJd.requirements();
 
         com.platform.recruitment.cv.ConfirmedCvInput.requireConfirmed(application.getAppliedCvVersion(), candidateId);
         String cvRawText = com.platform.recruitment.cv.ConfirmedCvInput.text(application.getAppliedCvVersion());
@@ -768,7 +822,7 @@ public class MatchingEngineService {
 
         return MatchInspectionResponse.builder()
                 .applicationId(applicationId)
-                .jobTitle(job.getTitle())
+                .jobTitle(pinnedJd.title())
                 .candidateName(candidate.getFullName())
                 .algorithmVersion(result.getMatchingAlgorithmVersion() != null ? result.getMatchingAlgorithmVersion() : "v2.0")
                 .calculationStatus(result.getStatus())
@@ -868,13 +922,15 @@ public class MatchingEngineService {
         } catch (Exception ex) { return null; }
     }
 
-    private record JdContext(String description, String industry, List<JobRequirement> requirements) {}
+    private record JdContext(String title, String description, String industry, List<JobRequirement> requirements) {}
 
     private JdContext scoringJd(Application application) {
         Job job = application.getJob();
-        List<JobRequirement> current = jobRequirementRepository.findByJobId(job.getId());
-        if (jdbcTemplate == null || application.getAppliedJdVersionId() == null)
-            return new JdContext(job.getDescription(), job.getIndustry(), current);
+        if (jdbcTemplate == null || application.getAppliedJdVersionId() == null) {
+            if (application.getAiPolicySnapshot() != null && jdbcTemplate != null)
+                throw new com.platform.recruitment.common.CustomException(com.platform.recruitment.common.ErrorCode.VALIDATION_ERROR, "Missing pinned JD version");
+            return new JdContext(job.getTitle(), job.getDescription(), job.getIndustry(), jobRequirementRepository.findByJobId(job.getId()));
+        }
         List<String> jsons = jdbcTemplate.query(
                 "SELECT normalized::text FROM document_versions WHERE id=? AND document_id=?",
                 (rs, i) -> rs.getString(1), application.getAppliedJdVersionId(), job.getId());
@@ -895,7 +951,7 @@ public class MatchingEngineService {
                         .requirementType(RequirementType.valueOf(type))
                         .minYearsExp(requirement.path("minYears").asInt(0)).build());
             }
-            return new JdContext(root.path("description").asText(""), root.path("industry").asText(""), pinned);
+            return new JdContext(root.path("title").asText(""), root.path("description").asText(""), root.path("industry").asText(""), pinned);
         } catch (Exception e) {
             throw new com.platform.recruitment.common.CustomException(
                     com.platform.recruitment.common.ErrorCode.VALIDATION_ERROR,

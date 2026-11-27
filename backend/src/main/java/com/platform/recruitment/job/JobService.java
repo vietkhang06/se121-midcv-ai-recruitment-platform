@@ -223,6 +223,9 @@ public class JobService {
         return mapToResponse(closedJob);
     }
 
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
     @Transactional
     public JobResponse updateJob(User recruiterUser, UUID jobId, CreateJobRequest request) {
         if (suspensionGuard != null) {
@@ -231,6 +234,8 @@ public class JobService {
 
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job", "id", jobId));
+
+        if (entityManager != null) entityManager.refresh(job, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
 
         if (recruiterUser.getRole() != com.platform.recruitment.user.Role.ADMIN) {
             RecruiterProfile owner = recruiterProfileRepository.findByUserId(recruiterUser.getId())
@@ -524,6 +529,7 @@ public class JobService {
 
         return JobResponse.builder()
                 .id(job.getId())
+                .applicationRevision(com.platform.recruitment.embedding.VersionedEmbeddingLifecycle.applicationRevision(job))
                 .companyId(job.getCompany().getId())
                 .companyName(job.getCompany().getName())
                 .title(job.getTitle())

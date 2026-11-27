@@ -148,10 +148,10 @@ public class ApplicationDuplicateProtectionTest {
     }
 
     @Test
-    void consentedQuickApplyQueuesMatchAndPersistsEvenIfMatchingIsUnavailable() {
+    void consentedQuickApplyStoresDurableDispatchIntentWithoutCallingQueue() {
         var lifecycle = mock(com.platform.recruitment.embedding.VersionedEmbeddingLifecycle.class);
         org.springframework.test.util.ReflectionTestUtils.setField(applicationService, "vectorLifecycle", lifecycle);
-        when(lifecycle.prepareJob(job1)).thenReturn(UUID.randomUUID());
+        when(lifecycle.prepareJob(job1, false)).thenReturn(UUID.randomUUID());
         request1.setAiAnalysisConsent(true);
         when(candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())).thenReturn(Optional.of(candidate));
         when(jobRepository.findByIdForApply(job1.getId())).thenReturn(Optional.of(job1));
@@ -170,7 +170,10 @@ public class ApplicationDuplicateProtectionTest {
         assertNotNull(captured.getValue().getAiConsentAt());
         assertEquals("quick-apply-v1", captured.getValue().getAiConsentVersion());
         verify(snapshotRepository).save(any(ApplicationCVSnapshot.class));
-        verify(lifecycle).enqueueApplicationMatch(candidateUser.getId(), response.getId());
+        assertTrue(captured.getValue().getAiDispatchPending());
+        assertNotNull(captured.getValue().getAiPolicySnapshot());
+        verify(lifecycle, never()).enqueueApplicationMatch(any(), any());
+        verify(lifecycle).prepareConfirmedCv(any(), eq(candidateUser.getId()), eq(false));
         verifyNoInteractions(matchingEngineService);
     }
 
@@ -278,5 +281,59 @@ public class ApplicationDuplicateProtectionTest {
         assertNotNull(response);
         assertEquals(job2.getId(), response.getJobId());
         verify(applicationRepository, times(1)).save(any(Application.class));
+    }
+    private void submitLookup() {
+        when(candidateProfileRepository.findByUserIdForUpdate(candidateUser.getId())).thenReturn(Optional.of(candidate));
+        when(jobRepository.findByIdForApply(job1.getId())).thenReturn(Optional.of(job1));
+        when(cvRepository.findByIdForUpdate(cv.getId())).thenReturn(Optional.of(cv));
+    }
+
+    @Test void staleCvVersionRejectsBeforeAnySnapshotOrAiWork() {
+        submitLookup();
+        request1.setExpectedCvVersionId(UUID.randomUUID());
+        var error = assertThrows(com.platform.recruitment.common.CustomException.class,
+                () -> applicationService.submitApplication(candidateUser, request1));
+        assertEquals(com.platform.recruitment.common.ErrorCode.CONCURRENT_MODIFICATION, error.getErrorCode());
+        verify(applicationRepository, never()).save(any());
+        verifyNoInteractions(snapshotRepository, matchingEngineService);
+    }
+
+    @Test void staleJdRevisionRejectsBeforeSave() {
+        submitLookup();
+        request1.setExpectedJobRevision("stale-revision");
+        var error = assertThrows(com.platform.recruitment.common.CustomException.class,
+                () -> applicationService.submitApplication(candidateUser, request1));
+        assertEquals(com.platform.recruitment.common.ErrorCode.CONCURRENT_MODIFICATION, error.getErrorCode());
+        verify(applicationRepository, never()).save(any());
+        verifyNoInteractions(snapshotRepository, matchingEngineService);
+    }
+
+    @Test void missingMandatoryJdPinCannotReportSubmissionSuccess() {
+        submitLookup();
+        var lifecycle = mock(com.platform.recruitment.embedding.VersionedEmbeddingLifecycle.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(applicationService, "vectorLifecycle", lifecycle);
+        assertThrows(IllegalStateException.class, () -> applicationService.submitApplication(candidateUser, request1));
+        verify(applicationRepository, never()).save(any());
+        verifyNoInteractions(snapshotRepository, matchingEngineService);
+    }
+
+    @Test void previewRequiresExplicitConsentBeforeDatabaseOrAiCalls() {
+        assertThrows(com.platform.recruitment.common.CustomException.class,
+                () -> applicationService.previewApplication(candidateUser, request1));
+        verifyNoInteractions(candidateProfileRepository, jobRepository, matchingEngineService, snapshotRepository);
+    }
+
+    @Test void previewRequiresEntitlementBeforeInvokingMatching() {
+        request1.setAiAnalysisConsent(true);
+        when(candidateProfileRepository.findByUserId(candidateUser.getId())).thenReturn(Optional.of(candidate));
+        when(jobRepository.findById(job1.getId())).thenReturn(Optional.of(job1));
+        var access = mock(com.platform.recruitment.product.AiScreeningAccessService.class);
+        applicationService.setAiScreeningAccess(access);
+        when(access.evaluate(job1, true)).thenReturn(new com.platform.recruitment.product.AiScreeningAccessService.Access(false,
+                "PACKAGE_NOT_ELIGIBLE", "Not eligible", false, "STANDARD", false));
+        var error = assertThrows(com.platform.recruitment.common.CustomException.class,
+                () -> applicationService.previewApplication(candidateUser, request1));
+        assertEquals(com.platform.recruitment.common.ErrorCode.ACCESS_DENIED, error.getErrorCode());
+        verifyNoInteractions(matchingEngineService, snapshotRepository, applicationRepository);
     }
 }
