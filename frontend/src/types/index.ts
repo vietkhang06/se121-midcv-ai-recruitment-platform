@@ -257,7 +257,7 @@ export interface GitHubRepoItem {
 export interface GitHubAssessmentData {
   connected: boolean;
   scoringEligible?: boolean;
-  status?: 'SYNCED' | 'NOT_CONNECTED' | 'PUBLIC_ONLY' | 'PRIVATE_ONLY' | 'API_UNAVAILABLE' | 'NOT_APPLICABLE' | 'RATE_LIMITED' | 'NOT_FOUND' | 'PENDING' | 'LEGACY_MISSING_DATA';
+  status?: 'SYNCED' | 'NOT_CONNECTED' | 'PUBLIC_ONLY' | 'PRIVATE_ONLY' | 'NO_PUBLIC_REPOSITORIES' | 'API_UNAVAILABLE' | 'NOT_APPLICABLE' | 'RATE_LIMITED' | 'NOT_FOUND' | 'PENDING' | 'LEGACY_MISSING_DATA';
   fetchedAt?: string;
   scanScope?: string;
   username?: string;
@@ -337,9 +337,7 @@ export interface MatchInspectionData {
 }
 
 export interface AiSettings {
-  provider: 'LOCAL_OLLAMA' | 'CLOUD_OPENAI_COMPATIBLE';
-  ollamaUrl: string;
-  ollamaModel: string;
+  provider: 'CLOUD_OPENAI_COMPATIBLE';
   cloudBaseUrl: string;
   cloudApiKeyMasked?: string;
   hasCloudApiKey?: boolean;
@@ -590,7 +588,6 @@ export interface AdminDashboardStats {
   recentAuditLogs: AdminAuditLogDto[];
   aiStatus: {
     provider?: string;
-    ollamaModel?: string;
     cloudModel?: string;
     hasCloudApiKey?: boolean;
   };

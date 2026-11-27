@@ -1,111 +1,50 @@
-import math
-import time
-import logging
-from typing import List, Dict, Any, Optional
-import httpx
-from app.config import settings
-from app.services.llm.types import safe_error_category
+"""Dense vectors from the configured OpenAI-compatible embedding endpoint."""
 
-logger = logging.getLogger(__name__)
+import math
+
+import httpx
+
+from app.config import settings
+
 
 class EmbeddingError(Exception):
-    """Exception raised when embedding generation fails."""
-    def __init__(self, message: str, status_code: int = 500, details: Optional[Dict[str, Any]] = None):
-        self.message = message
-        self.status_code = status_code
-        self.details = details or {}
-        super().__init__(f"Embedding generation error ({status_code}): {message}")
+    pass
 
 
-class OllamaEmbeddingService:
-    """
-    MidCV Local Embedding Service utilizing Ollama bge-m3.
-    Generates authentic 1024-dimensional normalized dense vectors.
-    """
-    def __init__(
-        self,
-        base_url: Optional[str] = None,
-        model_name: Optional[str] = None,
-        timeout: float = 60.0
-    ):
-        self.base_url = (base_url or settings.OLLAMA_BASE_URL).rstrip("/")
-        self.model_name = model_name or settings.EMBEDDING_MODEL
-        self.timeout = timeout
-
-    def embed_text(self, text: str) -> List[float]:
-        """
-        Generates embedding vector for a single input text string.
-        Returns a 1024-dimensional float list.
-        """
-        if not text or not text.strip():
-            raise EmbeddingError("Input text for embedding cannot be empty.", status_code=400)
-
-        embeddings = self.embed_batch([text])
-        if not embeddings:
-            raise EmbeddingError("Ollama returned empty embedding response.", status_code=502)
-        return embeddings[0]
-
-    def embed_batch(self, texts: List[str]) -> List[List[float]]:
-        """
-        Generates embedding vectors for a list of input texts.
-        Uses Ollama's /api/embed endpoint.
-        """
+class ProviderEmbeddingService:
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
+        if any(not text.strip() for text in texts):
+            raise EmbeddingError("Embedding input must contain text.")
+        if not settings.EMBEDDING_API_KEY:
+            raise EmbeddingError("Embedding provider API key is missing.")
 
-        url = f"{self.base_url}/api/embed"
-        payload = {
-            "model": self.model_name,
-            "input": texts
-        }
-
-        t0 = time.time()
         try:
-            with httpx.Client(timeout=self.timeout) as client:
-                resp = client.post(url, json=payload)
-        except Exception as e:
-            logger.error("[Ollama Embedding] Connection failed [category=%s]", safe_error_category(e))
-            raise EmbeddingError("Failed to connect to Ollama embedding endpoint", status_code=503)
-
-        if resp.is_error:
-            logger.error("[Ollama Embedding] HTTP %s [body_redacted=true, body_length=%s]", resp.status_code, len(resp.text))
-            raise EmbeddingError(
-                "Ollama embedding request failed",
-                status_code=resp.status_code,
-                details={"model": self.model_name}
-            )
-
-        data = resp.json()
-        embeddings = data.get("embeddings", [])
-        if not embeddings:
-            raise EmbeddingError(f"No embeddings returned from model {self.model_name}", status_code=502)
-
-        dimension = len(embeddings[0]) if embeddings else 0
-        elapsed = time.time() - t0
-        logger.info(
-            f"[Ollama Embedding] Generated {len(embeddings)} vectors "
-            f"(dim={dimension}) using {self.model_name} in {elapsed:.2f}s"
-        )
-        return embeddings
-
-    @staticmethod
-    def cosine_similarity(vec_a: List[float], vec_b: List[float]) -> float:
-        """
-        Calculates cosine similarity between two float vectors.
-        Returns similarity score in range [-1.0, 1.0].
-        """
-        if not vec_a or not vec_b:
-            return 0.0
-
-        dot_product = sum(a * b for a, b in zip(vec_a, vec_b))
-        norm_a = math.sqrt(sum(a * a for a in vec_a))
-        norm_b = math.sqrt(sum(b * b for b in vec_b))
-
-        if norm_a == 0.0 or norm_b == 0.0:
-            return 0.0
-
-        return dot_product / (norm_a * norm_b)
+            with httpx.Client(timeout=settings.EMBEDDING_TIMEOUT_SECONDS) as client:
+                response = client.post(
+                    settings.EMBEDDING_BASE_URL.rstrip("/") + "/embeddings",
+                    headers={"Authorization": f"Bearer {settings.EMBEDDING_API_KEY}"},
+                    json={"model": settings.EMBEDDING_MODEL, "input": texts,
+                          "dimensions": settings.EMBEDDING_DIMENSION},
+                )
+                response.raise_for_status()
+                payload = response.json()
+            if payload.get("model") != settings.EMBEDDING_MODEL:
+                raise ValueError("Embedding model mismatch")
+            rows = sorted(payload["data"], key=lambda row: row["index"])
+            if [row["index"] for row in rows] != list(range(len(texts))):
+                raise ValueError("Embedding response indices mismatch")
+            vectors = [row["embedding"] for row in rows]
+            for vector in vectors:
+                if len(vector) != settings.EMBEDDING_DIMENSION or not all(
+                    isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+                    for value in vector
+                ) or not any(vector):
+                    raise ValueError("Invalid embedding vector")
+            return vectors
+        except (httpx.HTTPError, ValueError, TypeError, AttributeError, KeyError, OverflowError) as error:
+            raise EmbeddingError("Embedding provider failed or returned incompatible vectors.") from error
 
 
-# Global singleton instance
-embedding_service = OllamaEmbeddingService()
+embedding_service = ProviderEmbeddingService()

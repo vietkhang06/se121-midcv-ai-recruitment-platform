@@ -61,7 +61,7 @@ public class ExtractionAndEvidenceValidationTest {
                 List.of("ReactJS", "React.js")
         );
 
-        aiClient = new AiClient(null, mapper, "http://localhost:11434", "granite", "bge-m3", 30, taxonomyService);
+        aiClient = new AiClient(null, mapper, "https://fixture.invalid/v1", "granite", "bge-m3", 30, taxonomyService);
         textReader = new TextReader();
     }
 

@@ -517,9 +517,9 @@ public class PipelineWorker {
       });
     }
     String activeLlm = ai.activeLlmModel();
-    if (activeLlm == null) activeLlm = (ai.llmModel != null ? ai.llmModel : "dna5rm/granite4.2:3b-8k");
+    if (activeLlm == null) activeLlm = (ai.llmModel != null ? ai.llmModel : "gpt-4o-mini");
     String activeEmbed = ai.activeEmbeddingModel();
-    if (activeEmbed == null) activeEmbed = (ai.embeddingModel != null ? ai.embeddingModel : "bge-m3");
+    if (activeEmbed == null) activeEmbed = (ai.embeddingModel != null ? ai.embeddingModel : "text-embedding-3-small");
 
     String cache =
         AiClient.buildCacheKey(

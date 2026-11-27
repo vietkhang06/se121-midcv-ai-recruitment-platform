@@ -7,6 +7,7 @@ const labels: Record<string, readonly [string, string]> = {
   SYNCED: ['Đã đồng bộ', 'Synced'],
   API_UNAVAILABLE: ['API không khả dụng', 'API unavailable'],
   PUBLIC_ONLY: ['Chỉ dữ liệu công khai', 'Public data only'],
+  NO_PUBLIC_REPOSITORIES: ['Chưa thấy kho GitHub công khai', 'No public repositories observed'],
   PRIVATE_ONLY: ['Chỉ có dữ liệu riêng tư', 'Private data only'],
   CONSENT_NOT_GIVEN: ['Không đồng ý phân tích AI', 'AI consent not given'],
   PACKAGE_NOT_ELIGIBLE: ['Gói tuyển dụng không đủ điều kiện AI', 'Not eligible for AI screening'],

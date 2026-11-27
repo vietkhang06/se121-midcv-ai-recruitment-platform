@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "4b971dc0-5847-49ec-8255-bfa3860bb4d1",
     "name": "MidCV-LLM-Testing",
-    "description": "Postman test suite for isolated CV document extraction and LLM structuring (Primary OpenAI-compatible + Fallback Ollama).",
+    "description": "Verify extraction, CV structuring and provider failures.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -19,8 +19,12 @@
         ],
         "url": {
           "raw": "{{primary_base_url}}/models",
-          "host": ["{{primary_base_url}}"],
-          "path": ["models"]
+          "host": [
+            "{{primary_base_url}}"
+          ],
+          "path": [
+            "models"
+          ]
         }
       },
       "event": [
@@ -66,8 +70,13 @@
         },
         "url": {
           "raw": "{{primary_base_url}}/chat/completions",
-          "host": ["{{primary_base_url}}"],
-          "path": ["chat", "completions"]
+          "host": [
+            "{{primary_base_url}}"
+          ],
+          "path": [
+            "chat",
+            "completions"
+          ]
         }
       },
       "event": [
@@ -113,8 +122,15 @@
         },
         "url": {
           "raw": "{{ai_worker_base_url}}/internal/ai/dev/extract-text",
-          "host": ["{{ai_worker_base_url}}"],
-          "path": ["internal", "ai", "dev", "extract-text"]
+          "host": [
+            "{{ai_worker_base_url}}"
+          ],
+          "path": [
+            "internal",
+            "ai",
+            "dev",
+            "extract-text"
+          ]
         }
       },
       "event": [
@@ -156,8 +172,15 @@
         },
         "url": {
           "raw": "{{ai_worker_base_url}}/internal/ai/dev/structure-cv",
-          "host": ["{{ai_worker_base_url}}"],
-          "path": ["internal", "ai", "dev", "structure-cv"]
+          "host": [
+            "{{ai_worker_base_url}}"
+          ],
+          "path": [
+            "internal",
+            "ai",
+            "dev",
+            "structure-cv"
+          ]
         }
       },
       "event": [
@@ -205,8 +228,15 @@
         },
         "url": {
           "raw": "{{ai_worker_base_url}}/internal/ai/dev/structure-cv",
-          "host": ["{{ai_worker_base_url}}"],
-          "path": ["internal", "ai", "dev", "structure-cv"]
+          "host": [
+            "{{ai_worker_base_url}}"
+          ],
+          "path": [
+            "internal",
+            "ai",
+            "dev",
+            "structure-cv"
+          ]
         }
       },
       "event": [
@@ -249,8 +279,15 @@
         },
         "url": {
           "raw": "{{ai_worker_base_url}}/internal/ai/dev/structure-cv",
-          "host": ["{{ai_worker_base_url}}"],
-          "path": ["internal", "ai", "dev", "structure-cv"]
+          "host": [
+            "{{ai_worker_base_url}}"
+          ],
+          "path": [
+            "internal",
+            "ai",
+            "dev",
+            "structure-cv"
+          ]
         }
       },
       "event": [
@@ -294,8 +331,15 @@
         },
         "url": {
           "raw": "{{ai_worker_base_url}}/internal/ai/dev/structure-cv",
-          "host": ["{{ai_worker_base_url}}"],
-          "path": ["internal", "ai", "dev", "structure-cv"]
+          "host": [
+            "{{ai_worker_base_url}}"
+          ],
+          "path": [
+            "internal",
+            "ai",
+            "dev",
+            "structure-cv"
+          ]
         }
       },
       "event": [
@@ -332,8 +376,15 @@
         },
         "url": {
           "raw": "{{ai_worker_base_url}}/internal/ai/dev/structure-cv",
-          "host": ["{{ai_worker_base_url}}"],
-          "path": ["internal", "ai", "dev", "structure-cv"]
+          "host": [
+            "{{ai_worker_base_url}}"
+          ],
+          "path": [
+            "internal",
+            "ai",
+            "dev",
+            "structure-cv"
+          ]
         }
       },
       "event": [

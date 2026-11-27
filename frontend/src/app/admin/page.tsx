@@ -57,7 +57,7 @@ export default function AdminDashboardPage() {
     setTestResult(null);
     try {
       const res = await testAiSettings({
-        provider: stats.aiStatus.provider as 'LOCAL_OLLAMA' | 'CLOUD_OPENAI_COMPATIBLE',
+        provider: stats.aiStatus.provider as 'CLOUD_OPENAI_COMPATIBLE',
       });
       setTestResult({
         healthy: res.healthy,
@@ -455,13 +455,7 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
                   <span className="text-slate-500 dark:text-slate-400">Chế độ hoạt động</span>
                   <span className="font-sans font-bold text-indigo-600 dark:text-indigo-400">
-                    {stats?.aiStatus?.provider || 'LOCAL_OLLAMA'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                  <span className="text-slate-500 dark:text-slate-400">Model nội bộ</span>
-                  <span className="font-sans text-slate-700 dark:text-slate-300">
-                    {stats?.aiStatus?.ollamaModel || 'dna5rm/granite4.2'}
+                    {stats?.aiStatus?.provider || '—'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">

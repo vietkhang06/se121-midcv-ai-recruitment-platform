@@ -18,7 +18,7 @@ Luồng trích xuất:
 | **Word DOCX** | `python-docx` | `>=1.1.2` | Duyệt tuần tự paragraph và table theo đúng thứ tự tài liệu |
 | **Word DOC (Legacy)** | LibreOffice Headless | `7.x / 24.x` | Chuyển đổi DOC sang PDF trong sandbox cô lập; báo `DOC_CONVERTER_UNAVAILABLE` nếu thiếu |
 | **Schema & Validation** | `pydantic` | `2.12.5` | Validate cấu trúc JSON, schema versioning `2.0.0`, bắt buộc kiểu dữ liệu chặt |
-| **LLM Provider** | Ollama / OpenAI-compatible | Local / Gateway | Structuring JSON từ raw text (chống Prompt Injection, chống bịa đặt, bảo toàn số năm / ngày tháng) |
+| **LLM Provider** | LLM Provider | Local / Gateway | Structuring JSON từ raw text (chống Prompt Injection, chống bịa đặt, bảo toàn số năm / ngày tháng) |
 | **Backend Service** | Spring Boot | `3.3.4` (Java 21) | Lưu trữ bất biến document versions, quản lý job, kiểm tra RBAC/Ownership, API Review/Download/Retry |
 | **Frontend UI** | Next.js 16 (Turbopack) | React 19, TailwindCSS | Giao diện Upload kéo thả, Stepper tiến trình, 5 Tab Review (Hồ sơ, Raw text, Grounded Evidence, JSON, Warnings) |
 
@@ -197,5 +197,3 @@ curl -s -X POST http://localhost:8080/api/v1/candidate/cvs/<CV_ID>/retry ^
    - Nguyên nhân: Máy chủ xử lý ảnh/PDF scan nhưng chưa cài binary Tesseract 5.
    - Xử lý: Cài đặt Tesseract 5 và thêm đường dẫn vào `PATH` như mục 2.1.
 3. **`LLM_SERVICE_UNAVAILABLE`**:
-   - Nguyên nhân: Dịch vụ Ollama hoặc gateway LLM chưa được khởi động tại `http://localhost:11434`.
-   - Xử lý: Chạy `ollama serve` và kéo model `ollama pull dna5rm/granite4.2:3b-8k` (hoặc cấu hình model trong file `.env`).

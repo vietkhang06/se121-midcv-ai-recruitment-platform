@@ -33,7 +33,8 @@ public class ApplicationGithubEvidenceService {
         String domain = Objects.toString(industry, "").trim().toLowerCase(Locale.ROOT);
         String text = Objects.toString(description, "").toLowerCase(Locale.ROOT);
         return Set.of("it", "technology", "software", "information technology", "công nghệ thông tin").contains(domain)
-                && List.of("helpdesk", "it support", "technical support", "recruiter", "no coding required", "no github required")
+                && List.of("helpdesk", "it support", "technical support", "recruiter", "no coding required", "no github required", "hỗ trợ kỹ thuật", "hỗ trợ công nghệ thông tin",
+                        "không yêu cầu lập trình", "không yêu cầu github")
                    .stream().noneMatch(text::contains);
     }
 
@@ -82,7 +83,7 @@ public class ApplicationGithubEvidenceService {
                     boolean owned = oauth.matchesGithubIdentity((UUID) row.get("user_id"), handle, response.path("github_user_id").asText());
                     snapshot.put("ownership_status", owned ? "OWNED" : "UNVERIFIED_PUBLIC");
                     if (!owned) snapshot.put("status", "PUBLIC_ONLY");
-                    else if (response.path("repos").isEmpty()) snapshot.put("status", "PRIVATE_ONLY");
+                    else if (response.path("repos").isEmpty()) snapshot.put("status", "NO_PUBLIC_REPOSITORIES");
                 }
             } catch (CustomException error) {
                 snapshot.put("status", error.getErrorCode() == ErrorCode.RATE_LIMIT_EXCEEDED ? "RATE_LIMITED"

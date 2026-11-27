@@ -32,7 +32,7 @@ Bài tuyển dụng chuẩn: **Senior Java & Microservices Engineer**
 
 | Ngành nghề (Industry) | Vị trí Tuyển dụng JD | Hồ sơ Ứng viên Thử nghiệm | Đặc tính Xử lý & Khóa quy tắc |
 | :--- | :--- | :--- | :--- |
-| **Technology** | Senior Java & AI Engineer | Nguyen Van Java CV | Đầy đủ Core JD-CV Score + GitHub Supporting Score ($S_{\text{overall}} = 0.70 S_{\text{core}} + 0.30 S_{\text{github}}$) |
+| **Technology** | Senior Java & AI Engineer | Nguyen Van Java CV | Đầy đủ Core JD-CV Score + GitHub Supporting Score ($S_{\text{overall}} = 0.85 S_{\text{core}} + 0.15 S_{\text{github}}$) |
 | **Marketing** | Digital Performance Marketing Manager | Tran Marketing CV | Tự động **tắt GitHub Assessment**, $S_{\text{overall}} = S_{\text{core}}$ (Fallback chuẩn) |
 | **Finance** | Senior Financial Auditor & Risk Analyst | Le Finance CV | Tự động **tắt GitHub Assessment**, trích xuất chuẩn chứng chỉ CPA/ACCA |
 | **Design** | Senior UI/UX Designer | Pham Design CV | Tự động **tắt GitHub Assessment**, trích xuất công cụ Figma, Adobe XD |

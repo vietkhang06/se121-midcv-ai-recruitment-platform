@@ -58,16 +58,11 @@ public class AdminController {
     requireAdmin();
     AiClient.SystemAiSettings s = aiClient.getSettings();
     String key = s.cloudApiKey() != null ? s.cloudApiKey().trim() : "";
-    String masked = "";
-    if (!key.isEmpty()) {
-      masked = key.length() > 8 ? key.substring(0, 3) + "..." + key.substring(key.length() - 4) : "***";
-    }
+    String masked = key.isEmpty() ? "" : "***";
     Map<String, Object> res = new LinkedHashMap<>();
     res.put("configurationScope", "BACKEND_SCREENING");
     res.put("workerConfigurationSource", "WORKER_ENVIRONMENT");
     res.put("provider", s.provider());
-    res.put("ollamaUrl", s.ollamaUrl());
-    res.put("ollamaModel", s.ollamaModel());
     res.put("cloudBaseUrl", s.cloudBaseUrl());
     res.put("cloudApiKeyMasked", masked);
     res.put("hasCloudApiKey", !key.isEmpty());
@@ -80,33 +75,12 @@ public class AdminController {
   @org.springframework.transaction.annotation.Transactional
   public Map<String, Object> updateSettings(@RequestBody Map<String, Object> body) {
     User actor = requireAdmin();
-    String provider = Objects.toString(body.get("provider"), "LOCAL_OLLAMA").trim().toUpperCase(Locale.ROOT);
-    if (!Set.of("LOCAL_OLLAMA", "CLOUD_OPENAI_COMPATIBLE").contains(provider)) {
-      throw new CustomException(ErrorCode.VALIDATION_ERROR, "Nhà cung cấp AI chỉ nhận LOCAL_OLLAMA hoặc CLOUD_OPENAI_COMPATIBLE.");
-    }
-
-    String ollamaUrl = Objects.toString(body.get("ollamaUrl"), "http://localhost:11434").trim();
-    String ollamaModel = Objects.toString(body.get("ollamaModel"), "dna5rm/granite4.2:3b-8k").trim();
-    String cloudBaseUrl = Objects.toString(body.get("cloudBaseUrl"), "https://api.openai.com/v1").trim();
-    String newKey = Objects.toString(body.get("cloudApiKey"), "").trim();
-    String cloudModel = Objects.toString(body.get("cloudModel"), "gpt-4o-mini").trim();
-
-    if (newKey.contains("...") || newKey.equals("***")) {
-      newKey = "";
-    }
-
-    if ("CLOUD_OPENAI_COMPATIBLE".equals(provider)) {
-      AiClient.SystemAiSettings curr = aiClient.getSettings();
-      if (newKey.isEmpty() && (curr.cloudApiKey() == null || curr.cloudApiKey().trim().isEmpty())) {
-        throw new CustomException(ErrorCode.VALIDATION_ERROR, "Cần nhập API Key khi chuyển sang Cloud AI.");
-      }
-    }
-
     AiClient.SystemAiSettings previous = aiClient.getSettings();
-    aiClient.updateSettings(provider, ollamaUrl, ollamaModel, cloudBaseUrl, newKey, cloudModel);
+    AiClient.SystemAiSettings settings = requestSettings(body, previous);
+    aiClient.updateSettings(settings.cloudBaseUrl(), settings.cloudApiKey(), settings.cloudModel());
     audit.log(actor, "AI_SETTINGS_UPDATED", "AI_SETTINGS", null,
-        previous.provider() + ":" + ("LOCAL_OLLAMA".equals(previous.provider()) ? previous.ollamaModel() : previous.cloudModel()),
-        provider + ":" + ("LOCAL_OLLAMA".equals(provider) ? ollamaModel : cloudModel),
+        previous.provider() + ":" + previous.cloudModel(),
+        settings.provider() + ":" + settings.cloudModel(),
         "Cập nhật cấu hình AI backend", null, Events.requestId());
 
     events.emit(
@@ -115,7 +89,7 @@ public class AdminController {
         "INFO",
         "ADMIN",
         "AI_SETTINGS_UPDATED",
-        "Admin đã cập nhật chế độ AI sang " + provider,
+        "Admin đã cập nhật LLM Provider",
         null);
 
     return getSettings();
@@ -124,29 +98,34 @@ public class AdminController {
   @PostMapping("/test")
   public Map<String, Object> testSettings(@RequestBody Map<String, Object> body) {
     requireAdmin();
-    String provider = Objects.toString(body.get("provider"), "LOCAL_OLLAMA").trim().toUpperCase(Locale.ROOT);
-    String ollamaUrl = Objects.toString(body.get("ollamaUrl"), "http://localhost:11434").trim();
-    String ollamaModel = Objects.toString(body.get("ollamaModel"), "dna5rm/granite4.2:3b-8k").trim();
-    String cloudBaseUrl = Objects.toString(body.get("cloudBaseUrl"), "https://api.openai.com/v1").trim();
-    String inputKey = Objects.toString(body.get("cloudApiKey"), "").trim();
-    String cloudModel = Objects.toString(body.get("cloudModel"), "gpt-4o-mini").trim();
+    return aiClient.testConnection(requestSettings(body, aiClient.getSettings()));
+  }
 
-    AiClient.SystemAiSettings curr = aiClient.getSettings();
-    String apiKey = (!inputKey.isEmpty() && !inputKey.contains("...") && !inputKey.equals("***"))
-        ? inputKey
-        : curr.cloudApiKey();
-
-    AiClient.SystemAiSettings testSettings =
-        new AiClient.SystemAiSettings(
-            provider,
-            ollamaUrl,
-            ollamaModel,
-            cloudBaseUrl,
-            apiKey,
-            cloudModel,
-            "LOCAL_OLLAMA",
-            "bge-m3");
-
-    return aiClient.testConnection(testSettings);
+  private AiClient.SystemAiSettings requestSettings(Map<String, Object> body, AiClient.SystemAiSettings current) {
+    String provider = Objects.toString(body.get("provider"), AiClient.PROVIDER);
+    String baseUrl = Objects.toString(body.get("cloudBaseUrl"), current.cloudBaseUrl()).strip().replaceAll("/+$", "");
+    String model = Objects.toString(body.get("cloudModel"), current.cloudModel()).strip();
+    String key = Objects.toString(body.get("cloudApiKey"), "").strip();
+    try {
+      java.net.URI uri = java.net.URI.create(baseUrl);
+      if (!AiClient.PROVIDER.equals(provider) || !"https".equalsIgnoreCase(uri.getScheme())
+          || uri.getHost() == null || uri.getUserInfo() != null || uri.getQuery() != null
+          || uri.getFragment() != null || baseUrl.length() > 255 || model.isBlank() || model.length() > 120) {
+        throw new IllegalArgumentException();
+      }
+    } catch (IllegalArgumentException error) {
+      throw new CustomException(ErrorCode.VALIDATION_ERROR, "Cần URL HTTPS và model hợp lệ của LLM Provider.");
+    }
+    if (key.isBlank()) {
+      if (!baseUrl.equals(current.cloudBaseUrl().replaceAll("/+$", ""))) {
+        throw new CustomException(ErrorCode.VALIDATION_ERROR, "Nhập API key tương ứng khi đổi URL của LLM Provider.");
+      }
+      key = current.cloudApiKey();
+    }
+    if (key == null || key.isBlank() || key.contains("\n") || key.contains("\r")) {
+      throw new CustomException(ErrorCode.VALIDATION_ERROR, "Cần API key hợp lệ của LLM Provider.");
+    }
+    return new AiClient.SystemAiSettings(AiClient.PROVIDER, baseUrl, key, model,
+        current.embeddingProvider(), current.embeddingModel());
   }
 }

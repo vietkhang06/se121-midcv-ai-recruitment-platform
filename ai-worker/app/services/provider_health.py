@@ -104,7 +104,7 @@ def check_primary_provider(timeout: float = 1.0) -> Dict[str, Any]:
                     )
                 reachable = model_resolved
     except Exception as e:
-        logger.debug(f"Primary LLM health check probe failed: {e}")
+        logger.debug("LLM provider health probe failed (%s)", type(e).__name__)
         reachable = False
         model_resolved = False
 
@@ -113,64 +113,6 @@ def check_primary_provider(timeout: float = 1.0) -> Dict[str, Any]:
         "configured": True,
         "reachable": reachable,
         "model": settings.LLM_PRIMARY_MODEL,
-        "model_resolved": model_resolved
-    }
-
-
-def check_ollama_provider(timeout: float = 1.0) -> Dict[str, Any]:
-    """
-    Probes local Ollama fallback engine reachability and verifies if the
-    configured fallback model and embedding model are present in tags.
-    """
-    if not settings.LLM_FALLBACK_ENABLED:
-        return {
-            "provider": settings.LLM_FALLBACK_PROVIDER,
-            "enabled": False,
-            "reachable": False,
-            "model": settings.OLLAMA_CHAT_MODEL,
-            "model_resolved": False
-        }
-
-    # Fast TCP connectivity pre-check (300ms timeout)
-    if not is_tcp_reachable(settings.OLLAMA_BASE_URL, timeout=0.3):
-        return {
-            "provider": settings.LLM_FALLBACK_PROVIDER,
-            "enabled": True,
-            "reachable": False,
-            "model": settings.OLLAMA_CHAT_MODEL,
-            "model_resolved": False
-        }
-
-    base_url = settings.OLLAMA_BASE_URL
-    if "://localhost:" in base_url or base_url.startswith("http://localhost"):
-        base_url = base_url.replace("localhost", "127.0.0.1", 1)
-
-    tags_url = f"{base_url}/api/tags"
-    reachable = False
-    model_resolved = False
-
-    try:
-        with httpx.Client(timeout=timeout) as client:
-            resp = client.get(tags_url)
-            if resp.status_code == 200:
-                tags = resp.json().get("models", [])
-                tag_names = [m.get("name", "") for m in tags if isinstance(m, dict)]
-                target = settings.OLLAMA_CHAT_MODEL
-                model_resolved = any(
-                    t == target or t.startswith(f"{target}:") or (":" in target and t == target.split(":")[0])
-                    for t in tag_names
-                )
-                reachable = model_resolved
-    except Exception as e:
-        logger.debug(f"Ollama health check probe failed: {e}")
-        reachable = False
-        model_resolved = False
-
-    return {
-        "provider": settings.LLM_FALLBACK_PROVIDER,
-        "enabled": True,
-        "reachable": reachable,
-        "model": settings.OLLAMA_CHAT_MODEL,
         "model_resolved": model_resolved
     }
 
@@ -187,13 +129,7 @@ def get_llm_providers_health(force_refresh: bool = False, cache_ttl: float = DEF
         if now - _last_provider_check_timestamp < cache_ttl:
             return _cached_provider_health
 
-    primary_health = check_primary_provider()
-    ollama_health = check_ollama_provider()
-
-    result = {
-        "primary": primary_health,
-        "fallback": ollama_health
-    }
+    result = {"primary": check_primary_provider()}
 
     _cached_provider_health = result
     _last_provider_check_timestamp = now

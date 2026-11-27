@@ -145,7 +145,7 @@ function CandidateMatchInspection({ id }: { id: string }) {
   const [auditLogs, setAuditLogs] = useState<ApplicationAuditLogItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [inspectionFailed, setInspectionFailed] = useState(false);
+  const [inspectionError, setInspectionError] = useState<number | null>(null);
   const [inspectionRevision, setInspectionRevision] = useState(0);
   const [inspectionRetrying, setInspectionRetrying] = useState(false);
 
@@ -158,30 +158,29 @@ function CandidateMatchInspection({ id }: { id: string }) {
 
   useEffect(() => {
     let active = true;
-    Promise.all([
-      fetchMatchInspection(id).then(value => ({ value, failed: false })).catch(() => ({ value: null, failed: true })),
-      fetchApplicationById(id)
-    ])
-      .then(([inspectionData, appData]) => {
-        if (!active) return;
-        setData(inspectionData.value);
-        setInspectionFailed(inspectionData.failed);
-        setApplication(appData);
-      })
-      .catch((err) => {
-        if (!active) return;
-        setFetchError(
-          err instanceof Error ? err.message : 'Không tải được hồ sơ. / Could not load application.'
-        );
+    fetchApplicationById(id)
+      .then(value => { if (active) setApplication(value); })
+      .catch(error => {
+        if (active && inspectionRevision === 0) setFetchError(error instanceof Error ? error.message : 'Không tải được hồ sơ.');
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [id]);
+  }, [id, inspectionRevision]);
 
   useEffect(() => {
-    if (!inspectionRevision) return;
     let active = true;
-    Promise.all([fetchMatchInspection(id), fetchApplicationById(id)]).then(([value, app]) => { if (active) { setData(value); setApplication(app); setInspectionFailed(false); } }).catch(() => { if (active) setInspectionFailed(true); }).finally(() => { if (active) setInspectionRetrying(false); });
+    fetchMatchInspection(id)
+      .then(value => {
+        if (!active) return;
+        setData(value);
+        setInspectionError(null);
+      })
+      .catch(error => {
+        if (!active) return;
+        setData(null);
+        setInspectionError(error instanceof ApiError ? error.status : 0);
+      })
+      .finally(() => { if (active) setInspectionRetrying(false); });
     return () => { active = false; };
   }, [id, inspectionRevision]);
 
@@ -357,7 +356,13 @@ function CandidateMatchInspection({ id }: { id: string }) {
     aiAnalysisConsent: application?.aiAnalysisConsent,
   });
   const aiNotEligible = application?.aiAnalysisConsent === false || application?.aiProcessingStatus === 'PACKAGE_NOT_ELIGIBLE';
-  const reportFailed = inspectionFailed && !aiNotEligible;
+  const inspectionFailed = inspectionError !== null && !aiNotEligible;
+  const reportFailed = inspectionFailed;
+  const inspectionMessage = inspectionError === 403
+    ? (vi ? 'Bạn chưa có quyền xem báo cáo AI này.' : 'You do not have access to this AI report.')
+    : inspectionError === 404
+      ? (vi ? 'Chưa tìm thấy báo cáo AI cho đơn này.' : 'The AI report was not found for this application.')
+      : (vi ? 'Không tải được báo cáo AI. Bạn có thể thử lại.' : 'The AI report could not be loaded. Try again.');
   const matchTitle = aiNotEligible ? (application?.aiAnalysisConsent === false ? (vi ? 'Không đồng ý AI' : 'AI consent declined') : (vi ? 'Không đủ điều kiện AI' : 'AI not eligible')) : reportFailed ? (vi ? 'Chưa tải được báo cáo AI' : 'AI report could not be loaded') : score !== null ? formatMatchScore(score, locale)
     : classificationOnly && classification ? (classificationLabels[classification] ?? classification)
     : matchPhaseLabels[phase][language];
@@ -424,7 +429,7 @@ function CandidateMatchInspection({ id }: { id: string }) {
           <section className="min-w-0 space-y-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
             <h2 className="text-sm font-semibold text-[var(--text-secondary)]">{vi ? 'Đối sánh với vị trí' : 'Job match'}</h2>
             <p className="break-words text-xl font-bold text-[var(--heading)] sm:text-2xl">{matchTitle}</p>
-            {reportFailed && <p role="alert" className="text-sm text-amber-700 dark:text-amber-300">{vi ? 'Không tải được báo cáo AI. Dữ liệu đơn vẫn khả dụng.' : 'Could not load the AI report. Application data remains available.'} <button type="button" disabled={inspectionRetrying} className="underline disabled:opacity-50" onClick={() => { setInspectionRetrying(true); setInspectionRevision(value => value + 1); }}>{inspectionRetrying ? (vi ? 'Đang tải…' : 'Loading…') : (vi ? 'Thử lại' : 'Retry')}</button></p>}
+            {reportFailed && <p role="alert" className="text-sm text-amber-700 dark:text-amber-300">{inspectionMessage} {inspectionError !== 403 && <button type="button" disabled={inspectionRetrying} className="underline disabled:opacity-50" onClick={() => { setInspectionRetrying(true); setInspectionRevision(value => value + 1); }}>{inspectionRetrying ? (vi ? 'Đang tải…' : 'Loading…') : (vi ? 'Thử lại' : 'Retry')}</button>}</p>}
             {!reportFailed && !aiNotEligible && matchNote && <p className="text-sm text-[var(--text-secondary)]">{matchNote}</p>}
             {!aiNotEligible && application?.aiProcessingStatus?.startsWith('AI_') && <p className="text-sm text-[var(--text-secondary)]" role="status">{aiStateLabel(application.aiProcessingStatus, locale)} <button type="button" className="underline" disabled={inspectionRetrying} onClick={() => { setInspectionRetrying(true); setInspectionRevision(value => value + 1); }}>{vi ? 'Cập nhật báo cáo' : 'Refresh report'}</button></p>}
             {hasDetailedScore && score !== null && (

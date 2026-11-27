@@ -18,7 +18,7 @@ Hai cách áp dụng:
 - Python3.12 được dùng cho kiểm thử; tạo virtual environment riêng.
 - Docker Desktop để dùng PostgreSQL/pgvector dev bên dưới; không bắt buộc nếu bạn tự chuẩn bị DB tương đương.
 - Tesseract5 cùng `eng` và `vie` để kiểm OCR; LibreOffice nếu cần DOC. Không có các thành phần này thì không đánh dấu OCR/DOC acceptance hoàn tất.
-- Primary LLM endpoint/key/model hợp lệ. Ollama và embedding model phù hợp nếu dùng fallback hoặc HR screening.
+- Primary LLM endpoint/key/model hợp lệ. LLM Provider
 
 Kiểm tra trong PowerShell:
 
@@ -57,17 +57,11 @@ PORT_BACKEND=8080
 LLM_PRIMARY_BASE_URL=<base-url-OpenAI-compatible-cua-ban>
 LLM_PRIMARY_API_KEY=<key-cua-ban>
 LLM_PRIMARY_MODEL=<model-ma-endpoint-cua-ban-ho-tro>
-LLM_FALLBACK_ENABLED=true
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-OLLAMA_CHAT_MODEL=<model-chat-da-cai-cua-ban>
-OLLAMA_EMBEDDING_MODEL=bge-m3
-OLLAMA_URL=http://127.0.0.1:11434
-EMBEDDING_MODEL=bge-m3
+EMBEDDING_MODEL=text-embedding-3-small
 ENABLE_DEV_AI_TEST_ENDPOINTS=false
 USE_MOCK_LLM=false
 ```
 
-Backend `AiClient` dùng OLLAMA_URL/EMBEDDING_MODEL; Python dùng OLLAMA_BASE_URL/OLLAMA_EMBEDDING_MODEL. Hai bên phải trỏ đến model embedding tương thích cho screening. CV structuring gọi PRIMARY trước; key thiếu/sai hoặc model404 sẽ fail rõ, không được xem là lỗi tạm thời để tự chuyển fallback.
 
 Sinh một giá trị JWT_SECRET base64 bằng Python rồi lưu vào `.env` của bạn:
 
@@ -106,7 +100,6 @@ python -m venv .venv
 
 Worker là dịch vụ nội bộ. Mở `http://127.0.0.1:8000/docs`. Endpoint health thực tế là `GET /internal/ai/health`; trạng thái có thể degraded khi provider/OCR thiếu. Health trả HTTP200 không đồng nghĩa OCR/provider đã sẵn sàng. Kiểm tra từng trường `ocr`, `llm`, `embedding`.
 
-Nếu dùng Ollama, khởi động riêng `ollama serve`, kiểm tra `ollama list`, và cài đúng model chat/embedding ghi trong cấu hình của bạn. Tên model mặc định trong repo chưa phải bằng chứng model có sẵn trên máy hoặc endpoint của bạn. Không dùng mock mode để kết luận live acceptance.
 
 ## 6. Backend — terminal thứ hai
 
@@ -142,7 +135,7 @@ Mở `http://localhost:3000`. Chạy phát triển có thể dùng `npm run dev`
 Worker, tại `ai-worker/`:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest tests/test_audit_grounding_regressions.py tests/test_fallback_orchestration.py tests/test_openai_compatible_client.py -q
+.\.venv\Scripts\python.exe -m pytest tests/test_audit_grounding_regressions.py tests/test_cv_structuring_validation.py tests/test_openai_compatible_client.py -q
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 

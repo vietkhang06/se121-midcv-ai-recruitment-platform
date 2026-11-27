@@ -8,7 +8,6 @@ from app.config import settings
 from app.services.provider_health import (
     is_tcp_reachable,
     check_primary_provider,
-    check_ollama_provider,
     get_llm_providers_health,
 )
 
@@ -82,32 +81,6 @@ def test_check_primary_provider_model_resolution(monkeypatch):
             assert info3["model_resolved"] is False
 
 
-def test_check_ollama_provider_model_resolution(monkeypatch):
-    # Keep this unit test deterministic when CI intentionally disables every
-    # external provider for the offline pipeline.
-    monkeypatch.setattr(settings, "LLM_FALLBACK_ENABLED", True)
-    with patch("app.services.provider_health.is_tcp_reachable", return_value=True):
-        # Case 1: Model present in tags
-        mock_resp = Mock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = {"models": [{"name": settings.OLLAMA_CHAT_MODEL}]}
-
-        with patch("httpx.Client.get", return_value=mock_resp):
-            info = check_ollama_provider(timeout=1.0)
-            assert info["reachable"] is True
-            assert info["model_resolved"] is True
-
-        # Case 2: Model not present in tags
-        mock_resp_missing = Mock()
-        mock_resp_missing.status_code = 200
-        mock_resp_missing.json.return_value = {"models": [{"name": "llama3:latest"}]}
-
-        with patch("httpx.Client.get", return_value=mock_resp_missing):
-            info2 = check_ollama_provider(timeout=1.0)
-            assert info2["reachable"] is False
-            assert info2["model_resolved"] is False
-
-
 def test_health_check_endpoint_contract_and_speed():
     client = TestClient(app)
     start = time.perf_counter()
@@ -119,9 +92,8 @@ def test_health_check_endpoint_contract_and_speed():
     assert data["status"] in ["UP", "DEGRADED"]
     assert "llm" in data
     assert "primary" in data["llm"]
-    assert "fallback" in data["llm"]
+    assert set(data["llm"]) == {"primary"}
     assert "model_resolved" in data["llm"]["primary"]
-    assert "model_resolved" in data["llm"]["fallback"]
 
     # Verify second consecutive call returns quickly from cache
     start2 = time.perf_counter()

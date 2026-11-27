@@ -1,5 +1,8 @@
 # CANDIDATE RANKING EVALUATION REPORT
 
+> Số liệu lịch sử. Các số dưới đây cần tái lập trên bản mã, bộ nhãn và API đang dùng trước khi đưa vào báo cáo nghiệm thu.
+
+
 Tài liệu này báo cáo kết quả thực nghiệm đánh giá chất lượng Bảng Xếp Hạng Ứng Viên (Candidate Ranking Engine) dựa trên chỉ số Precision@K, Recall@K, Normalized Discounted Cumulative Gain (NDCG@K) và Pairwise Ranking Accuracy trên bộ dữ liệu 10 ứng viên chuẩn cho vị trí Backend Java Developer.
 
 ---

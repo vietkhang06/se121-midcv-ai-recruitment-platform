@@ -13,7 +13,7 @@ interface GitHubAssessmentCardProps {
 export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ assessment }) => {
   const { locale } = useLanguage();
 
-  if (!assessment.connected || assessment.status === 'NOT_CONNECTED' || assessment.status === 'NOT_APPLICABLE' || assessment.status === 'API_UNAVAILABLE' || assessment.status === 'PRIVATE_ONLY' || assessment.status === 'RATE_LIMITED' || assessment.status === 'NOT_FOUND' || assessment.status === 'PENDING' || assessment.status === 'LEGACY_MISSING_DATA') {
+  if (!assessment.connected || assessment.status === 'NOT_CONNECTED' || assessment.status === 'NOT_APPLICABLE' || assessment.status === 'API_UNAVAILABLE' || (assessment.status === 'PRIVATE_ONLY' || assessment.status === 'NO_PUBLIC_REPOSITORIES') || assessment.status === 'RATE_LIMITED' || assessment.status === 'NOT_FOUND' || assessment.status === 'PENDING' || assessment.status === 'LEGACY_MISSING_DATA') {
     let branchTitle = locale === 'vi' ? "Tín hiệu GitHub: Chưa liên kết (Not Connected)" : "GitHub Signal: Not Connected";
     let branchDesc = locale === 'vi' ? "Ứng viên chưa liên kết tài khoản GitHub cá nhân." : "Candidate has not connected a personal GitHub account.";
     let badgeColor = "bg-slate-100 text-slate-700 border-slate-200";
@@ -36,9 +36,9 @@ export const GitHubAssessmentCard: React.FC<GitHubAssessmentCardProps> = ({ asse
       branchTitle = locale === 'vi' ? "Tín hiệu GitHub: Tạm thời không khả dụng (API Unavailable / Rate Limited)" : "GitHub Signal: API Unavailable / Rate Limited";
       branchDesc = locale === 'vi' ? "Dịch vụ GitHub API tạm thời vượt giới hạn tần suất hoặc không phản hồi." : "GitHub API rate limit reached or temporarily unavailable.";
       badgeColor = "bg-amber-50 text-amber-700 border-amber-200";
-    } else if (assessment.status === 'PRIVATE_ONLY') {
-      branchTitle = locale === 'vi' ? "Tín hiệu GitHub: Kho lưu trữ riêng tư / Không thể truy cập (Private / Inaccessible)" : "GitHub Signal: Private / Inaccessible";
-      branchDesc = locale === 'vi' ? "Ứng viên có tài khoản GitHub nhưng kho lưu trữ liên quan ở chế độ riêng tư hoặc không có mã nguồn công khai." : "Candidate has a GitHub account but repositories are private or without public code.";
+    } else if ((assessment.status === 'PRIVATE_ONLY' || assessment.status === 'NO_PUBLIC_REPOSITORIES')) {
+      branchTitle = locale === 'vi' ? "Tín hiệu GitHub: Chưa có kho công khai trong lần quét" : "GitHub signal: No public repositories observed";
+      branchDesc = locale === 'vi' ? "Lần quét không ghi nhận kho công khai đủ điều kiện để chấm điểm." : "The scan found no public repositories eligible for scoring.";
       badgeColor = "bg-purple-50 text-purple-700 border-purple-200";
     }
 

@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Phase 6: Real live integration test between Java Backend and FastAPI AI Worker (port 8000).
- * Verifies contract integrity, health check with bge-m3 embedding, and document extraction.
+ * Verifies contract integrity, health check with configured provider embedding, and document extraction.
  */
 public class RealAiWorkerLiveIntegrationTest {
 
@@ -36,7 +36,7 @@ public class RealAiWorkerLiveIntegrationTest {
     }
 
     @Test
-    @DisplayName("AI Worker Live Health Check verifies contract, bge-m3 embedding, and OCR status")
+    @DisplayName("AI Worker Live Health Check verifies contract, configured provider embedding, and OCR status")
     void testLiveAiWorker_HealthCheckContract() {
         Map<String, Object> health = aiWorkerClient.checkHealth();
 
@@ -48,12 +48,12 @@ public class RealAiWorkerLiveIntegrationTest {
         Map<String, Object> docExtraction = (Map<String, Object>) health.get("documentExtraction");
         assertEquals("UP", docExtraction.get("status"));
 
-        // Verify standardized bge-m3 embedding model contract
+        // Verify standardized configured provider embedding model contract
         assertTrue(health.containsKey("embedding"), "Health response should contain embedding configuration");
         Map<String, Object> embedding = (Map<String, Object>) health.get("embedding");
-        assertEquals("bge-m3", embedding.get("model"));
+        assertFalse(embedding.get("model").toString().isBlank());
         assertEquals(1024, ((Number) embedding.get("dimension")).intValue());
-        assertEquals("LOCAL_OLLAMA", embedding.get("provider"));
+        assertEquals("openai_compatible", embedding.get("provider"));
     }
 
     @Test

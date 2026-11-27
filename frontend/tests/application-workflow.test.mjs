@@ -183,3 +183,18 @@ test('one failed JD prevents totals and identifies the affected job', async () =
     3
   );
 });
+
+test('final score requires a finite number in the supported range', () => {
+  for (const invalid of [null, undefined, NaN, Infinity, -1, 101]) {
+    assert.deepEqual(match.matchPresentation({
+      matchScore: invalid,
+      matchStatus: 'PGVECTOR_READY',
+    }), { phase: 'UNAVAILABLE', score: null });
+  }
+  for (const valid of [0, 100]) {
+    assert.deepEqual(match.matchPresentation({
+      matchScore: valid,
+      matchStatus: 'PGVECTOR_READY',
+    }), { phase: 'FINAL', score: valid });
+  }
+});

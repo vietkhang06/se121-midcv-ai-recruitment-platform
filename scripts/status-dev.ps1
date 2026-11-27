@@ -88,13 +88,8 @@ if (-not $databaseConfigured) {
     $pgStatus = 'REACHABLE (TCP)'
 }
 
-# 2. Check Local Ollama Engine (11434)
-$ollamaStatus = "NOT RUNNING"
-if ((Test-HttpUrl "http://127.0.0.1:11434/api/tags") -eq "READY") {
-    $ollamaStatus = "READY (granite4.2 + bge-m3)"
-} elseif (Test-PortOccupied 11434) {
-    $ollamaStatus = "STARTING / NOT READY"
-}
+# AI Worker process status (provider details via /internal/ai/health)
+$workerStatus = Test-HttpUrl "http://127.0.0.1:8000/internal/ai/health"
 
 # 3. Check Backend (8080)
 $backendStatus = "NOT RUNNING"
@@ -115,7 +110,7 @@ if ((Test-HttpUrl "http://127.0.0.1:3000") -eq "READY") {
 # Display Status Summary
 Write-Host " Docker Desktop : $dockerStatus" -ForegroundColor $(if ($dockerStatus -eq "READY") { "Green" } else { "Red" })
 Write-Host " PostgreSQL DB  : $pgStatus (${databaseHost}:$databasePort)" -ForegroundColor $(if ($pgStatus.StartsWith('REACHABLE')) { "Green" } else { "Yellow" })
-Write-Host " Local Ollama   : $ollamaStatus" -ForegroundColor $(if ($ollamaStatus.StartsWith("READY")) { "Green" } else { "Yellow" })
+Write-Host " AI Worker      : $workerStatus (Port 8000)" -ForegroundColor Cyan
 Write-Host " Backend        : $backendStatus (Port 8080)" -ForegroundColor $(if ($backendStatus -eq "READY") { "Green" } else { "Yellow" })
 Write-Host " Frontend       : $frontendStatus (Port 3000)" -ForegroundColor $(if ($frontendStatus -eq "READY") { "Green" } else { "Yellow" })
 
@@ -124,5 +119,4 @@ Write-Host " URLs:" -ForegroundColor Yellow
 Write-Host "   Frontend    : http://localhost:3000" -ForegroundColor White
 Write-Host "   AI Settings : http://localhost:3000/admin/ai-settings" -ForegroundColor White
 Write-Host "   Backend API : http://localhost:8080" -ForegroundColor White
-Write-Host "   Ollama Tags : http://localhost:11434/api/tags" -ForegroundColor White
 Write-Host "==========================================`n" -ForegroundColor Cyan

@@ -7,7 +7,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from app.schemas.cv import CVExtractRequest
 from app.services.cv_parser import CVParser
-from app.services.llm_client import LLMClient, LLMAPIError
 from tests.fixtures.mock_llm_client import MockLLMClient
 
 def test_cv_ie_01_rich_cv_comprehensive_extraction():
@@ -267,51 +266,3 @@ def test_cv_ie_07_vietnamese_cv_unicode_preserved():
 
     assert len(res.experiences) >= 1
     assert any("FPT" in exp.company_name for exp in res.experiences)
-
-
-def test_cv_ie_08_provider_auto_fallback():
-    """
-    CV-IE-08: In AUTO mode, when the primary API provider raises a network/API error,
-    the client gracefully falls back to the local Ollama provider.
-    """
-    from app.config import settings
-    client = LLMClient(provider="auto", use_mock=False)
-    assert client.provider == "auto"
-
-    with patch.object(settings, "OPENAI_API_KEY", "sk-test-real-key-12345"), \
-         patch.object(client, "_generate_json_openai", side_effect=LLMAPIError(503, "OpenAI unreachable")), \
-         patch.object(client, "_generate_json_ollama", return_value={"full_name": "John Doe"}) as mock_ollama:
-        result = client.generate_json("system instruction", "candidate raw text")
-        assert result.get("full_name") == "John Doe"
-        mock_ollama.assert_called_once()
-
-
-def test_cv_ie_09_provider_failure_handling_no_mock_fallback():
-    """
-    CV-IE-09: In AUTO or API mode, if both API and Local Ollama fail,
-    it MUST raise an explicit LLMAPIError and NOT silently fall back to mock data.
-    """
-    from app.config import settings
-    client = LLMClient(provider="auto", use_mock=False)
-
-    with patch.object(settings, "OPENAI_API_KEY", "sk-test-real-key-12345"), \
-         patch.object(client, "_generate_json_openai", side_effect=LLMAPIError(503, "API Down")), \
-         patch.object(client, "_generate_json_ollama", side_effect=LLMAPIError(503, "Ollama Down")):
-        with pytest.raises(LLMAPIError) as exc_info:
-            client.generate_json("system instruction", "candidate raw text")
-        assert "providers failed" in str(exc_info.value.error_message).lower()
-
-
-def test_cv_ie_10_production_runtime_zero_mock_contract():
-    """
-    CV-IE-10: Verifies that production runtime instantiation has use_mock=False
-    and does not return fabricated candidate names or mock data.
-    """
-    client = LLMClient(provider="ollama", use_mock=False)
-    assert client.use_mock is False
-    assert client.provider == "ollama"
-
-    parser = CVParser(llm_client=client)
-    assert parser.llm_client.use_mock is False
-    assert parser.llm_client.provider in ["auto", "ollama", "openai", "local", "api"]
-

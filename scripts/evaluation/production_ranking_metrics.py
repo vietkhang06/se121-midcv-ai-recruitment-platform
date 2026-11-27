@@ -2,7 +2,8 @@
 """MID-07 metric calculator; consumes EXPORTED PRODUCTION SCORES and independent graded labels.
 
 It never reimplements scoring. Missing ground truth or mismatched datasets causes failure.
-JSONL prediction: case_id,candidate_id,method,score,policy_version,source='BACKEND_API'
+JSONL prediction: case_id,candidate_id,method,rank,score,policy_version,source='BACKEND_API'
+Use the backend rank of eligible rows. Rows excluded from final ranking use rank=null.
 JSONL label: case_id,candidate_id,relevance(0..3),dataset_version,annotator
 """
 from __future__ import annotations
@@ -36,27 +37,32 @@ def dcg(values: list[int], k: int) -> float:
     return sum((2**v - 1) / math.log2(i + 2) for i, v in enumerate(values[:k]))
 
 
-def eval_case(predictions: list[tuple[str, float]], relevance: dict[str, int], k: int) -> dict:
-    ranked = sorted(predictions, key=lambda x: (-x[1], x[0]))
-    rels = [relevance[candidate] for candidate, _ in ranked]
+def eval_case(predictions: list[tuple[str, float | None, int | None]], relevance: dict[str, int], k: int) -> dict:
+    ranked = sorted((item for item in predictions if item[2] is not None), key=lambda item: item[2])
+    ranks = [rank for _, _, rank in ranked]
+    if len(set(ranks)) != len(ranks):
+        raise ValueError("Duplicate backend rank within one JD and method")
+    if len(ranked) < k:
+        return {"ranked_count": len(ranked), "evaluated": False}
+    rels = [relevance[candidate] for candidate, _, _ in ranked]
     positives = sum(v > 0 for v in relevance.values())
     p = sum(v > 0 for v in rels[:k]) / k
     r = (sum(v > 0 for v in rels[:k]) / positives) if positives else 0.0
     best = dcg(sorted(relevance.values(), reverse=True), k)
     ndcg = dcg(rels, k) / best if best else 0.0
-    ordered_score = dict(ranked)
+    official_rank = {candidate: rank for candidate, _, rank in ranked}
     comparable = correct = 0
-    ids = sorted(relevance)
+    ids = sorted(official_rank)
     for i, a in enumerate(ids):
         for b in ids[i + 1:]:
             if relevance[a] == relevance[b]:
                 continue
             comparable += 1
-            if (relevance[a] - relevance[b]) * (ordered_score[a] - ordered_score[b]) > 0:
+            if (relevance[a] - relevance[b]) * (official_rank[b] - official_rank[a]) > 0:
                 correct += 1
     return {f"precision@{k}": p, f"recall@{k}": r, f"ndcg@{k}": ndcg,
             "pairwise_accuracy": correct / comparable if comparable else None,
-            "pairwise_comparisons": comparable}
+            "pairwise_comparisons": comparable, "ranked_count": len(ranked), "evaluated": True}
 
 
 def evaluate(predicted: list[dict], labels: list[dict], k: int, score_threshold: float | None = None) -> dict:
@@ -79,7 +85,7 @@ def evaluate(predicted: list[dict], labels: list[dict], k: int, score_threshold:
         versions.add(str(row["dataset_version"]))
     if len(versions) != 1:
         raise ValueError("Mixed ground-truth dataset versions are not comparable")
-    groups: dict[str, dict[str, list[tuple[str, float]]]] = defaultdict(lambda: defaultdict(list))
+    groups: dict[str, dict[str, list[tuple[str, float | None, int | None]]]] = defaultdict(lambda: defaultdict(list))
     for row in predicted:
         if row.get("source") != "BACKEND_API":
             raise ValueError("Predictions must be exported from actual production backend APIs")
@@ -87,13 +93,21 @@ def evaluate(predicted: list[dict], labels: list[dict], k: int, score_threshold:
             raise ValueError("Missing scoring policy version")
         case, cand, method = (str(row[k]) for k in ("case_id", "candidate_id", "method"))
         score = row["score"]
-        if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score) or not 0 <= score <= 100:
+        if "rank" not in row:
+            raise ValueError("Prediction is missing backend rank")
+        rank = row["rank"]
+        if rank is not None and (type(rank) is not int or rank < 1):
+            raise ValueError("Backend rank must be a positive integer or null")
+        if (rank is not None or score is not None) and (
+            isinstance(score, bool) or not isinstance(score, (int, float))
+            or not math.isfinite(score) or not 0 <= score <= 100
+        ):
             raise ValueError("Non-finite or nonnumeric score")
         if cand not in truth.get(case, {}):
             raise ValueError(f"No independent label for {case}/{cand}")
-        if any(c == cand for c, _ in groups[method][case]):
+        if any(c == cand for c, _, _ in groups[method][case]):
             raise ValueError(f"Duplicate prediction {method}/{case}/{cand}")
-        groups[method][case].append((cand, float(score)))
+        groups[method][case].append((cand, score, rank))
     if not groups:
         raise ValueError("No production ranking predictions")
     report = {"type": "OFFLINE_METRICS_FROM_PRODUCTION_EXPORT", "dataset_version": next(iter(versions)),
@@ -104,16 +118,30 @@ def evaluate(predicted: list[dict], labels: list[dict], k: int, score_threshold:
             raise ValueError(f"Method {method} does not cover the complete labeled case set")
         rows = []
         for case in sorted(truth):
-            if {c for c, _ in cases[case]} != set(truth[case]):
+            if {c for c, _, _ in cases[case]} != set(truth[case]):
                 raise ValueError(f"Method {method} candidate set differs from ground truth in case {case}")
-            rows.append(eval_case(cases[case], truth[case], k))
+            rows.append({"case_id": case, "labeled_candidates": len(truth[case]),
+                         **eval_case(cases[case], truth[case], k)})
         keys = [f"precision@{k}", f"recall@{k}", f"ndcg@{k}", "pairwise_accuracy"]
-        report["methods"][method] = {key: round(sum(x[key] for x in rows if x[key] is not None) / max(1, sum(x[key] is not None for x in rows)), 6) for key in keys}
-        report["methods"][method]["cases"] = len(rows)
+        evaluated = [row for row in rows if row["evaluated"]]
+        metrics = {}
+        for key in keys:
+            values = [row[key] for row in evaluated if row[key] is not None]
+            metrics[key] = round(sum(values) / len(values), 6) if values else None
+        report["methods"][method] = {
+            **metrics,
+            "cases": len(rows),
+            "evaluated_cases": len(evaluated),
+            "by_case": rows,
+            "ranked_candidates": sum(row["ranked_count"] for row in rows),
+            "unranked_candidates": sum(len(item) for item in cases.values()) - sum(row["ranked_count"] for row in rows),
+        }
         if score_threshold is not None:
             tp = fp = fn = tn = 0
             for case, candidates in cases.items():
-                for candidate, score in candidates:
+                for candidate, score, rank in candidates:
+                    if rank is None:
+                        continue
                     positive = truth[case][candidate] > 0
                     selected = score >= score_threshold
                     tp += int(selected and positive)

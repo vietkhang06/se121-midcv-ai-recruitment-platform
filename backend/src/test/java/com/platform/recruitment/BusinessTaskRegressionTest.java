@@ -168,8 +168,8 @@ class BusinessTaskRegressionTest {
         verify(oauth,never()).isGithubOwned(owner.getId(),"different-owner");
     }
     @Test void aiSettingsMissingRowCannotReportSuccess() throws Exception {
-        AiClient client=new AiClient(db,json,"http://127.0.0.1:11434","local","bge-m3",10);
-        assertEquals(ErrorCode.CONCURRENT_MODIFICATION,assertThrows(CustomException.class,()->client.updateSettings("LOCAL_OLLAMA","http://localhost:11434","local","https://example.invalid/v1","","model")).getErrorCode());
+        AiClient client=new AiClient(db,json,"https://example.invalid/v1","model","text-embedding-3-small",10);
+        assertEquals(ErrorCode.CONCURRENT_MODIFICATION,assertThrows(CustomException.class,()->client.updateSettings("https://example.invalid/v1","fixture-key","model")).getErrorCode());
     }
     @Test void adminCandidateCvCountUsesProfileIdentity() {
         var users=mock(UserRepository.class);var admin=new AdminService(users,candidates,mock(RecruiterProfileRepository.class),mock(CompanyRepository.class),mock(JobRepository.class),mock(SystemReportRepository.class),mock(AdminAuditLogRepository.class),mock(AdminAuditLogService.class),mock(AiClient.class),mock(TaxonomyService.class),cvs,mock(ApplicationRepository.class),mock(com.platform.recruitment.company.service.CompanyVerificationService.class));

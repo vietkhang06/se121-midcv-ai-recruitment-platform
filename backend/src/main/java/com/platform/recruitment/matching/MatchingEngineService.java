@@ -74,6 +74,9 @@ public class MatchingEngineService {
     @org.springframework.beans.factory.annotation.Autowired
     private com.platform.recruitment.embedding.PgvectorCosineSimilarity pgvectorCosineSimilarity = new com.platform.recruitment.embedding.PgvectorCosineSimilarity();
 
+    @org.springframework.beans.factory.annotation.Value("${app.embedding-model:text-embedding-3-small}")
+    private String activeEmbeddingModel;
+
     @org.springframework.beans.factory.annotation.Autowired
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
@@ -218,7 +221,7 @@ public class MatchingEngineService {
         double skillScoreVal = Math.max(0.0, Math.min(100.0, (0.80 * reqSkillScore.doubleValue()) + (0.20 * prefSkillScore.doubleValue())));
         BigDecimal skillScore = BigDecimal.valueOf(skillScoreVal).setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal expScore = experienceMatcher.evaluateExperience(jdText, cvRawText);
+        ExperienceMatcher.Assessment experience = experienceMatcher.assess(jdText, cvRawText);
         BigDecimal eduScore = educationMatcher.evaluateEducation(jdText, cvRawText);
         BigDecimal projScore = projectRelevanceMatcher.evaluateProjectRelevance(jdText, cvRawText);
 
@@ -229,6 +232,10 @@ public class MatchingEngineService {
         String semanticMethod = "PGVECTOR_COSINE_SIMILARITY";
         boolean vectorInputsReady = jdbcTemplate != null && confirmedEmbeddingMatches(inputVersion)
                 && jdDocVersionId != null;
+        if (vectorInputsReady && activeEmbeddingModel != null) {
+            vectorInputsReady = activeEmbeddingModel.equals(matchedEmbeddingModel(cvDocVersionId))
+                    && activeEmbeddingModel.equals(matchedEmbeddingModel(jdDocVersionId));
+        }
         if (vectorInputsReady) {
             semanticScore = pgvectorCosineSimilarity.evaluatePgvectorSemanticSimilarity(cvDocVersionId, jdDocVersionId);
         }
@@ -304,13 +311,16 @@ public class MatchingEngineService {
         // EXPERIENCE
         String statusExp;
         BigDecimal scoreExp;
-        boolean applicableExp = true;
-        if (expScore.compareTo(BigDecimal.ZERO) > 0) {
-            statusExp = MatchFactorStatus.AVAILABLE.name();
-            scoreExp = expScore;
-        } else {
+        boolean applicableExp = experience.requiredMonths() != null;
+        if (!applicableExp) {
+            statusExp = MatchFactorStatus.NOT_APPLICABLE.name();
+            scoreExp = BigDecimal.ZERO;
+        } else if (experience.observedMonths() == null) {
             statusExp = MatchFactorStatus.MISSING_EVIDENCE.name();
             scoreExp = BigDecimal.ZERO;
+        } else {
+            statusExp = MatchFactorStatus.AVAILABLE.name();
+            scoreExp = experience.score();
         }
 
         // EDUCATION
@@ -495,7 +505,10 @@ public class MatchingEngineService {
         saveMatchFactor(savedResult, "SKILL_PREFERRED", "Kỹ năng ưu tiên", "CV", scorePref, scorePref, scorePref,
                 cfgPref, effPref, contribPref, statusPref, "KEYWORD_FREQUENCY_MATCH", skillPrefEvidence);
 
-        String expEvidenceRef = String.format("Kinh nghiệm làm việc được ghi nhận trong CV với mức đánh giá %s%% phù hợp ngành %s.", expScore, jdContext.industry());
+        String expEvidenceRef = !applicableExp ? "JD chưa nêu rõ thời lượng kinh nghiệm bắt buộc."
+                : experience.observedMonths() == null ? "CV chưa có thời lượng kinh nghiệm liên quan được nêu rõ."
+                : String.format("CV nêu %d tháng kinh nghiệm liên quan. JD yêu cầu %d tháng.",
+                        experience.observedMonths(), experience.requiredMonths());
         saveMatchFactor(savedResult, "EXPERIENCE", "Kinh nghiệm làm việc", "CV", scoreExp, scoreExp, scoreExp,
                 cfgExp, effExp, contribExp, statusExp, "RELEVANT_YEARS_EXTRACTION", expEvidenceRef);
 
@@ -549,26 +562,6 @@ public class MatchingEngineService {
                             .build();
                     evidenceRepository.save(skillEvidence);
                 }
-            }
-            if (expScore.compareTo(BigDecimal.ZERO) > 0) {
-                Evidence expEvidence = Evidence.builder()
-                        .matchResult(savedResult)
-                        .sourceType("CV")
-                        .sourceId(cvDocVersionId != null ? cvDocVersionId.toString() : null)
-                        .section("EXPERIENCE")
-                        .requirementText("Kinh nghiệm làm việc phù hợp ngành " + jdContext.industry())
-                        .snippet(cvRawText.substring(0, Math.min(cvRawText.length(), 180)))
-                        .sourceVersionId(cvDocVersionId)
-                        .contentSha256(com.platform.recruitment.document.Documents.shaHex(cvRawText))
-                        .quoteStartOffset(0)
-                        .quoteEndOffset(Math.min(cvRawText.length(), 180))
-                        .provenance("CANDIDATE_REVIEWED_CV_EXCERPT")
-                        .verifiedAt(java.time.ZonedDateTime.now())
-                        .policyVersion(policy.getPolicyVersion())
-                        .normalizedValue(expScore)
-                        .validationStatus("SOURCE_EXCERPT_NOT_REQUIREMENT_VERIFIED")
-                        .build();
-                evidenceRepository.save(expEvidence);
             }
             if (scoreGithub != null && effGithubWeight != null && effGithubWeight.compareTo(BigDecimal.ZERO) > 0) {
                 if (githubEvaluation != null) {

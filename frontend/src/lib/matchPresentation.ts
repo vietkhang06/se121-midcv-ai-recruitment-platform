@@ -3,7 +3,7 @@ type MatchPhase = 'FINAL' | 'PROVISIONAL' | 'PENDING' | 'DECLINED' | 'UNAVAILABL
 
 export function matchPresentation(input: ScoreInput): { phase: MatchPhase; score: number | null } {
   const { matchStatus: status, matchScore, aiAnalysisConsent } = input;
-  const score = typeof matchScore === 'number' && Number.isFinite(matchScore) ? matchScore : null;
+  const score = typeof matchScore === 'number' && Number.isFinite(matchScore) && matchScore >= 0 && matchScore <= 100 ? matchScore : null;
   if (aiAnalysisConsent === false || status === 'CONSENT_NOT_GIVEN') return { phase: 'DECLINED', score: null };
   if (status === 'PGVECTOR_READY') return { phase: score === null ? 'UNAVAILABLE' : 'FINAL', score };
   if (status === 'FALLBACK_USED' || (status === 'PENDING_VECTOR' && score !== null))

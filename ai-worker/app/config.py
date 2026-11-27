@@ -9,11 +9,11 @@ try:
     local_env = base_dir / ".env"
     root_env = base_dir.parent / ".env"
     if local_env.exists():
-        load_dotenv(local_env, override=True)
+        load_dotenv(local_env, override=False)
     elif root_env.exists():
-        load_dotenv(root_env, override=True)
+        load_dotenv(root_env, override=False)
     else:
-        load_dotenv(override=True)
+        load_dotenv(override=False)
 except ImportError:
     pass
 
@@ -23,14 +23,10 @@ class Settings(BaseModel):
     VERSION: str = "1.0.0"
     API_PREFIX: str = "/internal/ai"
     
-    # Provider selection: 'auto' (default: primary with fallback), 'openai_compatible', 'ollama', 'mock'
-    AI_PROVIDER: str = os.getenv("AI_PROVIDER", "auto").lower()
-    
-    # -------------------------------------------------------------
     # PRIMARY LLM Configuration (OpenAI Compatible)
     # -------------------------------------------------------------
     LLM_PRIMARY_ENABLED: bool = os.getenv("LLM_PRIMARY_ENABLED", "true").lower() == "true"
-    LLM_PRIMARY_PROVIDER: str = os.getenv("LLM_PRIMARY_PROVIDER", "openai_compatible")
+    LLM_PRIMARY_PROVIDER: str = "openai_compatible"
     LLM_PRIMARY_BASE_URL: str = os.getenv(
         "LLM_PRIMARY_BASE_URL", 
         os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
@@ -40,30 +36,14 @@ class Settings(BaseModel):
     LLM_PRIMARY_TIMEOUT_SECONDS: float = float(os.getenv("LLM_PRIMARY_TIMEOUT_SECONDS", "180"))
     LLM_PRIMARY_MAX_RETRIES: int = int(os.getenv("LLM_PRIMARY_MAX_RETRIES", "1"))
 
-    # Aliases for backward compatibility with existing tests
-    OPENAI_API_KEY: str = os.getenv("LLM_PRIMARY_API_KEY", os.getenv("OPENAI_API_KEY", "mock-openai-key"))
-    OPENAI_MODEL: str = os.getenv("LLM_PRIMARY_MODEL") or os.getenv("OPENAI_MODEL") or os.getenv("LLM_MODEL", "gpt-4o-mini")
-    OPENAI_BASE_URL: str = os.getenv("LLM_PRIMARY_BASE_URL", os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")).rstrip("/")
-    
-    # -------------------------------------------------------------
-    # FALLBACK LLM Configuration (Local Ollama)
-    # -------------------------------------------------------------
-    LLM_FALLBACK_ENABLED: bool = os.getenv("LLM_FALLBACK_ENABLED", "true").lower() == "true"
-    LLM_FALLBACK_PROVIDER: str = os.getenv("LLM_FALLBACK_PROVIDER", "ollama")
-    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
-    OLLAMA_CHAT_MODEL: str = os.getenv("OLLAMA_CHAT_MODEL", os.getenv("OLLAMA_MODEL", "dna5rm/granite4.2:3b-8k"))
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", os.getenv("OLLAMA_CHAT_MODEL", "dna5rm/granite4.2:3b-8k"))
-    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", os.getenv("OLLAMA_EMBEDDING_MODEL", "bge-m3"))
-    EMBEDDING_DIMENSION: int = int(os.getenv("EMBEDDING_DIMENSION", "1024"))
-    OLLAMA_EMBEDDING_MODEL: str = os.getenv("OLLAMA_EMBEDDING_MODEL", EMBEDDING_MODEL)
-    OLLAMA_TIMEOUT_SECONDS: float = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "180"))
-    OLLAMA_MAX_RETRIES: int = int(os.getenv("OLLAMA_MAX_RETRIES", "0"))
-    OLLAMA_NUM_PREDICT: int = int(os.getenv("OLLAMA_NUM_PREDICT", "2048"))
-    OLLAMA_THINK: bool = os.getenv("OLLAMA_THINK", "false").lower() == "true"
-    
-    # Mock fallback gating (strictly only used when explicit test mode)
-    USE_MOCK_LLM: bool = os.getenv("USE_MOCK_LLM", "false").lower() == "true"
-    
+    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+    EMBEDDING_DIMENSION: int = 1024
+    EMBEDDING_BASE_URL: str = os.getenv("EMBEDDING_BASE_URL") or LLM_PRIMARY_BASE_URL
+    EMBEDDING_API_KEY: str = os.getenv("EMBEDDING_API_KEY") or (
+        LLM_PRIMARY_API_KEY if EMBEDDING_BASE_URL.rstrip("/") == LLM_PRIMARY_BASE_URL else ""
+    )
+    EMBEDDING_TIMEOUT_SECONDS: float = float(os.getenv("EMBEDDING_TIMEOUT_SECONDS", "60"))
+
     # Dev test endpoints
     ENABLE_DEV_AI_TEST_ENDPOINTS: bool = os.getenv("ENABLE_DEV_AI_TEST_ENDPOINTS", "false").lower() == "true"
     
@@ -118,7 +98,7 @@ class Settings(BaseModel):
 
     def validate_llm_settings(self, fail_fast: bool = True) -> list[str]:
         """
-        Validates the configuration of primary and fallback LLM endpoints.
+        Validates the configuration of the LLM provider.
         Ensures fail-fast when required settings are missing or invalid.
         Guarantees NO secrets are leaked in error messages.
         """
@@ -133,18 +113,6 @@ class Settings(BaseModel):
             errors.append(f"PRIMARY LLM timeout must be greater than 0 (got {self.LLM_PRIMARY_TIMEOUT_SECONDS}).")
         if self.LLM_PRIMARY_MAX_RETRIES < 0:
             errors.append(f"PRIMARY LLM retries must be >= 0 (got {self.LLM_PRIMARY_MAX_RETRIES}).")
-
-        if self.LLM_FALLBACK_ENABLED:
-            if not self.OLLAMA_BASE_URL:
-                errors.append("Ollama Base URL is missing while fallback is enabled (OLLAMA_BASE_URL).")
-            if not self.OLLAMA_CHAT_MODEL:
-                errors.append("Ollama Chat Model is missing while fallback is enabled (OLLAMA_CHAT_MODEL).")
-            if self.OLLAMA_TIMEOUT_SECONDS <= 0:
-                errors.append(f"Ollama timeout must be greater than 0 (got {self.OLLAMA_TIMEOUT_SECONDS}).")
-            if self.OLLAMA_MAX_RETRIES < 0:
-                errors.append(f"Ollama retries must be >= 0 (got {self.OLLAMA_MAX_RETRIES}).")
-            if self.OLLAMA_NUM_PREDICT <= 0:
-                errors.append(f"Ollama num_predict must be > 0 (got {self.OLLAMA_NUM_PREDICT}).")
 
         if errors and fail_fast:
             raise ValueError(f"Configuration validation failed: {'; '.join(errors)}")

@@ -4,7 +4,7 @@
 
 Dự án: **MidCV — Nền tảng tuyển dụng thông minh hỗ trợ đối sánh JD–CV**  
 Thời điểm thực thi kiểm chứng: **25/09/2026**  
-Môi trường thực thi: Windows 11 x64, OpenJDK 21, Python 3.11.9, Node.js 20, Next.js 16.3.3, Playwright 1.50, PostgreSQL 16 pgvector, Local Ollama (`dna5rm/granite4.2:3b-8k`, `bge-m3:latest`).
+Môi trường thực thi: Windows 11 x64, OpenJDK 21, Python 3.11.9, Node.js 20, Next.js 16.3.3, Playwright 1.50, PostgreSQL 16 pgvector, Local LLM Provider (`dna5rm/granite4.2:3b-8k`, `bge-m3:latest`).
 
 ---
 

@@ -258,6 +258,11 @@ const QuickApplySession: React.FC<QuickApplyModalProps> = ({
       if (!(err instanceof ApiError) || err.status === 0 || err.status === 409 || err.status >= 500) {
         setOutcomeUnknown(true);
         await reconcileSubmission();
+        if (sessionCurrent() && err instanceof ApiError && err.status === 409) {
+          setSubmitError(isVi
+            ? 'CV hoặc công việc đã thay đổi, hoặc đã có đơn ứng tuyển. Kiểm tra đơn đã nộp rồi tải lại JD trước khi thử lại.'
+            : 'The CV or job may have changed, or you may already have applied. Check your applications and reload the job before retrying.');
+        }
       } else if (sessionCurrent()) setSubmitError(err.message);
     } finally {
       submittingRef.current = false;

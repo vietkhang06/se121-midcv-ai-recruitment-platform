@@ -29,7 +29,7 @@ from app.services.semantic_matching_service import SemanticMatchingService
 from app.services.score_explainer_service import ScoreExplainerService
 from app.services.skill_gap_service import SkillGapService
 from pydantic import BaseModel
-from app.services.llm.openai_compatible_client import OpenAICompatibleClient
+from app.services.llm.provider import configured_chat_client
 from app.api.dev_endpoints import dev_router
 from app.services.cv_structuring_service import CVStructuringService, StructuringResponse
 from app.services.document_extraction_service import DocumentExtractionService
@@ -49,16 +49,7 @@ semantic_matching_service = SemanticMatchingService()
 # Initialize TaxonomyNormalizer with primary LLM client if configured
 primary_llm_client = None
 if settings.LLM_PRIMARY_ENABLED and settings.LLM_PRIMARY_API_KEY:
-    try:
-        primary_llm_client = OpenAICompatibleClient(
-            base_url=settings.LLM_PRIMARY_BASE_URL,
-            api_key=settings.LLM_PRIMARY_API_KEY,
-            model=settings.LLM_PRIMARY_MODEL,
-            timeout_seconds=settings.LLM_PRIMARY_TIMEOUT_SECONDS,
-            max_retries=settings.LLM_PRIMARY_MAX_RETRIES
-        )
-    except Exception as e:
-        logger.warning("Failed to initialize LLM client for taxonomy normalizer [category=%s]", safe_error_category(e))
+    primary_llm_client = configured_chat_client()
 
 taxonomy_normalizer = TaxonomyNormalizer(llm_client=primary_llm_client)
 score_explainer_service = ScoreExplainerService(llm_client=primary_llm_client)
@@ -83,13 +74,12 @@ def health_check():
 
     providers_health = get_llm_providers_health()
     primary_reachable = providers_health.get("primary", {}).get("reachable", False)
-    ollama_reachable = providers_health.get("fallback", {}).get("reachable", False)
 
     # Readiness requires every mandatory local capability plus at least one LLM route.
     # Treat DISABLED/MISCONFIGURED as degraded too; otherwise production can report UP
     # while scanned CVs cannot be processed by OCR.
     overall_status = "UP"
-    if ocr_status != "READY" or not (primary_reachable or ollama_reachable):
+    if ocr_status != "READY" or not primary_reachable:
         overall_status = "DEGRADED"
 
     return {
@@ -102,7 +92,7 @@ def health_check():
         "embedding": {
             "model": settings.EMBEDDING_MODEL,
             "dimension": settings.EMBEDDING_DIMENSION,
-            "provider": "LOCAL_OLLAMA"
+            "provider": "openai_compatible"
         },
         "llm": providers_health
     }

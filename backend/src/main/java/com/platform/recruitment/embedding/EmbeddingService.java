@@ -16,8 +16,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class EmbeddingService {
 
-    public static final String DEFAULT_MODEL_PROVIDER = "LOCAL_OLLAMA";
-    public static final String DEFAULT_MODEL_NAME = "bge-m3";
+    public static final String DEFAULT_MODEL_PROVIDER = "CLOUD_OPENAI_COMPATIBLE";
+    public static final String DEFAULT_MODEL_NAME = "text-embedding-3-small";
     public static final int EXPECTED_DIMENSION = 1024;
 
     private final EmbeddingRepository embeddingRepository;

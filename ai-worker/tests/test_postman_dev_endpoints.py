@@ -55,6 +55,9 @@ def test_flow_04_structure_raw_text_primary(monkeypatch):
     import httpx
     monkeypatch.setattr(settings, "ENABLE_DEV_AI_TEST_ENDPOINTS", True)
 
+    from app.api.dev_endpoints import structuring_service
+    monkeypatch.setattr(structuring_service.chat_client, "enabled", True)
+    monkeypatch.setattr(structuring_service.chat_client, "api_key", "fixture-key")
     # Mock primary LLM chat response for deterministic test
     async def mock_async_post(self, url, **kwargs):
         return httpx.Response(
@@ -104,15 +107,7 @@ def test_flow_05_primary_temporary_failure_simulated_503(monkeypatch):
         headers={"X-Simulate-Primary-Status": "503"},
         json={"rawText": raw_text}
     )
-    # Simulated 503 triggers fallback to Ollama
-    if res.status_code == 200:
-        data = res.json()
-        assert data["fallbackUsed"] is True
-        assert data["providerUsed"] == "fallback"
-        assert "503" in (data.get("fallbackReason") or "")
-    else:
-        # If Ollama server is not running locally in test environment, it returns 502/503 cleanly
-        assert res.status_code in [502, 503]
+    assert res.status_code == 503
 
 
 def test_flow_06_invalid_api_key_simulated_401(monkeypatch):
@@ -126,7 +121,7 @@ def test_flow_06_invalid_api_key_simulated_401(monkeypatch):
     )
     assert res.status_code == 401
     assert "sk-" not in res.text
-    assert "Authentication failure" in res.text
+    assert "Simulated LLM provider error" in res.text
 
 
 def test_flow_07_invalid_model_simulated_404(monkeypatch):
@@ -139,7 +134,7 @@ def test_flow_07_invalid_model_simulated_404(monkeypatch):
         json={"rawText": "Valid raw text with sufficient length for candidate CV."}
     )
     assert res.status_code == 404
-    assert "Model" in res.text
+    assert "Simulated LLM provider error" in res.text
 
 
 def test_flow_08_invalid_raw_text(monkeypatch):

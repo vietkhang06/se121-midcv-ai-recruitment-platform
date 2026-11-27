@@ -193,7 +193,7 @@ function toRequirementMatchStatus(value: unknown): 'MATCH' | 'PARTIAL' | 'MISSIN
 }
 
 function toGitHubStatus(value: unknown): NonNullable<import('@/types').GitHubAssessmentData['status']> {
-  const statuses = ['SYNCED', 'NOT_CONNECTED', 'PUBLIC_ONLY', 'PRIVATE_ONLY', 'API_UNAVAILABLE', 'NOT_APPLICABLE', 'RATE_LIMITED', 'NOT_FOUND', 'PENDING', 'LEGACY_MISSING_DATA'] as const;
+  const statuses = ['SYNCED', 'NOT_CONNECTED', 'PUBLIC_ONLY', 'PRIVATE_ONLY', 'NO_PUBLIC_REPOSITORIES', 'API_UNAVAILABLE', 'NOT_APPLICABLE', 'RATE_LIMITED', 'NOT_FOUND', 'PENDING', 'LEGACY_MISSING_DATA'] as const;
   return typeof value === 'string' && statuses.includes(value as typeof statuses[number]) ? value as typeof statuses[number] : 'NOT_CONNECTED';
 }
 
@@ -2144,7 +2144,6 @@ export interface WorkerRuntimeConfiguration {
   configurationSource: string;
   restartRequiredForChanges?: boolean;
   primary?: { enabled: boolean; provider: string; model: string };
-  fallback?: { enabled: boolean; provider: string; model: string };
   embedding?: { model: string; dimension: number };
   mockMode?: boolean;
 }

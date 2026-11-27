@@ -224,13 +224,13 @@ public class StrictRoleSeparationSecurityTest {
         org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(auth);
 
         when(mockAiClient.getSettings()).thenReturn(new com.platform.recruitment.ai.AiClient.SystemAiSettings(
-                "LOCAL_OLLAMA", "http://localhost:11434", "granite", "https://api.openai.com/v1", null, "gpt-4o-mini",
-                "LOCAL_OLLAMA", "bge-m3"));
+                "CLOUD_OPENAI_COMPATIBLE", "https://api.openai.com/v1", null, "gpt-4o-mini",
+                "CLOUD_OPENAI_COMPATIBLE", "text-embedding-3-small"));
 
         try {
             var settings = adminController.getSettings();
             assertNotNull(settings);
-            assertEquals("LOCAL_OLLAMA", settings.get("provider"));
+            assertEquals("CLOUD_OPENAI_COMPATIBLE", settings.get("provider"));
         } finally {
             org.springframework.security.core.context.SecurityContextHolder.clearContext();
         }

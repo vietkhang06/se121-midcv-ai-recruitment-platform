@@ -3,7 +3,7 @@ import re
 import time
 import logging
 from typing import List, Dict, Any, Optional
-import httpx
+from app.services.embedding_service import EmbeddingError, embedding_service
 
 from app.config import settings
 from app.schemas.matching import SemanticCompareRequest, SemanticCompareResponse
@@ -54,27 +54,8 @@ class SemanticMatchingService:
     - AC-P5-01: Explicit target JD matching.
     - AC-P5-02: Decomposition of requirements, experience, and projects.
     - AC-P5-03: Uniform dimension embedding vectors and cosine similarity in [0.0, 1.0].
-    - Robust resilience: Primary OpenAI-compatible -> Fallback Ollama -> Deterministic semantic vector fallback.
+    - Uses provider embeddings and a deterministic concept comparison when unavailable.
     """
-
-    _class_primary_available: Optional[bool] = None
-    _class_ollama_available: Optional[bool] = None
-
-    def __init__(
-        self,
-        primary_base_url: Optional[str] = None,
-        primary_api_key: Optional[str] = None,
-        primary_embedding_model: Optional[str] = None,
-        ollama_base_url: Optional[str] = None,
-        ollama_model: Optional[str] = None,
-        timeout: float = 30.0
-    ):
-        self.primary_base_url = (primary_base_url or settings.LLM_PRIMARY_BASE_URL).rstrip("/")
-        self.primary_api_key = primary_api_key or settings.LLM_PRIMARY_API_KEY
-        self.primary_embedding_model = primary_embedding_model or settings.EMBEDDING_MODEL
-        self.ollama_base_url = (ollama_base_url or settings.OLLAMA_BASE_URL).rstrip("/")
-        self.ollama_model = ollama_model or settings.EMBEDDING_MODEL
-        self.timeout = httpx.Timeout(1.0, connect=0.2)
 
     def compare_semantic(self, request: SemanticCompareRequest) -> SemanticCompareResponse:
         """
@@ -118,80 +99,19 @@ class SemanticMatchingService:
     def compute_similarity(self, text_a: str, text_b: str) -> float:
         """
         Computes cosine similarity between two texts in range [0.0, 1.0].
-        Tries:
-        1. Primary OpenAI-compatible embedding endpoint
-        2. Ollama embedding endpoint
-        3. Deterministic semantic concept vector fallback
+        Uses both provider vectors in one request, or compares concept vectors.
         """
         if not text_a or not text_b or not text_a.strip() or not text_b.strip():
             return 0.0
 
-        # Try live vector embeddings first
-        vec_a = self._get_embedding_safe(text_a)
-        vec_b = self._get_embedding_safe(text_b)
+        if settings.EMBEDDING_API_KEY:
+            try:
+                vec_a, vec_b = embedding_service.embed_batch([text_a, text_b])
+                return round(max(0.0, min(1.0, self._cosine_similarity(vec_a, vec_b))), 2)
+            except EmbeddingError:
+                logger.debug("Embedding provider unavailable for semantic preview")
 
-        if vec_a and vec_b and len(vec_a) == len(vec_b):
-            sim = self._cosine_similarity(vec_a, vec_b)
-            # Clip strictly to [0.0, 1.0] and round to 2 decimal places
-            return round(max(0.0, min(1.0, sim)), 2)
-
-        # Fallback to local concept vector cosine calculation
         return self._compute_concept_cosine(text_a, text_b)
-
-    def _get_embedding_safe(self, text: str) -> Optional[List[float]]:
-        """Attempts to obtain dense embedding vector via Primary or Fallback Ollama."""
-        # Try Primary OpenAI-compatible if configured and not previously marked unavailable
-        if settings.LLM_PRIMARY_ENABLED and self.primary_api_key and SemanticMatchingService._class_primary_available is not False:
-            try:
-                emb = self._embed_openai_compatible(text)
-                SemanticMatchingService._class_primary_available = True
-                return emb
-            except Exception as e:
-                SemanticMatchingService._class_primary_available = False
-                logger.debug(f"Primary embedding failed, trying Ollama: {e}")
-
-        # Try Ollama fallback if not previously marked unavailable
-        if settings.LLM_FALLBACK_ENABLED and SemanticMatchingService._class_ollama_available is not False:
-            try:
-                emb = self._embed_ollama(text)
-                SemanticMatchingService._class_ollama_available = True
-                return emb
-            except Exception as e:
-                SemanticMatchingService._class_ollama_available = False
-                logger.debug(f"Ollama embedding failed, falling back to concept vector: {e}")
-
-        return None
-
-    def _embed_openai_compatible(self, text: str) -> List[float]:
-        url = f"{self.primary_base_url}/embeddings"
-        headers = {
-            "Authorization": f"Bearer {self.primary_api_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": self.primary_embedding_model,
-            "input": text
-        }
-        with httpx.Client(timeout=self.timeout) as client:
-            resp = client.post(url, headers=headers, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-            return data["data"][0]["embedding"]
-
-    def _embed_ollama(self, text: str) -> List[float]:
-        url = f"{self.ollama_base_url}/api/embed"
-        payload = {
-            "model": self.ollama_model,
-            "input": text
-        }
-        with httpx.Client(timeout=self.timeout) as client:
-            resp = client.post(url, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-            embeddings = data.get("embeddings", [])
-            if embeddings:
-                return embeddings[0]
-            raise ValueError("Ollama returned empty embeddings array.")
 
     @staticmethod
     def _cosine_similarity(vec_a: List[float], vec_b: List[float]) -> float:

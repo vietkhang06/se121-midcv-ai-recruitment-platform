@@ -24,9 +24,9 @@ def test_latency_percentile_nearest_rank():
 def test_grades_and_ranking_are_computed_not_hardcoded():
     labels = [dict(case_id='jd1', candidate_id=x, relevance=y, dataset_version='v1', annotator='reviewer')
               for x, y in [('a', 3), ('b', 0), ('c', 2)]]
-    preds = [dict(case_id='jd1', candidate_id=x, score=y, method='HYBRID',
+    preds = [dict(case_id='jd1', candidate_id=x, score=y, rank=rank, method='HYBRID',
                   source='BACKEND_API', policy_version='v2')
-             for x, y in [('a', 98.0), ('b', 2.0), ('c', 87.0)]]
+             for x, y, rank in [('a', 20.0, 1), ('b', 98.0, 3), ('c', 87.0, 2)]]
     result = ranking.evaluate(preds, labels, 2)['methods']['HYBRID']
     assert result['ndcg@2'] == 1.0
     assert result['precision@2'] == 1.0
@@ -35,14 +35,14 @@ def test_grades_and_ranking_are_computed_not_hardcoded():
 
 def test_rejects_fabricated_prediction_source():
     labels = [dict(case_id='jd1', candidate_id='a', relevance=1, dataset_version='v1', annotator='reviewer')]
-    preds = [dict(case_id='jd1', candidate_id='a', score=100, method='HYBRID',
+    preds = [dict(case_id='jd1', candidate_id='a', score=100, rank=1, method='HYBRID',
                   source='MOCK', policy_version='v2')]
     with pytest.raises(ValueError, match='production backend'):
         ranking.evaluate(preds, labels, 1)
 
 
 def test_rejects_missing_or_mixed_ground_truth():
-    preds = [dict(case_id='jd1', candidate_id='a', score=100, method='HYBRID',
+    preds = [dict(case_id='jd1', candidate_id='a', score=100, rank=1, method='HYBRID',
                   source='BACKEND_API', policy_version='v2')]
     labels = [dict(case_id='jd1', candidate_id='b', relevance=1, dataset_version='v1', annotator='reviewer')]
     with pytest.raises(ValueError, match='No independent label'):
@@ -52,8 +52,8 @@ def test_rejects_missing_or_mixed_ground_truth():
 def test_binary_metrics_use_declared_threshold_and_real_labels():
     labels = [dict(case_id='jd', candidate_id=x, relevance=y, dataset_version='v1', annotator='reviewer')
               for x, y in [('a', 3), ('b', 0), ('c', 2)]]
-    preds = [dict(case_id='jd', candidate_id=x, score=y, method='HYBRID', source='BACKEND_API', policy_version='v2')
-             for x, y in [('a', 90), ('b', 80), ('c', 20)]]
+    preds = [dict(case_id='jd', candidate_id=x, score=y, rank=rank, method='HYBRID', source='BACKEND_API', policy_version='v2')
+             for x, y, rank in [('a', 90, 1), ('b', 80, 2), ('c', 20, 3)]]
     values = ranking.evaluate(preds, labels, 2, 70)['methods']['HYBRID']['classification']
     assert (values['tp'], values['fp'], values['fn']) == (1, 1, 1)
     assert values['precision'] == values['recall'] == values['f1'] == 0.5

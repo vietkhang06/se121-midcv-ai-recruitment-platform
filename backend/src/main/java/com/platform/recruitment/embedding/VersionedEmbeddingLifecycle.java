@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
  * Canonical application-scoring vector lifecycle. Only document_versions.embedding contains
  * a usable pgvector; embeddings-table metadata is not evidence of an actual vector.
  * Both a confirmed CV and the JD persist an immutable version-bound embedding input.
- * Ollama model/dimension are verified by AiClient at generation time, never fabricated.
+ * Provider model/dimension are verified by AiClient at generation time, never fabricated.
  */
 @Service
 @RequiredArgsConstructor

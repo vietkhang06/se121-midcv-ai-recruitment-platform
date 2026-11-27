@@ -121,7 +121,6 @@ public class AdminService {
         try {
             AiClient.SystemAiSettings s = aiClient.getSettings();
             aiStatus.put("provider", s.provider());
-            aiStatus.put("ollamaModel", s.ollamaModel());
             aiStatus.put("cloudModel", s.cloudModel());
             aiStatus.put("hasCloudApiKey", s.cloudApiKey() != null && !s.cloudApiKey().isBlank());
         } catch (Exception e) {

@@ -7,6 +7,6 @@
 ## 2. Skill Normalization Engine
 Raw skill strings extracted from documents are mapped to standardized canonical names via alias lookup and text cleaning (e.g., `SpringBoot` $\rightarrow$ `Spring Boot`, `Postgres` $\rightarrow$ `PostgreSQL`, `k8s` $\rightarrow$ `Kubernetes`).
 
-## 3. Vector Embeddings (1536-Dim)
-- Text embeddings generated via OpenAI `text-embedding-3-small` (1536 dimensions).
+## 3. Vector Embeddings (1024 Dimensions)
+- Text embeddings generated via OpenAI `text-embedding-3-small` (1024 dimensions requested from the configured provider).
 - Persisted centrally in PostgreSQL using the `pgvector` extension with Cosine Similarity search.

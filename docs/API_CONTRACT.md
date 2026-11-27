@@ -55,7 +55,7 @@ Các endpoint này chỉ phục vụ giao tiếp nội bộ giữa Backend và A
 
   ```json
   {
-    "structured_by": "PRIMARY | OLLAMA_FALLBACK",
+    "structured_by": "PRIMARY",
     "model_used": "qwen2.5-7b-instruct",
     "cv_data": {
       "personal_info": {
@@ -635,3 +635,7 @@ Phạm vi, API và bằng chứng kiểm thử của nâng cấp giao diện/ngh
 ## Bổ sung OAuth LinkedIn và phiên trình duyệt
 
 LinkedIn dùng cùng các route OAuth start/callback/link. /oauth/complete cũng nhận ticket từ LinkedIn khi thiếu email đã xác minh. Với X-MidCV-Session: cookie và Origin frontend được phép, login/refresh/oauth exchange trả access token và ghi refresh cookie HttpOnly. Refresh trình duyệt đọc cookie và logout thu hồi phiên rồi xóa cookie. Client không gửi header này tiếp tục dùng refresh token qua JSON.
+
+### Provider configuration
+
+Chat and embeddings use the configured provider APIs. See [LLM Provider setup](LLM_PROVIDER_SETUP.md). Quick Apply accepts optional expectedCvVersionId and expectedJobRevision from the preview. HTTP 409 reports a changed input before saving the application.
