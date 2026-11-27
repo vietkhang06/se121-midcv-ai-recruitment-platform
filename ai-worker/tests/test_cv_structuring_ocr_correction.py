@@ -3,7 +3,6 @@ import json
 from types import SimpleNamespace
 
 from app.services.cv_structuring_service import CVStructuringService
-from app.services.llm.fallback_client import FallbackExecutionResult
 from app.services.llm.types import LLMResponse
 from app.services.ocr_text_correction import OcrTextCorrectionService
 
@@ -11,10 +10,8 @@ from app.services.ocr_text_correction import OcrTextCorrectionService
 class SequencedOrchestrator:
     def __init__(self):
         self.calls = []
-        self.fallback_enabled = False
-        self.fallback_client = None
 
-    async def execute(self, messages, correlation_id=None):
+    async def chat(self, messages, correlation_id=None):
         self.calls.append((messages, correlation_id))
         if correlation_id.endswith("ocr-correction"):
             content = json.dumps({"suggestions": [{
@@ -35,18 +32,15 @@ class SequencedOrchestrator:
                 "certifications": [],
                 "languages": []
             }, ensure_ascii=False)
-        response = LLMResponse(content=content, provider="fake", requested_model="unit-test")
-        return FallbackExecutionResult(
-            response=response, provider_used="primary", fallback_used=False,
-            fallback_reason=None, correlation_id=correlation_id
-        )
+        return LLMResponse(content=content, provider="fake", requested_model="unit-test")
+
 
 
 def test_actual_structuring_service_runs_ocr_correction_only_when_flagged():
     raw = "NGUYEN VAN A\nKinh nghi?m làm việc tại Công ty A"
     orchestrator = SequencedOrchestrator()
     correction = OcrTextCorrectionService(orchestrator, enabled=True)
-    service = CVStructuringService(fallback_orchestrator=orchestrator, ocr_correction_service=correction)
+    service = CVStructuringService(chat_client=orchestrator, ocr_correction_service=correction)
 
     result = asyncio.run(service.structure_raw_text(raw, "structuring-ocr-1", ocr_used=True))
 
@@ -67,7 +61,7 @@ def test_actual_structuring_service_does_not_call_correction_for_native_text():
     raw = "NGUYEN VAN A\nKinh nghiệm làm việc tại Công ty A"
     orchestrator = SequencedOrchestrator()
     correction = OcrTextCorrectionService(orchestrator, enabled=True)
-    service = CVStructuringService(fallback_orchestrator=orchestrator, ocr_correction_service=correction)
+    service = CVStructuringService(chat_client=orchestrator, ocr_correction_service=correction)
 
     result = asyncio.run(service.structure_raw_text(raw, "structuring-native-1", ocr_used=False))
 
@@ -80,7 +74,7 @@ def test_structuring_warns_when_ocr_post_processing_is_disabled():
     raw = "NGUYEN VAN A\nKinh nghi?m làm việc tại Công ty A"
     orchestrator = SequencedOrchestrator()
     correction = OcrTextCorrectionService(orchestrator, enabled=False)
-    service = CVStructuringService(fallback_orchestrator=orchestrator, ocr_correction_service=correction)
+    service = CVStructuringService(chat_client=orchestrator, ocr_correction_service=correction)
 
     result = asyncio.run(service.structure_raw_text(raw, "structuring-ocr-disabled", ocr_used=True))
 

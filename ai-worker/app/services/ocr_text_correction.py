@@ -53,7 +53,7 @@ class OcrCorrectionResult:
 
 
 class OcrTextCorrectionService:
-    """Conservative post-OCR correction using an existing LLM orchestrator."""
+    """Conservative post-OCR correction using an existing LLM provider."""
 
     MAX_INPUT_CHARS = 40_000
     MAX_SUGGESTIONS = 20
@@ -63,13 +63,13 @@ class OcrTextCorrectionService:
 
     def __init__(
         self,
-        orchestrator: Any,
+        chat_client: Any,
         *,
         enabled: bool = True,
         min_confidence: float = MIN_CONFIDENCE,
         max_input_chars: int = MAX_INPUT_CHARS,
     ) -> None:
-        self.orchestrator = orchestrator
+        self.chat_client = chat_client
         self.enabled = enabled
         self.min_confidence = min_confidence
         self.max_input_chars = max_input_chars
@@ -87,8 +87,8 @@ class OcrTextCorrectionService:
             {"role": "user", "content": f"Review this OCR text. Return only exact local suggestions.\n<UNTRUSTED_OCR_TEXT>\n{raw_text}\n</UNTRUSTED_OCR_TEXT>"},
         ]
         try:
-            result = self.orchestrator.execute_sync(messages, correlation_id=f"{correlation_id}-ocr-correction")
-            return self._build_result(raw_text, result.response.content, correlation_id)
+            result = self.chat_client.chat_sync(messages, correlation_id=f"{correlation_id}-ocr-correction")
+            return self._build_result(raw_text, result.content, correlation_id)
         except Exception as exc:  # OCR correction must never take down CV extraction.
             safe_error = sanitize_sensitive_string(str(exc))[:180]
             logger.warning(
@@ -116,8 +116,8 @@ class OcrTextCorrectionService:
             {"role": "user", "content": f"Review this OCR text. Return only exact local suggestions.\n<UNTRUSTED_OCR_TEXT>\n{raw_text}\n</UNTRUSTED_OCR_TEXT>"},
         ]
         try:
-            result = await self.orchestrator.execute(messages, correlation_id=f"{correlation_id}-ocr-correction")
-            return self._build_result(raw_text, result.response.content, correlation_id)
+            result = await self.chat_client.chat(messages, correlation_id=f"{correlation_id}-ocr-correction")
+            return self._build_result(raw_text, result.content, correlation_id)
         except Exception as exc:
             safe_error = sanitize_sensitive_string(str(exc))[:180]
             logger.warning(

@@ -53,6 +53,10 @@ public class JobQueue {
   public Optional<Map<String, Object>> claim(UUID worker) {
     return tx.execute(
         status -> {
+          jdbc.update("UPDATE processing_jobs SET state='QUEUED',step='RETRY_BACKOFF',"
+                  + "error_code='WORKER_LEASE_EXPIRED',locked_by=NULL,lease_until=NULL,"
+                  + "available_at=now() + (5 * (1 << GREATEST(attempts-1,0))) * interval '1 second',updated_at=now() "
+                  + "WHERE state='RUNNING' AND lease_until<now() AND kind IN ('MATCH','EMBED') AND attempts<3");
           var stale =
               jdbc.queryForList(
                   "UPDATE processing_jobs SET"
@@ -96,7 +100,7 @@ public class JobQueue {
   public void progress(UUID job, UUID worker, UUID owner, String step, int progress, String message) {
     requireUpdated(jdbc.update(
         "UPDATE processing_jobs SET step=?,progress=?,lease_until=now()+interval '15 minutes',updated_at=now()"
-            + " WHERE id=? AND locked_by=? AND state='RUNNING' AND lease_until>now()",
+            + " WHERE id=? AND locked_by=? AND state='RUNNING' AND lease_until>clock_timestamp()",
         step, progress, job, worker));
     events.emit(job, owner, "INFO", step, "STEP_STARTED", message, null);
   }
@@ -105,7 +109,7 @@ public class JobQueue {
     List<Map<String, Object>> rows =
         jdbc.queryForList(
             "SELECT id FROM processing_jobs WHERE id=? AND locked_by=? AND state='RUNNING' AND"
-                + " lease_until>now()",
+                + " lease_until>clock_timestamp()",
             job,
             worker);
     return !rows.isEmpty();
@@ -115,7 +119,7 @@ public class JobQueue {
     List<Map<String, Object>> rows =
         jdbc.queryForList(
             "SELECT id FROM processing_jobs WHERE id=? AND locked_by=? AND state='RUNNING' AND"
-                + " lease_until>now() FOR UPDATE",
+                + " lease_until>clock_timestamp() FOR UPDATE",
             job,
             worker);
     if (rows.isEmpty())
@@ -126,7 +130,7 @@ public class JobQueue {
     requireUpdated(jdbc.update(
         "UPDATE processing_jobs SET"
             + " state='SUCCEEDED',step='SUCCEEDED',progress=100,locked_by=NULL,lease_until=NULL,error_code=NULL,error_message=NULL,updated_at=now()"
-            + " WHERE id=? AND locked_by=? AND state='RUNNING' AND lease_until>now()",
+            + " WHERE id=? AND locked_by=? AND state='RUNNING' AND lease_until>clock_timestamp()",
         job, worker));
   }
 
@@ -134,7 +138,7 @@ public class JobQueue {
     requireUpdated(jdbc.update(
         "UPDATE processing_jobs SET"
             + " state='FAILED',step='FAILED',error_code=?,error_message=?,locked_by=NULL,lease_until=NULL,updated_at=now()"
-            + " WHERE id=? AND locked_by=? AND state='RUNNING' AND lease_until>now()",
+            + " WHERE id=? AND locked_by=? AND state='RUNNING' AND lease_until>clock_timestamp()",
         errorCode, errorMessage, job, worker));
   }
 
@@ -143,7 +147,7 @@ public class JobQueue {
         "UPDATE processing_jobs SET"
             + " state='QUEUED',step='WAITING_DEPENDENCIES',locked_by=NULL,lease_until=NULL,available_at=now()+interval"
             + " '5 seconds',updated_at=now() WHERE id=? AND locked_by=? AND state='RUNNING'"
-            + " AND lease_until>now()",
+            + " AND lease_until>clock_timestamp()",
         job, worker));
   }
 
@@ -151,7 +155,7 @@ public class JobQueue {
     requireUpdated(jdbc.update(
         "UPDATE processing_jobs SET"
             + " state='QUEUED',step='RETRY_BACKOFF',error_code=?,error_message=?,locked_by=NULL,lease_until=NULL,available_at=now() + (? || ' seconds')::interval,updated_at=now()"
-            + " WHERE id=? AND locked_by=? AND state='RUNNING' AND lease_until>now()",
+            + " WHERE id=? AND locked_by=? AND state='RUNNING' AND lease_until>clock_timestamp()",
         errorCode, errorMessage, String.valueOf(backoffSeconds), job, worker));
   }
 
@@ -195,6 +199,10 @@ public class JobQueue {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "Chỉ có thể thử lại tác vụ đã lỗi.");
           UUID entity = (UUID) row.get("entity_id");
           String kind = Objects.toString(row.get("kind"), "");
+          if ("MATCH".equals(kind) && !Boolean.TRUE.equals(jdbc.queryForObject(
+                  "SELECT EXISTS(SELECT 1 FROM applications WHERE id=? AND ai_analysis_consent=true "
+                      + "AND ai_scoring_eligible_snapshot IS DISTINCT FROM false AND status<>'WITHDRAWN')", Boolean.class, entity)))
+            throw new CustomException(ErrorCode.ACCESS_DENIED, "Đơn không còn đủ điều kiện phân tích AI.");
           UUID next = enqueue((UUID) row.get("owner_id"), kind, entity);
           Map<String, Object> res = new LinkedHashMap<>();
           res.put("jobId", next);

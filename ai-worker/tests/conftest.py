@@ -6,12 +6,9 @@ import pytest
 base_dir = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(base_dir))
 
-# Ensure automated pytest tests run with mock LLM enabled for deterministic offline testing
-os.environ["USE_MOCK_LLM"] = "true"
-
 from app.config import settings
-settings.USE_MOCK_LLM = True
-# OCR post-processing requires an explicit fake orchestrator in its dedicated tests.
+from app.services.cv_parser import CVParser
+
 settings.OCR_LLM_CORRECTION_ENABLED = False
 
 from tests.fixtures.mock_llm_client import MockLLMClient
@@ -28,7 +25,7 @@ def auto_mock_llm_for_offline_tests(request):
     run with the unpatched real LLMClient.
     """
     test_module = getattr(getattr(request.node, "module", None), "__name__", "")
-    if "test_llm_client" in test_module or "test_cv_information_extraction" in test_module:
+    if "test_llm_client" in test_module or request.node.get_closest_marker("live") is not None:
         LLMClient.generate_json = _original_generate_json
         yield
         return
@@ -40,3 +37,17 @@ def auto_mock_llm_for_offline_tests(request):
     LLMClient.generate_json = _test_generate_json
     yield
     LLMClient.generate_json = _original_generate_json
+
+
+@pytest.fixture(autouse=True)
+def inject_cv_test_client(monkeypatch, request):
+    if request.node.get_closest_marker("live") is not None:
+        return
+    original = CVParser._call_llm_with_retry
+
+    def test_call(self, system_instruction, user_content, correlation_id, max_retries=1):
+        if self.llm_client is not None:
+            return original(self, system_instruction, user_content, correlation_id, max_retries)
+        return MockLLMClient().generate_json(system_instruction, user_content)
+
+    monkeypatch.setattr(CVParser, "_call_llm_with_retry", test_call)

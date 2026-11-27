@@ -71,13 +71,13 @@ Ký hiệu: ✅ đã triển khai · 🚧 đang hoàn thiện · 🗓️ trong l
 | Tiếp nhận CV đa định dạng | PDF, PDF scan, DOC/DOCX và ảnh; kiểm tra loại tệp, kích thước và nội dung | ✅ |
 | Trích xuất văn bản lai | Ưu tiên text layer; OCR bằng Tesseract `eng+vie` khi tài liệu là ảnh hoặc bản scan | ✅ |
 | Xử lý bất đồng bộ | Trả `202 Accepted`, xử lý nền và gửi tiến độ theo từng giai đoạn qua SSE | ✅ |
-| LLM có dự phòng | Provider chính theo chuẩn OpenAI-compatible; tự động chuyển sang Ollama cục bộ khi được cấu hình | ✅ |
+| LLM Provider | Chat and embedding via OpenAI-compatible APIs | ✅ |
 | Structured CV | Chuẩn hóa thông tin cá nhân, học vấn, GPA, kinh nghiệm, dự án, kỹ năng, chứng chỉ, ngoại ngữ và liên kết | ✅ |
 | Human-in-the-loop | Form review cho phép sửa dữ liệu, quản lý thẻ lặp, kỹ năng và nguồn gốc dữ liệu trước khi xác nhận | ✅ |
 | Phiên bản và snapshot | Quản lý phiên bản CV, hồ sơ nháp và snapshot bất biến tại thời điểm nộp đơn | ✅ |
 | Minh chứng hồ sơ | Tải lên, xem nhanh và quản lý minh chứng cho chứng chỉ/ngoại ngữ | ✅ |
 | Quản lý tuyển dụng | Hồ sơ doanh nghiệp, tin tuyển dụng, đơn ứng tuyển, trạng thái xử lý và quyết định của HR | 🚧 |
-| Đối sánh ngữ nghĩa | Embedding đa ngôn ngữ BGE-M3, lưu vector bằng pgvector và tính độ tương đồng | 🚧 |
+| Đối sánh ngữ nghĩa | Embedding đa ngôn ngữ provider, lưu vector bằng pgvector và tính độ tương đồng | 🚧 |
 | Explainable Matching | Phân rã điểm theo từng yếu tố, minh chứng phù hợp/thiếu và audit kết quả | 🚧 |
 | GitHub enrichment | Trích xuất GitHub URL và phân tích dữ liệu công khai làm bằng chứng bổ sung | 🚧 |
 | Quản trị và kiểm duyệt | Duyệt doanh nghiệp, quản lý tài khoản, đình chỉ, audit trail và tách biệt actor | 🚧 |
@@ -88,7 +88,7 @@ Ký hiệu: ✅ đã triển khai · 🚧 đang hoàn thiện · 🗓️ trong l
 - **Library-first, LLM-second:** giảm token và chi phí bằng cách chỉ gửi văn bản đã trích xuất cho LLM.
 - **Human-in-the-loop:** dữ liệu AI tạo ra không tự động trở thành dữ liệu chính thức nếu người dùng chưa xác nhận.
 - **Evidence-grounded JSON:** schema và bộ kiểm tra hạn chế việc LLM thêm thông tin không có trong nguồn.
-- **Hybrid AI provider:** hỗ trợ provider cloud theo giao thức OpenAI-compatible và Ollama cục bộ làm phương án dự phòng.
+- **LLM Provider:** chat and embedding via OpenAI-compatible APIs.
 - **Semantic search native:** PostgreSQL + pgvector lưu embedding ngay trong cơ sở dữ liệu nghiệp vụ.
 - **Explainability:** định hướng giải thích từng thành phần điểm thay vì chỉ trả về một con số xếp hạng.
 - **Asynchronous UX:** SSE hiển thị trạng thái và phần trăm xử lý CV theo thời gian thực.
@@ -108,7 +108,7 @@ flowchart TB
     BE --> FS["Document Storage"]
     BE -->|"Internal HTTP API"| AI["FastAPI AI Worker"]
     AI --> LIB["PDF · DOCX · OCR Libraries"]
-    AI --> LLM["Primary LLM · Ollama Fallback"]
+    AI --> LLM["OpenAI-compatible LLM Provider"]
     AI --> GH["GitHub Public API"]
 ```
 
@@ -135,7 +135,7 @@ Luồng thực thi trả về `202 Accepted` sau khi lưu bản ghi ban đầu. 
 | Backend API | Xác thực, phân quyền, nghiệp vụ, transaction, versioning, audit, điều phối AI Worker |
 | AI Worker | Đọc tài liệu, OCR, cấu trúc CV/JD, embedding, semantic processing và GitHub enrichment |
 | Data layer | PostgreSQL, pgvector, Flyway migration, repository và ràng buộc toàn vẹn |
-| External services | LLM endpoint, Ollama cục bộ và GitHub API |
+| External services | Chat and embedding providers, GitHub API |
 
 ## 🧰 Công nghệ sử dụng
 
@@ -184,8 +184,8 @@ Luồng thực thi trả về `202 Accepted` sau khi lưu bản ghi ban đầu. 
 | Tesseract 5 + pytesseract | OCR song ngữ `eng+vie` |
 | LibreOffice | Tùy chọn để chuyển DOC cũ sang PDF |
 | OpenAI-compatible API | LLM chính, cấu hình bằng biến môi trường |
-| Ollama | LLM cục bộ dự phòng |
-| BGE-M3 | Embedding đa ngôn ngữ, vector 1024 chiều |
+| LLM Provider | Chat and embedding via OpenAI-compatible APIs | ✅ |
+| provider | Embedding đa ngôn ngữ, vector 1024 chiều |
 | pytest / pytest-asyncio | Unit, contract và integration test |
 
 ### Dữ liệu, hạ tầng và chất lượng
@@ -243,7 +243,6 @@ Hướng dẫn dưới đây ưu tiên **Windows 10/11 + PowerShell**, là môi 
 | npm | Đi kèm Node.js | `npm --version` |
 | Python | 3.11 | `py -3.11 --version` |
 | Tesseract OCR | 5.x, có `eng` và `vie` | `tesseract --list-langs` |
-| Ollama | Tùy chọn nhưng khuyến nghị cho fallback | `ollama --version` |
 
 ### 2. Clone repository
 
@@ -279,7 +278,6 @@ Các nhóm biến cần cấu hình:
 | Security | `JWT_SECRET`, thời hạn access/refresh token |
 | Backend → AI Worker | URL nội bộ mặc định `http://127.0.0.1:8000/internal/ai` |
 | Primary LLM | `AI_PROVIDER=auto`, `LLM_PRIMARY_BASE_URL`, `LLM_PRIMARY_API_KEY`, `LLM_PRIMARY_MODEL` |
-| Ollama fallback | `LLM_FALLBACK_ENABLED`, `OLLAMA_BASE_URL`, `OLLAMA_CHAT_MODEL`, `OLLAMA_EMBEDDING_MODEL` |
 | GitHub | `GITHUB_TOKEN` – tùy chọn nhưng giúp tăng API rate limit |
 | Dev endpoints | `ENABLE_DEV_AI_TEST_ENDPOINTS=false` ngoài lúc kiểm thử có chủ đích |
 
@@ -304,15 +302,9 @@ vie
 
 Nếu thiếu `vie`, tải `vie.traineddata` từ kho `tessdata` chính thức của Tesseract và đặt vào thư mục `tessdata` của bản cài đặt. Khởi động lại terminal sau khi cập nhật `PATH`.
 
-### 5. Chuẩn bị Ollama fallback (tùy chọn)
+### 5. LLM Provider
 
-```powershell
-ollama pull dna5rm/granite4.2:3b-8k
-ollama pull bge-m3
-ollama list
-```
-
-Nếu không sử dụng Ollama, đặt `LLM_FALLBACK_ENABLED=false` và bảo đảm provider chính hoạt động.
+Xem [cấu hình LLM Provider](docs/LLM_PROVIDER_SETUP.md).
 
 ### 6. Khởi tạo PostgreSQL + pgvector
 
@@ -471,7 +463,7 @@ E2E yêu cầu các dịch vụ phụ thuộc được khởi động đúng the
 | Core platform | Authentication, RBAC, Candidate/Recruiter/Admin foundation | ✅ |
 | CV intelligence | Upload, extraction, OCR, raw text, structured JSON, review và versioning | ✅ |
 | Recruitment workflow | Company verification, job posting, application và recruiter decision | 🚧 |
-| Matching intelligence | JD taxonomy, BGE-M3/pgvector, ranking và explainable evidence | 🚧 |
+| Matching intelligence | JD taxonomy, provider/pgvector, ranking và explainable evidence | 🚧 |
 | GitHub competency | Thu thập, chuẩn hóa và trình bày tín hiệu GitHub công khai | 🚧 |
 | Hardening | Account lifecycle, suspension/appeal, audit trail, observability và security review | 🗓️ |
 | Release | E2E regression, tài liệu triển khai, demo và nghiệm thu | 🗓️ |
@@ -545,13 +537,13 @@ Legend: ✅ implemented · 🚧 being completed · 🗓️ planned
 | Multi-format CV ingestion | PDF, scanned PDF, DOC/DOCX, and images with format and size validation | ✅ |
 | Hybrid text extraction | Native text first; Tesseract `eng+vie` OCR for images and scanned documents | ✅ |
 | Asynchronous processing | `202 Accepted`, background processing, and stage-by-stage SSE progress | ✅ |
-| LLM fallback chain | OpenAI-compatible primary provider with optional local Ollama fallback | ✅ |
+| LLM Provider | Chat and embedding via OpenAI-compatible APIs | ✅ |
 | Structured CV | Personal data, education, GPA, experience, projects, skills, certificates, languages, and links | ✅ |
 | Human-in-the-loop review | Editable repeatable cards, skills, provenance, and explicit profile confirmation | ✅ |
 | Versioning and snapshots | Draft versions and an immutable CV snapshot at application time | ✅ |
 | Profile evidence | Upload, preview, and management of certificate/language evidence | ✅ |
 | Recruitment workflow | Company profile, jobs, applications, statuses, and HR decisions | 🚧 |
-| Semantic matching | Multilingual BGE-M3 embeddings, pgvector persistence, and similarity calculation | 🚧 |
+| Semantic matching | Multilingual provider embeddings, pgvector persistence, and similarity calculation | 🚧 |
 | Explainable matching | Factor breakdown, supporting/missing evidence, and result auditing | 🚧 |
 | GitHub enrichment | GitHub URL extraction and public competency signals | 🚧 |
 | Administration | Company verification, account moderation, suspension, actor isolation, and audit trail | 🚧 |
@@ -562,7 +554,7 @@ Legend: ✅ implemented · 🚧 being completed · 🗓️ planned
 - **Library-first, LLM-second:** reduces token usage and cost by sending extracted text rather than whole files to the LLM.
 - **Human-in-the-loop:** AI output never becomes authoritative before explicit user confirmation.
 - **Evidence-grounded JSON:** schemas and validation reduce unsupported LLM-generated claims.
-- **Hybrid AI providers:** supports a cloud OpenAI-compatible endpoint with an optional local Ollama fallback.
+- **LLM Provider:** chat and embedding via OpenAI-compatible APIs.
 - **Native semantic storage:** PostgreSQL and pgvector keep embeddings close to transactional data.
 - **Explainability:** scoring is designed to expose factor-level evidence instead of returning only a ranking number.
 - **Asynchronous user experience:** SSE reports CV-processing stages and percentage progress in real time.
@@ -582,7 +574,7 @@ flowchart TB
     BE --> FS["Document Storage"]
     BE -->|"Internal HTTP API"| AI["FastAPI AI Worker"]
     AI --> LIB["PDF · DOCX · OCR Libraries"]
-    AI --> LLM["Primary LLM · Ollama Fallback"]
+    AI --> LLM["OpenAI-compatible LLM Provider"]
     AI --> GH["GitHub Public API"]
 ```
 
@@ -609,7 +601,7 @@ The upload flow returns `202 Accepted` after initial persistence. The backend co
 | Backend API | Authentication, authorization, business rules, transactions, versioning, auditing, and AI orchestration |
 | AI Worker | Document extraction, OCR, CV/JD structuring, embeddings, semantic processing, and GitHub enrichment |
 | Data layer | PostgreSQL, pgvector, Flyway migrations, repositories, and integrity constraints |
-| External services | LLM endpoint, local Ollama, and GitHub API |
+| External services | Chat and embedding providers, GitHub API |
 
 ## 🧰 Technology stack
 
@@ -658,8 +650,7 @@ The upload flow returns `202 Accepted` after initial persistence. The backend co
 | Tesseract 5 + pytesseract | Bilingual `eng+vie` OCR |
 | LibreOffice | Optional legacy DOC-to-PDF conversion |
 | OpenAI-compatible API | Environment-configured primary LLM |
-| Ollama | Optional local LLM fallback |
-| BGE-M3 | Multilingual 1024-dimensional embeddings |
+| provider | Multilingual 1024-dimensional embeddings |
 | pytest / pytest-asyncio | Unit, contract, and integration tests |
 
 ### Data, infrastructure, and quality
@@ -717,7 +708,6 @@ The commands below prioritize **Windows 10/11 with PowerShell**, the team's prim
 | npm | Bundled with Node.js | `npm --version` |
 | Python | 3.11 | `py -3.11 --version` |
 | Tesseract OCR | 5.x with `eng` and `vie` | `tesseract --list-langs` |
-| Ollama | Optional, recommended for fallback | `ollama --version` |
 
 ### 2. Clone the repository
 
@@ -753,7 +743,6 @@ Required configuration groups:
 | Security | `JWT_SECRET`, access/refresh token expiration |
 | Backend → AI Worker | Internal URL defaults to `http://127.0.0.1:8000/internal/ai` |
 | Primary LLM | `AI_PROVIDER=auto`, `LLM_PRIMARY_BASE_URL`, `LLM_PRIMARY_API_KEY`, `LLM_PRIMARY_MODEL` |
-| Ollama fallback | `LLM_FALLBACK_ENABLED`, `OLLAMA_BASE_URL`, `OLLAMA_CHAT_MODEL`, `OLLAMA_EMBEDDING_MODEL` |
 | GitHub | `GITHUB_TOKEN` – optional, but increases API rate limits |
 | Development endpoints | Keep `ENABLE_DEV_AI_TEST_ENDPOINTS=false` unless intentionally testing them |
 
@@ -778,15 +767,9 @@ vie
 
 If `vie` is missing, download `vie.traineddata` from the official Tesseract `tessdata` repository and place it in the installation's `tessdata` directory. Restart the terminal after changing `PATH`.
 
-### 5. Prepare the optional Ollama fallback
+### 5. LLM Provider
 
-```powershell
-ollama pull dna5rm/granite4.2:3b-8k
-ollama pull bge-m3
-ollama list
-```
-
-If Ollama is not used, set `LLM_FALLBACK_ENABLED=false` and ensure the primary provider is available.
+Xem [cấu hình LLM Provider](docs/LLM_PROVIDER_SETUP.md).
 
 ### 6. Start PostgreSQL and pgvector
 
@@ -945,7 +928,7 @@ E2E tests require all dependencies configured by Playwright/CI to be running.
 | Core platform | Authentication, RBAC, and Candidate/Recruiter/Admin foundations | ✅ |
 | CV intelligence | Upload, extraction, OCR, raw text, structured JSON, review, and versioning | ✅ |
 | Recruitment workflow | Company verification, jobs, applications, and recruiter decisions | 🚧 |
-| Matching intelligence | JD taxonomy, BGE-M3/pgvector, ranking, and explainable evidence | 🚧 |
+| Matching intelligence | JD taxonomy, provider/pgvector, ranking, and explainable evidence | 🚧 |
 | GitHub competency | Public GitHub signal collection, normalization, and presentation | 🚧 |
 | Hardening | Account lifecycle, suspension/appeal, audit trail, observability, and security review | 🗓️ |
 | Release | E2E regression, deployment documentation, demo, and acceptance | 🗓️ |

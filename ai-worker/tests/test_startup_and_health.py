@@ -15,25 +15,19 @@ def test_health_endpoint_contract():
     # Section 19 health response structure assertions
     # An offline environment must legitimately report DEGRADED, not fake UP.
     assert data["status"] in ("UP", "DEGRADED")
-    llm_ok = data["llm"]["primary"]["reachable"] or data["llm"]["fallback"]["reachable"]
+    llm_ok = data["llm"]["primary"]["reachable"]
     expected = "UP" if data["ocr"]["status"] == "READY" and llm_ok else "DEGRADED"
     assert data["status"] == expected
     assert data["documentExtraction"]["status"] == "UP"
     assert "llm" in data
     assert "primary" in data["llm"]
-    assert "fallback" in data["llm"]
+    assert set(data["llm"]) == {"primary"}
 
     primary = data["llm"]["primary"]
     assert primary["provider"] == "openai_compatible"
     assert "configured" in primary
     assert "reachable" in primary
     assert "model" in primary
-
-    fallback = data["llm"]["fallback"]
-    assert fallback["provider"] == "ollama"
-    assert "enabled" in fallback
-    assert "reachable" in fallback
-    assert "model" in fallback
 
     # Verify no secrets or credentials leaked in health check
     res_text = res.text
@@ -83,23 +77,10 @@ def test_settings_fail_fast_validation():
         s5.validate_llm_settings(fail_fast=True)
     assert "retries must be >= 0" in str(exc.value)
 
-    # 6. Fallback enabled but missing Ollama URL
-    s6 = Settings(
-        LLM_PRIMARY_BASE_URL="http://api.com",
-        LLM_PRIMARY_API_KEY="key",
-        LLM_PRIMARY_MODEL="gpt-4o-mini",
-        LLM_FALLBACK_ENABLED=True,
-        OLLAMA_BASE_URL=""
-    )
-    with pytest.raises(ValueError) as exc:
-        s6.validate_llm_settings(fail_fast=True)
-    assert "Ollama Base URL is missing" in str(exc.value)
-
-
-def test_startup_checks_run_without_crash_or_secret_leak(capsys):
-    exit_code = run_startup_checks()
-    assert exit_code == 0
+def test_startup_checks_report_missing_provider(monkeypatch, capsys):
+    monkeypatch.setattr("app.tools.startup_check.get_llm_providers_health",
+                        lambda **kwargs: {"primary": {"reachable": False}})
+    assert run_startup_checks() == 1
     captured = capsys.readouterr().out
-    assert "PRE-FLIGHT STARTUP CHECK" in captured
-    assert "PRE-FLIGHT SUMMARY" in captured
+    assert "LLM provider reachable with configured model: False" in captured
     assert "sk-" not in captured

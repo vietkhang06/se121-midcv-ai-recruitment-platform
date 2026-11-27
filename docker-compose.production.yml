@@ -32,32 +32,25 @@ services:
       context: ./ai-worker
       dockerfile: Dockerfile
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     environment:
-      AI_PROVIDER: ${AI_PROVIDER:-auto}
       LLM_PRIMARY_ENABLED: ${LLM_PRIMARY_ENABLED:-true}
-      LLM_PRIMARY_PROVIDER: ${LLM_PRIMARY_PROVIDER:-openai_compatible}
       LLM_PRIMARY_BASE_URL: ${LLM_PRIMARY_BASE_URL:-https://api.openai.com/v1}
       LLM_PRIMARY_API_KEY: ${LLM_PRIMARY_API_KEY:?Set LLM_PRIMARY_API_KEY in .env.production}
       LLM_PRIMARY_MODEL: ${LLM_PRIMARY_MODEL:?Set LLM_PRIMARY_MODEL in .env.production}
       LLM_PRIMARY_TIMEOUT_SECONDS: ${LLM_PRIMARY_TIMEOUT_SECONDS:-180}
       LLM_PRIMARY_MAX_RETRIES: ${LLM_PRIMARY_MAX_RETRIES:-1}
-      LLM_FALLBACK_ENABLED: ${LLM_FALLBACK_ENABLED:-false}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-dna5rm/granite4.2:3b-8k}
-      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-bge-m3}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       OCR_ENABLED: ${OCR_ENABLED:-true}
       OCR_LANGUAGES: ${OCR_LANGUAGES:-vie+eng}
       ENABLE_DEV_AI_TEST_ENDPOINTS: "false"
-      USE_MOCK_LLM: "false"
       TZ: Asia/Ho_Chi_Minh
     networks: [midcv]
     healthcheck:
-      # HTTP 200 is not sufficient: /health deliberately returns 200 for DEGRADED.
-      # Gate backend startup on OCR + at least one reachable LLM provider.
-      test: ["CMD", "python", "-c", "import json,urllib.request,sys; data=json.load(urllib.request.urlopen('http://127.0.0.1:8000/internal/ai/health', timeout=5)); sys.exit(0 if data.get('status') == 'UP' else 1)"]
+      # The API can accept applications even while an external AI provider is degraded.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/internal/ai/runtime-config', timeout=5).close()"]
       interval: 30s
       timeout: 8s
       retries: 5
@@ -76,8 +69,6 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     environment:
       SPRING_PROFILES_ACTIVE: prod
       PORT_BACKEND: "8080"
@@ -112,7 +103,12 @@ services:
       FILE_STORAGE_PATH: /app/uploads
       WORKER_ENABLED: ${WORKER_ENABLED:-true}
       APP_AI_WORKER_URL: http://ai-worker:8000/internal/ai
-      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      LLM_PRIMARY_BASE_URL: ${LLM_PRIMARY_BASE_URL:-https://api.openai.com/v1}
+      LLM_PRIMARY_API_KEY: ${LLM_PRIMARY_API_KEY:?Set LLM_PRIMARY_API_KEY in .env.production}
+      LLM_PRIMARY_MODEL: ${LLM_PRIMARY_MODEL:?Set LLM_PRIMARY_MODEL in .env.production}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
       AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-360}
       TZ: Asia/Ho_Chi_Minh
     volumes:

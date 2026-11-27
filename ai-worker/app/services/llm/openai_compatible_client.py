@@ -36,7 +36,7 @@ def classify_openai_compatible_error(
 
     Crucially detects when an intermediate gateway (e.g. 9Router, LiteLLM, reverse proxies)
     wraps an upstream 404 NOT_FOUND into an HTTP 500/502/503/504 response, classifying it
-    as LLMModelNotFoundError to prevent futile retries or inappropriate Ollama fallbacks.
+    as LLMModelNotFoundError to prevent futile retries.
     """
     sanitized_detail = sanitize_sensitive_string(response_text[:400]) if response_text else ""
     msg = f"HTTP {status_code}: {sanitized_detail}".strip()
@@ -148,7 +148,9 @@ class OpenAICompatibleClient:
         model: str,
         timeout_seconds: float = 180.0,
         max_retries: int = 1,
-        temperature: float = 0.0
+        temperature: float = 0.0,
+        require_configuration: bool = False,
+        enabled: bool = True,
     ):
         self.base_url = (base_url or "").rstrip("/")
         self.api_key = api_key or ""
@@ -156,7 +158,20 @@ class OpenAICompatibleClient:
         self.timeout_seconds = timeout_seconds
         self.max_retries = max(0, max_retries)
         self.temperature = temperature
+        self.require_configuration = require_configuration
+        self.enabled = enabled
         self.provider = "openai_compatible"
+
+    def _validate_configuration(self) -> None:
+        if not self.enabled or (self.require_configuration and not all(
+            value.strip() for value in (self.api_key, self.base_url, self.model)
+        )):
+            raise LLMError(
+                "Configure the LLM Provider URL, API key and model before running AI extraction.",
+                status_code=503,
+                error_code="provider_not_configured",
+                provider=self.provider,
+            )
 
     def _build_request(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
         return {
@@ -248,6 +263,7 @@ class OpenAICompatibleClient:
         messages: List[Dict[str, str]],
         correlation_id: Optional[str] = None
     ) -> LLMResponse:
+        self._validate_configuration()
         url = f"{self.base_url}/chat/completions"
         headers = self._build_headers()
         payload = self._build_request(messages)
@@ -360,6 +376,7 @@ class OpenAICompatibleClient:
         messages: List[Dict[str, str]],
         correlation_id: Optional[str] = None
     ) -> LLMResponse:
+        self._validate_configuration()
         url = f"{self.base_url}/chat/completions"
         headers = self._build_headers()
         payload = self._build_request(messages)

@@ -10,11 +10,11 @@ class FakeOrchestrator:
         self.error = error
         self.calls = []
 
-    def execute_sync(self, messages, correlation_id=None):
+    def chat_sync(self, messages, correlation_id=None):
         self.calls.append((messages, correlation_id))
         if self.error:
             raise self.error
-        return SimpleNamespace(response=SimpleNamespace(content=json.dumps(self.response or {"suggestions": []})))
+        return SimpleNamespace(content=json.dumps(self.response or {"suggestions": []}))
 
 
 def test_applies_only_high_confidence_common_word_correction_and_keeps_raw_text():

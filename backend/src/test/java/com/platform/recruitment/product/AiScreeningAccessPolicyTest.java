@@ -81,6 +81,7 @@ class AiScreeningAccessPolicyTest {
         .overallScore(new BigDecimal("82"))
         .coreScore(new BigDecimal("80"))
         .githubScore(new BigDecimal("90"))
+        .status("PGVECTOR_READY")
         .detailAccess(true)
         .build();
     score.redactForStandardPlan(policy);
@@ -98,6 +99,7 @@ class AiScreeningAccessPolicyTest {
         .isGithubActive(true)
         .matchingAlgorithmVersion("v2")
         .requiredSkillsMatched(4)
+        .calculationStatus("PGVECTOR_READY")
         .build();
     ranking.redactForStandardPlan(policy);
     assertEquals("CAN_NHAC", ranking.getStatus());
@@ -111,6 +113,7 @@ class AiScreeningAccessPolicyTest {
         .coreScore(new BigDecimal("70"))
         .githubScore(new BigDecimal("90"))
         .semanticMethod("PGVECTOR_COSINE_SIMILARITY")
+        .calculationStatus("PGVECTOR_READY")
         .matchFactors(List.of(new MatchInspectionResponse.FactorItem()))
         .evidences(List.of(new MatchInspectionResponse.EvidenceItem()))
         .build();
@@ -120,6 +123,45 @@ class AiScreeningAccessPolicyTest {
     assertNull(inspection.getSemanticMethod());
     assertNull(inspection.getMatchFactors());
     assertNull(inspection.getEvidences());
+  }
+
+  @Test
+  void standardApiResponsesDoNotClassifyUnfinishedOrUnknownScores() {
+    for (String calculationStatus : new String[] {"PENDING_VECTOR", null}) {
+      for (boolean explicitPolicy : new boolean[] {true, false}) {
+        var score = MatchScoreResponse.builder()
+            .overallScore(new BigDecimal("82"))
+            .coreScore(new BigDecimal("80"))
+            .status(calculationStatus)
+            .detailAccess(true)
+            .build();
+        if (explicitPolicy) score.redactForStandardPlan(policy);
+        else score.redactForStandardPlan();
+        assertNull(score.getMatchClassification());
+        assertNull(score.getOverallScore());
+        assertNull(score.getCoreScore());
+        assertFalse(score.isDetailAccess());
+
+        var ranking = CandidateRankingResponse.builder()
+            .overallScore(new BigDecimal("55"))
+            .status(calculationStatus)
+            .calculationStatus(calculationStatus)
+            .build();
+        if (explicitPolicy) ranking.redactForStandardPlan(policy);
+        else ranking.redactForStandardPlan();
+        assertEquals(calculationStatus, ranking.getStatus());
+        assertNull(ranking.getOverallScore());
+      }
+
+      var inspection = MatchInspectionResponse.builder()
+          .overallScore(new BigDecimal("72"))
+          .calculationStatus(calculationStatus)
+          .build();
+      inspection.redactForStandardPlan();
+      assertEquals("CHUA_KHA_DUNG", inspection.getMatchClassification());
+      assertNull(inspection.getOverallScore());
+      assertEquals(Boolean.FALSE, inspection.getDetailAccess());
+    }
   }
 
   private Job eligibleJob(Company company, String occupationCode) {

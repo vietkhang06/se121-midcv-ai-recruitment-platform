@@ -145,8 +145,6 @@ jobs:
     timeout-minutes: 25
     env:
       LLM_PRIMARY_ENABLED: "false"
-      LLM_FALLBACK_ENABLED: "false"
-      USE_MOCK_LLM: "false"
       ENABLE_DEV_AI_TEST_ENDPOINTS: "false"
     steps:
       - uses: actions/checkout@v4

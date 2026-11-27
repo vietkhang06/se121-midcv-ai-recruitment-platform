@@ -15,9 +15,8 @@ from app.services.llm_client import LLMClient
 from app.services.document_extractor import DocumentExtractor
 from app.services.normalizer import normalize_skill_name
 from app.config import settings
-from app.services.llm.openai_compatible_client import OpenAICompatibleClient
-from app.services.llm.ollama_client import OllamaClient
-from app.services.llm.fallback_client import FallbackLLMClient
+from app.services.llm.types import LLMClientProtocol
+from app.services.llm.provider import configured_chat_client
 from app.services.ocr_text_correction import OcrTextCorrectionService
 
 logger = logging.getLogger(__name__)
@@ -86,38 +85,15 @@ class CVParser:
         self,
         llm_client: Optional[Any] = None,
         document_extractor: Optional[DocumentExtractor] = None,
-        fallback_orchestrator: Optional[FallbackLLMClient] = None,
+        chat_client: Optional[LLMClientProtocol] = None,
         ocr_correction_service: Optional[OcrTextCorrectionService] = None
     ):
         self.llm_client = llm_client
         self.document_extractor = document_extractor or DocumentExtractor()
-        if fallback_orchestrator:
-            self.orchestrator = fallback_orchestrator
-        else:
-            primary = OpenAICompatibleClient(
-                base_url=settings.LLM_PRIMARY_BASE_URL,
-                api_key=settings.LLM_PRIMARY_API_KEY,
-                model=settings.LLM_PRIMARY_MODEL,
-                timeout_seconds=settings.LLM_PRIMARY_TIMEOUT_SECONDS,
-                max_retries=settings.LLM_PRIMARY_MAX_RETRIES
-            )
-            fallback = OllamaClient(
-                base_url=settings.OLLAMA_BASE_URL,
-                model=settings.OLLAMA_CHAT_MODEL,
-                timeout_seconds=settings.OLLAMA_TIMEOUT_SECONDS,
-                max_retries=settings.OLLAMA_MAX_RETRIES,
-                num_predict=settings.OLLAMA_NUM_PREDICT,
-                think=settings.OLLAMA_THINK
-            ) if settings.LLM_FALLBACK_ENABLED else None
-
-            self.orchestrator = FallbackLLMClient(
-                primary_client=primary,
-                fallback_client=fallback,
-                fallback_enabled=settings.LLM_FALLBACK_ENABLED
-            )
+        self.chat_client = chat_client or configured_chat_client()
 
         self.ocr_correction_service = ocr_correction_service or OcrTextCorrectionService(
-            self.orchestrator,
+            self.chat_client,
             enabled=settings.OCR_LLM_CORRECTION_ENABLED,
             min_confidence=settings.OCR_LLM_CORRECTION_MIN_CONFIDENCE,
             max_input_chars=settings.OCR_LLM_CORRECTION_MAX_CHARS,
@@ -631,7 +607,7 @@ OUTPUT JSON SCHEMA:
         )
 
     def _call_llm_with_retry(self, system_instruction: str, user_content: str, correlation_id: str, max_retries: int = 1) -> Optional[dict]:
-        """Executes LLM call through FallbackLLMClient with bounded retry in case of malformed output."""
+        """Executes LLM call through the configured provider with bounded retry in case of malformed output."""
         if self.llm_client is not None and hasattr(self.llm_client, "generate_json"):
             try:
                 raw_json = self.llm_client.generate_json(system_instruction, user_content)
@@ -640,13 +616,6 @@ OUTPUT JSON SCHEMA:
             except Exception as e:
                 logger.warning(f"Custom LLM client call failed: {e}")
 
-        if settings.USE_MOCK_LLM:
-            try:
-                from tests.fixtures.mock_llm_client import MockLLMClient
-                return MockLLMClient().generate_json(system_instruction, user_content)
-            except Exception as e:
-                logger.warning(f"Mock LLM client call failed: {e}")
-
         messages = [
             {"role": "system", "content": system_instruction},
             {"role": "user", "content": user_content}
@@ -654,8 +623,8 @@ OUTPUT JSON SCHEMA:
 
         content = ""
         try:
-            exec_res = self.orchestrator.execute_sync(messages, correlation_id=correlation_id)
-            content = exec_res.response.content
+            response = self.chat_client.chat_sync(messages, correlation_id=correlation_id)
+            content = response.content
             cleaned = content.strip()
             if cleaned.startswith("```"):
                 lines = cleaned.split("\n")
@@ -668,17 +637,20 @@ OUTPUT JSON SCHEMA:
             raw_json = json.loads(cleaned)
             if isinstance(raw_json, dict):
                 return raw_json
-        except Exception as e:
-            logger.warning(f"[{correlation_id}] Primary LLM call failed or produced malformed JSON: {e}")
+        except json.JSONDecodeError:
+            logger.warning("[%s] Provider returned malformed JSON, attempting one repair", correlation_id)
+        except Exception as error:
+            logger.warning("[%s] Provider request failed (%s)", correlation_id, type(error).__name__)
+            return None
 
         # At most one JSON repair attempt within budget
         repair_messages = [
             {"role": "system", "content": "You are a JSON repair assistant. Fix syntax errors and return ONLY a valid JSON object without explanations or markdown fences."},
-            {"role": "user", "content": f"Fix this malformed JSON to be valid JSON:\n{content if content else user_content}"}
+            {"role": "user", "content": "Repair this JSON string data: " + json.dumps(content, ensure_ascii=False)}
         ]
         try:
-            repair_res = self.orchestrator.execute_sync(repair_messages, correlation_id=f"{correlation_id}-repair")
-            r_content = repair_res.response.content.strip()
+            repair_res = self.chat_client.chat_sync(repair_messages, correlation_id=f"{correlation_id}-repair")
+            r_content = repair_res.content.strip()
             if r_content.startswith("```"):
                 r_lines = r_content.split("\n")
                 if r_lines[0].startswith("```"):
@@ -690,7 +662,7 @@ OUTPUT JSON SCHEMA:
             if isinstance(parsed, dict):
                 return parsed
         except Exception as repair_err:
-            logger.error(f"[{correlation_id}] JSON repair attempt failed: {repair_err}")
+            logger.error("[%s] JSON repair failed (%s)", correlation_id, type(repair_err).__name__)
 
         return None
 

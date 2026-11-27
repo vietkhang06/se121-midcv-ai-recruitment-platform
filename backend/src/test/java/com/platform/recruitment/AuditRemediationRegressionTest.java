@@ -60,7 +60,9 @@ class AuditRemediationRegressionTest {
     @Test void previewDoesNotWriteApplicationResultOrFactors() {
         MatchResult r=engine.previewMatch(job.getId(),candidate.getId(),version.getId());
         assertEquals("PENDING_VECTOR",r.getStatus());assertNull(r.getId());
-        verifyNoInteractions(applications,results,factors);
+        verifyNoInteractions(applications,results,factors,github);
+        assertNull(r.getGithubScore());
+        assertEquals(r.getCoreScore(), r.getOverallScore());
         MatchScoreResponse dto=MatchScoreResponse.fromEntity(r);assertNull(dto.getApplicationId());assertEquals(job.getId(),dto.getJobId());
     }
     @Test void explicitDeclineCannotBeRecalculatedByAnyEntryPoint() {

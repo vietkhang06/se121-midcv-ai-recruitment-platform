@@ -44,22 +44,14 @@ Tài liệu này xác định các tiêu chí nghiệm thu (Acceptance Criteria 
 
 ---
 
-### Phase 2: Primary LLM Structuring & Controlled Ollama Fallback
+### Phase 2: LLM Provider Structuring
 
-- **AC-P2-01 (Primary LLM Configuration)**:
-  - Hệ thống đọc cấu hình từ biến môi trường: `AI_WORKER_PRIMARY_LLM_BASE_URL`, `AI_WORKER_PRIMARY_LLM_API_KEY`, `AI_WORKER_PRIMARY_LLM_MODEL_ID`, `AI_WORKER_PRIMARY_LLM_TIMEOUT`, `AI_WORKER_PRIMARY_LLM_MAX_RETRIES`.
-  - Kết nối thành công tới endpoint tương thích OpenAI và parse raw text thành schema `CVData` chuẩn.
-- **AC-P2-02 (Strict Error Classification for Fallback)**:
-  - **Lỗi không được fallback**: Mã lỗi HTTP `401 Unauthorized`, `403 Forbidden`, `404 Not Found` hoặc cấu hình thiếu bắt buộc phải ném lỗi ngay (`PrimaryLLMConfigurationError`), không được kích hoạt fallback làm che giấu lỗi cấu hình.
-  - **Lỗi đủ điều kiện fallback**: Lỗi kết nối mạng, timeout (`ReadTimeout`, `ConnectTimeout`), hoặc lỗi máy chủ `500`, `502`, `503`, `504` sau khi đã retry hết số lần quy định thì được phép kích hoạt Ollama fallback.
-- **AC-P2-03 (Ollama Fallback Integrity)**:
-  - Khi kích hoạt fallback, Ollama nhận prompt tương đương và parse ra cấu trúc JSON tuân thủ `CVData`.
-  - Response trả về có trường metadata xác định rõ nguồn gốc xử lý: `structured_by: "OLLAMA_FALLBACK"` (hoặc `"PRIMARY"`).
-- **AC-P2-04 (Pydantic Schema Validation)**:
-  - Bất kỳ JSON nào từ LLM đều phải qua kiểm tra của `CVData` (Pydantic model).
-- **AC-P2-05 (Automated Test Pass)**: Toàn bộ test suite trong `ai-worker/tests/test_fallback_orchestration.py` và `test_openai_compatible_client.py` chạy thành công với exit code `0`.
+- AC-P2-01 kiểm tra chat completions thật với model đã cấu hình và JSON theo schema.
+- AC-P2-02 xác nhận 400/401/403/404 kết thúc ngay. Timeout, 429 và 5xx thử lại có giới hạn.
+- AC-P2-03 ghi provider/model và correlation ID. Output lỗi schema cho phép một yêu cầu sửa JSON.
+- AC-P2-04 tài liệu thiếu dữ liệu giữ trường rỗng hoặc null và bằng chứng bám nguồn.
+- AC-P2-05 chạy test provider client và cấu trúc CV trên cùng bản mã.
 
----
 
 ### Phase 3: Candidate DRAFT Profile, Form Autofill & Human Confirmation
 

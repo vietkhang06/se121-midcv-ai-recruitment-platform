@@ -1,5 +1,7 @@
 # MidCV — Current implementation and verification status
 
+Configuration now uses the [LLM Provider](LLM_PROVIDER_SETUP.md). Historical test entries below retain their original scope.
+
 ## ARCH-01 / ARCH-02 (13/11/2026)
 
 Đã bổ sung trạng thái phương pháp matching `PENDING_VECTOR`, `FALLBACK_USED`, `PGVECTOR_READY`, giao diện HR hiển thị điểm tạm tính và công cụ đối chiếu API/SQL thật. **ARCH-01 chưa nghiệm thu**, ARCH-02 chưa có bằng chứng chuyển trạng thái từ vector chờ sang Pgvector trên hệ thống đang chạy. Không nâng các phase `NOT_STARTED` chỉ từ sửa source. Quy trình và điều kiện đóng task: [ARCH_01_02_LIVE_ACCEPTANCE.md](ARCH_01_02_LIVE_ACCEPTANCE.md).

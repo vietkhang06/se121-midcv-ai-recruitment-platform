@@ -1345,6 +1345,11 @@ public class CVService {
     }
 
     public CVResponse mapToResponse(CV cv) {
+        CVVersion latest = null;
+        if ("CONFIRMED".equalsIgnoreCase(cv.getStatus()) && cv.getId() != null) {
+            var versions = cvVersionRepository.findByCvIdOrderByVersionNumberDesc(cv.getId());
+            if (!versions.isEmpty() && "CONFIRMED".equalsIgnoreCase(versions.getFirst().getStatus())) latest = versions.getFirst();
+        }
         return CVResponse.builder()
                 .id(cv.getId())
                 .candidateId(cv.getCandidate().getId())
@@ -1358,6 +1363,8 @@ public class CVService {
                 .status(cv.getStatus())
                 .rawText(cv.getRawText())
                 .isDefault(cv.getIsDefault())
+                .confirmedVersionId(latest == null ? null : latest.getId())
+                .confirmedVersionNumber(latest == null ? null : latest.getVersionNumber())
                 .createdAt(cv.getCreatedAt())
                 .build();
     }

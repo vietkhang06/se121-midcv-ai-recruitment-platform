@@ -28,6 +28,9 @@ public class ApplicationResponse {
     private java.math.BigDecimal matchScore;
     private String matchStatus;
     private String matchCalculationStatus;
+    private String aiProcessingStatus;
+    private UUID appliedJdVersionId;
+    private String submittedJobTitle;
     private Boolean aiAnalysisConsent;
     /** Effective recruiter access, separate from the persisted subscription plan. */
     private Boolean proDetailAvailable;

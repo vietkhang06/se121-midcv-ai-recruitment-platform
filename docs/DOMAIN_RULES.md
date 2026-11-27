@@ -34,22 +34,9 @@ Tài liệu này xác lập các **Quy tắc nghiệp vụ bất biến (Domain 
   - **TUYỆT ĐỐI KHÔNG** để LLM tự tạo ID taxonomy mới ngoài từ điển chuẩn.
   - **TUYỆT ĐỐI KHÔNG** để LLM tự động chèn kỹ năng được gợi ý vào hồ sơ ứng viên.
 
-### 1.3 Mô hình Dự phòng Cục bộ (FALLBACK LLM - Local Ollama)
-* **Cấu hình:** Máy chủ Ollama cục bộ (`http://127.0.0.1:11434`), model `dna5rm/granite4.2:3b-8k`.
-* **Nguyên tắc hoạt động:**
-  - Chỉ đóng vai trò dự phòng (fallback), không phải lựa chọn mặc định.
-  - **Chỉ được gọi khi PRIMARY gặp lỗi tạm thời (Transient Errors):**
-    - Lỗi mạng, Connection Refused, DNS Failure.
-    - Timeout kết nối hoặc đọc response (HTTP 408 hoặc client timeout).
-    - Lỗi quá tải / Rate limit (HTTP 429).
-    - Lỗi máy chủ nhà cung cấp (HTTP 500, 502, 503, 504).
-    - Content rỗng hoặc JSON vẫn bị hỏng sau đúng 1 lần repair.
-  - **TUYỆT ĐỐI KHÔNG fallback khi gặp lỗi cấu hình hoặc xác thực:**
-    - HTTP 400 (Bad Request).
-    - HTTP 401 (Sai hoặc thiếu API Key).
-    - HTTP 403 (Không có quyền truy cập).
-    - HTTP 404 (Sai Model ID hoặc sai Base URL).
-  - **Mục đích:** Không dùng Ollama để âm thầm che giấu lỗi cấu hình sai hoặc vi phạm bảo mật của PRIMARY LLM.
+### 1.3 Lỗi LLM Provider
+
+AI Worker thử lại có giới hạn với 408, 429, lỗi kết nối và 5xx. Lỗi khóa, quyền, endpoint hoặc model kết thúc yêu cầu và trả trạng thái để sửa cấu hình. Khai báo endpoint embedding theo hướng dẫn [LLM Provider](LLM_PROVIDER_SETUP.md).
 
 ### 1.4 Phân loại Kỹ năng và Taxonomy (Skill Taxonomy & Embeddings)
 * **Trách nhiệm:**

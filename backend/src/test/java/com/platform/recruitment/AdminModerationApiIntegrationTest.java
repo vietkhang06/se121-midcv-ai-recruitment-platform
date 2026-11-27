@@ -136,7 +136,7 @@ public class AdminModerationApiIntegrationTest {
         when(adminAuditLogRepository.findAllByOrderByCreatedAtDesc(any())).thenReturn(new PageImpl<>(List.of()));
 
         when(aiClient.getSettings()).thenReturn(new AiClient.SystemAiSettings(
-                "LOCAL_OLLAMA", "http://localhost:11434", "granite4.2", "https://api.openai.com", "secret-key", "gpt-4o", "LOCAL_OLLAMA", "bge-m3"
+                "CLOUD_OPENAI_COMPATIBLE", "https://api.openai.com", "secret-key", "gpt-4o", "CLOUD_OPENAI_COMPATIBLE", "text-embedding-3-small"
         ));
 
         AdminDashboardStatsDto stats = adminService.getDashboardStats();

@@ -30,7 +30,12 @@ public class AiClient {
   public final String llmModel, embeddingModel;
   private final String url;
   private final int timeout;
-  private final int numCtx;
+  @Value("${app.llm-api-key:}")
+  private String providerApiKey = "";
+  @Value("${app.embedding-url:}")
+  private String embeddingBaseUrl = "";
+  @Value("${app.embedding-api-key:}")
+  private String embeddingApiKey = "";
   private final JdbcTemplate jdbc;
   private final ObjectMapper mapper;
   private final JsonNode schema;
@@ -70,9 +75,9 @@ public class AiClient {
   public AiClient(
       JdbcTemplate jdbc,
       ObjectMapper mapper,
-      @Value("${app.llm-url:${midcv.llm-url:http://localhost:11434}}") String url,
-      @Value("${app.llm-model:${midcv.llm-model:dna5rm/granite4.2:3b-8k}}") String llm,
-      @Value("${app.embedding-model:${midcv.embedding-model:bge-m3}}") String embed,
+      @Value("${app.llm-url:https://api.openai.com/v1}") String url,
+      @Value("${app.llm-model:gpt-4o-mini}") String llm,
+      @Value("${app.embedding-model:text-embedding-3-small}") String embed,
       @Value("${app.ai-timeout-seconds:${midcv.ai-timeout-seconds:360}}") int timeout,
       @Autowired(required = false) TaxonomyService taxonomy)
       throws Exception {
@@ -137,15 +142,6 @@ public class AiClient {
         client != null
             ? client
             : HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
-    if (numCtx > 0) {
-      this.numCtx = numCtx;
-    } else if (llm.toLowerCase().contains("8k")) {
-      this.numCtx = 8192;
-    } else if (llm.toLowerCase().contains("16k")) {
-      this.numCtx = 16384;
-    } else {
-      this.numCtx = 32768;
-    }
     try (var in = getClass().getResourceAsStream("/document.schema.json")) {
       if (in == null) {
         throw new IllegalStateException("document.schema.json not found in classpath");
@@ -154,86 +150,47 @@ public class AiClient {
     }
   }
 
+  public static final String PROVIDER = "CLOUD_OPENAI_COMPATIBLE";
+
   public record SystemAiSettings(
-      String provider,
-      String ollamaUrl,
-      String ollamaModel,
-      String cloudBaseUrl,
-      String cloudApiKey,
-      String cloudModel,
-      String embeddingProvider,
-      String embeddingModel) {}
+      String provider, String cloudBaseUrl, String cloudApiKey, String cloudModel,
+      String embeddingProvider, String embeddingModel) {}
 
   public SystemAiSettings getSettings() {
     long now = System.currentTimeMillis();
     boolean transactional = org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive();
-    if (!transactional && cachedSettings != null && (now - lastSettingsFetch < 10000)) {
+    if (!transactional && cachedSettings != null && now - lastSettingsFetch < 10_000) {
       return cachedSettings;
     }
-    try {
-      if (jdbc != null) {
-        List<SystemAiSettings> list =
-            jdbc.query(
-                "SELECT * FROM system_ai_settings WHERE id='current'",
-                (rs, rowNum) -> {
-                  String configuredOllamaUrl = rs.getString("ollama_url");
-                  // Fresh databases still carry the legacy migration loopback URL.
-                  // Inside Docker, localhost is the backend container itself, so use
-                  // the explicit runtime URL until an Admin saves a different endpoint.
-                  if (configuredOllamaUrl == null || configuredOllamaUrl.isBlank()
-                      || "http://localhost:11434".equalsIgnoreCase(configuredOllamaUrl.trim())
-                      || "http://127.0.0.1:11434".equalsIgnoreCase(configuredOllamaUrl.trim())) {
-                    configuredOllamaUrl = url;
-                  }
-                  return new SystemAiSettings(
-                      rs.getString("provider"),
-                      configuredOllamaUrl,
-                      rs.getString("ollama_model"),
-                      rs.getString("cloud_base_url"),
-                      rs.getString("cloud_api_key"),
-                      rs.getString("cloud_model"),
-                      rs.getString("embedding_provider"),
-                      rs.getString("embedding_model"));
-                });
-        if (!list.isEmpty()) {
-          if (transactional) return list.get(0);
-          cachedSettings = list.get(0);
-          lastSettingsFetch = now;
-          return cachedSettings;
-        }
+    if (jdbc != null) {
+      List<SystemAiSettings> rows = jdbc.query(
+          "SELECT cloud_base_url, cloud_api_key, cloud_model FROM system_ai_settings WHERE id='current'",
+          (rs, rowNum) -> {
+            String storedKey = rs.getString("cloud_api_key");
+            if (storedKey == null || storedKey.isBlank()) return environmentSettings();
+            return new SystemAiSettings(PROVIDER, rs.getString("cloud_base_url"), storedKey,
+                rs.getString("cloud_model"), PROVIDER, embeddingModel);
+          });
+      if (!rows.isEmpty()) {
+        if (transactional) return rows.getFirst();
+        cachedSettings = rows.getFirst();
+        lastSettingsFetch = now;
+        return cachedSettings;
       }
-    } catch (Exception ignored) {
     }
-    return new SystemAiSettings(
-        "LOCAL_OLLAMA",
-        url,
-        llmModel,
-        "https://api.openai.com/v1",
-        "",
-        "gpt-4o-mini",
-        "LOCAL_OLLAMA",
-        embeddingModel);
+    return environmentSettings();
   }
 
-  public void updateSettings(
-      String provider,
-      String ollamaUrl,
-      String ollamaModel,
-      String cloudBaseUrl,
-      String newKey,
-      String cloudModel) {
+  private SystemAiSettings environmentSettings() {
+    return new SystemAiSettings(PROVIDER, url, providerApiKey, llmModel, PROVIDER, embeddingModel);
+  }
+
+  public void updateSettings(String cloudBaseUrl, String key, String cloudModel) {
     if (jdbc == null) throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE,
         "Không thể lưu cấu hình AI khi cơ sở dữ liệu chưa sẵn sàng.");
-    int changed;
-    if (newKey != null && !newKey.isEmpty()) {
-      changed = jdbc.update(
-          "UPDATE system_ai_settings SET provider=?, ollama_url=?, ollama_model=?, cloud_base_url=?, cloud_api_key=?, cloud_model=?, updated_at=now() WHERE id='current'",
-          provider, ollamaUrl, ollamaModel, cloudBaseUrl, newKey, cloudModel);
-    } else {
-      changed = jdbc.update(
-          "UPDATE system_ai_settings SET provider=?, ollama_url=?, ollama_model=?, cloud_base_url=?, cloud_model=?, updated_at=now() WHERE id='current'",
-          provider, ollamaUrl, ollamaModel, cloudBaseUrl, cloudModel);
-    }
+    int changed = jdbc.update(
+        "UPDATE system_ai_settings SET provider=?, cloud_base_url=?, cloud_api_key=?, cloud_model=?, updated_at=now() WHERE id='current'",
+        PROVIDER, cloudBaseUrl, key, cloudModel);
     if (changed != 1) throw new CustomException(ErrorCode.CONCURRENT_MODIFICATION,
         "Không tìm thấy cấu hình AI hiện tại để cập nhật.");
     invalidateSettingsCache();
@@ -268,26 +225,11 @@ public class AiClient {
   }
 
   public String activeLlmModel() {
-    SystemAiSettings cfg = getSettings();
-    if (cfg != null) {
-      if ("CLOUD_OPENAI_COMPATIBLE".equalsIgnoreCase(cfg.provider())) {
-        String m = cfg.cloudModel();
-        if (m != null && !m.isBlank()) return m.trim();
-      } else {
-        String m = cfg.ollamaModel();
-        if (m != null && !m.isBlank()) return m.trim();
-      }
-    }
-    return this.llmModel != null ? this.llmModel : "dna5rm/granite4.2:3b-8k";
+    return getSettings().cloudModel();
   }
 
   public String activeEmbeddingModel() {
-    SystemAiSettings cfg = getSettings();
-    if (cfg != null) {
-      String m = cfg.embeddingModel();
-      if (m != null && !m.isBlank()) return m.trim();
-    }
-    return this.embeddingModel != null ? this.embeddingModel : "bge-m3";
+    return embeddingModel;
   }
 
   public static String sha(String text) {
@@ -383,13 +325,7 @@ public class AiClient {
             + text
             + "\n</document>";
 
-    SystemAiSettings cfg = getSettings();
-    String content;
-    if ("CLOUD_OPENAI_COMPATIBLE".equalsIgnoreCase(cfg.provider())) {
-      content = callCloudOpenAi(cfg, system, userPrompt);
-    } else {
-      content = callLocalOllama(cfg, system, userPrompt);
-    }
+    String content = callCloudOpenAi(getSettings(), system, userPrompt);
 
     content = content.trim();
     if (content.startsWith("```json")) {
@@ -414,35 +350,6 @@ public class AiClient {
       taxonomy.normalizeDocumentSkills(output);
     }
     return output;
-  }
-
-  public String callLocalOllama(SystemAiSettings cfg, String system, String userPrompt) {
-    String model = cfg.ollamaModel();
-    if (model == null || model.isBlank()) model = llmModel;
-    JsonNode r =
-        post(
-            "/api/chat",
-            map(
-                "model",
-                model,
-                "stream",
-                false,
-                "format",
-                schema,
-                "options",
-                Map.of(
-                    "temperature",
-                    0,
-                    "num_ctx",
-                    numCtx,
-                    "num_thread",
-                    Math.max(4, Runtime.getRuntime().availableProcessors() / 2)),
-                "messages",
-                List.of(
-                    Map.of("role", "system", "content", system),
-                    Map.of("role", "user", "content", userPrompt))));
-    traceModel("LOCAL_OLLAMA", cfg.ollamaModel(), r);
-    return r.path("message").path("content").asText("");
   }
 
   public String callCloudOpenAi(SystemAiSettings cfg, String system, String userPrompt) {
@@ -490,7 +397,7 @@ public class AiClient {
       if (r.statusCode() == 429) {
         throw new CustomException(
             ErrorCode.RATE_LIMIT_EXCEEDED,
-            "Cloud AI đã chạm giới hạn hạn ngạch (429 Rate Limit / Quota Exceeded). Admin vui lòng cập nhật API Key mới hoặc chuyển sang Local Ollama.");
+            "Cloud AI đã chạm giới hạn hạn ngạch (429 Rate Limit / Quota Exceeded). Admin vui lòng cập nhật API Key mới.");
       }
       if (r.statusCode() == 401 || r.statusCode() == 403) {
         throw new CustomException(
@@ -504,6 +411,9 @@ public class AiClient {
             ErrorCode.INTERNAL_SERVER_ERROR,
             "Dịch vụ Cloud AI trả lỗi HTTP " + r.statusCode());
       }
+      if (r.body().length() > 2_000_000) {
+        throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Phản hồi LLM vượt giới hạn.");
+      }
       JsonNode jsonNode = parse(r.body());
       traceModel("CLOUD_OPENAI_COMPATIBLE", model, jsonNode);
       return jsonNode.path("choices").path(0).path("message").path("content").asText("");
@@ -513,121 +423,28 @@ public class AiClient {
       throw new CustomException(
           ErrorCode.INTERNAL_SERVER_ERROR,
           "Dịch vụ Cloud AI vượt thời gian phản hồi. Kiểm tra kết nối mạng hoặc thử lại.");
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE, "Yêu cầu LLM đã bị ngắt.");
     } catch (Exception e) {
-      throw new CustomException(
-          ErrorCode.INTERNAL_SERVER_ERROR, "Không kết nối được Cloud AI: " + e.getMessage(), e);
+      throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE, "Không kết nối được LLM Provider.");
     }
   }
 
   public Map<String, Object> testConnection(SystemAiSettings settings) {
     long start = System.currentTimeMillis();
-    if ("CLOUD_OPENAI_COMPATIBLE".equalsIgnoreCase(settings.provider())) {
-      if (settings.cloudApiKey() == null || settings.cloudApiKey().trim().isEmpty()) {
-        throw new CustomException(ErrorCode.VALIDATION_ERROR, "Vui lòng nhập API Key để kiểm tra kết nối.");
-      }
-      String baseUrl = settings.cloudBaseUrl() != null ? settings.cloudBaseUrl().replaceAll("/+$", "") : "https://api.openai.com/v1";
-      String endpoint =
-          baseUrl.endsWith("/chat/completions") ? baseUrl : baseUrl + "/chat/completions";
-      String model = settings.cloudModel() != null && !settings.cloudModel().isBlank() ? settings.cloudModel() : "gpt-4o-mini";
-      Map<String, Object> body =
-          map(
-              "model",
-              model,
-              "temperature",
-              0,
-              "response_format",
-              Map.of("type", "json_object"),
-              "messages",
-              List.of(
-                  Map.of(
-                      "role",
-                      "user",
-                      "content",
-                      "Respond with valid JSON: {\"status\": \"ok\", \"provider\": \"cloud\"}")));
-      try {
-        HttpRequest req =
-            HttpRequest.newBuilder(URI.create(endpoint))
-                .timeout(Duration.ofSeconds(15))
-                .header("Content-Type", "application/json")
-                .header("Authorization", "Bearer " + settings.cloudApiKey().trim())
-                .POST(HttpRequest.BodyPublishers.ofString(json(body)))
-                .build();
-        HttpResponse<String> r = client.send(req, HttpResponse.BodyHandlers.ofString());
-        long ms = System.currentTimeMillis() - start;
-        if (r.statusCode() == 429) {
-          throw new CustomException(
-              ErrorCode.RATE_LIMIT_EXCEEDED,
-              "Key đã chạm giới hạn quota/rate-limit (HTTP 429). Cần thay Key khác.");
-        }
-        if (r.statusCode() == 401 || r.statusCode() == 403) {
-          throw new CustomException(
-              ErrorCode.AUTHENTICATION_FAILED, "API Key không hợp lệ hoặc bị từ chối (HTTP " + r.statusCode() + ").");
-        }
-        if (r.statusCode() != 200) {
-          throw new CustomException(
-              ErrorCode.INTERNAL_SERVER_ERROR, "Dịch vụ AI trả mã lỗi HTTP " + r.statusCode() + ": " + r.body());
-        }
-        return map(
-            "ok",
-            true,
-            "provider",
-            "CLOUD_OPENAI_COMPATIBLE",
-            "model",
-            model,
-            "durationMs",
-            ms,
-            "message",
-            "Kết nối Cloud AI thành công! Thời gian phản hồi: " + ms + " ms.");
-      } catch (CustomException e) {
-        throw e;
-      } catch (Exception e) {
-        throw new CustomException(
-            ErrorCode.INTERNAL_SERVER_ERROR, "Không thể kết nối đến endpoint Cloud: " + e.getMessage());
-      }
-    } else {
-      String oUrl = settings.ollamaUrl() != null && !settings.ollamaUrl().isBlank() ? settings.ollamaUrl() : url;
-      String oModel = settings.ollamaModel() != null && !settings.ollamaModel().isBlank() ? settings.ollamaModel() : llmModel;
-      try {
-        HttpRequest req =
-            HttpRequest.newBuilder(URI.create(oUrl.replaceAll("/+$", "") + "/api/show"))
-                .timeout(Duration.ofSeconds(15))
-                .header("Content-Type", "application/json")
-                .POST(
-                    HttpRequest.BodyPublishers.ofString(
-                        json(
-                            map("name", oModel))))
-                .build();
-        HttpResponse<String> r = client.send(req, HttpResponse.BodyHandlers.ofString());
-        long ms = System.currentTimeMillis() - start;
-        if (r.statusCode() == 404) {
-          throw new CustomException(
-              ErrorCode.RESOURCE_NOT_FOUND,
-              "Model '" + oModel + "' chưa có trong Ollama. Hãy chạy: ollama pull " + oModel);
-        }
-        if (r.statusCode() != 200) {
-          throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Ollama trả mã lỗi HTTP " + r.statusCode());
-        }
-        return map(
-            "ok",
-            true,
-            "provider",
-            "LOCAL_OLLAMA",
-            "model",
-            oModel,
-            "durationMs",
-            ms,
-            "message",
-            "Kết nối Ollama thành công! Model '" + oModel + "' sẵn sàng (" + ms + " ms).");
-      } catch (CustomException e) {
-        throw e;
-      } catch (Exception e) {
-        throw new CustomException(
-            ErrorCode.INTERNAL_SERVER_ERROR,
-            "Không thể kết nối đến Ollama tại "
-                + oUrl
-                + (e.getMessage() != null ? ": " + e.getMessage() : ""));
-      }
+    String content = callCloudOpenAi(settings, "Return a JSON object with status set to ok.", "Provider connectivity check.");
+    JsonNode result;
+    try {
+      result = parse(content);
+    } catch (IllegalStateException error) {
+      throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE, "LLM Provider không trả JSON hợp lệ.");
     }
+    if (result == null || !"ok".equals(result.path("status").asText())) {
+      throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE, "LLM Provider không trả kết quả kiểm tra hợp lệ.");
+    }
+    return map("ok", true, "provider", PROVIDER, "model", settings.cloudModel(),
+        "durationMs", System.currentTimeMillis() - start, "message", "Kết nối LLM Provider thành công.");
   }
 
   public void normalize(JsonNode node, String source, String kind) {
@@ -911,27 +728,24 @@ public class AiClient {
             ? requestedModel.trim()
             : activeEmbeddingModel();
 
-    JsonNode r =
-        post("/api/embed", map("model", model, "input", text, "truncate", false));
-
-    if (r.has("error") && !r.path("error").asText().isBlank()) {
-      throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, r.path("error").asText());
+    if (!model.equals(activeEmbeddingModel())) {
+      throw new CustomException(ErrorCode.CONCURRENT_MODIFICATION,
+          "Cấu hình embedding đã đổi. Vui lòng chạy lại tác vụ.");
     }
-
-    String returnedModel = r.path("model").asText("");
-    if (!returnedModel.isBlank()
-        && !returnedModel.equalsIgnoreCase(model)
-        && !returnedModel.startsWith(model)
-        && !model.startsWith(returnedModel)) {
-      throw new CustomException(
-          ErrorCode.INTERNAL_SERVER_ERROR,
-          "Dịch vụ embedding trả về model không khớp: yêu cầu "
-              + model
-              + ", nhận được "
-              + returnedModel);
+    JsonNode response = requestEmbedding(text, model);
+    if (!model.equals(response.path("model").asText())) {
+      throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE, "Embedding Provider trả về model không khớp.");
     }
-
-    JsonNode vector = r.path("embeddings").path(0);
+    JsonNode rows = response.path("data");
+    if (!rows.isArray() || rows.size() != 1 || rows.path(0).path("index").asInt(-1) != 0) {
+      throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE, "Embedding Provider trả dữ liệu không hợp lệ.");
+    }
+    JsonNode vector = rows.path(0).path("embedding");
+    for (JsonNode value : vector) {
+      if (!value.isNumber()) {
+        throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE, "Embedding Provider trả vector không hợp lệ.");
+      }
+    }
     if (!vector.isArray() || vector.size() != EMBEDDING_DIMENSION)
       throw new CustomException(
           ErrorCode.INTERNAL_SERVER_ERROR,
@@ -986,47 +800,34 @@ public class AiClient {
     }
   }
 
-  private JsonNode post(String path, Object body) {
-    String baseUrl = this.url;
-    try {
-      SystemAiSettings cfg = getSettings();
-      if (cfg != null && cfg.ollamaUrl() != null && !cfg.ollamaUrl().isBlank()) {
-        baseUrl = cfg.ollamaUrl().replaceAll("/+$", "");
-      }
-    } catch (Exception ignored) {
+  private JsonNode requestEmbedding(String text, String model) {
+    String baseUrl = embeddingBaseUrl.isBlank() ? url : embeddingBaseUrl;
+    String key = embeddingApiKey.isBlank() && url.equals(baseUrl.replaceAll("/+$", ""))
+        ? providerApiKey : embeddingApiKey;
+    if (key.isBlank()) {
+      throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE, "Chưa cấu hình API key cho Embedding Provider.");
     }
     try {
-      HttpRequest req =
-          HttpRequest.newBuilder(URI.create(baseUrl + path))
-              .timeout(Duration.ofSeconds(timeout))
-              .header("Content-Type", "application/json")
-              .POST(HttpRequest.BodyPublishers.ofString(json(body)))
-              .build();
-      HttpResponse<String> r = client.send(req, HttpResponse.BodyHandlers.ofString());
-      if (r.statusCode() != 200)
-        throw new CustomException(
-            ErrorCode.INTERNAL_SERVER_ERROR,
-            "Dịch vụ AI trả HTTP "
-                + r.statusCode()
-                + ". Kiểm tra model đã tải và cấu hình Ollama.");
-      if (r.body().length() > 2_000_000)
-        throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Phản hồi AI vượt giới hạn.");
-      return parse(r.body());
-    } catch (CustomException e) {
-      throw e;
-    } catch (HttpTimeoutException e) {
-      throw new CustomException(
-          ErrorCode.INTERNAL_SERVER_ERROR,
-          "AI vượt thời gian xử lý. Có thể thử lại sau khi kiểm tra tài nguyên/model.",
-          e);
-    } catch (InterruptedException e) {
+      HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl.replaceAll("/+$", "") + "/embeddings"))
+          .timeout(Duration.ofSeconds(timeout))
+          .header("Content-Type", "application/json")
+          .header("Authorization", "Bearer " + key.trim())
+          .POST(HttpRequest.BodyPublishers.ofString(json(map(
+              "model", model, "input", text, "dimensions", EMBEDDING_DIMENSION))))
+          .build();
+      HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+      if (response.statusCode() != 200 || response.body().length() > 2_000_000) {
+        throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE,
+            "Embedding Provider trả phản hồi không hợp lệ (HTTP " + response.statusCode() + ").");
+      }
+      return parse(response.body());
+    } catch (CustomException error) {
+      throw error;
+    } catch (InterruptedException error) {
       Thread.currentThread().interrupt();
-      throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Worker đã bị ngắt.");
-    } catch (Exception e) {
-      throw new CustomException(
-          ErrorCode.INTERNAL_SERVER_ERROR,
-          "Không kết nối được dịch vụ Ollama. Kiểm tra OLLAMA_URL và model; chưa có kết quả AI.",
-          e);
+      throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE, "Yêu cầu embedding đã bị ngắt.");
+    } catch (Exception error) {
+      throw new CustomException(ErrorCode.SERVICE_UNAVAILABLE, "Không nhận được vector từ Embedding Provider.");
     }
   }
 }

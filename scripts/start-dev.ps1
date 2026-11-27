@@ -240,37 +240,6 @@ if ($SkipLlmPreflight) {
 }
 
 # ------------------------------------------------------------
-# Check local Ollama engine
-# ------------------------------------------------------------
-
-Write-Host "  -> Checking Fallback Local Ollama Engine (127.0.0.1:11434)..." -ForegroundColor Gray
-$ollamaReady = $false
-
-try {
-    $req = [System.Net.HttpWebRequest]::Create("http://127.0.0.1:11434/api/tags")
-    $req.Timeout = 2000
-    $res = $req.GetResponse()
-
-    if ([int]$res.StatusCode -eq 200) {
-        $ollamaReady = $true
-    }
-
-    $res.Close()
-} catch {}
-
-if ($ollamaReady) {
-    Write-Host "  -> Fallback Ollama Service is READY with dna5rm/granite4.2:3b-8k & bge-m3." -ForegroundColor Green
-} else {
-    if ($primaryCheckOk) {
-        Write-Host "  -> WARNING: Fallback Ollama is not running on http://127.0.0.1:11434." -ForegroundColor Yellow
-        Write-Host "     PRIMARY LLM is available; system will run on PRIMARY with fallback unavailable." -ForegroundColor Yellow
-    } else {
-        Write-Host "  -> NOTICE: Local Ollama is not responding on http://127.0.0.1:11434." -ForegroundColor Yellow
-        Write-Host "     If using Local AI mode, please launch Ollama ('ollama serve') before testing AI features." -ForegroundColor Yellow
-    }
-}
-
-# ------------------------------------------------------------
 # Check Tesseract OCR Engine & Language Packs
 # ------------------------------------------------------------
 
@@ -751,10 +720,10 @@ Write-Host " AI RECRUITMENT PLATFORM LOCAL STATUS" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host " PostgreSQL  : READY  (Port $databasePort)" -ForegroundColor Green
 
-if ($ollamaReady) {
-    Write-Host " Ollama AI   : READY  (Port 11434, granite4.2 + bge-m3)" -ForegroundColor Green
+if ($primaryCheckOk) {
+    Write-Host " LLM Provider: READY" -ForegroundColor Green
 } else {
-    Write-Host " Ollama AI   : STANDBY (Port 11434)" -ForegroundColor Yellow
+    Write-Host " LLM Provider: CHECK CONFIGURATION" -ForegroundColor Yellow
 }
 
 Write-Host " Backend     : READY  (Port 8080)" -ForegroundColor Green

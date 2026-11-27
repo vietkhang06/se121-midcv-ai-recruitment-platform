@@ -48,3 +48,7 @@ Owner authorizes LinkedIn OIDC alongside existing Google/GitHub, production conf
 ### GitHub application evidence handoff (source changes, not live acceptance)
 - Reuse the existing public GitHub REST client, no candidate PAT/private repo access. Pin handle and scan to application; stable OAuth subject is checked against GitHub ID. Store snapshot with Flyway V45 and persist assessment with result. No invented backfill. Existing Core/GitHub weight cap remains unchanged.
 - Public language bytes and exact JD criteria are required for numeric supporting score; topic metadata and repository push dates are weaker observations, not verified skills or individual contributions. Missing, unowned, non-IT and incomplete scans use neutral Core fallback. See `docs/GITHUB_ACCEPTANCE_HANDOFF.md` for limits and pending live acceptance.
+
+## 2026-11-27 LLM Provider runtime
+
+Chuyển chat và embedding sang provider tương thích OpenAI theo yêu cầu dự án. Giữ vector 1024 chiều và checksum Flyway cũ. V47 cập nhật schema cấu hình. Xem [cấu hình provider](docs/LLM_PROVIDER_SETUP.md).

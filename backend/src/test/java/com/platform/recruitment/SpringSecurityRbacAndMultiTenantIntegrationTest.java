@@ -257,15 +257,15 @@ class SpringSecurityRbacAndMultiTenantIntegrationTest {
     @DisplayName("Filter Chain: ADMIN calling /api/admin/ai-settings is permitted (HTTP 200)")
     void testAdminEndpoint_CalledByAdmin_Permitted() throws Exception {
         when(aiClient.getSettings()).thenReturn(new AiClient.SystemAiSettings(
-                "LOCAL_OLLAMA", "http://localhost:11434", "test-model",
-                "https://api.openai.com/v1", "", "gpt-4o-mini", "LOCAL_OLLAMA", "bge-m3"
+                "CLOUD_OPENAI_COMPATIBLE",
+                "https://api.openai.com/v1", "", "gpt-4o-mini", "CLOUD_OPENAI_COMPATIBLE", "text-embedding-3-small"
         ));
 
         mockMvc.perform(get("/api/v1/admin/ai-settings")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.ollamaModel").value("test-model"));
+                .andExpect(jsonPath("$.cloudModel").value("gpt-4o-mini"));
     }
 
     @Test

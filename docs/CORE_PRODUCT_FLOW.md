@@ -20,7 +20,7 @@ Tài liệu này là **Nguồn sự thật duy nhất (Single Source of Truth - 
        │ ──> Quyết định có cần OCR fallback cho trang scan hay không
        ▼
 [4. Phân tách Sections & Cấu trúc DRAFT ban đầu]
-       │ ──> Sử dụng LLM chính (hoặc Ollama fallback nếu PRIMARY gặp lỗi tạm thời)
+       │ ──> Gọi LLM Provider tương thích OpenAI
        │ ──> Parse JSON theo Pydantic schema, JSON repair tối đa 1 lần
        │ ──> Lưu hồ sơ ở trạng thái DRAFT (Metadata: CV_EXTRACTED)
        ▼
@@ -87,7 +87,7 @@ Tài liệu này là **Nguồn sự thật duy nhất (Single Source of Truth - 
 - **Ràng buộc:** Thực hiện hoàn toàn bằng thuật toán kiểm tra chuỗi cục bộ; không sử dụng AI hay LLM.
 
 ### Bước 4: Cấu trúc Hóa Sơ bộ Hồ sơ ở trạng thái DRAFT
-- **Công nghệ:** `CVStructuringService` phối hợp cùng `FallbackLLMClient` (PRIMARY: OpenAI-compatible endpoint, FALLBACK: Ollama cục bộ) và `StructuredCVValidator`.
+- **Công nghệ:** `CVStructuringService` phối hợp cùng `OpenAICompatibleClient` và `StructuredCVValidator`.
 - **Nhiệm vụ:**
   - Nhận văn bản thô đã qua đánh giá chất lượng.
   - Sử dụng System Prompt nghiêm ngặt yêu cầu trả về duy nhất 1 JSON object khớp Pydantic schema, không markdown fences, không suy đoán.

@@ -40,7 +40,7 @@ public class CandidateApplicationService {
     public record Transition(ApplicationStatus from, ApplicationStatus to, ZonedDateTime at) {}
     public record Detail(UUID id, ApplicationJobSummary job, ZonedDateTime appliedAt, ApplicationStatus status,
                          String coverLetter, Boolean aiConsent, ZonedDateTime consentAt, SubmittedCv cv,
-                         PinnedJd pinnedJd, boolean skillGapAvailable, BigDecimal matchScore, String matchStatus) {}
+                         PinnedJd pinnedJd, boolean skillGapAvailable, BigDecimal matchScore, String matchStatus, String aiProcessingStatus) {}
     public record History(List<Transition> items, boolean hasNext, int page) {}
 
     @Transactional(readOnly = true)
@@ -48,12 +48,14 @@ public class CandidateApplicationService {
         var app = ownedApplication(user, id);
         var cv = submittedCv(app);
         var jd = pinnedJd(app);
-        var match = Boolean.TRUE.equals(app.getAiAnalysisConsent()) ? matches.findByApplicationId(id).orElse(null) : null;
+        var match = Boolean.TRUE.equals(app.getAiAnalysisConsent()) && !Boolean.FALSE.equals(app.getAiScoringEligibleSnapshot())
+                ? matches.findByApplicationId(id).orElse(null) : null;
+        String processing = ApplicationAiState.resolve(app, match == null ? null : match.getStatus(), jdbc);
         return new Detail(id, ApplicationJobSummary.from(app.getJob()), app.getAppliedAt(), app.getStatus(),
                 app.getCoverLetter(), app.getAiAnalysisConsent(), app.getAiConsentAt(), cv, jd,
                 eligible(app, cv, jd), match == null || "INSUFFICIENT_DATA".equals(match.getStatus())
                         || "STALE_POLICY".equals(match.getStatus()) ? null : match.getOverallScore(),
-                match == null ? null : match.getStatus());
+                match == null ? processing : match.getStatus(), processing);
     }
 
     @Transactional(readOnly = true)
@@ -140,7 +142,8 @@ public class CandidateApplicationService {
     }
 
     private static boolean eligible(Application app, SubmittedCv cv, PinnedJd jd) {
-        return Boolean.TRUE.equals(app.getAiAnalysisConsent()) && cv != null && cv.skillListAvailable()
+        return Boolean.TRUE.equals(app.getAiAnalysisConsent()) && !Boolean.FALSE.equals(app.getAiScoringEligibleSnapshot())
+                && !"WITHDRAWN".equals(String.valueOf(app.getStatus())) && cv != null && cv.skillListAvailable()
                 && jd != null && !jd.requirements().isEmpty();
     }
 

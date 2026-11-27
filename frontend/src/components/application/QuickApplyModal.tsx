@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { Job, CV, Application } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { fetchCandidateCVs, fetchCandidateApplications, getAuthUser, ApiError, submitApplication, previewQuickApply, QuickApplyPreview } from '@/lib/api';
+import { fetchCandidateCVs, fetchCandidateApplications, getAuthUser, ApiError, isApplicationRevisionConflict, submitApplication, previewQuickApply, QuickApplyPreview } from '@/lib/api';
 import {
   X,
   ShieldAlert,
@@ -28,7 +28,7 @@ interface QuickApplyModalProps {
 export const QuickApplyModal: React.FC<QuickApplyModalProps> = (props) => {
   const { user, authState } = useAuth();
   if (!props.isOpen || !props.job || authState === 'INITIALIZING') return null;
-  return <QuickApplySession key={JSON.stringify([user?.id, user?.role, props.job.id])} {...props} />;
+  return <QuickApplySession key={JSON.stringify([user?.id, user?.role, props.job.id, props.job.applicationRevision])} {...props} />;
 };
 
 const QuickApplySession: React.FC<QuickApplyModalProps> = ({
@@ -49,6 +49,7 @@ const QuickApplySession: React.FC<QuickApplyModalProps> = ({
   const [submitted, setSubmitted] = useState<Application | null>(null);
   const [cvRevision, setCvRevision] = useState(0);
   const [outcomeUnknown, setOutcomeUnknown] = useState(false);
+  const [revisionConflict, setRevisionConflict] = useState(false);
   const activeRef = useRef(true);
   const submittingRef = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -168,17 +169,20 @@ const QuickApplySession: React.FC<QuickApplyModalProps> = ({
   };
 
   const handlePreview = async () => {
-    if (!selectedCv || !aiAnalysisConsent || !sessionCurrent() || submittingRef.current) return;
+    if (!selectedCv || !aiAnalysisConsent || !sessionCurrent() || submittingRef.current || revisionConflict || isPreviewing) return;
     const requestId = ++previewRequestRef.current;
     setIsPreviewing(true);
     setPreview(null);
     setPreviewError(null);
     try {
-      const result = await previewQuickApply(job.id, selectedCv.id);
+      const result = await previewQuickApply(job.id, selectedCv.id, selectedCv.confirmedVersionId, job.applicationRevision);
       if (sessionCurrent() && requestId === previewRequestRef.current) setPreview(result);
     } catch (err: unknown) {
       if (sessionCurrent() && requestId === previewRequestRef.current) {
-        setPreviewError(err instanceof Error ? err.message : 'Không thể xem đối sánh lúc này.');
+        if (isApplicationRevisionConflict(err)) {
+          setRevisionConflict(true);
+          setPreviewError(isVi ? 'CV hoặc JD đã thay đổi. Hãy tải lại và xác nhận lựa chọn.' : 'CV or job changed. Reload and confirm your selection.');
+        } else setPreviewError(err instanceof Error ? err.message : 'Không thể xem đối sánh lúc này.');
       }
     } finally {
       if (sessionCurrent() && requestId === previewRequestRef.current) setIsPreviewing(false);
@@ -218,7 +222,7 @@ const QuickApplySession: React.FC<QuickApplyModalProps> = ({
   };
 
   const handleConfirmApplication = async () => {
-    if (submittingRef.current || !sessionCurrent() || submitted || outcomeUnknown) return;
+    if (submittingRef.current || !sessionCurrent() || submitted || outcomeUnknown || revisionConflict || isPreviewing) return;
     if (job.status !== 'PUBLISHED' || isJobExpired(job.applicationDeadline)) {
       setSubmitError(isVi ? 'Tin tuyển dụng không còn nhận hồ sơ.' : 'This job is no longer accepting applications.');
       return;
@@ -233,7 +237,9 @@ const QuickApplySession: React.FC<QuickApplyModalProps> = ({
         job,
         appliedCvId: selectedCv.id,
         appliedCvTitle: selectedCv.title,
-        appliedCvVersion: null,
+        appliedCvVersion: selectedCv.confirmedVersionNumber ?? null,
+        expectedCvVersionId: preview?.cvVersionId ?? selectedCv.confirmedVersionId ?? undefined,
+        expectedJobRevision: preview?.jobRevision ?? job.applicationRevision,
         aiAnalysisConsent,
         status: 'SUBMITTED',
         appliedDate: '',
@@ -241,11 +247,22 @@ const QuickApplySession: React.FC<QuickApplyModalProps> = ({
       finish(newApp);
     } catch (err: unknown) {
       if (!sessionCurrent()) return;
+      if (isApplicationRevisionConflict(err)) {
+        setRevisionConflict(true);
+        setPreview(null);
+        setSubmitError(isVi ? 'CV hoặc JD đã thay đổi. Hãy tải lại trang, chọn CV và xác nhận lại.' : 'CV or job changed. Reload the page and confirm your selection again.');
+        return;
+      }
       // A timeout, conflict or 5xx can occur after the server committed the application.
       // Read the authoritative list before allowing another submission.
       if (!(err instanceof ApiError) || err.status === 0 || err.status === 409 || err.status >= 500) {
         setOutcomeUnknown(true);
         await reconcileSubmission();
+        if (sessionCurrent() && err instanceof ApiError && err.status === 409) {
+          setSubmitError(isVi
+            ? 'CV hoặc công việc đã thay đổi, hoặc đã có đơn ứng tuyển. Kiểm tra đơn đã nộp rồi tải lại JD trước khi thử lại.'
+            : 'The CV or job may have changed, or you may already have applied. Check your applications and reload the job before retrying.');
+        }
       } else if (sessionCurrent()) setSubmitError(err.message);
     } finally {
       submittingRef.current = false;
@@ -360,18 +377,19 @@ const QuickApplySession: React.FC<QuickApplyModalProps> = ({
                     : 'I agree to AI analysis of this CV against this job. I can still apply without consent.'}</span>
                 </label>
                 {aiAnalysisConsent && selectedCv && (
-                  <button type="button" disabled={isPreviewing || isSubmitting || outcomeUnknown} onClick={handlePreview}
+                  <button type="button" disabled={isPreviewing || isSubmitting || outcomeUnknown || revisionConflict} onClick={handlePreview}
                     className="rounded-lg border border-blue-300 px-3 py-2 font-semibold text-blue-700 disabled:opacity-50">
                     {isPreviewing ? (isVi ? 'Đang đối sánh...' : 'Matching...') : (isVi ? 'Xem đối sánh tạm trước khi nộp' : 'Preview match before applying')}
                   </button>
                 )}
                 {previewError && <p role="alert" className="text-rose-700">{previewError}</p>}
                 {preview && <div role="status" className="space-y-1 text-slate-700 dark:text-slate-200">
-                  <p>{isVi ? 'Điểm tạm tính: ' : 'Provisional score: '}
-                    <strong>{preview.overallScore != null ? `${Number(preview.overallScore).toFixed(1)}%` : 'N/A'}</strong></p>
+                  <p>{isVi ? 'Điểm Core tạm tính (không gồm GitHub): ' : 'Provisional Core score (excludes GitHub): '}
+                    <strong>{(preview.coreScore ?? preview.overallScore) != null && preview.status !== 'INSUFFICIENT_DATA' ? `${Number(preview.coreScore ?? preview.overallScore).toFixed(1)}%` : 'N/A'}</strong></p>
                   <p>{isVi ? 'Trạng thái: ' : 'Status: '}{statusLabel(preview.status, locale)}</p>
                   <p>{isVi ? 'Phương pháp: ' : 'Method: '}{preview.semanticMethod || 'N/A'}</p>
-                  <p>{isVi ? 'Bản xem trước không tạo đơn; điểm cuối có thể đổi khi vector CV/JD sẵn sàng.' : 'Preview does not submit an application; the final score may change when CV/JD vectors are ready.'}</p>
+                  {preview.scoringPolicyVersion != null && <p>{isVi ? 'Phiên bản chính sách: ' : 'Policy version: '}{preview.scoringPolicyVersion}</p>}
+                  <p>{isVi ? 'Không tạo đơn và không chấm GitHub. Điểm tổng chính thức có thể khác do vector, GitHub và chính sách chấm điểm.' : 'No application or GitHub assessment is created. The final overall score may differ because of vectors, GitHub and scoring policy.'}</p>
                 </div>}
               </div>
 
@@ -382,6 +400,7 @@ const QuickApplySession: React.FC<QuickApplyModalProps> = ({
                 </div>
               )}
 
+              {revisionConflict && <button type="button" className="text-sm font-semibold underline" onClick={() => window.location.reload()}>{isVi ? 'Tải lại CV và JD' : 'Reload CV and job'}</button>}
               {outcomeUnknown && <div className="flex flex-wrap gap-3 text-xs">
                 <button type="button" disabled={isSubmitting} onClick={() => void checkSubmission()} className="font-semibold underline">{isVi ? 'Kiểm tra lại kết quả nộp' : 'Check submission again'}</button>
                 <Link href="/candidate/applications" className="underline">{isVi ? 'Mở danh sách đơn' : 'Open applications'}</Link>
@@ -399,7 +418,7 @@ const QuickApplySession: React.FC<QuickApplyModalProps> = ({
 
                 <button
                   type="button"
-                  disabled={isSubmitting || outcomeUnknown || !candidateCVs?.length || !selectedCv || job.status !== 'PUBLISHED' || isJobExpired(job.applicationDeadline)}
+                  disabled={isSubmitting || isPreviewing || revisionConflict || outcomeUnknown || !candidateCVs?.length || !selectedCv || job.status !== 'PUBLISHED' || isJobExpired(job.applicationDeadline)}
                   onClick={handleConfirmApplication}
                   className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary)] transition shadow-xs flex items-center gap-1.5 active:scale-[0.99] cursor-pointer"
                 >

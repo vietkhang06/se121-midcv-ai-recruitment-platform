@@ -16,7 +16,6 @@ from app.services.llm.types import (
     LLMNetworkError,
     LLMInvalidResponseError,
 )
-from app.services.llm.fallback_client import FallbackLLMClient
 from app.services.structured_cv_validator import StructuredCVValidator, StructuredCVData
 from app.services.cv_structuring_service import CVStructuringService
 
@@ -39,179 +38,6 @@ class DummyLLMClient:
         if self.side_effect:
             raise self.side_effect
         return self.response
-
-
-class TestFallbackLLMClient:
-    @pytest.mark.asyncio
-    async def test_primary_success_ollama_not_called(self):
-        primary = DummyLLMClient(provider="openai_compatible")
-        primary.response = LLMResponse(
-            content='{"personalInfo": {"fullName": "Alice"}}',
-            provider="openai_compatible",
-            requested_model="gpt-4o-mini"
-        )
-        fallback = DummyLLMClient(provider="ollama")
-
-        orchestrator = FallbackLLMClient(
-            primary_client=primary,
-            fallback_client=fallback,
-            fallback_enabled=True
-        )
-
-        res = await orchestrator.execute([{"role": "user", "content": "test"}])
-        assert res.provider_used == "primary"
-        assert res.fallback_used is False
-        assert res.fallback_reason is None
-        assert primary.call_count == 1
-        assert fallback.call_count == 0
-
-    @pytest.mark.asyncio
-    async def test_primary_timeout_triggers_ollama_fallback(self):
-        primary = DummyLLMClient(provider="openai_compatible")
-        primary.side_effect = LLMTimeoutError("Request timed out after 180s")
-        fallback = DummyLLMClient(provider="ollama")
-        fallback.response = LLMResponse(
-            content='{"personalInfo": {"fullName": "Bob"}}',
-            provider="ollama",
-            requested_model="dna5rm/granite4.2:3b-8k"
-        )
-
-        orchestrator = FallbackLLMClient(
-            primary_client=primary,
-            fallback_client=fallback,
-            fallback_enabled=True
-        )
-
-        res = await orchestrator.execute([{"role": "user", "content": "test"}])
-        assert res.provider_used == "fallback"
-        assert res.fallback_used is True
-        assert "time" in res.fallback_reason.lower()
-        assert primary.call_count == 1
-        assert fallback.call_count == 1
-
-    @pytest.mark.asyncio
-    async def test_primary_429_triggers_ollama_fallback(self):
-        primary = DummyLLMClient(provider="openai_compatible")
-        primary.side_effect = LLMRateLimitError("HTTP 429: Rate limit exceeded")
-        fallback = DummyLLMClient(provider="ollama")
-        fallback.response = LLMResponse(
-            content='{"personalInfo": {"fullName": "Carol"}}',
-            provider="ollama",
-            requested_model="dna5rm/granite4.2:3b-8k"
-        )
-
-        orchestrator = FallbackLLMClient(
-            primary_client=primary,
-            fallback_client=fallback,
-            fallback_enabled=True
-        )
-
-        res = await orchestrator.execute([{"role": "user", "content": "test"}])
-        assert res.provider_used == "fallback"
-        assert res.fallback_used is True
-        assert primary.call_count == 1
-        assert fallback.call_count == 1
-
-    @pytest.mark.asyncio
-    async def test_primary_503_triggers_ollama_fallback(self):
-        primary = DummyLLMClient(provider="openai_compatible")
-        primary.side_effect = LLMServerError("HTTP 503: Service Unavailable", status_code=503)
-        fallback = DummyLLMClient(provider="ollama")
-        fallback.response = LLMResponse(
-            content='{"personalInfo": {"fullName": "Dan"}}',
-            provider="ollama",
-            requested_model="dna5rm/granite4.2:3b-8k"
-        )
-
-        orchestrator = FallbackLLMClient(
-            primary_client=primary,
-            fallback_client=fallback,
-            fallback_enabled=True
-        )
-
-        res = await orchestrator.execute([{"role": "user", "content": "test"}])
-        assert res.provider_used == "fallback"
-        assert res.fallback_used is True
-        assert primary.call_count == 1
-        assert fallback.call_count == 1
-
-    @pytest.mark.asyncio
-    async def test_primary_401_auth_error_strictly_forbids_fallback(self):
-        primary = DummyLLMClient(provider="openai_compatible")
-        primary.side_effect = LLMAuthenticationError("HTTP 401: Invalid API key")
-        fallback = DummyLLMClient(provider="ollama")
-
-        orchestrator = FallbackLLMClient(
-            primary_client=primary,
-            fallback_client=fallback,
-            fallback_enabled=True
-        )
-
-        with pytest.raises(LLMAuthenticationError):
-            await orchestrator.execute([{"role": "user", "content": "test"}])
-
-        # Ollama must NEVER be called on auth failure
-        assert primary.call_count == 1
-        assert fallback.call_count == 0
-
-    @pytest.mark.asyncio
-    async def test_primary_403_forbidden_strictly_forbids_fallback(self):
-        primary = DummyLLMClient(provider="openai_compatible")
-        primary.side_effect = LLMAuthorizationError("HTTP 403: Forbidden")
-        fallback = DummyLLMClient(provider="ollama")
-
-        orchestrator = FallbackLLMClient(
-            primary_client=primary,
-            fallback_client=fallback,
-            fallback_enabled=True
-        )
-
-        with pytest.raises(LLMAuthorizationError):
-            await orchestrator.execute([{"role": "user", "content": "test"}])
-
-        assert primary.call_count == 1
-        assert fallback.call_count == 0
-
-    @pytest.mark.asyncio
-    async def test_primary_404_model_not_found_strictly_forbids_fallback(self):
-        primary = DummyLLMClient(provider="openai_compatible")
-        primary.side_effect = LLMModelNotFoundError("HTTP 404: Model not found")
-        fallback = DummyLLMClient(provider="ollama")
-
-        orchestrator = FallbackLLMClient(
-            primary_client=primary,
-            fallback_client=fallback,
-            fallback_enabled=True
-        )
-
-        with pytest.raises(LLMModelNotFoundError):
-            await orchestrator.execute([{"role": "user", "content": "test"}])
-
-        assert primary.call_count == 1
-        assert fallback.call_count == 0
-
-    @pytest.mark.asyncio
-    async def test_all_providers_fail_raises_composite_error(self):
-        primary = DummyLLMClient(provider="openai_compatible")
-        primary.side_effect = LLMServerError("Primary 500 error", status_code=500)
-        fallback = DummyLLMClient(provider="ollama")
-        fallback.side_effect = LLMNetworkError("Ollama connection refused")
-
-        orchestrator = FallbackLLMClient(
-            primary_client=primary,
-            fallback_client=fallback,
-            fallback_enabled=True
-        )
-
-        with pytest.raises(LLMServerError) as exc_info:
-            await orchestrator.execute([{"role": "user", "content": "test"}], correlation_id="cid-test-123")
-
-        err_msg = str(exc_info.value)
-        assert "All configured LLM providers failed" in err_msg
-        assert "Primary" in err_msg
-        assert "Fallback" in err_msg
-        assert primary.call_count == 1
-        assert fallback.call_count == 1
 
 
 class TestStructuredCVValidator:
@@ -283,8 +109,7 @@ class TestCVStructuringServiceAndDevEndpoint:
             completion_tokens=50,
             total_tokens=150
         )
-        orchestrator = FallbackLLMClient(primary_client=primary, fallback_client=None, fallback_enabled=False)
-        service = CVStructuringService(fallback_orchestrator=orchestrator)
+        service = CVStructuringService(chat_client=primary)
 
         raw_cv = "Le Minh C - Full Stack Dev - Email: c@example.com - Skills: React, Node.js"
         res = await service.structure_raw_text(raw_cv)
@@ -314,8 +139,7 @@ class TestCVStructuringServiceAndDevEndpoint:
             return resp
 
         primary.chat = mock_chat
-        orchestrator = FallbackLLMClient(primary_client=primary, fallback_client=None, fallback_enabled=False)
-        service = CVStructuringService(fallback_orchestrator=orchestrator)
+        service = CVStructuringService(chat_client=primary)
 
         res = await service.structure_raw_text("Sample CV text for repair test with sufficient length.")
         assert res.success is True
@@ -416,8 +240,7 @@ class TestCVStructuringServiceAndDevEndpoint:
             return resp
 
         primary.chat = mock_chat
-        orchestrator = FallbackLLMClient(primary_client=primary, fallback_client=None, fallback_enabled=False)
-        service = CVStructuringService(fallback_orchestrator=orchestrator)
+        service = CVStructuringService(chat_client=primary)
 
         res = await service.structure_raw_text("Candidate profile text with Python and sufficient length for structuring test.")
         assert res.success is True
@@ -451,8 +274,7 @@ class TestCVStructuringServiceAndDevEndpoint:
             return resp
 
         primary.chat = mock_chat
-        orchestrator = FallbackLLMClient(primary_client=primary, fallback_client=None, fallback_enabled=False)
-        service = CVStructuringService(fallback_orchestrator=orchestrator)
+        service = CVStructuringService(chat_client=primary)
 
         res = await service.structure_raw_text("Candidate profile text with sufficient length for exhaustion test.")
         assert res.success is False
@@ -476,58 +298,3 @@ class TestCVStructuringServiceAndDevEndpoint:
         assert "sk-abcdef1234567890abcdef123456" not in sanitized
         assert "[REDACTED_SECRET]" in sanitized
         assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xyz.abc" not in sanitized
-
-    @pytest.mark.asyncio
-    async def test_primary_model_not_found_strictly_blocks_fallback(self):
-        """Regression test for observed issue: 404/NOT_FOUND from upstream gateway must NOT invoke Ollama fallback."""
-        primary = DummyLLMClient(provider="openai_compatible")
-        primary.side_effect = LLMModelNotFoundError("HTTP 503: The upstream provider reported a 404 NOT_FOUND error")
-        fallback = DummyLLMClient(provider="ollama")
-
-        orchestrator = FallbackLLMClient(
-            primary_client=primary,
-            fallback_client=fallback,
-            fallback_enabled=True
-        )
-
-        with pytest.raises(LLMModelNotFoundError) as exc_info:
-            await orchestrator.execute([{"role": "user", "content": "test"}], correlation_id="cid-test-404")
-
-        assert primary.call_count == 1
-        assert fallback.call_count == 0, "Ollama fallback must strictly NOT be called for model not found errors"
-        assert exc_info.value.is_transient is False
-
-    @pytest.mark.asyncio
-    async def test_correlation_id_propagated_and_composite_error_safe(self):
-        """Verifies correlation_id follows complete path and dual failure produces safe composite error."""
-        captured_cids = []
-
-        class TrackingClient:
-            def __init__(self, name, exc):
-                self.name = name
-                self.exc = exc
-                self.call_count = 0
-
-            async def chat(self, messages, correlation_id=None):
-                self.call_count += 1
-                captured_cids.append(correlation_id)
-                raise self.exc
-
-        primary = TrackingClient("primary", LLMTimeoutError("Primary timed out after 30s"))
-        fallback = TrackingClient("fallback", LLMTimeoutError("Ollama request timed out after 180.0s"))
-
-        orchestrator = FallbackLLMClient(
-            primary_client=primary,
-            fallback_client=fallback,
-            fallback_enabled=True
-        )
-
-        test_cid = "trace-uuid-123456"
-        with pytest.raises(LLMServerError) as exc_info:
-            await orchestrator.execute([{"role": "user", "content": "test"}], correlation_id=test_cid)
-
-        assert captured_cids == [test_cid, test_cid], "Correlation ID must be propagated to both clients"
-        err_msg = str(exc_info.value)
-        assert test_cid in err_msg, "Correlation ID must be included in composite error message"
-        assert "Primary:" in err_msg
-        assert "Fallback:" in err_msg

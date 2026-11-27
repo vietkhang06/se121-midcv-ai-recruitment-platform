@@ -23,11 +23,11 @@ public class Embedding extends BaseEntity {
 
     @Builder.Default
     @Column(name = "model_provider")
-    private String modelProvider = "LOCAL_OLLAMA";
+    private String modelProvider = "CLOUD_OPENAI_COMPATIBLE";
 
     @Builder.Default
     @Column(name = "model_name")
-    private String modelName = "bge-m3";
+    private String modelName = "text-embedding-3-small";
 
     @Builder.Default
     @Column(name = "model_version")

@@ -11,6 +11,7 @@ import lombok.*;
 import java.time.ZonedDateTime;
 
 @Entity
+@org.hibernate.annotations.DynamicUpdate
 @Table(name = "applications")
 @Getter
 @Setter
@@ -51,6 +52,14 @@ public class Application extends BaseEntity {
 
     @Column(name = "ai_scoring_eligible_snapshot", updatable = false)
     private Boolean aiScoringEligibleSnapshot;
+    @Builder.Default
+    @Column(name = "ai_dispatch_pending", nullable = false)
+    private Boolean aiDispatchPending = false;
+    @Column(name = "ai_policy_snapshot", columnDefinition = "TEXT", updatable = false)
+    private String aiPolicySnapshot;
+    @Column(name = "ai_requested_policy_snapshot", columnDefinition = "TEXT")
+    private String aiRequestedPolicySnapshot;
+
     @Column(name = "github_username_snapshot", length = 39, updatable = false)
     private String githubUsernameSnapshot;
     @Column(name = "github_snapshot_contract", length = 32, updatable = false)

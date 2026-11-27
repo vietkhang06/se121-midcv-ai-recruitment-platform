@@ -38,6 +38,9 @@ class OidcIdentityValidationTest {
         var client = mock(HttpClient.class);
         HttpResponse<String> response = mock(HttpResponse.class);
         when(response.statusCode()).thenReturn(200);
+        when(response.uri()).thenReturn(java.net.URI.create("https://www.linkedin.com/oauth/openid/jwks"));
+        when(response.headers()).thenReturn(HttpHeaders.of(
+                Map.of("Content-Type", List.of("application/json")), (name, value) -> true));
         when(response.body()).thenReturn(mapper.writeValueAsString(Map.of("keys", List.of(Map.of(
                 "kid", "test-key", "kty", "RSA", "alg", "RS256",
                 "n", b64.encodeToString(pub.getModulus().toByteArray()),

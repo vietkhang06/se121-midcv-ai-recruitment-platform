@@ -3,6 +3,8 @@ package com.platform.recruitment;
 import com.platform.recruitment.application.*;
 import com.platform.recruitment.candidate.CandidateProfile;
 import com.platform.recruitment.common.UnauthorizedAccessException;
+import com.platform.recruitment.common.CustomException;
+import com.platform.recruitment.common.ErrorCode;
 import com.platform.recruitment.company.Company;
 import com.platform.recruitment.company.RecruiterProfile;
 import com.platform.recruitment.company.RecruiterProfileRepository;
@@ -198,6 +200,7 @@ public class CandidateRankingAndRecruiterDecisionIntegrationTest {
 
         UpdateApplicationStatusRequest request = UpdateApplicationStatusRequest.builder()
                 .status(ApplicationStatus.SHORTLISTED)
+                .expectedStatus(ApplicationStatus.SUBMITTED)
                 .decisionNote("Strong architectural background and 0 missing mandatory skills.")
                 .build();
 
@@ -227,6 +230,7 @@ public class CandidateRankingAndRecruiterDecisionIntegrationTest {
 
         UpdateApplicationStatusRequest request = UpdateApplicationStatusRequest.builder()
                 .status(ApplicationStatus.REJECTED)
+                .expectedStatus(ApplicationStatus.SUBMITTED)
                 .decisionNote("Missing mandatory cloud architecture skill.")
                 .build();
 
@@ -245,6 +249,26 @@ public class CandidateRankingAndRecruiterDecisionIntegrationTest {
     }
 
     @Test
+    void staleOrMissingExpectedStatusDoesNotSaveDecisionOrAudit() {
+        when(recruiterProfileRepository.findByUserId(recruiterUser.getId())).thenReturn(Optional.of(recruiter));
+        when(applicationRepository.findByIdForUpdate(app1.getId())).thenReturn(Optional.of(app1));
+
+        for (ApplicationStatus expected : new ApplicationStatus[] { ApplicationStatus.REVIEWED, null }) {
+            UpdateApplicationStatusRequest request = UpdateApplicationStatusRequest.builder()
+                    .status(ApplicationStatus.SHORTLISTED)
+                    .expectedStatus(expected)
+                    .decisionNote("Stale decision")
+                    .build();
+            CustomException error = assertThrows(CustomException.class, () ->
+                    applicationService.updateApplicationStatus(recruiterUser, app1.getId(), request));
+            assertEquals(ErrorCode.CONCURRENT_MODIFICATION, error.getErrorCode());
+            assertEquals(ApplicationStatus.SUBMITTED, app1.getStatus());
+        }
+        verify(applicationRepository, never()).save(any());
+        verify(auditLogRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("AC-P9-02 & AC-P10-02: Cross-company recruiter cannot change application status or view ranked candidates")
     void testUnauthorizedRecruiter_CannotManageApplication() {
         when(recruiterProfileRepository.findByUserId(otherRecruiterUser.getId())).thenReturn(Optional.of(otherRecruiter));
@@ -252,6 +276,7 @@ public class CandidateRankingAndRecruiterDecisionIntegrationTest {
 
         UpdateApplicationStatusRequest request = UpdateApplicationStatusRequest.builder()
                 .status(ApplicationStatus.HIRED)
+                .expectedStatus(ApplicationStatus.SUBMITTED)
                 .decisionNote("Unauthorized attempt")
                 .build();
 

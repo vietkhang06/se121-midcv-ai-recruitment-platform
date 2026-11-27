@@ -164,6 +164,7 @@ function ApplicationDetail({ id }: { id: string }) {
             {matchPhaseLabels[match.phase][vi ? 0 : 1]}
             {match.score !== null && ` · ${formatMatchScore(match.score, locale)}`}
           </p>}
+          {detail.aiProcessingStatus && <p role="status" className={muted}>{statusLabel(detail.aiProcessingStatus, locale)} {detail.aiProcessingStatus.startsWith('AI_') && <button type="button" className="underline" onClick={() => setDetailAttempt(value => value + 1)}>{vi ? 'Cập nhật' : 'Refresh'}</button>}</p>}
           {detail.pinnedJd && <p className={muted}>{copy('JD tại thời điểm nộp', 'JD used at submission')} · {detail.pinnedJd.title} · v{detail.pinnedJd.version}</p>}
           {detail.skillGapAvailable ? <>
             <p className={muted}>{copy(

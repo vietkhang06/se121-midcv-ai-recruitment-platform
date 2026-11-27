@@ -3,12 +3,12 @@ type MatchPhase = 'FINAL' | 'PROVISIONAL' | 'PENDING' | 'DECLINED' | 'UNAVAILABL
 
 export function matchPresentation(input: ScoreInput): { phase: MatchPhase; score: number | null } {
   const { matchStatus: status, matchScore, aiAnalysisConsent } = input;
-  const score = typeof matchScore === 'number' && Number.isFinite(matchScore) ? matchScore : null;
+  const score = typeof matchScore === 'number' && Number.isFinite(matchScore) && matchScore >= 0 && matchScore <= 100 ? matchScore : null;
   if (aiAnalysisConsent === false || status === 'CONSENT_NOT_GIVEN') return { phase: 'DECLINED', score: null };
-  if (status === 'PGVECTOR_READY') return { phase: 'FINAL', score };
+  if (status === 'PGVECTOR_READY') return { phase: score === null ? 'UNAVAILABLE' : 'FINAL', score };
   if (status === 'FALLBACK_USED' || (status === 'PENDING_VECTOR' && score !== null))
     return { phase: 'PROVISIONAL', score };
-  if (!status || status === 'PENDING_VECTOR' || status === 'STALE_POLICY') return { phase: 'PENDING', score: null };
+  if (!status || ['PENDING_VECTOR', 'STALE_POLICY', 'AI_WAITING_DISPATCH', 'AI_QUEUED', 'AI_RUNNING', 'AI_RETRYING'].includes(status)) return { phase: 'PENDING', score: null };
   return { phase: 'UNAVAILABLE', score: null };
 }
 

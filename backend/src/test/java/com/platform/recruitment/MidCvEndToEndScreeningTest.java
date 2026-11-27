@@ -120,7 +120,7 @@ public class MidCvEndToEndScreeningTest {
         documents = new Documents(jdbcTemplate, jobQueue, events, tempDir.toString());
         textReader = new TextReader();
         taxonomyService = new TaxonomyService(null);
-        aiClient = new AiClient(jdbcTemplate, mapper, "http://localhost:11434", "granite", "bge-m3", 30, taxonomyService);
+        aiClient = new AiClient(jdbcTemplate, mapper, "https://fixture.invalid/v1", "granite", "bge-m3", 30, taxonomyService);
         skillNormalizer = new SkillNormalizer();
         pgvectorCosineSimilarity = new PgvectorCosineSimilarity();
         gitHubScoringService = new GitHubScoringService(gitHubProfileRepository, gitHubAssessmentRepository, gitHubRepositoryRepository);

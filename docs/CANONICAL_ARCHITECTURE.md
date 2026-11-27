@@ -10,12 +10,9 @@
 |---|---|---|---|---|---|---|
 | `ai-worker/app/services/document_extractor.py` | Local document text extractor (pdfplumber, pypdfium2, tesseract, docx) | `DocumentExtractionService`, `CVParser` | PRODUCTION | CANONICAL | KEEP | Thực hiện trích xuất raw text cục bộ thuần túy, không chứa code LLM. |
 | `ai-worker/app/services/document_extraction_service.py` | Service đóng gói trích xuất tài liệu, tính điểm chất lượng text và quyết định OCR | `app/api/dev_endpoints.py`, endpoints production mới | PRODUCTION | CANONICAL | KEEP & EXPOSE | Đóng gói `DocumentExtractor` + `TextQualityEvaluator`, trả về metadata trích xuất hoàn chỉnh. |
-| `ai-worker/app/services/cv_structuring_service.py` | Service chuyển đổi raw text thành structured CV JSON qua LLM provider chain | `app/api/dev_endpoints.py`, endpoints production mới | PRODUCTION | CANONICAL | KEEP & EXPOSE | Sử dụng `FallbackLLMClient`, schema validation Pydantic, chống suy diễn/bịa đặt. |
+| `ai-worker/app/services/cv_structuring_service.py` | Service chuyển đổi raw text thành structured CV JSON qua LLM provider chain | `app/api/dev_endpoints.py`, endpoints production mới | PRODUCTION | CANONICAL | KEEP & EXPOSE | Sử dụng `OpenAICompatibleClient`, schema validation Pydantic, chống suy diễn/bịa đặt. |
 | `ai-worker/app/services/structured_cv_validator.py` | Validator kiểm tra cú pháp JSON và Pydantic schema cho structured CV | `cv_structuring_service.py` | PRODUCTION | CANONICAL | KEEP | Đảm bảo tính nhất quán dữ liệu, chống rò rỉ fact không có trong raw text. |
-| `ai-worker/app/services/llm/openai_compatible_client.py` | Primary LLM client tương thích chuẩn OpenAI chat completions | `fallback_client.py`, `cv_structuring_service.py`, `endpoints.py` | PRODUCTION | CANONICAL | REFACTOR | Xử lý header, bearer auth, mapping lỗi 400/401/403/404 vs transient 408/429/5xx, cần bổ sung guard rỗng và response classification. |
-| `ai-worker/app/services/llm/ollama_client.py` | Fallback LLM client gọi local Ollama instance | `fallback_client.py`, `cv_structuring_service.py` | PRODUCTION | CANONICAL | REFACTOR | Cần sửa hardcoded `num_predict: 4096` qua cấu hình env, hỗ trợ format JSON schema. |
-| `ai-worker/app/services/llm/fallback_client.py` | Bộ điều phối Fallback: Primary trước, chỉ fallback sang Ollama khi gặp lỗi tạm thời hợp lệ | `cv_structuring_service.py` | PRODUCTION | CANONICAL | KEEP | Chặn fallback với 400, 401, 403, 404; giới hạn retry budget toàn cục. |
-| `ai-worker/app/services/llm_client.py` | Legacy monolithic LLM client kết hợp cả OpenAI và Ollama | `cv_parser.py`, `jd_parser.py`, unit tests cũ | PRODUCTION (LEGACY) | LEGACY | REFACTOR / SUPERSEDE | Chứa `num_predict: 1024` gây lỗi cắt JSON, retry lồng nhau, sẽ thay thế bằng modular LLM services. |
+| `ai-worker/app/services/llm_client.py` | Legacy monolithic LLM client kết hợp cả OpenAI và LLM Provider | `cv_parser.py`, `jd_parser.py`, unit tests cũ | PRODUCTION (LEGACY) | LEGACY | REFACTOR / SUPERSEDE | Chứa `num_predict: 1024` gây lỗi cắt JSON, retry lồng nhau, sẽ thay thế bằng modular LLM services. |
 | `ai-worker/app/services/cv_parser.py` | Monolithic parser gộp cả extraction lẫn LLM call | `endpoints.py` (`/extract-cv`) | PRODUCTION (LEGACY) | LEGACY | REFACTOR / SUPERSEDE | Gọi trực tiếp `LLMClient` cũ và tự gộp bước đọc file với bóc tách entity. |
 | `ai-worker/app/api/endpoints.py` | AI Worker HTTP API routes | Backend `AiWorkerClient` | PRODUCTION | CANONICAL | REFACTOR | Cần tích hợp canonical extraction và structuring endpoints cho production. |
 | `backend/.../cv/CVController.java` | REST Controller quản lý CV, upload, draft, confirm | Frontend web client, Postman | PRODUCTION | CANONICAL | REFACTOR | Cần chuyển upload thành bất đồng bộ trả `202 Accepted` và bổ sung `/processing-status`. |
@@ -49,9 +46,9 @@
 6. Lưu raw text thành công vào document_versions.raw_text, cập nhật trạng thái EXTRACTED, commit transaction
    ↓
 7. Operation B: CV Structuring
-   - Chỉ truyền raw text vào LLM pipeline (FallbackLLMClient)
+   - Chỉ truyền raw text vào LLM pipeline (OpenAICompatibleClient)
    - PRIMARY (OpenAI-compatible) thử trước với timeout và bounded retry
-   - Nếu lỗi tạm thời (408, 429, 5xx, timeout, invalid output) -> Fallback sang Ollama local
+   - Nếu lỗi tạm thời (408, 429, 5xx, timeout, invalid output) -> LLM Provider
    - Lỗi cố định (400, 401, 403, 404) -> THẤT BẠI NGAY LẬP TỨC, KHÔNG fallback
    - Output JSON được kiểm tra schema nghiêm ngặt bởi StructuredCVValidator
    - Factual grounding: loại bỏ mọi thực thể không có bằng chứng trong raw text
@@ -78,9 +75,9 @@
 ## 3. Kế hoạch chuyển đổi an toàn và loại bỏ mã nguồn legacy
 
 1. **Giai đoạn chuyển đổi**:
-   - Khởi tạo và liên kết các service canonical (`DocumentExtractionService`, `CVStructuringService`, `FallbackLLMClient`) vào các production routes.
-   - Chuyển `CVParser` nội bộ sang sử dụng `FallbackLLMClient` thay vì `LLMClient` legacy để bảo toàn retry budget.
-   - Sửa cấu hình `OllamaClient` tăng `num_predict` lên 4096 (hạn chế tối đa lỗi cắt cụt JSON).
+   - Khởi tạo và liên kết các service canonical (`DocumentExtractionService`, `CVStructuringService`, `OpenAICompatibleClient`) vào các production routes.
+   - Chuyển `CVParser` nội bộ sang sử dụng `OpenAICompatibleClient` thay vì `LLMClient` legacy để bảo toàn retry budget.
+   - Sửa cấu hình `LLM ProviderClient` tăng `num_predict` lên 4096 (hạn chế tối đa lỗi cắt cụt JSON).
    - Backend `CVService` tách hẳn 2 phase: trích xuất lưu `raw_text` trước, sau đó mới gọi chuẩn hóa profile.
    - Backend `ApplicationService` và `MatchingEngineService` thêm whitelist chặn đứng các version chưa `CONFIRMED`.
 2. **Tiêu chí xóa code legacy**:

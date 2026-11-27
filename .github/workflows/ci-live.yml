@@ -45,8 +45,6 @@ jobs:
       APP_AI_WORKER_URL: http://127.0.0.1:8000/internal/ai
       EMAIL_MODE: MOCK
       LLM_PRIMARY_ENABLED: "false"
-      LLM_FALLBACK_ENABLED: "false"
-      USE_MOCK_LLM: "false"
       ENABLE_DEV_AI_TEST_ENDPOINTS: "false"
       EVIDENCE_CLASSIFICATION: LIVE_INFRA
     steps:

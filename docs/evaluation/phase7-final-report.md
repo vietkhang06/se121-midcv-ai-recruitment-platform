@@ -1,5 +1,8 @@
 # PHASE 7 FINAL EVALUATION REPORT & SYSTEM VALIDATION RECORD
 
+> Số liệu lịch sử. Các số dưới đây cần tái lập trên bản mã, bộ nhãn và API đang dùng trước khi đưa vào báo cáo nghiệm thu.
+
+
 **PROJECT**: AI Recruitment Platform  
 **ĐỀ TÀI**: "Xây dựng nền tảng tuyển dụng hỗ trợ đối sánh JD và hồ sơ ứng viên bằng Vector Embedding và LLM"  
 

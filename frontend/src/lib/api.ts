@@ -98,6 +98,9 @@ interface BackendApplicationDto {
   matchScore?: number | null;
   matchStatus?: string | null;
   matchCalculationStatus?: string | null;
+  aiProcessingStatus?: string | null;
+  submittedJobTitle?: string | null;
+  appliedJdVersionId?: string | null;
   matchClassification?: string | null;
   aiAnalysisConsent?: boolean | null;
   proDetailAvailable?: boolean | null;
@@ -190,7 +193,7 @@ function toRequirementMatchStatus(value: unknown): 'MATCH' | 'PARTIAL' | 'MISSIN
 }
 
 function toGitHubStatus(value: unknown): NonNullable<import('@/types').GitHubAssessmentData['status']> {
-  const statuses = ['SYNCED', 'NOT_CONNECTED', 'PUBLIC_ONLY', 'PRIVATE_ONLY', 'API_UNAVAILABLE', 'NOT_APPLICABLE', 'RATE_LIMITED', 'NOT_FOUND', 'PENDING', 'LEGACY_MISSING_DATA'] as const;
+  const statuses = ['SYNCED', 'NOT_CONNECTED', 'PUBLIC_ONLY', 'PRIVATE_ONLY', 'NO_PUBLIC_REPOSITORIES', 'API_UNAVAILABLE', 'NOT_APPLICABLE', 'RATE_LIMITED', 'NOT_FOUND', 'PENDING', 'LEGACY_MISSING_DATA'] as const;
   return typeof value === 'string' && statuses.includes(value as typeof statuses[number]) ? value as typeof statuses[number] : 'NOT_CONNECTED';
 }
 
@@ -314,6 +317,12 @@ export class ApiError extends Error {
     this.method = method;
     this.responseBody = responseBody;
   }
+}
+
+/** Distinguish selection conflicts from ambiguous submission failures (HTTP 409). */
+export function isApplicationRevisionConflict(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 409 && isRecord(error.responseBody)
+    && isRecord(error.responseBody.error) && error.responseBody.error.code === 'CONCURRENT_MODIFICATION';
 }
 
 export function isJwtExpired(token: string | null): boolean {
@@ -575,6 +584,7 @@ export function mapBackendJobToFrontend(value: unknown): Job {
   const rawRequirements = Array.isArray(raw.requirements) ? raw.requirements : [];
   return {
     id: String(raw.id),
+    applicationRevision: readString(raw.applicationRevision) || undefined,
     title: readString(raw.title),
     companyName: readString(raw.companyName, readString(company.name)),
     companyVerified: typeof raw.companyVerified === 'boolean' ? raw.companyVerified : company.verificationStatus === 'VERIFIED',
@@ -643,7 +653,11 @@ export function mapBackendCVToFrontend(value: unknown): CV {
     isDefault: !!raw.isDefault,
     status: readString(raw.status, 'DRAFT'),
     currentVersionNumber: readNumber(raw.currentVersionNumber ?? raw.current_version_number)
-      ?? Math.max(...versions.map(version => version.versionNumber)),
+      ?? (suppliedVersions.length > 0
+        ? Math.max(...suppliedVersions.map(version => version.versionNumber))
+        : readNumber(raw.confirmedVersionNumber) ?? 1),
+    confirmedVersionId: readString(raw.confirmedVersionId) || undefined,
+    confirmedVersionNumber: readNumber(raw.confirmedVersionNumber) ?? undefined,
     rawText: readString(raw.rawText),
     updatedAt: readString(raw.createdAt).split('T')[0],
     versions
@@ -1333,6 +1347,9 @@ export class RealApiClient implements ApiClient {
       candidateAvatarId: app.candidateAvatarId ?? undefined,
       candidateName: app.candidateName || user?.fullName || '',
       matchStatus: app.matchCalculationStatus ?? app.matchStatus ?? undefined,
+      aiProcessingStatus: app.aiProcessingStatus ?? undefined,
+      submittedJobTitle: app.submittedJobTitle ?? undefined,
+      appliedJdVersionId: app.appliedJdVersionId ?? undefined,
       aiAnalysisConsent: app.aiAnalysisConsent ?? undefined,
       status: toApplicationStatus(app.status),
       appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : ''
@@ -1354,7 +1371,9 @@ export class RealApiClient implements ApiClient {
       body: JSON.stringify({
         jobId: app.job.id,
         cvId: app.appliedCvId,
-        aiAnalysisConsent: app.aiAnalysisConsent === true
+        aiAnalysisConsent: app.aiAnalysisConsent === true,
+        expectedCvVersionId: app.expectedCvVersionId,
+        expectedJobRevision: app.expectedJobRevision
       })
     });
 
@@ -1363,6 +1382,8 @@ export class RealApiClient implements ApiClient {
     return {
       ...app,
       aiAnalysisConsent: data.aiAnalysisConsent ?? undefined,
+      aiProcessingStatus: data.aiProcessingStatus ?? undefined,
+      appliedJdVersionId: data.appliedJdVersionId ?? undefined,
       job: mapApplicationJob(data),
       id: String(data.id),
       appliedCvVersion: data.appliedCvVersionNumber ?? null,
@@ -1394,6 +1415,9 @@ export class RealApiClient implements ApiClient {
       status: toApplicationStatus(app.status),
       matchScore: readNumber(app.matchScore) ?? undefined,
       matchStatus: app.matchCalculationStatus ?? app.matchStatus ?? undefined,
+      aiProcessingStatus: app.aiProcessingStatus ?? undefined,
+      submittedJobTitle: app.submittedJobTitle ?? undefined,
+      appliedJdVersionId: app.appliedJdVersionId ?? undefined,
       matchClassification: app.matchClassification ?? undefined,
       aiAnalysisConsent: app.aiAnalysisConsent ?? undefined,
       proDetailAvailable: app.proDetailAvailable ?? undefined,
@@ -1442,6 +1466,9 @@ export class RealApiClient implements ApiClient {
       status: toApplicationStatus(app.status),
       matchScore: readNumber(app.matchScore) ?? undefined,
       matchStatus: app.matchCalculationStatus ?? app.matchStatus ?? undefined,
+      aiProcessingStatus: app.aiProcessingStatus ?? undefined,
+      submittedJobTitle: app.submittedJobTitle ?? undefined,
+      appliedJdVersionId: app.appliedJdVersionId ?? undefined,
       matchClassification: app.matchClassification ?? undefined,
       aiAnalysisConsent: app.aiAnalysisConsent ?? undefined,
       proDetailAvailable: app.proDetailAvailable ?? undefined,
@@ -1492,6 +1519,9 @@ export class RealApiClient implements ApiClient {
       status: toApplicationStatus(app.status),
       matchScore: readNumber(app.matchScore) ?? undefined,
       matchStatus: app.matchCalculationStatus ?? app.matchStatus ?? undefined,
+      aiProcessingStatus: app.aiProcessingStatus ?? undefined,
+      submittedJobTitle: app.submittedJobTitle ?? undefined,
+      appliedJdVersionId: app.appliedJdVersionId ?? undefined,
       appliedDate: app.appliedAt ? String(app.appliedAt).split('T')[0] : '',
       snapshot: app.snapshot ? {
         cvTitle: app.snapshot.cvTitle ?? undefined,
@@ -2063,19 +2093,23 @@ export const fetchCandidateApplications = () => currentApiClient.fetchCandidateA
 export const submitApplication = (app: Application) => currentApiClient.submitApplication(app);
 export interface QuickApplyPreview {
   overallScore: number | null;
+  coreScore?: number | null;
+  previewScope?: 'CORE_ONLY';
+  jobRevision?: string;
+  scoringPolicyVersion?: number | null;
   status: string;
   semanticMethod: string | null;
   cvVersionId: string | null;
   jdVersionId: string | null;
 }
 /** Side-effect-free preview of the selected confirmed CV against a published job. */
-export async function previewQuickApply(jobId: string, cvId: string): Promise<QuickApplyPreview> {
+export async function previewQuickApply(jobId: string, cvId: string, expectedCvVersionId?: string, expectedJobRevision?: string): Promise<QuickApplyPreview> {
   const token = getAuthToken();
   if (!token) throw new ApiError('POST', '/api/v1/candidate/applications/match-preview', 401, 'UNAUTHORIZED', 'Chưa đăng nhập.');
   const result = await apiRequest<ApiEnvelope<QuickApplyPreview>>('/api/v1/candidate/applications/match-preview', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ jobId, cvId, aiAnalysisConsent: true })
+    body: JSON.stringify({ jobId, cvId, aiAnalysisConsent: true, expectedCvVersionId, expectedJobRevision })
   });
   return result.data;
 }
@@ -2110,7 +2144,6 @@ export interface WorkerRuntimeConfiguration {
   configurationSource: string;
   restartRequiredForChanges?: boolean;
   primary?: { enabled: boolean; provider: string; model: string };
-  fallback?: { enabled: boolean; provider: string; model: string };
   embedding?: { model: string; dimension: number };
   mockMode?: boolean;
 }

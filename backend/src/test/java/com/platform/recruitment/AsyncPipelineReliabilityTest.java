@@ -179,7 +179,7 @@ public class AsyncPipelineReliabilityTest {
 
         // assertLease finds no row because lease expired or locked_by changed
         when(jdbcTemplate.queryForList(
-                eq("SELECT id FROM processing_jobs WHERE id=? AND locked_by=? AND state='RUNNING' AND lease_until>now() FOR UPDATE"),
+                eq("SELECT id FROM processing_jobs WHERE id=? AND locked_by=? AND state='RUNNING' AND lease_until>clock_timestamp() FOR UPDATE"),
                 eq(jobId),
                 eq(workerId)
         )).thenReturn(List.of());

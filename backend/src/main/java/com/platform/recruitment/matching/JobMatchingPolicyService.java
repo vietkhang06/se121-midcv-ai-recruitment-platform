@@ -41,6 +41,9 @@ public class JobMatchingPolicyService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.platform.recruitment.worker.JobQueue jobQueue;
 
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
     @Transactional(readOnly = true)
     public JobMatchingPolicyDto getPolicy(User user, UUID jobId) {
         Job job = jobRepository.findById(jobId)
@@ -65,9 +68,15 @@ public class JobMatchingPolicyService {
 
         verifyJobOwnership(user, job);
         validateWeights(dto);
+        // Serialize policy updates with submission and scoring of the affected applications.
+        if (entityManager != null) entityManager.refresh(job, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        List<Application> affected = new java.util.ArrayList<>(applicationRepository.findByJobId(jobId));
+        affected.sort(java.util.Comparator.comparing(Application::getId));
+        if (entityManager != null) for (Application app : affected)
+            entityManager.refresh(app, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
 
         JobMatchingPolicy policy = policyRepository.findByJobId(jobId)
-                .orElseGet(() -> JobMatchingPolicy.builder().job(job).policyVersion(0).build());
+                .orElseGet(() -> JobMatchingPolicy.createDefaultPolicy(job));
 
         policy.setSkillRequiredWeight(dto.getSkillRequiredWeight().setScale(4, RoundingMode.HALF_UP));
         policy.setSkillPreferredWeight(dto.getSkillPreferredWeight().setScale(4, RoundingMode.HALF_UP));
@@ -92,18 +101,24 @@ public class JobMatchingPolicyService {
             }
             resultRepository.saveAll(existing);
         }
-        // Enqueue in the SAME transaction: failure rolls back the policy update as well.
+        // Record a durable rescore intent for new applications; retain the legacy queue contract.
         // Preserve the application CV/JD snapshots; the worker uses pinned versions.
         if (jobQueue != null) {
-            for (Application application : applicationRepository.findByJobId(jobId)) {
+            for (Application application : affected) {
                 if (Boolean.FALSE.equals(application.getAiScoringEligibleSnapshot())) continue;
                 if ("quick-apply-v1".equals(application.getAiConsentVersion())
                         && !Boolean.TRUE.equals(application.getAiAnalysisConsent())) continue;
                 if (application.getCandidate() == null || application.getCandidate().getUser() == null) {
                     throw new IllegalStateException("Application owner missing during policy invalidation");
                 }
-                jobQueue.enqueue(application.getCandidate().getUser().getId(),
-                        "MATCH", application.getId());
+                if ("WITHDRAWN".equals(String.valueOf(application.getStatus()))) continue;
+                if (application.getAiPolicySnapshot() != null) {
+                    // Explicit rescore target; submission policy remains immutable. Worker sees it after commit.
+                    application.setAiRequestedPolicySnapshot(ApplicationAiPolicy.encode(saved));
+                    application.setAiDispatchPending(true);
+                } else {
+                    jobQueue.enqueue(application.getCandidate().getUser().getId(), "MATCH", application.getId());
+                }
             }
         }
         log.info("Updated JobMatchingPolicy for job {} to version {}; existing results invalidated", jobId, saved.getPolicyVersion());
@@ -125,6 +140,7 @@ public class JobMatchingPolicyService {
         int recalculatedCount = 0;
 
         for (Application app : applications) {
+            if ("WITHDRAWN".equals(String.valueOf(app.getStatus()))) continue;
             if (Boolean.FALSE.equals(app.getAiScoringEligibleSnapshot())) continue;
             if ("quick-apply-v1".equals(app.getAiConsentVersion())
                     && !Boolean.TRUE.equals(app.getAiAnalysisConsent())) continue;

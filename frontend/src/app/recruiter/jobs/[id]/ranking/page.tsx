@@ -1,7 +1,7 @@
 'use client';
 
 import { AccountAvatar } from '@/components/account/AccountAvatar';
-import { formatMatchScore } from '@/lib/matchPresentation';
+import { formatMatchScore, matchPresentation } from '@/lib/matchPresentation';
 import { MatchScoreBadge } from '@/components/recruiter/MatchScoreBadge';
 import { statusLabel } from '@/lib/statusLabels';
 import React, { Suspense, useState, useEffect, use, useMemo, useRef } from 'react';
@@ -110,7 +110,7 @@ function RankingContent({ id }: { id: string }) {
   }, [id]);
 
   const verifiedRankings = useMemo(() => rankings.filter(row =>
-    row.calculationStatus === 'PGVECTOR_READY' && row.overallMatchScore !== null), [rankings]);
+    matchPresentation({ matchStatus: row.calculationStatus, matchScore: row.overallMatchScore }).phase === 'FINAL'), [rankings]);
   const topCandidate = verifiedRankings[0] ?? null;
   const unranked = useMemo(() => {
     const rankedIds = new Set(verifiedRankings.map(row => row.applicationId));

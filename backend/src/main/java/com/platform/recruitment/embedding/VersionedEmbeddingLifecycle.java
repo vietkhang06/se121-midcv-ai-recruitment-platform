@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
  * Canonical application-scoring vector lifecycle. Only document_versions.embedding contains
  * a usable pgvector; embeddings-table metadata is not evidence of an actual vector.
  * Both a confirmed CV and the JD persist an immutable version-bound embedding input.
- * Ollama model/dimension are verified by AiClient at generation time, never fabricated.
+ * Provider model/dimension are verified by AiClient at generation time, never fabricated.
  */
 @Service
 @RequiredArgsConstructor
@@ -62,6 +62,11 @@ public class VersionedEmbeddingLifecycle {
                             + (r.getMinYearsExp() == null ? 0 : r.getMinYearsExp()) + ")");
         }
         return text.toString().strip();
+    }
+
+    public static String applicationRevision(Job job) {
+        return Documents.shaHex(canonicalJobText(job) + "\n" + job.getStatus() + "\n"
+                + job.getApplicationDeadline() + "\n" + (job.getUpdatedAt() == null ? "" : job.getUpdatedAt().toInstant()));
     }
 
     private static void append(StringBuilder text, String label, String value) {
@@ -143,6 +148,12 @@ public class VersionedEmbeddingLifecycle {
     /** Preserve uploaded source_sha/raw_text; bind the vector to the candidate-reviewed fields. */
     @Transactional
     public UUID prepareConfirmedCv(CVVersion version, UUID owner) {
+        return prepareConfirmedCv(version, owner, true);
+    }
+
+    /** Pin reviewed input without consulting a provider or queue. */
+    @Transactional
+    public UUID prepareConfirmedCv(CVVersion version, UUID owner, boolean enqueueVector) {
         if (version == null || version.getCv() == null || version.getId() == null)
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "CV version is missing");
         String text = ConfirmedCvInput.text(version);
@@ -167,7 +178,7 @@ public class VersionedEmbeddingLifecycle {
                 version.getId(), cvId, version.getVersionNumber(), rawSourceHash,
                 rawSource,
                 version.getStructuredJsonContent(), text, hash, PIPELINE);
-        if (!versionHasCurrentVector(version.getId(), hash)) enqueueInTransaction(owner, "EMBED", version.getId());
+        if (enqueueVector && !versionHasCurrentVector(version.getId(), hash)) enqueueInTransaction(owner, "EMBED", version.getId());
         return version.getId();
     }
 
@@ -181,7 +192,9 @@ public class VersionedEmbeddingLifecycle {
     }
 
     /** Called by the queue worker: real provider result, checked SHA/dimension/model, atomic write. */
-    public void generate(UUID versionId) {
+    public void generate(UUID versionId) { generate(versionId, null, null); }
+
+    public void generate(UUID versionId, UUID processingJob, UUID worker) {
         List<Map<String, Object>> rows = jdbc.queryForList(
                 "SELECT embedding_text,embedding_source_sha,embedding_model,embedding_dimension,state,"
                 + "embedding IS NOT NULL AS has_vector FROM document_versions WHERE id=?", versionId);
@@ -198,10 +211,17 @@ public class VersionedEmbeddingLifecycle {
         // This is the only method in the normal application flow that obtains real vectors.
         String vector = ai.embed(input, model);
         AiClient.validateVector(vector);
-        int changed = jdbc.update("UPDATE document_versions SET embedding=?::vector,embedding_model=?,"
-                + "embedding_dimension=?,embedding_generated_at=now(),state='READY',pipeline_version=?,"
-                + "error_code=NULL,error_message=NULL WHERE id=? AND embedding_source_sha=? AND embedding_text=?",
-                vector, model, AiClient.EMBEDDING_DIMENSION, PIPELINE, versionId, hash, input);
+        String write = "UPDATE document_versions SET embedding=?::vector,embedding_model=?,"
+                + "embedding_dimension=?,embedding_generated_at=clock_timestamp(),state='READY',pipeline_version=?,"
+                + "error_code=NULL,error_message=NULL WHERE id=? AND embedding_source_sha=? AND embedding_text=?";
+        int changed = processingJob == null
+                ? jdbc.update(write, vector, model, AiClient.EMBEDDING_DIMENSION, PIPELINE, versionId, hash, input)
+                : jdbc.update("WITH lease AS (SELECT id FROM processing_jobs WHERE id=? AND locked_by=? "
+                        + "AND state='RUNNING' AND lease_until>clock_timestamp() FOR UPDATE) " + write
+                        + " AND EXISTS(SELECT 1 FROM lease)", processingJob, worker,
+                        vector, model, AiClient.EMBEDDING_DIMENSION, PIPELINE, versionId, hash, input);
+        if (changed != 1 && processingJob != null && !queue.ownsLease(processingJob, worker))
+            throw new CustomException(ErrorCode.JOB_LEASE_LOST, "Embedding lease expired");
         if (changed != 1) throw new CustomException(ErrorCode.CONCURRENT_MODIFICATION,
                 "Embedding source changed while generating the vector");
     }
@@ -212,7 +232,7 @@ public class VersionedEmbeddingLifecycle {
                 "SELECT DISTINCT a.id AS id,cp.user_id AS owner FROM applications a "
                 + "JOIN candidate_profiles cp ON cp.id=a.candidate_id "
                 + "WHERE (a.applied_cv_version_id=? OR a.applied_jd_version_id=?) AND a.status<>'WITHDRAWN' "
-                + "AND a.ai_analysis_consent=true AND a.ai_scoring_eligible_snapshot IS DISTINCT FROM false",
+                + "AND a.ai_analysis_consent=true AND a.ai_scoring_eligible_snapshot IS DISTINCT FROM false AND a.ai_dispatch_pending=false",
                 versionId, versionId);
         for (Map<String, Object> app : apps) {
             queue.enqueue((UUID) app.get("owner"), "MATCH", (UUID) app.get("id"));

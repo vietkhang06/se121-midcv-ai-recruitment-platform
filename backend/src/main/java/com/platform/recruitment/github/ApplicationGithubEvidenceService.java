@@ -33,18 +33,26 @@ public class ApplicationGithubEvidenceService {
         String domain = Objects.toString(industry, "").trim().toLowerCase(Locale.ROOT);
         String text = Objects.toString(description, "").toLowerCase(Locale.ROOT);
         return Set.of("it", "technology", "software", "information technology", "công nghệ thông tin").contains(domain)
-                && List.of("helpdesk", "it support", "technical support", "recruiter", "no coding required", "no github required")
+                && List.of("helpdesk", "it support", "technical support", "recruiter", "no coding required", "no github required", "hỗ trợ kỹ thuật", "hỗ trợ công nghệ thông tin",
+                        "không yêu cầu lập trình", "không yêu cầu github")
                    .stream().noneMatch(text::contains);
     }
 
     /** The worker calls this outside the scoring transaction. A successful observation is immutable. */
     public void capture(UUID applicationId) {
+        capture(applicationId, null, null);
+    }
+
+    public void capture(UUID applicationId, UUID processingJob, UUID worker) {
         var rows = jdbc.queryForList("""
             SELECT a.github_username_snapshot,a.github_snapshot_contract,a.github_scan_snapshot,
                    a.ai_analysis_consent,a.ai_scoring_eligible_snapshot,a.status,c.user_id,
                    COALESCE(v.normalized->>'industry',j.industry) AS industry,
                    COALESCE(v.normalized->>'description',j.description) AS description,
-                   COALESCE(p.is_github_active,true) AND COALESCE(p.github_weight,0.15)>0 AS enabled
+                   COALESCE((a.ai_requested_policy_snapshot::jsonb->>'isGithubActive')::boolean,
+                            (a.ai_policy_snapshot::jsonb->>'isGithubActive')::boolean,p.is_github_active,true)
+                   AND COALESCE((a.ai_requested_policy_snapshot::jsonb->>'githubWeight')::numeric,
+                            (a.ai_policy_snapshot::jsonb->>'githubWeight')::numeric,p.github_weight,0.15)>0 AS enabled
               FROM applications a JOIN candidate_profiles c ON c.id=a.candidate_id
               JOIN jobs j ON j.id=a.job_id
               LEFT JOIN document_versions v ON v.id=a.applied_jd_version_id AND v.document_id=j.id
@@ -75,7 +83,7 @@ public class ApplicationGithubEvidenceService {
                     boolean owned = oauth.matchesGithubIdentity((UUID) row.get("user_id"), handle, response.path("github_user_id").asText());
                     snapshot.put("ownership_status", owned ? "OWNED" : "UNVERIFIED_PUBLIC");
                     if (!owned) snapshot.put("status", "PUBLIC_ONLY");
-                    else if (response.path("repos").isEmpty()) snapshot.put("status", "PRIVATE_ONLY");
+                    else if (response.path("repos").isEmpty()) snapshot.put("status", "NO_PUBLIC_REPOSITORIES");
                 }
             } catch (CustomException error) {
                 snapshot.put("status", error.getErrorCode() == ErrorCode.RATE_LIMIT_EXCEEDED ? "RATE_LIMITED"
@@ -83,9 +91,20 @@ public class ApplicationGithubEvidenceService {
             }
         }
         // CAS: do not overwrite a concurrent worker's snapshot or a withdrawn application.
-        jdbc.update("UPDATE applications SET github_scan_snapshot=? WHERE id=? AND ai_analysis_consent=true "
-                + "AND status<>'WITHDRAWN' AND github_scan_snapshot IS NOT DISTINCT FROM ?",
-                snapshot.toString(), applicationId, row.get("github_scan_snapshot"));
+        String cas = "UPDATE applications SET github_scan_snapshot=? WHERE id=? AND ai_analysis_consent=true "
+                + "AND ai_scoring_eligible_snapshot IS DISTINCT FROM false AND status<>'WITHDRAWN' "
+                + "AND github_scan_snapshot IS NOT DISTINCT FROM ?";
+        if (processingJob == null) {
+            jdbc.update(cas, snapshot.toString(), applicationId, row.get("github_scan_snapshot"));
+        } else {
+            // Lock application before lease, consistent with the dispatcher and MATCH persistence.
+            jdbc.update("WITH app_guard AS MATERIALIZED (SELECT id FROM applications WHERE id=? AND ai_analysis_consent=true "
+                    + "AND ai_scoring_eligible_snapshot IS DISTINCT FROM false AND status<>'WITHDRAWN' FOR UPDATE), "
+                    + "lease AS (SELECT p.id FROM processing_jobs p CROSS JOIN app_guard WHERE p.id=? AND p.locked_by=? "
+                    + "AND p.state='RUNNING' AND p.lease_until>clock_timestamp() FOR UPDATE OF p) " + cas
+                    + " AND EXISTS(SELECT 1 FROM lease)", applicationId, processingJob, worker,
+                    snapshot.toString(), applicationId, row.get("github_scan_snapshot"));
+        }
     }
 
     public record Evaluation(BigDecimal score, MatchInspectionResponse.GitHubAssessmentInfo assessment) {}

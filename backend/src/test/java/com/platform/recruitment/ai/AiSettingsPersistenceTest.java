@@ -16,40 +16,33 @@ import static org.junit.jupiter.api.Assertions.*;
 /** H2 persistence and loopback HTTP model contract, not a live LLM/provider test. */
 class AiSettingsPersistenceTest {
     JdbcTemplate db;TransactionTemplate tx;ObjectMapper mapper=new ObjectMapper();
-    AiClient client() throws Exception {return new AiClient(db,mapper,"http://127.0.0.1:11434","local-model","bge-m3",5);}
+    AiClient client() throws Exception {return new AiClient(db,mapper,"https://environment.example/v1","env-model","text-embedding-3-small",5);}
     @BeforeEach void fixture() {
         var ds=new DriverManagerDataSource("jdbc:h2:mem:"+UUID.randomUUID()+";MODE=PostgreSQL;DB_CLOSE_DELAY=-1","sa","");
         db=new JdbcTemplate(ds);tx=new TransactionTemplate(new DataSourceTransactionManager(ds));
-        db.execute("CREATE TABLE system_ai_settings(id VARCHAR PRIMARY KEY,provider VARCHAR,ollama_url VARCHAR,ollama_model VARCHAR,cloud_base_url VARCHAR,cloud_api_key VARCHAR,cloud_model VARCHAR,embedding_provider VARCHAR,embedding_model VARCHAR,updated_at TIMESTAMP)");
-        db.update("INSERT INTO system_ai_settings VALUES('current','LOCAL_OLLAMA','http://127.0.0.1:11434','local-model','https://example.invalid/v1','fixture-key','cloud-a','LOCAL_OLLAMA','bge-m3',CURRENT_TIMESTAMP)");
+        db.execute("CREATE TABLE system_ai_settings(id VARCHAR PRIMARY KEY,provider VARCHAR,cloud_base_url VARCHAR,cloud_api_key VARCHAR,cloud_model VARCHAR,embedding_provider VARCHAR,embedding_model VARCHAR,updated_at TIMESTAMP)");
+        db.update("INSERT INTO system_ai_settings VALUES('current','CLOUD_OPENAI_COMPATIBLE','https://example.invalid/v1','fixture-key','cloud-a','CLOUD_OPENAI_COMPATIBLE','text-embedding-3-small',CURRENT_TIMESTAMP)");
     }
-    @Test void legacyLoopbackSettingUsesExplicitRuntimeEndpointInsideContainer() throws Exception {
-        db.update("UPDATE system_ai_settings SET ollama_url='http://localhost:11434' WHERE id='current'");
-        AiClient containerClient = new AiClient(db, mapper, "http://host.docker.internal:11434", "local-model", "bge-m3", 5);
-        assertEquals("http://host.docker.internal:11434", containerClient.getSettings().ollamaUrl());
+    @Test void anEmptyDatabaseKeyUsesProviderEnvironment() throws Exception {
+        db.update("UPDATE system_ai_settings SET cloud_api_key='' WHERE id='current'");
+        assertEquals("https://environment.example/v1", client().getSettings().cloudBaseUrl());
+        assertEquals("env-model", client().activeLlmModel());
     }
-
-    @Test void explicitPrivateOllamaEndpointInDatabaseIsPreserved() throws Exception {
-        db.update("UPDATE system_ai_settings SET ollama_url='https://ollama.internal.example/v1' WHERE id='current'");
-        AiClient containerClient = new AiClient(db, mapper, "http://host.docker.internal:11434", "local-model", "bge-m3", 5);
-        assertEquals("https://ollama.internal.example/v1", containerClient.getSettings().ollamaUrl());
-    }
-
     @Test void changedModelPersistsAfterClientRecreation() throws Exception {
-        var c=client();assertEquals("local-model",c.activeLlmModel());
-        tx.execute(status->{c.updateSettings("CLOUD_OPENAI_COMPATIBLE","http://127.0.0.1:11434","local-model","https://example.invalid/v1","","cloud-b");return null;});
+        var c=client();assertEquals("cloud-a",c.activeLlmModel());
+        tx.execute(status->{c.updateSettings("https://example.invalid/v1","fixture-key","cloud-b");return null;});
         assertEquals("cloud-b",client().activeLlmModel());assertEquals("fixture-key",client().getSettings().cloudApiKey());
     }
     @Test void uncommittedSettingsAreNotPublishedThroughSharedCache() throws Exception {
         var c=client();c.getSettings();var pool=Executors.newSingleThreadExecutor();
         try {
             tx.execute(status->{
-                c.updateSettings("CLOUD_OPENAI_COMPATIBLE","http://127.0.0.1:11434","local-model","https://example.invalid/v1","","not-committed");
+                c.updateSettings("https://example.invalid/v1","fixture-key","not-committed");
                 assertEquals("not-committed",c.activeLlmModel());
-                try {assertEquals("local-model",pool.submit(c::activeLlmModel).get(5,TimeUnit.SECONDS));}catch(Exception failure){throw new RuntimeException(failure);}
+                try {assertEquals("cloud-a",pool.submit(c::activeLlmModel).get(5,TimeUnit.SECONDS));}catch(Exception failure){throw new RuntimeException(failure);}
                 status.setRollbackOnly();return null;
             });
-            assertEquals("local-model",c.activeLlmModel());assertEquals("local-model",client().activeLlmModel());
+            assertEquals("cloud-a",c.activeLlmModel());assertEquals("cloud-a",client().activeLlmModel());
         } finally {pool.shutdownNow();}
     }
     @Test void actualHttpRequestAfterRecreationUsesPersistedModelAndRecordsResolvedName() throws Exception {
@@ -61,7 +54,7 @@ class AiSettingsPersistenceTest {
         });server.start();
         try {
             String base="http://127.0.0.1:"+server.getAddress().getPort()+"/v1";var before=client();
-            before.updateSettings("CLOUD_OPENAI_COMPATIBLE","http://127.0.0.1:11434","local-model",base,"fixture-key","selected-fixture-model");
+            before.updateSettings(base,"fixture-key","selected-fixture-model");
             var after=client();assertEquals("{}",after.callCloudOpenAi(after.getSettings(),"Fixture contract","Fixture input"));
             assertEquals("selected-fixture-model",request.get().path("model").asText());
             assertEquals("provider-resolved-fixture",after.lastModelTrace().get("resolvedModel"));

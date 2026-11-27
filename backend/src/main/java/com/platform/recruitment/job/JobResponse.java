@@ -18,6 +18,7 @@ import java.util.UUID;
 public class JobResponse {
 
     private UUID id;
+    private String applicationRevision;
     private UUID companyId;
     private String companyName;
     private String title;

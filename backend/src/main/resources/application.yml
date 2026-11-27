@@ -78,9 +78,12 @@ app:
   upload-dir: ${UPLOAD_DIR:${FILE_STORAGE_PATH:./uploads}}
   file-storage-path: ${FILE_STORAGE_PATH:${UPLOAD_DIR:./uploads}}
   worker-enabled: ${WORKER_ENABLED:true}
-  llm-url: ${OLLAMA_URL:http://localhost:11434}
-  llm-model: ${LLM_MODEL:dna5rm/granite4.2:3b-8k}
-  embedding-model: ${EMBEDDING_MODEL:bge-m3}
+  llm-url: ${LLM_PRIMARY_BASE_URL:https://api.openai.com/v1}
+  llm-api-key: ${LLM_PRIMARY_API_KEY:}
+  embedding-url: ${EMBEDDING_BASE_URL:}
+  embedding-api-key: ${EMBEDDING_API_KEY:}
+  llm-model: ${LLM_PRIMARY_MODEL:gpt-4o-mini}
+  embedding-model: ${EMBEDDING_MODEL:text-embedding-3-small}
   github-token: ${GITHUB_TOKEN:}
   ai-timeout-seconds: ${AI_TIMEOUT_SECONDS:360}
   ai-num-ctx: ${AI_NUM_CTX:8192}

@@ -50,7 +50,7 @@ async function fixture(page: Page, options: { lostResponse?: boolean; closed?: b
     }
     if (path.endsWith(`/jobs/${job.id}/rankings`)) return send([{ applicationId: app.id, candidateId: 'nav-user', candidateName: app.candidateName, applicationStatus: 'SUBMITTED', calculationStatus: 'PGVECTOR_READY', overallScore: 85, coreScore: 85, requiredSkillsMatched: 1, requiredSkillsTotal: 1 }]);
     if (path.endsWith(`/jobs/${job.id}/applications`)) return send([{ ...app, matchScore: 85, matchStatus: 'PGVECTOR_READY' }]);
-    if (path.endsWith(`/recruiter/applications/${app.id}`)) return send(app);
+    if (path.endsWith(`/recruiter/applications/${app.id}`)) return send({ ...app, aiAnalysisConsent: true });
     if (path.endsWith(`/applications/${app.id}/inspection`)) return send(null, state.inspectionFail ? 503 : 404);
     if (path.endsWith('/candidate/profile')) return send({ id: 'nav-user', fullName: 'Navigation Fixture', targetIndustry: 'Technology' });
     if (path.endsWith('/auth/oauth/github/connection')) return send({ connected: false, ownershipVerified: false, scanScope: 'PUBLIC_PROFILE_ONLY' });
@@ -196,10 +196,10 @@ for (const width of [375, 768, 1440]) {
     await page.goto(ranking);
     await expect(page.getByRole('combobox', { name: /Điểm Overall tối thiểu|Minimum Overall Score/ })).toHaveValue('80');
     await page.locator(`a[href*="/recruiter/applications/${app.id}?returnTo="]`).first().click();
-    await expect(page.getByRole('alert').filter({ hasText: /Không tải được báo cáo AI|Could not load the AI report/ })).toBeVisible();
+    await expect(page.getByRole('alert').filter({ hasText: /Không tải được báo cáo AI|The AI report could not be loaded/ })).toBeVisible();
     state.inspectionFail = false;
-    await page.getByRole('alert').filter({ hasText: /Không tải được báo cáo AI|Could not load the AI report/ }).getByRole('button').click();
-    await expect(page.getByRole('alert').filter({ hasText: /Không tải được báo cáo AI|Could not load the AI report/ })).toHaveCount(0);
+    await page.getByRole('alert').filter({ hasText: /Không tải được báo cáo AI|The AI report could not be loaded/ }).getByRole('button').click();
+    await expect(page.getByRole('alert').filter({ hasText: /Không tải được báo cáo AI|The AI report could not be loaded/ })).toHaveCount(0);
     await page.getByRole('link', { name: /Quay lại bảng xếp hạng|Back to ranking/ }).click();
     await expect(page.getByRole('combobox', { name: /Điểm Overall tối thiểu|Minimum Overall Score/ })).toHaveValue('80');
     await expect(page.getByRole('checkbox', { name: /Chỉ hiển thị ứng viên|Only show candidates/ })).toBeChecked();

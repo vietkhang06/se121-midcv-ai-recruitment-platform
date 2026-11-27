@@ -1,5 +1,8 @@
 # EXTRACTION QUALITY EVALUATION REPORT
 
+> Số liệu lịch sử. Các số dưới đây cần tái lập trên bản mã, bộ nhãn và API đang dùng trước khi đưa vào báo cáo nghiệm thu.
+
+
 Tài liệu này báo cáo kết quả thực nghiệm đánh giá độ chính xác trích xuất dữ liệu tự động từ Mô đun Python AI Worker (JD Parser, CV Parser, Section Detection, Required vs Preferred Skill Classification, và Normalization Engine).
 
 ---
